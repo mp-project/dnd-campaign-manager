@@ -1,0 +1,446 @@
+// Prisma-Schema mit Relationen für PostgreSQL (Prisma-kompatibel)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String?  @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                 String   @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user               User     @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  acts           Act[]
+  locations      Location[]
+  npcs           Npc[]
+  monsters       Monster[]
+  items          Item[]
+  factions       Faction[]
+  charismaMatrix CharismaMatrix[]
+  playerGroups   PlayerGroup[]
+  logs           CampaignLog[]
+  config         Config?
+}
+
+model Act {
+  id          String   @id @default(cuid())
+  title       String
+  summary     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deleted     Boolean @default(false)
+
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  quests      Quest[]
+  fillers     Filler[]
+  events      Event[]
+}
+
+model Config {
+  id         String @id @default(cuid())
+  settings   Json
+  files      Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaignId String @unique
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model PlayerGroup {
+  id             String @id @default(cuid())
+  name           String
+  campaignId     String
+  campaign       Campaign @relation(fields: [campaignId], references: [id])
+  players        Player[]
+  charismaValues CharismaProfile[]
+}
+
+model Player {
+  id              String @id @default(cuid())
+  name            String
+  groupId         String
+  group           PlayerGroup @relation(fields: [groupId], references: [id])
+  charismaProfile CharismaProfile[]
+}
+
+model Quest {
+  id           String @id @default(cuid())
+  title        String
+  summary      String?
+  requirements Json?
+  decisions    Json?
+  rewards      Json?
+  tags         String[]
+  visuals      Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deleted      Boolean @default(false)
+
+  actId        String
+  act          Act @relation(fields: [actId], references: [id])
+  steps        QuestStep[]
+  giverNpcId   String?
+  giverNpc     Npc? @relation("QuestGiver", fields: [giverNpcId], references: [id])
+  startLocationId String?
+  startLocation   Location? @relation("QuestStart", fields: [startLocationId], references: [id])
+  items       Item[]
+}
+
+model QuestStep {
+  id               String @id @default(cuid())
+  title            String
+  description      String
+  optional         Boolean @default(false)
+  requirements     Json?
+  decision         Json?
+  nextStepByOutcome Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deleted          Boolean @default(false)
+
+  questId          String
+  quest            Quest @relation(fields: [questId], references: [id])
+  encounter        Encounter?
+}
+
+model Filler {
+  id          String @id @default(cuid())
+  title       String
+  description Json?
+  trigger     Json?
+  visuals     Json?
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deleted     Boolean @default(false)
+
+  actId       String
+  act         Act @relation(fields: [actId], references: [id])
+}
+
+model Event {
+  id          String @id @default(cuid())
+  title       String
+  description Json?
+  trigger     Json?
+  visuals     Json?
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deleted     Boolean @default(false)
+
+  actId       String
+  act         Act @relation(fields: [actId], references: [id])
+}
+
+model Encounter {
+  id            String @id @default(cuid())
+  title         String
+  type          String
+  description   Json?
+  trigger       Json?
+  objectives    String[]
+  rewards       Json?
+  environment   Json?
+  visuals       Json?
+  dialogOptions Json?
+  skillChecks   Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deleted       Boolean @default(false)
+
+  questStep     QuestStep? @relation(fields: [questStepId], references: [id])
+  questStepId   String? @unique
+
+  monsters      EncounterMonster[]
+  npcs          EncounterNpc[]
+  items         Item[]
+}
+model EncounterMonster {
+  id           String   @id @default(cuid())
+  encounterId  String
+  monsterId    String
+  encounter    Encounter @relation(fields: [encounterId], references: [id])
+  monster      Monster   @relation(fields: [monsterId], references: [id])
+}
+model EncounterNpc {
+  id           String   @id @default(cuid())
+  encounterId  String
+  npcId        String
+  encounter    Encounter @relation(fields: [encounterId], references: [id])
+  npc          Npc       @relation(fields: [npcId], references: [id])
+}
+
+
+model Location {
+  id                     String @id @default(cuid())
+  name                   String
+  type                   String?
+  subtype                String?
+  parentId               String?
+  description            Json?
+  connectedLocationIds   String[]
+  tags                   String[]
+  visuals                Json?
+  assets                 Json?
+  accessConditions       Json?
+  position               Json?
+  tagsGameplay           String[]
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  deleted                Boolean @default(false)
+
+  campaignId             String
+  campaign               Campaign @relation(fields: [campaignId], references: [id])
+  questsStartedHere      Quest[] @relation("QuestStart")
+}
+
+model Npc {
+  id                String @id @default(cuid())
+  name              String
+  alias             String?
+  race              String?
+  class             String?
+  alignment         String?
+  role              String?
+  description       String?
+  hoverInfo         String?
+  media             Json?
+  tags              String[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deleted           Boolean @default(false)
+
+  encounters EncounterNpc[]
+  items             Item[]
+  campaignId        String
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  charismaProfile   CharismaProfile[]
+  questsGiven       Quest[] @relation("QuestGiver")
+}
+
+model CharacterStats {
+  id           String @id @default(cuid())
+  strength     Int
+  dexterity    Int
+  constitution Int
+  intelligence Int
+  wisdom       Int
+  charisma     Int
+  skills       Json?
+  abilities    String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deleted      Boolean @default(false)
+}
+
+model Monster {
+  id                 String @id @default(cuid())
+  name               String
+  type               String?
+  size               String?
+  alignment          String?
+  hitPoints          Int
+  armorClass         Int
+  initiativeModifier Int
+  attributes         Json
+  attacks            Json
+  resistances        String[]
+  vulnerabilities    String[]
+  immunities         String[]
+  loot               Json?
+  behavior           Json?
+  description        Json?
+  media              Json?
+  tags               String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deleted            Boolean @default(false)
+
+  encounters EncounterMonster[]
+  items              Item[]
+  campaignId         String
+  campaign           Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model Item {
+  id           String @id @default(cuid())
+  name         String
+  type         String?
+  subtype      String?
+  rarity       String?
+  description  String?
+  effects      Json?
+  value        Int?
+  charges      Int?
+  crafting     Json?
+  abilityCheck Json?
+  visuals      Json?
+  tags         String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deleted      Boolean @default(false)
+
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id])
+
+  questId      String?
+  quest        Quest?     @relation(fields: [questId], references: [id])
+  npcId        String?
+  npc          Npc?       @relation(fields: [npcId], references: [id])
+  monsterId    String?
+  monster      Monster?   @relation(fields: [monsterId], references: [id])
+  encounterId  String?
+  encounter    Encounter? @relation(fields: [encounterId], references: [id])
+}
+
+
+model Faction {
+  id               String @id @default(cuid())
+  name             String
+  alias            String?
+  type             String?
+  alignment        String?
+  visibility       String?
+  knownToPublic    Boolean @default(true)
+  description      String?
+  values           String[]
+  goals            String[]
+  territories      String[]
+  influenceLevel   Int?
+  reputationScore  Int
+  leaders          Json?
+  representatives  Json?
+  tags             String[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deleted          Boolean @default(false)
+
+  campaignId       String
+  campaign         Campaign @relation(fields: [campaignId], references: [id])
+  charismaProfiles CharismaProfile[]
+}
+
+model CharismaMatrix {
+  id         String @id @default(cuid())
+  name       String
+  tiers      Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  profiles   CharismaProfile[]
+}
+
+model CharismaProfile {
+  id           String @id @default(cuid())
+  currentScore Int
+  tier         Int
+  scope        String?
+  modifiers    Json?
+  tags         String[]
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  matrixId     String
+  matrix       CharismaMatrix @relation(fields: [matrixId], references: [id])
+  npcId        String?
+  npc          Npc? @relation(fields: [npcId], references: [id])
+  factionId    String?
+  faction      Faction? @relation(fields: [factionId], references: [id])
+  playerId     String?
+  player       Player? @relation(fields: [playerId], references: [id])
+  groupId      String?
+  group        PlayerGroup? @relation(fields: [groupId], references: [id])
+}
+
+model CampaignLog {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  type       String
+  data       Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model Note {
+  id           String   @id @default(cuid())
+  title        String
+  content      String
+  tags         String[]
+  deleted      Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  targetType   String   // z. B. "npc", "quest", "location"
+  targetId     String   // ID der Zielentität
+}
+

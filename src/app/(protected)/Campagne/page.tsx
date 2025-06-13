@@ -4,13 +4,11 @@ import { Navbar } from '@/components/navigation/navbar'
 const DashboardPage = async () => {
     const session = await auth()
 
-    const user = session?.user
-        ? {
-              name: session.user.name,
-              email: session.user.email,
-              imageUrl: session.user.imageUrl,
-          }
-        : undefined
+    const user = session?.user ? {
+        name: session.user.name,
+        email: session.user.email,
+        imageUrl: session.user.imageUrl
+    } : undefined
     const logoutForm = (
         <form
             action={async () => {
@@ -18,7 +16,7 @@ const DashboardPage = async () => {
                 await signOut()
             }}
         >
-            <button className='w-full' type='submit'>Sign Out</button>
+            <button type='submit'>Sign Out</button>
         </form>
     )
     return (
@@ -28,6 +26,8 @@ const DashboardPage = async () => {
             <div>
                 Session: {JSON.stringify(session)}
                 <br />
+
+                
             </div>
         </>
     )

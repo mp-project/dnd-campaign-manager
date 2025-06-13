@@ -4,6 +4,7 @@ import { BellIcon, MenuIcon, XIcon } from '@heroicons/react/outline'
 import React from 'react';
 import Image from 'next/image'
 import { UserIcon } from '../ui/user-icon';
+import { LoginButton } from '../auth/login-button';
 
 
 type NavigationItem = {
@@ -50,7 +51,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
                 <div className='flex h-16 items-center justify-between'>
                     <div className='flex items-center'>
                         <div className='flex-shrink-0'>
-                            <Image className='nav-logo' alt='logo' src='/logo_panda_light.svg' width={60} height={60} />
+                            <Image
+                                className='nav-logo'
+                                alt='logo'
+                                src='/logo_panda_light.svg'
+                                width={60}
+                                height={60}
+                            />
                             {/* <Image className='theme-light' alt='logo' src='/logo_panda.svg' width={60} height={60} /> */}
                         </div>
                         <div className='hidden md:block'>
@@ -102,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
                                     leaveFrom='transform opacity-100 scale-100'
                                     leaveTo='transform opacity-0 scale-95'
                                 >
-                                    <MenuItems className='absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                                    <MenuItems className='absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
                                         {userNavigation.map((item) => (
                                             <MenuItem key={item.name}>
                                                 {({ focus }) => (
@@ -110,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
                                                         href={item.href}
                                                         className={classNames(
                                                             focus ? 'bg-gray-100' : '',
-                                                            'block px-4 py-2 text-sm text-gray-700'
+                                                            'block px-4 py-2 text-sm text-gray-700 w-full text-center first:hover:rounded-t-md'
                                                         )}
                                                     >
                                                         {item.name}
@@ -118,6 +125,37 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
                                                 )}
                                             </MenuItem>
                                         ))}
+                                        {logoutForm && user && (
+                                            <MenuItem>
+                                                {({ focus }) => (
+                                                    <>
+                                                        <div className='border-t border-slate-700 mt-2 pb-2 border-gray-200'></div>
+                                                        <div
+                                                            className={classNames(
+                                                                focus ? 'bg-gray-100' : '',
+                                                                'block px-4 py-2 text-sm text-white bg-red-500'
+                                                            )}
+                                                        >
+                                                            {logoutForm}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </MenuItem>
+                                        )}
+                                        {!user && (
+                                            <MenuItem>
+                                                {({ focus }) => (
+                                                    <LoginButton
+                                                        className={classNames(
+                                                            focus ? 'bg-gray-100' : '',
+                                                            'block px-4 py-2 text-sm text-gray-700 w-full text-center first:hover:rounded-t-md cursor-pointer hover:bg-gray-100'
+                                                        )}
+                                                    >
+                                                        Login
+                                                    </LoginButton>
+                                                )}
+                                            </MenuItem>
+                                        )}
                                     </MenuItems>
                                 </Transition>
                             </Menu>

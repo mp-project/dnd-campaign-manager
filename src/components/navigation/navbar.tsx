@@ -49,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
             <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
                 <div className='flex h-16 items-center justify-between'>
                     <div className='flex items-center'>
-                        <div className='flex-shrink-0'>
+                        <div className='shrink-0'>
                             <Image className='nav-logo' alt='logo' src='/logo_panda_light.svg' width={60} height={60} />
                             {/* <Image className='theme-light' alt='logo' src='/logo_panda.svg' width={60} height={60} /> */}
                         </div>
@@ -155,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
                 {user && (
                     <div className='border-t border-gray-700 pb-3 pt-4'>
                         <div className='flex items-center px-5'>
-                            <div className='flex-shrink-0'></div>
+                            <div className='shrink-0'></div>
                             <div className='ml-3'>
                                 <div className='text-base font-medium leading-none text-white'>
                                     {user.name}
@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, logoutForm }) => {
                             </div>
                             <button
                                 type='button'
-                                className='relative ml-auto flex-shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800'
+                                className='relative ml-auto shrink-0 rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800'
                             >
                                 <span className='absolute -inset-1.5' />
                                 <span className='sr-only'>View notifications</span>

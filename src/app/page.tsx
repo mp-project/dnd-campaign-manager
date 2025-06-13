@@ -20,8 +20,8 @@ export default async function Home() {
       <>
           <Navbar user={user} />
           <div className='flex flex-col min-h-screen'>
-              <main className='flex flex-1 flex-col items-center justify-center p-24 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800'>
-                  <h2 className='text-center text-white text-3xl font-bold p-2 mb-[2rem]'>
+              <main className='flex flex-1 flex-col items-center justify-center p-24 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-sky-400 to-blue-800'>
+                  <h2 className='text-center text-white text-3xl font-bold p-2 mb-8'>
                       Wir bauen um
                   </h2>
                   <div className='w-[70%] max-h-[500px] mx-auto'>

@@ -1,4 +1,5 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
 html,
 body,
 :root {
@@ -52,7 +53,7 @@ body,
 }
 @layer base {
   * {
-    @apply border-border;
+
   }
   body {
     @apply bg-background text-foreground;
@@ -65,5 +66,3 @@ body,
 html nav {
   background-color: red;
 }
-
-/*# sourceMappingURL=globals.css.map */

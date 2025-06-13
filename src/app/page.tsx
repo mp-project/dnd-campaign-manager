@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Poppins } from 'next/font/google';
 import { cn } from "@/lib/utils";
 import { LoginButton } from "@/components/auth/login-button";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import Link from "next/link";
 import { Navbar } from "@/components/navigation/navbar";
 import { auth } from "@/auth";

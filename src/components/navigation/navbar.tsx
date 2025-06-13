@@ -2,7 +2,7 @@
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
 import { BellIcon, MenuIcon, XIcon } from '@heroicons/react/24/outline';
 import React from 'react';
-import Image from 'next/image'
+import Image from "next/legacy/image"
 import { UserIcon } from '../ui/user-icon';
 
 

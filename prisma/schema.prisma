@@ -32,6 +32,7 @@ model User {
   accounts      Account[]
 
   sessions      Session[]
+  campaigns Campaign[]
 }
 
 model Account {
@@ -92,6 +93,7 @@ model Campaign {
   playerGroups   PlayerGroup[]
   logs           CampaignLog[]
   config         Config?
+  user   User @relation(fields: [userId], references: [id])
 }
 
 model Act {

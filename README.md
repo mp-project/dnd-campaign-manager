@@ -1,76 +1,37 @@
-# 🐉 D&D Campaign Manager
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-A web-based campaign builder and game master tool for managing immersive, decision-driven Dungeons & Dragons campaigns.
-
-## 🚀 Tech Stack
-
-- **Frontend**: JavaScript, Tailwind CSS, Next.js (App Router)
-- **Backend**: Node.js, Prisma ORM
-- **Database**: PostgreSQL (later on Vercel)
-- **Auth**: NextAuth.js (Credentials + Google/GitHub)
-- **Other**: Zod for validation, FontAwesome for icons
-- **Hosting**: Vercel (planned)
-- **Version Control**: GitHub
-
-## 📦 Features (Planned)
-
-- User account system
-- Campaign creation with scenes and decision trees
-- Linkable assets: NPCs, Monsters, Items, Locations
-- GM mode to follow narrative paths and track decisions
-- dice rolling and encounter presets/templates
-- Asset hover previews
-- Campaign logs, progress stats & summaries
-- Auto difficulty balancing & stat generation
-
-## 🧭 Roadmap (Development Plan)
-
-### ✅ Phase 1: Environment Setup *(in progress)*
-- [x] Initialize Next.js project with App Router
-- [x] Add Tailwind CSS
-- [x] Setup Git and connect to GitHub
-- [ ] Create base file structure (components, features, prisma, etc.)
-- [ ] Initialize Prisma + configure SQLite
-- [ ] Setup `User` model as initial schema
-- [ ] Setup `Campaign, Scene, Decision,DecisionTree, Player` models
-- [ ] Setup `NPC, Monster, Item, Location` models
-- [ ] Setup `Encounter, EncounterTemplate` models
-- [ ] Add first seed script & dummy data
-- [ ] Setup logging and error handling
-
-### 🔐 Phase 2: Auth & User Systems
-- [ ] Setup NextAuth.js (credentials, Google, GitHub)
-- [ ] Create user dashboard and profile management
-- [ ] Campaign visibility settings (private/public)
-
-### 🔄 Phase 3: Asset & Campaign Management
-- [ ] Create UI to add/edit NPCs, Monsters, Items, Locations
-- [ ] Implement asset referencing in scenes and other assets
-- [ ] Create UI to add/edit campaigns
-- [ ] Link assets in scenes with hover previews
-- [ ] Build decision-tree scene editor with linking logic
-- [ ] Implement auto difficulty balancing for encounters
-- [ ] Implement encounter template system
-- [ ] Create dice rolling feature with presets/templates
-- [ ] Implement GM mode for following narrative paths
-- [ ] Implement GM view for playing through scenes with decisions
+## Getting Started
 
 
-### 📊 Phase 4: Logging & Stats
-- [ ] Campaign progress tracker
-- [ ] Decision summary view
-- [ ] Encounter and reward log
+First, run the development server:
 
-### 🌐 Phase 5: UI/UX & Deployment
-- [ ] Add responsive design & placeholders
-- [ ] Add loading animations & transitions
-- [ ] Deploy to Vercel
-- [ ] Write user documentation / wiki
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-## 💡 Why this project?
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-This project is both a portfolio piece and a personal tool for learning full-stack development using modern technologies while building something fun and useful for tabletop RPGs.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## 🤝 Contributions
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-This is a learning project so please excuse any rough edges. 
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.

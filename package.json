@@ -1,0 +1,47 @@
+{
+  "name": "dnd-campaign-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k --raw \"npm run -s dev --workspace @dnd/backend\" \"npm run -s dev --workspace @dnd/frontend\"",
+    "start:dev": "npm run dev",
+    "clean": "npm run clean --workspaces --if-present && rimraf coverage",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start --workspace @dnd/backend",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run test:unit --workspace @dnd/backend",
+    "test:integration": "npm run test:integration --workspace @dnd/backend",
+    "test:integration:docker": "docker compose --profile test run --rm tests",
+    "test:e2e": "npm run build && playwright test",
+    "db:generate": "npm run db:generate --workspace @dnd/backend",
+    "db:migrate": "npm run db:migrate --workspace @dnd/backend",
+    "db:migrate:prod": "npm run db:migrate:prod --workspace @dnd/backend",
+    "db:seed": "npm run db:seed --workspace @dnd/backend"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@playwright/test": "^1.56.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.37.0",
+    "eslint-plugin-vue": "^10.5.1",
+    "globals": "^16.4.0",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1",
+    "vue-eslint-parser": "^10.2.0"
+  }
+}

@@ -1,0 +1,25 @@
+# Dependencies
+**/node_modules
+
+# Build artifacts
+**/dist
+**/coverage
+
+# VCS and local config
+.git
+.gitignore
+.DS_Store
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Caches and misc
+**/.turbo
+**/.cache
+npm-debug.log*
+
+# Local uploads or generated media
+uploads
+media

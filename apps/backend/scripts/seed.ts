@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 
@@ -30,7 +29,6 @@ async function runSeed(): Promise<void> {
     }
 
     await db.insert(systemRuntimeState).values({
-      id: randomUUID(),
       stateKey: "bootstrap",
       value: {
         seededAt: new Date().toISOString(),

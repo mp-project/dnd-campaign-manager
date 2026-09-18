@@ -137,7 +137,14 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
+# Copilot promts
+copilot-docs/
+
 # Vite files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Playwright artifacts
+playwright-report/
+test-results/

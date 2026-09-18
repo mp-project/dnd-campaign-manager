@@ -1,0 +1,134 @@
+name: dnd-campaign-manager
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${DB_PORT}:${DB_INTERNAL_PORT}"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: development
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      HOST: ${CONTAINER_HOST}
+      PORT: ${BACKEND_PORT}
+      BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${DB_INTERNAL_PORT}/${POSTGRES_DB}
+      TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
+      VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
+      CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run db:migrate --workspace @dnd/backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: production
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      NODE_ENV: production
+      HOST: ${CONTAINER_HOST}
+      PORT: ${BACKEND_PORT}
+      BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${DB_INTERNAL_PORT}/${POSTGRES_DB}
+      TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
+      VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
+      CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      target: production
+      args:
+        VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
+    depends_on:
+      backend:
+        condition: service_started
+
+  caddy:
+    image: caddy:2.8-alpine
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      FRONTEND_DOMAIN: ${FRONTEND_DOMAIN}
+      BACKEND_PORT: ${BACKEND_PORT}
+    ports:
+      - "${CADDY_HTTP_PORT}:80"
+      - "${CADDY_HTTPS_PORT}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  db-test:
+    image: postgres:18
+    profiles: ["test"]
+    tmpfs:
+      - /var/lib/postgresql
+    ports:
+      - "${TEST_DB_PORT}:${DB_TEST_INTERNAL_PORT}"
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_TEST_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  tests:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: development
+    profiles: ["test"]
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      NODE_ENV: test
+      HOST: 127.0.0.1
+      PORT: ${BACKEND_PORT}
+      BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${DB_INTERNAL_PORT}/${POSTGRES_DB}
+      TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
+      VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
+      CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+    depends_on:
+      db-test:
+        condition: service_healthy
+    command: npm run test:integration --workspace @dnd/backend
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`http validation and error contracts exposes operation metadata and security schemes in OpenAPI 1`] = `
+{
+  "operationIds": {
+    "apiBase": "getApiBase",
+    "health": undefined,
+    "listValidationItems": "listValidationItems",
+    "readiness": undefined,
+  },
+  "securitySchemes": {
+    "bearerAuth": {
+      "bearerFormat": "JWT",
+      "scheme": "bearer",
+      "type": "http",
+    },
+  },
+}
+`;

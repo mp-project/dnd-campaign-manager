@@ -36,6 +36,10 @@ describe("request and campaign context hooks", () => {
       staticRoot: "/tmp/non-existent-static-root",
       publicPorts: {
         campaignFactPort: {
+          hasVisitedLocation: async () => "UNKNOWN",
+          hasMetNpc: async () => "UNKNOWN",
+          hasResolvedEncounter: async () => "UNKNOWN",
+          isQuestCompleted: async () => "UNKNOWN",
           resolveCampaignAccess: async ({ campaignId, actorId }) => ({
             campaignId,
             rulesetId: "ruleset-from-campaign",
@@ -81,6 +85,10 @@ describe("request and campaign context hooks", () => {
       staticRoot: "/tmp/non-existent-static-root",
       publicPorts: {
         campaignFactPort: {
+          hasVisitedLocation: async () => "UNKNOWN",
+          hasMetNpc: async () => "UNKNOWN",
+          hasResolvedEncounter: async () => "UNKNOWN",
+          isQuestCompleted: async () => "UNKNOWN",
           resolveCampaignAccess: async ({ campaignId }) => ({
             campaignId,
             rulesetId: "ruleset-x",

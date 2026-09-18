@@ -1,12 +1,12 @@
 import type { FastifyInstance } from "fastify";
 
-import type { AppContainer } from "../../src/core/app/container.js";
+import type { AppContainer } from "#core/app/container";
 import {
   AppModuleRegistrationError,
   registerModules,
   resolveModuleRegistrationOrder,
   type AppModule,
-} from "../../src/core/app/module-system.js";
+} from "#core/app/module-system";
 
 describe("module registration", () => {
   it("registers modules in topological dependency order", async () => {

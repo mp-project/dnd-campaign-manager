@@ -1,5 +1,5 @@
-import { buildApp } from "./app.js";
-import { getEnv } from "./core/env.js";
+import { buildApp } from "#src/app";
+import { getEnv } from "#core/env";
 
 function shouldSuppressStartupInfo(level: string): boolean {
   return level === "trace" || level === "debug" || level === "info";

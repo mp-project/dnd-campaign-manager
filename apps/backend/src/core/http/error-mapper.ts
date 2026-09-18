@@ -7,7 +7,7 @@ import {
   DomainError,
   type DomainErrorCode,
   statusCodeForDomainError,
-} from "./domain-errors.js";
+} from "#core/http/domain-errors";
 
 export type MappedHttpError = {
   statusCode: number;

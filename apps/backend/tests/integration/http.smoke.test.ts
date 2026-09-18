@@ -2,9 +2,9 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { buildApp } from "../../src/app.js";
-import { createPgPool } from "../../src/core/db/pool.js";
-import { createTestEnv } from "../helpers/test-env.js";
+import { buildApp } from "#src/app";
+import { createPgPool } from "#core/db/pool";
+import { createTestEnv } from "#test/helpers/test-env";
 
 describe("HTTP smoke tests", () => {
   const testDatabaseUrl =

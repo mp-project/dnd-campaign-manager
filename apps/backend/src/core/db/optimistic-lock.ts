@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 
-import type { AppDatabase } from "./pool.js";
+import type { AppDatabase } from "#core/db/pool";
 
 type CampaignScopedVersionedTable = AnyPgTable & {
   id: AnyPgColumn;

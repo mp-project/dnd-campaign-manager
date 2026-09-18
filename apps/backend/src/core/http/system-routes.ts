@@ -1,15 +1,15 @@
 import { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { type ZodTypeProvider } from "fastify-type-provider-zod";
 
-import type { ReadyState } from "../db/pool.js";
+import type { ReadyState } from "#core/db/pool";
 import {
   apiBaseResponseDto,
   errorResponseDto,
   healthResponseDto,
   pingResponseDto,
   readyResponseDto,
-} from "./dto.js";
-import { createErrorPayload } from "./error-payload.js";
+} from "#core/http/dto";
+import { createErrorPayload } from "#core/http/error-payload";
 
 export function registerApiPingRoute(app: FastifyInstance): void {
   app.withTypeProvider<ZodTypeProvider>().get(

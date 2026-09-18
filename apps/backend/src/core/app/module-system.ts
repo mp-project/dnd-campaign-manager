@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
-import type { AppContainer } from "./container.js";
+import type { AppContainer } from "#core/app/container";
+import type { PermissionDefinition } from "#core/permissions/service";
 
 export type AppModule = {
   name: string;
@@ -9,7 +10,7 @@ export type AppModule = {
     app: FastifyInstance,
     container: AppContainer,
   ) => Promise<void> | void;
-  permissions?: readonly unknown[];
+  permissions?: readonly PermissionDefinition[];
   relations?: readonly unknown[];
   usageProviders?: readonly unknown[];
   sessionProviders?: readonly unknown[];

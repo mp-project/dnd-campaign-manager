@@ -5,15 +5,34 @@ import {
   createTransactionManager,
   type AppDatabase,
   type TransactionManager,
-} from "../db/pool.js";
-import type { AppEnv } from "../env.js";
+} from "#core/db/pool";
+import type { AppEnv } from "#core/env";
+import {
+  createPermissionService,
+  type PermissionService,
+} from "#core/permissions/service";
+
+export type CampaignAccessFacts = {
+  campaignId: string;
+  rulesetId: string;
+  campaignMemberId: string | null;
+  campaignRole: "EDITOR" | "PLAYER" | null;
+  membershipActive: boolean;
+};
+
+export type CampaignFactPort = {
+  resolveCampaignAccess(input: {
+    campaignId: string;
+    actorId: string | null;
+  }): Promise<CampaignAccessFacts | null>;
+};
 
 export type AppPublicPorts = {
-  permissionService?: unknown;
+  permissionService?: PermissionService;
   relationRegistry?: unknown;
   usageProviderRegistry?: unknown;
   sessionProviderRegistry?: unknown;
-  campaignFactPort?: unknown;
+  campaignFactPort?: CampaignFactPort;
 };
 
 export type AppContainer = {
@@ -32,12 +51,17 @@ type CreateAppContainerParams = {
 
 export function createAppContainer(params: CreateAppContainerParams): AppContainer {
   const db = createDrizzleDb(params.pool);
+  const permissionService =
+    params.publicPorts?.permissionService ?? createPermissionService();
 
   return {
     config: params.config,
     pool: params.pool,
     db,
     transactionManager: createTransactionManager(db),
-    ports: params.publicPorts ?? {},
+    ports: {
+      ...params.publicPorts,
+      permissionService,
+    },
   };
 }

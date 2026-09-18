@@ -1,9 +1,9 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 
-import { createPgPool } from "../src/core/db/pool.js";
-import { getEnv } from "../src/core/env.js";
-import { systemRuntimeState } from "../src/core/db/schema.js";
+import { createPgPool } from "#core/db/pool";
+import { getEnv } from "#core/env";
+import { systemRuntimeState } from "#core/db/schema";
 
 async function runSeed(): Promise<void> {
   const env = getEnv();

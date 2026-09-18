@@ -1,7 +1,7 @@
 import type { Pool } from "pg";
 
-import { buildApp } from "../../src/app.js";
-import { createTestEnv } from "../helpers/test-env.js";
+import { buildApp } from "#src/app";
+import { createTestEnv } from "#test/helpers/test-env";
 
 describe("buildApp", () => {
   it("returns /health from app factory", async () => {

@@ -16,30 +16,31 @@ import type { Pool } from "pg";
 import {
   createAppContainer,
   type AppPublicPorts,
-} from "./core/app/container.js";
+} from "#core/app/container";
 import {
   resolveModuleRegistrationOrder,
   type AppModule,
-} from "./core/app/module-system.js";
+} from "#core/app/module-system";
 import {
   checkDatabaseReadiness,
   createPgPool,
   type ReadyState,
-} from "./core/db/pool.js";
-import { getEnv, type AppEnv } from "./core/env.js";
-import { mapErrorToHttp } from "./core/http/error-mapper.js";
-import { createErrorPayload } from "./core/http/error-payload.js";
+} from "#core/db/pool";
+import { getEnv, type AppEnv } from "#core/env";
+import { mapErrorToHttp } from "#core/http/error-mapper";
+import { createErrorPayload } from "#core/http/error-payload";
 import {
   registerAuthPlugin,
+  registerCampaignContextPlugin,
   registerRequestContextPlugin,
   registerSecurityPlugins,
-} from "./core/http/security-and-context.js";
+} from "#core/http/security-and-context";
 import {
   notFound,
   registerApiBaseRoute,
   registerApiPingRoute,
   registerHealthRoutes,
-} from "./core/http/system-routes.js";
+} from "#core/http/system-routes";
 
 type BuildAppOptions = {
   env?: AppEnv;
@@ -143,6 +144,25 @@ function registerApiRoutes(
   );
 }
 
+function registerModulePermissions(
+  modules: readonly AppModule[],
+  container: ReturnType<typeof createAppContainer>,
+): void {
+  const permissionService = container.ports.permissionService;
+
+  if (!permissionService) {
+    return;
+  }
+
+  for (const module of modules) {
+    if (!module.permissions || module.permissions.length === 0) {
+      continue;
+    }
+
+    permissionService.registerDefinitions(module.name, module.permissions);
+  }
+}
+
 function registerStaticFrontend(app: FastifyInstance, staticRoot: string): void {
   if (!existsSync(staticRoot)) {
     return;
@@ -191,9 +211,12 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         },
   );
 
+  registerModulePermissions(modules, container);
+
   registerSecurityPlugins(app, env);
   registerAuthPlugin(app);
   registerRequestContextPlugin(app);
+  registerCampaignContextPlugin(app, container);
   registerErrorHandler(app, env);
   registerOpenApi(app);
   registerHealthRoutes(app, readyProbe);

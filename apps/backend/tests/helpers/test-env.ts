@@ -1,4 +1,4 @@
-import type { AppEnv } from "../../src/core/env.js";
+import type { AppEnv } from "#core/env";
 
 export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   const testDatabaseUrl =

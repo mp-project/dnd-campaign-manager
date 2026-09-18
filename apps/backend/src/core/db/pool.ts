@@ -5,7 +5,7 @@ import type { Pool } from "pg";
 import { Pool as PgPool } from "pg";
 import { fileURLToPath } from "node:url";
 
-import * as schema from "./schema.js";
+import * as schema from "#core/db/schema";
 
 export const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
 const backendRootDir = path.resolve(

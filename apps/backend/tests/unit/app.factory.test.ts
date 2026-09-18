@@ -37,7 +37,7 @@ describe("buildApp", () => {
     expect(response.statusCode).toBe(503);
     expect(response.json()).toMatchObject({
       error: {
-        code: "NOT_READY",
+        code: "INTERNAL_ERROR",
       },
     });
 

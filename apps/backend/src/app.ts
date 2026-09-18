@@ -1,24 +1,18 @@
-import cors from "@fastify/cors";
-import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
-import Fastify, {
-  LogController,
-  type FastifyInstance,
-  type FastifyReply,
-  type FastifyRequest,
-} from "fastify";
+import {
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from "fastify-type-provider-zod";
+import Fastify, { LogController, type FastifyInstance } from "fastify";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Pool } from "pg";
 
-import {
-  checkDatabaseReadiness,
-  createPgPool,
-  type ReadyState,
-} from "./core/db/pool.js";
 import {
   createAppContainer,
   type AppPublicPorts,
@@ -27,9 +21,25 @@ import {
   resolveModuleRegistrationOrder,
   type AppModule,
 } from "./core/app/module-system.js";
+import {
+  checkDatabaseReadiness,
+  createPgPool,
+  type ReadyState,
+} from "./core/db/pool.js";
 import { getEnv, type AppEnv } from "./core/env.js";
+import { mapErrorToHttp } from "./core/http/error-mapper.js";
 import { createErrorPayload } from "./core/http/error-payload.js";
-import type { RequestContext } from "./core/http/request-context.js";
+import {
+  registerAuthPlugin,
+  registerRequestContextPlugin,
+  registerSecurityPlugins,
+} from "./core/http/security-and-context.js";
+import {
+  notFound,
+  registerApiBaseRoute,
+  registerApiPingRoute,
+  registerHealthRoutes,
+} from "./core/http/system-routes.js";
 
 type BuildAppOptions = {
   env?: AppEnv;
@@ -50,9 +60,7 @@ const defaultAppModules: readonly AppModule[] = [
     name: "system",
     dependencies: [],
     register: async (app) => {
-      app.get("/ping", async () => ({
-        status: "pong",
-      }));
+      registerApiPingRoute(app);
     },
   },
 ];
@@ -72,87 +80,21 @@ function shouldServeSpaFallback(
   );
 }
 
-function notFound(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  message: string = "Route not found",
-): FastifyReply {
-  return reply.code(404).send(
-    createErrorPayload({
-      code: "NOT_FOUND",
-      message,
-      requestId: request.id,
-    }),
-  );
-}
-
-function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void {
-  app.register(rateLimit, {
-    global: true,
-    max: 100,
-    timeWindow: "1 minute",
-  });
-
-  app.register(cors, {
-    origin:
-      env.CORS_ORIGIN === "*"
-        ? true
-        : env.CORS_ORIGIN.split(",").map((value) => value.trim()),
-  });
-}
-
-function registerAuthPlugin(app: FastifyInstance): void {
-  app.decorateRequest("authToken", null);
-
-  app.addHook("onRequest", async (request) => {
-    const authorizationHeader = request.headers.authorization;
-
-    if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
-      request.authToken = null;
-      return;
-    }
-
-    const token = authorizationHeader.slice("Bearer ".length).trim();
-    request.authToken = token.length > 0 ? token : null;
-  });
-}
-
-function registerRequestContextPlugin(app: FastifyInstance): void {
-  app.decorateRequest("requestContext", null as unknown as RequestContext);
-
-  app.addHook("preHandler", async (request) => {
-    if (request.authToken === "system-admin") {
-      request.requestContext = {
-        actorId: "system-admin",
-        systemRole: "ADMIN",
-      };
-      return;
-    }
-
-    request.requestContext = {
-      actorId: request.authToken,
-      systemRole: "USER",
-    };
-  });
-}
-
-function registerErrorHandler(app: FastifyInstance): void {
+function registerErrorHandler(app: FastifyInstance, env: AppEnv): void {
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error }, "Unhandled request error");
 
-    const candidateStatusCode =
-      typeof (error as { statusCode?: number }).statusCode === "number"
-        ? (error as { statusCode: number }).statusCode
-        : 500;
+    const mappedError = mapErrorToHttp(error);
+    const isInternalError = mappedError.code === "INTERNAL_ERROR";
+    const shouldMaskInternalError = env.NODE_ENV === "production" && isInternalError;
 
-    const statusCode = candidateStatusCode >= 400 ? candidateStatusCode : 500;
-    const errorMessage =
-      error instanceof Error ? error.message : "Request failed";
-
-    reply.code(statusCode).send(
+    reply.code(mappedError.statusCode).send(
       createErrorPayload({
-        code: statusCode === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR",
-        message: statusCode === 500 ? "Internal server error" : errorMessage,
+        code: shouldMaskInternalError ? "INTERNAL_ERROR" : mappedError.code,
+        message: shouldMaskInternalError
+          ? "Internal server error"
+          : mappedError.message,
+        details: shouldMaskInternalError ? null : mappedError.details,
         requestId: request.id,
       }),
     );
@@ -166,39 +108,21 @@ function registerOpenApi(app: FastifyInstance): void {
         title: "DnD Campaign Manager API",
         version: "0.1.0",
       },
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
+      },
     },
+    transform: jsonSchemaTransform,
   });
 
   app.register(swaggerUI, {
     routePrefix: "/documentation",
-  });
-}
-
-function registerHealthRoutes(
-  app: FastifyInstance,
-  readyProbe: () => Promise<ReadyState>,
-): void {
-  app.get("/health", async () => ({
-    status: "ok",
-  }));
-
-  app.get("/ready", async (request, reply) => {
-    const state = await readyProbe();
-
-    if (!state.database || !state.migrations) {
-      return reply.code(503).send(
-        createErrorPayload({
-          code: "NOT_READY",
-          message: "Database connection or migrations are not ready",
-          requestId: request.id,
-          details: state,
-        }),
-      );
-    }
-
-    return {
-      status: "ready",
-    };
   });
 }
 
@@ -209,10 +133,7 @@ function registerApiRoutes(
 ): void {
   app.register(
     async (apiApp) => {
-      apiApp.get("/", async () => ({
-        status: "ok",
-        basePath: "/api/v1",
-      }));
+      registerApiBaseRoute(apiApp);
 
       for (const module of modules) {
         await module.register(apiApp, container);
@@ -236,7 +157,7 @@ function registerStaticFrontend(app: FastifyInstance, staticRoot: string): void 
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const env = options.env ?? getEnv();
-  const app = Fastify({
+  const baseApp = Fastify({
     logger: {
       level: env.LOG_LEVEL,
     },
@@ -246,8 +167,13 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     }),
   });
 
+  baseApp.setValidatorCompiler(validatorCompiler);
+  baseApp.setSerializerCompiler(serializerCompiler);
+  const app = baseApp.withTypeProvider<ZodTypeProvider>();
+
   const pool = options.pool ?? createPgPool(env.DATABASE_URL);
-  const closePoolOnShutdown = options.closePoolOnShutdown ?? options.pool === undefined;
+  const closePoolOnShutdown =
+    options.closePoolOnShutdown ?? options.pool === undefined;
   const readyProbe = options.readyProbe ?? (() => checkDatabaseReadiness(pool));
   const staticRoot = options.staticRoot ?? defaultStaticRoot;
   const indexHtmlPath = path.join(staticRoot, "index.html");
@@ -268,7 +194,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerSecurityPlugins(app, env);
   registerAuthPlugin(app);
   registerRequestContextPlugin(app);
-  registerErrorHandler(app);
+  registerErrorHandler(app, env);
   registerOpenApi(app);
   registerHealthRoutes(app, readyProbe);
   registerApiRoutes(app, modules, container);

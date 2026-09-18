@@ -1,0 +1,120 @@
+import { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
+import { type ZodTypeProvider } from "fastify-type-provider-zod";
+
+import type { ReadyState } from "../db/pool.js";
+import {
+  apiBaseResponseDto,
+  errorResponseDto,
+  healthResponseDto,
+  pingResponseDto,
+  readyResponseDto,
+} from "./dto.js";
+import { createErrorPayload } from "./error-payload.js";
+
+export function registerApiPingRoute(app: FastifyInstance): void {
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/ping",
+    {
+      schema: {
+        tags: ["System"],
+        security: [],
+        operationId: "getApiPing",
+        response: {
+          200: pingResponseDto,
+        },
+      },
+    },
+    async () => ({
+      status: "pong" as const,
+    }),
+  );
+}
+
+export function registerHealthRoutes(
+  app: FastifyInstance,
+  readyProbe: () => Promise<ReadyState>,
+): void {
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/health",
+    {
+      schema: {
+        tags: ["System"],
+        security: [],
+        operationId: "getHealth",
+        response: {
+          200: healthResponseDto,
+        },
+      },
+    },
+    async () => ({
+      status: "ok" as const,
+    }),
+  );
+
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/ready",
+    {
+      schema: {
+        tags: ["System"],
+        security: [],
+        operationId: "getReadiness",
+        response: {
+          200: readyResponseDto,
+          503: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      const state = await readyProbe();
+
+      if (!state.database || !state.migrations) {
+        return reply.code(503).send(
+          createErrorPayload({
+            code: "INTERNAL_ERROR",
+            message: "Database connection or migrations are not ready",
+            requestId: request.id,
+            details: state,
+          }),
+        );
+      }
+
+      return {
+        status: "ready" as const,
+      };
+    },
+  );
+}
+
+export function registerApiBaseRoute(app: FastifyInstance): void {
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        tags: ["System"],
+        security: [],
+        operationId: "getApiBase",
+        response: {
+          200: apiBaseResponseDto,
+        },
+      },
+    },
+    async () => ({
+      status: "ok" as const,
+      basePath: "/api/v1" as const,
+    }),
+  );
+}
+
+export function notFound(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  message: string = "Route not found",
+): FastifyReply {
+  return reply.code(404).send(
+    createErrorPayload({
+      code: "NOT_FOUND",
+      message,
+      requestId: request.id,
+    }),
+  );
+}

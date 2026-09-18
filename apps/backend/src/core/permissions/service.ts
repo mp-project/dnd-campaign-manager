@@ -26,11 +26,20 @@ type RequireOptions = {
   hideAsNotFoundForPlayers?: boolean;
 };
 
+/**
+ * Central service for permission definition registration and runtime authorization checks.
+ */
 export class PermissionService {
   private readonly definitionsByKey = new Map<string, PermissionDefinition>();
 
   private readonly ownerByKey = new Map<string, string>();
 
+  /**
+   * Registers permission definitions for a module and enforces unique keys.
+   *
+   * @param moduleName Owning module name used for duplicate diagnostics.
+   * @param definitions Permission definitions to register.
+   */
   registerDefinitions(
     moduleName: string,
     definitions: readonly PermissionDefinition[],
@@ -49,6 +58,14 @@ export class PermissionService {
     }
   }
 
+  /**
+   * Evaluates whether a context is allowed to perform an action on an optional resource.
+   *
+   * @param key Permission key.
+   * @param context Resolved campaign context for the request actor.
+   * @param resource Optional resource facts for policy checks.
+   * @returns True when the action is authorized.
+   */
   can(
     key: string,
     context: CampaignContext,
@@ -81,6 +98,14 @@ export class PermissionService {
     return definition.resourcePolicy(context, resource);
   }
 
+  /**
+   * Asserts authorization and throws domain errors when access is denied.
+   *
+   * @param key Permission key.
+   * @param context Resolved campaign context.
+   * @param resource Optional resource facts for policy checks.
+   * @param options Error-shaping options for player-facing behavior.
+   */
   require(
     key: string,
     context: CampaignContext,
@@ -102,6 +127,12 @@ export class PermissionService {
     throw new ForbiddenError("Insufficient permissions");
   }
 
+  /**
+   * Lists permissions effectively available for the given context.
+   *
+   * @param context Resolved campaign context.
+   * @returns Sorted permission keys.
+   */
   listEffectivePermissions(context: CampaignContext): string[] {
     if (context.systemRole === "ADMIN") {
       return Array.from(this.definitionsByKey.keys()).sort();
@@ -119,6 +150,11 @@ export class PermissionService {
       .sort();
   }
 
+  /**
+   * Returns all registered permission definitions.
+   *
+   * @returns Registered permission definitions.
+   */
   listDefinitions(): PermissionDefinition[] {
     return Array.from(this.definitionsByKey.values());
   }
@@ -186,6 +222,11 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
   },
 ];
 
+/**
+ * Creates the default permission service preloaded with core definitions.
+ *
+ * @returns Initialized permission service.
+ */
 export function createPermissionService(): PermissionService {
   const service = new PermissionService();
   service.registerDefinitions("core", defaultPermissionDefinitions);

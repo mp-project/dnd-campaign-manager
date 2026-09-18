@@ -54,6 +54,12 @@ type CreateAppContainerParams = {
   publicPorts?: AppPublicPorts;
 };
 
+/**
+ * Creates the application DI container with default core ports when not overridden.
+ *
+ * @param params Runtime config, database pool, and optional port overrides.
+ * @returns Fully initialized application container.
+ */
 export function createAppContainer(params: CreateAppContainerParams): AppContainer {
   const db = createDrizzleDb(params.pool);
   const permissionService =

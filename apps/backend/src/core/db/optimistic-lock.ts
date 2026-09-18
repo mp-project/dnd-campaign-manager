@@ -11,6 +11,9 @@ type CampaignScopedVersionedTable = AnyPgTable & {
   updatedAt: AnyPgColumn;
 };
 
+/**
+ * Raised when a versioned update cannot be applied due to concurrent modifications.
+ */
 export class VersionConflictError extends Error {
   readonly code = "VERSION_CONFLICT";
 
@@ -27,6 +30,14 @@ type UpdateCampaignScopedRowParams = {
   values: Record<string, unknown>;
 };
 
+/**
+ * Updates a campaign-scoped row with optimistic locking on the version column.
+ *
+ * @param db Application database instance.
+ * @param table Campaign-scoped versioned table descriptor.
+ * @param params Row id, campaign id, expected version and patch values.
+ * @returns Promise resolved when exactly one row was updated.
+ */
 export async function updateCampaignScopedRowWithOptimisticLock(
   db: AppDatabase,
   table: CampaignScopedVersionedTable,

@@ -16,6 +16,13 @@ const backendRootDirectory = path.resolve(
   "../../..",
 );
 
+/**
+ * Ensures required S3 settings are present in environment configuration.
+ *
+ * @param value Candidate value.
+ * @param key Environment key name for error reporting.
+ * @returns Non-empty string value.
+ */
 function required(value: string | undefined, key: string): string {
   if (!value) {
     throw new StorageError(
@@ -86,6 +93,11 @@ export function createStorageMimeAllowlist(env: AppEnv): ReadonlySet<string> {
   return parseMimeAllowlist(env.STORAGE_ALLOWED_MIME_TYPES);
 }
 
+/**
+ * Returns the built-in MIME allowlist used when env parsing is not involved.
+ *
+ * @returns Default MIME allowlist.
+ */
 export function createDefaultStorageMimeAllowlist(): ReadonlySet<string> {
   return new Set(defaultAllowedMimeTypes);
 }

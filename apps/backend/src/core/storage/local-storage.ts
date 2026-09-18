@@ -74,6 +74,12 @@ export class LocalStorage implements StoragePort {
     return resolvedPath;
   }
 
+  /**
+   * Reads object metadata from the local filesystem.
+   *
+   * @param key Logical storage key.
+   * @returns Object metadata mapped from file stats.
+   */
   private async readMetadata(key: string): Promise<StorageObjectMetadata> {
     const absolutePath = this.resolveKeyPath(key);
 

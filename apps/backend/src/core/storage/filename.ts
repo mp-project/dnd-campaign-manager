@@ -2,6 +2,12 @@ import path from "node:path";
 
 const MAX_FILENAME_LENGTH = 120;
 
+/**
+ * Removes unsafe filename characters and collapses whitespace.
+ *
+ * @param value Raw filename input.
+ * @returns Sanitized filename fragment.
+ */
 function stripUnsafeCharacters(value: string): string {
   return value
     .replace(/[^A-Za-z0-9._ -]+/g, " ")

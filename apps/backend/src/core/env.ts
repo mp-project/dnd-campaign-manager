@@ -106,6 +106,11 @@ export type AppEnv = z.infer<typeof envSchema>;
 
 let cachedEnv: AppEnv | undefined;
 
+/**
+ * Returns validated environment configuration with lazy one-time parsing.
+ *
+ * @returns Parsed and cached application environment values.
+ */
 export function getEnv(): AppEnv {
   if (!cachedEnv) {
     cachedEnv = envSchema.parse(process.env);

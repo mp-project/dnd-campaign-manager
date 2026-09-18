@@ -107,6 +107,14 @@ export function parseMimeAllowlist(value: string): ReadonlySet<string> {
   return new Set(entries);
 }
 
+/**
+ * Checks if bytes contain a given signature at the provided offset.
+ *
+ * @param bytes File bytes to inspect.
+ * @param signature Expected byte sequence.
+ * @param offset Start offset for matching.
+ * @returns True when signature matches fully.
+ */
 function hasSignature(
   bytes: Uint8Array,
   signature: readonly number[],
@@ -126,6 +134,12 @@ function hasSignature(
   return true;
 }
 
+/**
+ * Detects MPEG frame sync header for MP3 streams without ID3 prefix.
+ *
+ * @param bytes File bytes to inspect.
+ * @returns True when a valid MPEG frame header is present.
+ */
 function startsWithMpegFrameHeader(bytes: Uint8Array): boolean {
   if (bytes.length < 2) {
     return false;
@@ -137,6 +151,12 @@ function startsWithMpegFrameHeader(bytes: Uint8Array): boolean {
   return first === 0xff && (second & 0xe0) === 0xe0;
 }
 
+/**
+ * Collects all MIME candidates whose signatures match the provided bytes.
+ *
+ * @param bytes File bytes to inspect.
+ * @returns Set of detected MIME types.
+ */
 function detectMimeTypesFromMagicBytes(bytes: Uint8Array): ReadonlySet<string> {
   const detected = new Set<string>();
 

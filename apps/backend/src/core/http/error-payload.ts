@@ -7,6 +7,12 @@ export type ErrorPayload = {
   };
 };
 
+/**
+ * Creates the canonical API error payload envelope.
+ *
+ * @param params Error details and request correlation id.
+ * @returns Serialized error payload.
+ */
 export function createErrorPayload(params: {
   code: string;
   message: string;

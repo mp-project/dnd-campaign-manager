@@ -5,6 +5,12 @@ import { StorageError } from "#core/storage/errors";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/**
+ * Validates UUID format for key-building inputs.
+ *
+ * @param value Candidate UUID string.
+ * @param label Field name used in error details.
+ */
 function assertUuid(value: string, label: string): void {
   if (!uuidPattern.test(value)) {
     throw new StorageError("INVALID_KEY", `${label} must be a UUID`, {
@@ -14,6 +20,12 @@ function assertUuid(value: string, label: string): void {
   }
 }
 
+/**
+ * Sanitizes key path segments to a restricted character set.
+ *
+ * @param value Raw segment value.
+ * @returns Lowercased, slash-normalized segment.
+ */
 function sanitizeSegment(value: string): string {
   return value
     .toLowerCase()

@@ -21,6 +21,9 @@ export type ModuleRegistrationErrorCode =
   | "MISSING_DEPENDENCY"
   | "CYCLIC_DEPENDENCY";
 
+/**
+ * Error thrown when module registration constraints are violated.
+ */
 export class AppModuleRegistrationError extends Error {
   readonly code: ModuleRegistrationErrorCode;
 
@@ -31,6 +34,12 @@ export class AppModuleRegistrationError extends Error {
   }
 }
 
+/**
+ * Resolves modules into dependency-safe registration order and validates graph integrity.
+ *
+ * @param modules Declared modules with names and dependencies.
+ * @returns Ordered module list suitable for sequential registration.
+ */
 export function resolveModuleRegistrationOrder(
   modules: readonly AppModule[],
 ): AppModule[] {
@@ -105,6 +114,14 @@ export function resolveModuleRegistrationOrder(
   return orderedModules;
 }
 
+/**
+ * Registers all modules on a Fastify instance in dependency-safe order.
+ *
+ * @param app Fastify application instance.
+ * @param container Application container passed to each module register hook.
+ * @param modules Modules to register.
+ * @returns Resolved registration order.
+ */
 export async function registerModules(
   app: FastifyInstance,
   container: AppContainer,

@@ -15,6 +15,12 @@ type VerifiedAccessToken = {
   systemRole: SystemRole;
 };
 
+/**
+ * Parses a lightweight bearer token format used in local/dev flows.
+ *
+ * @param token Bearer token value.
+ * @returns Verified token payload or null when token format is invalid.
+ */
 function verifyAccessToken(token: string): VerifiedAccessToken | null {
   if (token === "system-admin") {
     return {
@@ -59,6 +65,14 @@ function verifyAccessToken(token: string): VerifiedAccessToken | null {
   };
 }
 
+/**
+ * Resolves campaign access facts from the campaign fact port with a safe fallback.
+ *
+ * @param container Application container with optional campaign fact port.
+ * @param campaignId Target campaign id.
+ * @param actorId Actor id from request context.
+ * @returns Campaign access facts used to build campaign context.
+ */
 async function resolveCampaignAccessFacts(
   container: AppContainer,
   campaignId: string,
@@ -82,6 +96,12 @@ async function resolveCampaignAccessFacts(
   };
 }
 
+/**
+ * Extracts campaign id from route params first, then fallback header.
+ *
+ * @param request Fastify request.
+ * @returns Campaign id or null when no campaign scope is provided.
+ */
 function extractCampaignId(request: FastifyRequest): string | null {
   const params = request.params as Record<string, unknown>;
   const campaignIdFromParams =
@@ -100,6 +120,12 @@ function extractCampaignId(request: FastifyRequest): string | null {
   return null;
 }
 
+/**
+ * Registers global rate limiting and CORS policies.
+ *
+ * @param app Fastify app instance.
+ * @param env Validated application environment.
+ */
 export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void {
   app.register(rateLimit, {
     global: true,
@@ -115,6 +141,11 @@ export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void
   });
 }
 
+/**
+ * Authenticates a request by parsing and verifying bearer token headers.
+ *
+ * @param request Fastify request to enrich with auth fields.
+ */
 export function authenticate(request: FastifyRequest): void {
   const authorizationHeader = request.headers.authorization;
 
@@ -141,6 +172,11 @@ export function authenticate(request: FastifyRequest): void {
   request.verifiedAccessToken = verifiedToken;
 }
 
+/**
+ * Registers request decorations and onRequest auth hook.
+ *
+ * @param app Fastify app instance.
+ */
 export function registerAuthPlugin(app: FastifyInstance): void {
   app.decorateRequest("authToken", null as string | null);
   app.decorateRequest("verifiedAccessToken", null as VerifiedAccessToken | null);
@@ -150,6 +186,12 @@ export function registerAuthPlugin(app: FastifyInstance): void {
   });
 }
 
+/**
+ * Builds request-level actor context from verified auth data.
+ *
+ * @param request Fastify request.
+ * @returns Request context with actor and system role.
+ */
 export function resolveRequestContext(request: FastifyRequest): RequestContext {
   if (!request.verifiedAccessToken) {
     return {
@@ -164,6 +206,11 @@ export function resolveRequestContext(request: FastifyRequest): RequestContext {
   };
 }
 
+/**
+ * Registers requestContext decoration and preHandler population hook.
+ *
+ * @param app Fastify app instance.
+ */
 export function registerRequestContextPlugin(app: FastifyInstance): void {
   app.decorateRequest("requestContext", null as unknown as RequestContext);
 
@@ -172,6 +219,13 @@ export function registerRequestContextPlugin(app: FastifyInstance): void {
   });
 }
 
+/**
+ * Resolves campaign-scoped context and effective permissions for a request.
+ *
+ * @param request Fastify request.
+ * @param container Application container.
+ * @returns Campaign context or null when request is not campaign-scoped.
+ */
 export async function resolveCampaignContext(
   request: FastifyRequest,
   container: AppContainer,
@@ -210,6 +264,12 @@ export async function resolveCampaignContext(
   return campaignContext;
 }
 
+/**
+ * Registers campaignContext decoration and preHandler resolution hook.
+ *
+ * @param app Fastify app instance.
+ * @param container Application container.
+ */
 export function registerCampaignContextPlugin(
   app: FastifyInstance,
   container: AppContainer,

@@ -16,6 +16,13 @@ export type PermissionPolicy = (
   resource?: PermissionResource,
 ) => boolean;
 
+/**
+ * Validates that a resource belongs to the current campaign scope.
+ *
+ * @param context Campaign context of the actor.
+ * @param resource Optional resource facts.
+ * @returns True when campaign ids match or resource has no campaign binding.
+ */
 export function sameCampaignPolicy(
   context: CampaignContext,
   resource?: PermissionResource,
@@ -27,6 +34,13 @@ export function sameCampaignPolicy(
   return resource.campaignId === context.campaignId;
 }
 
+/**
+ * Ensures the actor has an active campaign membership.
+ *
+ * @param context Campaign context of the actor.
+ * @param resource Optional resource facts that may carry explicit membership state.
+ * @returns True when membership is active.
+ */
 export function activeMembershipPolicy(
   context: CampaignContext,
   resource?: PermissionResource,
@@ -44,6 +58,13 @@ export function activeMembershipPolicy(
   return context.campaignMemberId !== null && context.campaignRole !== null;
 }
 
+/**
+ * Allows access to shared assets or shared campaign outline resources.
+ *
+ * @param _context Campaign context (unused).
+ * @param resource Optional resource facts.
+ * @returns True when the resource is shared.
+ */
 export function sharedAssetOrOutlinePolicy(
   _context: CampaignContext,
   resource?: PermissionResource,
@@ -51,6 +72,13 @@ export function sharedAssetOrOutlinePolicy(
   return Boolean(resource?.assetShared || resource?.outlineShared);
 }
 
+/**
+ * Ensures the actor owns the character and assignment is still active.
+ *
+ * @param context Campaign context of the actor.
+ * @param resource Optional resource facts.
+ * @returns True when assignment belongs to actor and is active.
+ */
 export function ownCharacterActiveAssignmentPolicy(
   context: CampaignContext,
   resource?: PermissionResource,
@@ -64,6 +92,13 @@ export function ownCharacterActiveAssignmentPolicy(
   );
 }
 
+/**
+ * Rejects resources that were soft-deleted.
+ *
+ * @param _context Campaign context (unused).
+ * @param resource Optional resource facts.
+ * @returns True when resource is not deleted.
+ */
 export function notDeletedResourcePolicy(
   _context: CampaignContext,
   resource?: PermissionResource,
@@ -71,6 +106,12 @@ export function notDeletedResourcePolicy(
   return resource?.deletedAt == null;
 }
 
+/**
+ * Composes multiple permission policies using logical AND.
+ *
+ * @param policies Policies to evaluate.
+ * @returns Combined policy returning true only if all policies pass.
+ */
 export function allPolicies(
   ...policies: PermissionPolicy[]
 ): PermissionPolicy {

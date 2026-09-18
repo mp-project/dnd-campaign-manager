@@ -11,6 +11,10 @@ import {
   createPermissionService,
   type PermissionService,
 } from "#core/permissions/service";
+import {
+  createStoragePortFromEnv,
+  type StoragePort,
+} from "#core/storage";
 
 export type CampaignAccessFacts = {
   campaignId: string;
@@ -33,6 +37,7 @@ export type AppPublicPorts = {
   usageProviderRegistry?: unknown;
   sessionProviderRegistry?: unknown;
   campaignFactPort?: CampaignFactPort;
+  storagePort?: StoragePort;
 };
 
 export type AppContainer = {
@@ -53,6 +58,8 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
   const db = createDrizzleDb(params.pool);
   const permissionService =
     params.publicPorts?.permissionService ?? createPermissionService();
+  const storagePort =
+    params.publicPorts?.storagePort ?? createStoragePortFromEnv(params.config);
 
   return {
     config: params.config,
@@ -62,6 +69,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     ports: {
       ...params.publicPorts,
       permissionService,
+      storagePort,
     },
   };
 }

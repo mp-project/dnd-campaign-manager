@@ -1,5 +1,6 @@
 import { buildApp } from "#src/app";
-import { getEnv } from "#core/env";
+import { getEnv, type AppEnv } from "#core/env";
+import { ensureS3BucketAndCors } from "#core/storage/s3-storage";
 
 function shouldSuppressStartupInfo(level: string): boolean {
   return level === "trace" || level === "debug" || level === "info";
@@ -8,6 +9,64 @@ function shouldSuppressStartupInfo(level: string): boolean {
 function buildPublicApiUrl(baseUrl: string): string {
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   return new URL("api/v1", normalizedBase).toString().replace(/\/$/, "");
+}
+
+function resolveStorageDashboardUrl(env: AppEnv): string | null {
+  if (env.STORAGE_DRIVER !== "s3") {
+    return null;
+  }
+
+  return env.STORAGE_S3_DASHBOARD_URL ?? null;
+}
+
+/**
+ * Resolves browser origins that may fetch signed S3 download URLs.
+ *
+ * @param env Validated runtime environment.
+ * @returns Normalized list of allowed origins.
+ */
+function resolveStorageCorsOrigins(env: AppEnv): string[] {
+  const source = env.STORAGE_S3_BOOTSTRAP_CORS_ORIGINS ?? env.CORS_ORIGIN;
+
+  return source
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
+  /**
+   * Runs optional S3 bootstrap before the HTTP server starts listening.
+   *
+   * @param env Validated runtime environment.
+   * @returns Promise that resolves after bootstrap or immediately when disabled.
+   */
+async function bootstrapS3Storage(env: AppEnv): Promise<void> {
+  if (env.STORAGE_DRIVER !== "s3" || !env.STORAGE_S3_AUTO_BOOTSTRAP) {
+    return;
+  }
+
+  const bootstrapOptions: {
+    bucket: string;
+    region: string;
+    endpoint?: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    forcePathStyle?: boolean;
+    allowedOrigins: string[];
+  } = {
+    bucket: env.STORAGE_S3_BUCKET!,
+    region: env.STORAGE_S3_REGION,
+    accessKeyId: env.STORAGE_S3_ACCESS_KEY_ID!,
+    secretAccessKey: env.STORAGE_S3_SECRET_ACCESS_KEY!,
+    forcePathStyle: env.STORAGE_S3_FORCE_PATH_STYLE,
+    allowedOrigins: resolveStorageCorsOrigins(env),
+  };
+
+  if (env.STORAGE_S3_ENDPOINT) {
+    bootstrapOptions.endpoint = env.STORAGE_S3_ENDPOINT;
+  }
+
+  await ensureS3BucketAndCors(bootstrapOptions);
 }
 
 async function startServer(): Promise<void> {
@@ -35,6 +94,8 @@ async function startServer(): Promise<void> {
   });
 
   try {
+    await bootstrapS3Storage(env);
+
     const previousLogLevel = app.log.level;
 
     if (shouldSuppressStartupInfo(previousLogLevel)) {
@@ -58,6 +119,17 @@ async function startServer(): Promise<void> {
     const apiStatus = apiProbeResponse.statusCode === 200 ? "OK" : "FAIL";
 
     console.log(`REST-API: ${apiBaseUrl} (${apiStatus})`);
+
+    if (env.STORAGE_DRIVER === "s3") {
+      const endpoint = env.STORAGE_S3_ENDPOINT ?? "managed-provider";
+      console.log(`Storage: s3 (${endpoint})`);
+
+      const dashboardUrl = resolveStorageDashboardUrl(env);
+
+      if (dashboardUrl) {
+        console.log(`Storage Dashboard: ${dashboardUrl}`);
+      }
+    }
   } catch (error) {
     app.log.error({ err: error }, "Failed to start server");
     process.exit(1);

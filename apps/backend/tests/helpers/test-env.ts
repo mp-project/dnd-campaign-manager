@@ -1,4 +1,4 @@
-import type { AppEnv } from "../../src/core/env.js";
+import type { AppEnv } from "#core/env";
 
 export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   const testDatabaseUrl =
@@ -22,6 +22,14 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     VITE_API_BASE_URL:
       process.env.COMPOSE_BACKEND_PUBLIC_API_URL ??
       "http://localhost:3100/api/v1",
+    STORAGE_DRIVER: "local",
+    STORAGE_LOCAL_ROOT: "var/storage-test",
+    STORAGE_ALLOWED_MIME_TYPES:
+      "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,audio/mpeg,audio/wav,audio/ogg,video/mp4,video/webm",
+    STORAGE_DOWNLOAD_URL_TTL_SECONDS: 900,
+    STORAGE_S3_REGION: "us-east-1",
+    STORAGE_S3_FORCE_PATH_STYLE: false,
+    STORAGE_S3_AUTO_BOOTSTRAP: false,
     STORAGE_MAX_UPLOAD_BYTES: 5_242_880,
     STORAGE_MAX_TOTAL_BYTES: 104_857_600,
     ...overrides,

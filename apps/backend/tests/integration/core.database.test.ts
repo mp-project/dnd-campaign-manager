@@ -8,15 +8,15 @@ import {
   createTransactionManager,
   resetTestDatabase,
   runDatabaseMigrations,
-} from "../../src/core/db/pool.js";
+} from "#core/db/pool";
 import {
   campaignRuntimeState,
   systemRuntimeState,
-} from "../../src/core/db/schema.js";
+} from "#core/db/schema";
 import {
   updateCampaignScopedRowWithOptimisticLock,
   VersionConflictError,
-} from "../../src/core/db/optimistic-lock.js";
+} from "#core/db/optimistic-lock";
 
 describe("core database", () => {
   const databaseUrl =

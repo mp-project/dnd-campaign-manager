@@ -5,7 +5,7 @@ import type { Pool } from "pg";
 import { Pool as PgPool } from "pg";
 import { fileURLToPath } from "node:url";
 
-import * as schema from "./schema.js";
+import * as schema from "#core/db/schema";
 
 export const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
 const backendRootDir = path.resolve(
@@ -29,6 +29,12 @@ export type TransactionManager = {
   inTransaction<T>(work: (db: AppDatabase) => Promise<T>): Promise<T>;
 };
 
+/**
+ * Creates a PostgreSQL pool with conservative defaults for backend workloads.
+ *
+ * @param connectionString PostgreSQL connection URL.
+ * @returns Configured pg Pool instance.
+ */
 export function createPgPool(connectionString: string): Pool {
   return new PgPool({
     connectionString,
@@ -36,10 +42,23 @@ export function createPgPool(connectionString: string): Pool {
   });
 }
 
+/**
+ * Creates the Drizzle database facade bound to the shared schema.
+ *
+ * @param pool PostgreSQL pool used by Drizzle.
+ * @returns Typed AppDatabase instance.
+ */
 export function createDrizzleDb(pool: Pool): AppDatabase {
   return drizzle(pool, { schema });
 }
 
+/**
+ * Executes all pending Drizzle migrations.
+ *
+ * @param db Database instance used for migrations.
+ * @param migrationsFolder Optional migration directory override.
+ * @returns Promise resolved after migrations complete.
+ */
 export async function runDatabaseMigrations(
   db: AppDatabase,
   migrationsFolder: string = defaultMigrationsFolder,
@@ -47,6 +66,11 @@ export async function runDatabaseMigrations(
   await migrate(db, { migrationsFolder });
 }
 
+/**
+ * Guards destructive test-db operations against non-test or non-local targets.
+ *
+ * @param databaseUrl Database URL to validate.
+ */
 export function assertSafeTestDatabaseUrl(databaseUrl: string): void {
   const url = new URL(databaseUrl);
   const databaseName = url.pathname.replace(/^\//, "");
@@ -64,6 +88,13 @@ export function assertSafeTestDatabaseUrl(databaseUrl: string): void {
   }
 }
 
+/**
+ * Truncates public tables (excluding migration metadata) for test database reset.
+ *
+ * @param pool PostgreSQL pool connected to the test database.
+ * @param databaseUrl Database URL used for safety validation.
+ * @returns Promise resolved when reset has completed.
+ */
 export async function resetTestDatabase(
   pool: Pool,
   databaseUrl: string,
@@ -91,6 +122,12 @@ export async function resetTestDatabase(
   await pool.query(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`);
 }
 
+/**
+ * Builds a transaction manager wrapper around Drizzle transactions.
+ *
+ * @param db Database instance.
+ * @returns Transaction manager with inTransaction helper.
+ */
 export function createTransactionManager(db: AppDatabase): TransactionManager {
   return {
     async inTransaction<T>(work: (txDb: AppDatabase) => Promise<T>): Promise<T> {
@@ -99,6 +136,12 @@ export function createTransactionManager(db: AppDatabase): TransactionManager {
   };
 }
 
+/**
+ * Probes database connectivity and migration table existence for readiness checks.
+ *
+ * @param pool PostgreSQL pool.
+ * @returns Readiness state for DB connectivity and migration status.
+ */
 export async function checkDatabaseReadiness(pool: Pool): Promise<ReadyState> {
   try {
     await pool.query("select 1");

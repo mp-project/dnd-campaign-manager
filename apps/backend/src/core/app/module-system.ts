@@ -1,6 +1,13 @@
 import type { FastifyInstance } from "fastify";
 
-import type { AppContainer } from "./container.js";
+import type { AppContainer } from "#core/app/container";
+import type {
+  AssetRelationDefinition,
+  AssetTypeDefinition,
+  SessionContentProvider,
+  UsageProvider,
+} from "#core/contracts";
+import type { PermissionDefinition } from "#core/permissions/service";
 
 export type AppModule = {
   name: string;
@@ -9,10 +16,11 @@ export type AppModule = {
     app: FastifyInstance,
     container: AppContainer,
   ) => Promise<void> | void;
-  permissions?: readonly unknown[];
-  relations?: readonly unknown[];
-  usageProviders?: readonly unknown[];
-  sessionProviders?: readonly unknown[];
+  permissions?: readonly PermissionDefinition[];
+  assetTypes?: readonly AssetTypeDefinition[];
+  relations?: readonly AssetRelationDefinition[];
+  usageProviders?: readonly UsageProvider[];
+  sessionProviders?: readonly SessionContentProvider[];
 };
 
 export type ModuleRegistrationErrorCode =
@@ -20,6 +28,9 @@ export type ModuleRegistrationErrorCode =
   | "MISSING_DEPENDENCY"
   | "CYCLIC_DEPENDENCY";
 
+/**
+ * Error thrown when module registration constraints are violated.
+ */
 export class AppModuleRegistrationError extends Error {
   readonly code: ModuleRegistrationErrorCode;
 
@@ -30,6 +41,12 @@ export class AppModuleRegistrationError extends Error {
   }
 }
 
+/**
+ * Resolves modules into dependency-safe registration order and validates graph integrity.
+ *
+ * @param modules Declared modules with names and dependencies.
+ * @returns Ordered module list suitable for sequential registration.
+ */
 export function resolveModuleRegistrationOrder(
   modules: readonly AppModule[],
 ): AppModule[] {
@@ -104,6 +121,14 @@ export function resolveModuleRegistrationOrder(
   return orderedModules;
 }
 
+/**
+ * Registers all modules on a Fastify instance in dependency-safe order.
+ *
+ * @param app Fastify application instance.
+ * @param container Application container passed to each module register hook.
+ * @param modules Modules to register.
+ * @returns Resolved registration order.
+ */
 export async function registerModules(
   app: FastifyInstance,
   container: AppContainer,

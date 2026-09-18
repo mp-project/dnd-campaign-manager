@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { domainErrorCodes } from "./domain-errors.js";
+import { domainErrorCodes } from "#core/http/domain-errors";
 
 export const uuidDto = z.string().uuid();
 
@@ -34,6 +34,12 @@ export const expectedVersionDto = z.strictObject({
   expectedVersion: z.coerce.number().int().positive(),
 });
 
+/**
+ * Creates a strict partial patch schema that rejects empty payloads.
+ *
+ * @param shape Zod object shape for writable fields.
+ * @returns Partial schema with non-empty refinement.
+ */
 export function nonEmptyPatch<T extends z.ZodRawShape>(shape: T) {
   return z
     .strictObject(shape)
@@ -49,6 +55,12 @@ export const pageInfoDto = z.strictObject({
   total: z.number().int().nonnegative().optional(),
 });
 
+/**
+ * Wraps an item DTO in the standard list envelope schema.
+ *
+ * @param itemDto DTO schema for list entries.
+ * @returns List response DTO with data and pageInfo fields.
+ */
 export function standardListResponseDto<T extends z.ZodTypeAny>(itemDto: T) {
   return z.strictObject({
     data: z.array(itemDto),

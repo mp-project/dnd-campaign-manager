@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
-import { buildApp } from "../../src/app.js";
-import type { AppModule } from "../../src/core/app/module-system.js";
-import { ForbiddenError } from "../../src/core/http/domain-errors.js";
+import { buildApp } from "#src/app";
+import type { AppModule } from "#core/app/module-system";
+import { ForbiddenError } from "#core/http/domain-errors";
 import {
   baseEntityResponseDto,
   expectedVersionDto,
@@ -13,13 +13,13 @@ import {
   sortDto,
   standardListResponseDto,
   uuidDto,
-} from "../../src/core/http/dto.js";
+} from "#core/http/dto";
 import {
   createStandardListResponse,
   decodePaginationCursor,
   encodePaginationCursor,
-} from "../../src/core/http/list-response.js";
-import { createTestEnv } from "../helpers/test-env.js";
+} from "#core/http/list-response";
+import { createTestEnv } from "#test/helpers/test-env";
 
 const listItemDto = baseEntityResponseDto.extend({
   slug: slugDto,

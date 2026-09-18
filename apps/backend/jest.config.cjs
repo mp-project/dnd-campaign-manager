@@ -25,6 +25,9 @@ module.exports = {
       transform,
       moduleNameMapper: {
         "^(\\.{1,2}/.*)\\.js$": "$1",
+        "^#core/(.*)$": "<rootDir>/src/core/$1",
+        "^#src/(.*)$": "<rootDir>/src/$1",
+        "^#test/(.*)$": "<rootDir>/tests/$1",
       },
       setupFiles: ["<rootDir>/tests/setup/env.ts"],
     },
@@ -35,6 +38,9 @@ module.exports = {
       transform,
       moduleNameMapper: {
         "^(\\.{1,2}/.*)\\.js$": "$1",
+        "^#core/(.*)$": "<rootDir>/src/core/$1",
+        "^#src/(.*)$": "<rootDir>/src/$1",
+        "^#test/(.*)$": "<rootDir>/tests/$1",
       },
       setupFiles: ["<rootDir>/tests/setup/env.ts"],
       setupFilesAfterEnv: ["<rootDir>/tests/setup/integration.ts"],

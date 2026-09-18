@@ -3,6 +3,7 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "customConditions": ["development"],
     "types": ["node", "jest"],
     "noEmit": true
   },

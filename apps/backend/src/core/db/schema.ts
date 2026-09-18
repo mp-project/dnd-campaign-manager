@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
-import { baseColumns, uniqueActiveIndex } from "./schema-helpers.js";
+import { baseColumns, uniqueActiveIndex } from "#core/db/schema-helpers";
 
 export const systemRuntimeState = pgTable(
   "system_runtime_state",

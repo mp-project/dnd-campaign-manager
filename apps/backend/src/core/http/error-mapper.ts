@@ -7,7 +7,7 @@ import {
   DomainError,
   type DomainErrorCode,
   statusCodeForDomainError,
-} from "./domain-errors.js";
+} from "#core/http/domain-errors";
 
 export type MappedHttpError = {
   statusCode: number;
@@ -24,6 +24,12 @@ type ErrorWithStatusCode = {
   details?: unknown;
 };
 
+/**
+ * Narrows unknown errors to a loosely typed status/code carrier.
+ *
+ * @param error Unknown runtime error.
+ * @returns Best-effort error object with optional status fields.
+ */
 function asErrorWithStatusCode(error: unknown): ErrorWithStatusCode {
   if (typeof error === "object" && error !== null) {
     return error as ErrorWithStatusCode;
@@ -32,6 +38,12 @@ function asErrorWithStatusCode(error: unknown): ErrorWithStatusCode {
   return {};
 }
 
+/**
+ * Checks whether an error corresponds to PostgreSQL conflict-class codes.
+ *
+ * @param error Candidate error object.
+ * @returns True when the error represents a DB constraint conflict.
+ */
 function isPgConflict(error: ErrorWithStatusCode): boolean {
   return (
     error.code === "23505" ||
@@ -40,6 +52,12 @@ function isPgConflict(error: ErrorWithStatusCode): boolean {
   );
 }
 
+/**
+ * Maps HTTP status codes to domain error codes.
+ *
+ * @param statusCode HTTP status code.
+ * @returns Corresponding domain error code.
+ */
 function mapStatusCodeToDomainCode(statusCode: number): DomainErrorCode {
   if (statusCode === 400) {
     return "VALIDATION_ERROR";
@@ -68,6 +86,12 @@ function mapStatusCodeToDomainCode(statusCode: number): DomainErrorCode {
   return "INTERNAL_ERROR";
 }
 
+/**
+ * Converts framework/domain/database errors into standardized HTTP error payload fields.
+ *
+ * @param error Unknown runtime error.
+ * @returns Mapped HTTP error descriptor.
+ */
 export function mapErrorToHttp(error: unknown): MappedHttpError {
   if (hasZodFastifySchemaValidationErrors(error)) {
     return {

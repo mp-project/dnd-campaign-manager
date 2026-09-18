@@ -102,4 +102,28 @@ describe("HTTP smoke tests", () => {
       },
     });
   });
+
+  it("does not swallow API and health routes in SPA fallback", async () => {
+    const apiResponse = await app.inject({
+      method: "GET",
+      url: "/api/v1/unknown-route",
+      headers: {
+        accept: "text/html",
+      },
+    });
+
+    expect(apiResponse.statusCode).toBe(404);
+    expect(apiResponse.headers["content-type"]).toContain("application/json");
+
+    const healthResponse = await app.inject({
+      method: "GET",
+      url: "/health",
+      headers: {
+        accept: "text/html",
+      },
+    });
+
+    expect(healthResponse.statusCode).toBe(200);
+    expect(healthResponse.json()).toEqual({ status: "ok" });
+  });
 });

@@ -32,6 +32,16 @@ const booleanFromEnv = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+const optionalNonEmptyString = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim();
+
+  return normalized.length === 0 ? undefined : normalized;
+}, z.string().min(1).optional());
+
 const envSchema = z
   .object({
     NODE_ENV: z
@@ -52,8 +62,8 @@ const envSchema = z
     MAIL_SMTP_HOST: z.string().min(1).default("127.0.0.1"),
     MAIL_SMTP_PORT: positiveInt.default(1025),
     MAIL_SMTP_SECURE: booleanFromEnv.default(false),
-    MAIL_SMTP_USER: z.string().min(1).optional(),
-    MAIL_SMTP_PASS: z.string().min(1).optional(),
+    MAIL_SMTP_USER: optionalNonEmptyString,
+    MAIL_SMTP_PASS: optionalNonEmptyString,
     MAILPIT_UI_URL: z.string().url().optional(),
     EMAIL_VERIFICATION_SECRET: z.string().min(16).optional(),
     EMAIL_VERIFICATION_CODE_TTL_HOURS: positiveInt.default(24),

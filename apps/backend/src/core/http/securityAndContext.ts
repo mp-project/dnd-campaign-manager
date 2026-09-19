@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { verify, type JwtPayload } from "jsonwebtoken";
+import jsonwebtoken, { type JwtPayload } from "jsonwebtoken";
 
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
@@ -130,7 +130,7 @@ async function verifyAccessToken(
   env: AppEnv,
 ): Promise<VerifiedAccessToken | null> {
   try {
-    const verificationResult = verify(token, env.JWT_ACCESS_SECRET, {
+    const verificationResult = jsonwebtoken.verify(token, env.JWT_ACCESS_SECRET, {
       algorithms: ["HS256", "HS384", "HS512"],
       maxAge: env.JWT_ACCESS_TTL,
       clockTolerance: 5,

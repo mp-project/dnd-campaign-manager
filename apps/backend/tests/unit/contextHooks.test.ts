@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sign } from "jsonwebtoken";
+import jsonwebtoken from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
@@ -34,7 +34,7 @@ async function createAccessToken(
   systemRole: (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE],
   secret: string,
 ): Promise<string> {
-  return sign(
+  return jsonwebtoken.sign(
     { systemRole },
     secret,
     {

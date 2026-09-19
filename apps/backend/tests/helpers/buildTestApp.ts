@@ -1,5 +1,5 @@
 import type { InjectOptions, Response as InjectResponse } from "light-my-request";
-import { sign, type SignOptions } from "jsonwebtoken";
+import jsonwebtoken, { type SignOptions } from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
@@ -27,7 +27,7 @@ export type TestInjectRequest = InjectOptions;
 function createActorToken(actor: TestActor, env: AppEnv): string {
   const expiresIn = env.JWT_ACCESS_TTL as NonNullable<SignOptions["expiresIn"]>;
 
-  return sign(
+  return jsonwebtoken.sign(
     { systemRole: actor.systemRole },
     env.JWT_ACCESS_SECRET,
     {

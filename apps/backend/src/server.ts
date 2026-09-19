@@ -19,6 +19,14 @@ function resolveStorageDashboardUrl(env: AppEnv): string | null {
   return env.STORAGE_S3_DASHBOARD_URL ?? null;
 }
 
+function resolveMailpitUiUrl(env: AppEnv): string | null {
+  if (env.MAIL_DRIVER !== "smtp") {
+    return null;
+  }
+
+  return env.MAILPIT_UI_URL ?? null;
+}
+
 /**
  * Resolves browser origins that may fetch signed S3 download URLs.
  *
@@ -129,6 +137,12 @@ async function startServer(): Promise<void> {
       if (dashboardUrl) {
         console.log(`Storage Dashboard: ${dashboardUrl}`);
       }
+    }
+
+    const mailpitUiUrl = resolveMailpitUiUrl(env);
+
+    if (mailpitUiUrl) {
+      console.log(`Mailpit Inbox: ${mailpitUiUrl}`);
     }
   } catch (error) {
     app.log.error({ err: error }, "Failed to start server");

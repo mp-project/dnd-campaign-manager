@@ -37,6 +37,12 @@ services:
     volumes:
       - rustfs-data:/data
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_SMTP_PORT}:1025"
+      - "${MAILPIT_UI_PORT}:8025"
+
   migrate:
     build:
       context: .
@@ -52,6 +58,14 @@ services:
       TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+      MAIL_DRIVER: smtp
+      MAIL_FROM_ADDRESS: no-reply@${API_DOMAIN}
+      MAIL_FROM_NAME: DnD Campaign Manager
+      MAIL_SMTP_HOST: mailpit
+      MAIL_SMTP_PORT: 1025
+      MAIL_SMTP_SECURE: "false"
+      MAILPIT_UI_URL: ${COMPOSE_MAILPIT_UI_URL}
+      EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
       STORAGE_DRIVER: s3
       STORAGE_S3_ENDPOINT: ${COMPOSE_STORAGE_S3_ENDPOINT}
       STORAGE_S3_DASHBOARD_URL: ${COMPOSE_STORAGE_S3_DASHBOARD_URL}
@@ -66,6 +80,8 @@ services:
       db:
         condition: service_healthy
       rustfs:
+        condition: service_started
+      mailpit:
         condition: service_started
     command: npm run db:migrate --workspace @dnd/backend
 
@@ -85,6 +101,14 @@ services:
       TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+      MAIL_DRIVER: smtp
+      MAIL_FROM_ADDRESS: no-reply@${API_DOMAIN}
+      MAIL_FROM_NAME: DnD Campaign Manager
+      MAIL_SMTP_HOST: mailpit
+      MAIL_SMTP_PORT: 1025
+      MAIL_SMTP_SECURE: "false"
+      MAILPIT_UI_URL: ${COMPOSE_MAILPIT_UI_URL}
+      EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
       STORAGE_DRIVER: s3
       STORAGE_S3_ENDPOINT: ${COMPOSE_STORAGE_S3_ENDPOINT}
       STORAGE_S3_DASHBOARD_URL: ${COMPOSE_STORAGE_S3_DASHBOARD_URL}
@@ -99,6 +123,8 @@ services:
       migrate:
         condition: service_completed_successfully
       rustfs:
+        condition: service_started
+      mailpit:
         condition: service_started
 
   frontend:
@@ -166,6 +192,13 @@ services:
       TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+      MAIL_DRIVER: noop
+      MAIL_FROM_ADDRESS: no-reply@example.test
+      MAIL_FROM_NAME: DnD Tests
+      MAIL_SMTP_HOST: mailpit
+      MAIL_SMTP_PORT: 1025
+      MAIL_SMTP_SECURE: "false"
+      EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
     depends_on:
       db-test:
         condition: service_healthy

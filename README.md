@@ -32,6 +32,7 @@ node webapp to manage dnd campaign
 	- backend API container (intern, Port BACKEND_PORT)
 	- frontend static container (intern, Port 80)
 	- postgres on DB_PORT
+	- mailpit for local SMTP testing on MAILPIT_SMTP_PORT and inbox UI on MAILPIT_UI_PORT
 	- caddy tls proxy as public ingress on CADDY_HTTP_PORT and CADDY_HTTPS_PORT
 
 ## HTTPS with Caddy
@@ -41,3 +42,10 @@ node webapp to manage dnd campaign
 - Frontend domain:
 	- https://app.localhost:8443
 - Caddy routes requests to backend and frontend containers and issues local certificates with tls internal.
+
+## Local Mail Testing
+
+- Mailpit SMTP (backend target):
+	- localhost:${MAILPIT_SMTP_PORT}
+- Mailpit inbox UI:
+	- http://localhost:${MAILPIT_UI_PORT}

@@ -25,12 +25,14 @@ import {
   createStoragePortFromEnv,
   type StoragePort,
 } from "#core/storage";
+import type { CampaignRole } from "#core/permissions/roles";
+import { createEmailPortFromEnv, type EmailPort } from "#core/email/index";
 
 export type CampaignAccessFacts = {
   campaignId: string;
   rulesetId: string;
   campaignMemberId: string | null;
-  campaignRole: "EDITOR" | "PLAYER" | null;
+  campaignRole: CampaignRole | null;
   membershipActive: boolean;
 };
 
@@ -53,6 +55,7 @@ export type AppPublicPorts = {
   sessionProviderRegistry?: SessionContentProviderRegistry;
   campaignFactPort?: CampaignFactPort;
   storagePort?: StoragePort;
+  emailPort?: EmailPort;
 };
 
 export type DependencyRegistry = {
@@ -123,6 +126,8 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     };
   const storagePort =
     params.publicPorts?.storagePort ?? createStoragePortFromEnv(params.config);
+  const emailPort =
+    params.publicPorts?.emailPort ?? createEmailPortFromEnv(params.config);
 
   return {
     config: params.config,
@@ -139,6 +144,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
       sessionProviderRegistry,
       campaignFactPort,
       storagePort,
+      emailPort,
     },
   };
 }

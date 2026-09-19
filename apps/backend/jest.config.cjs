@@ -17,6 +17,7 @@ const transform = {
 };
 
 module.exports = {
+  maxWorkers: 1,
   projects: [
     {
       displayName: "unit",

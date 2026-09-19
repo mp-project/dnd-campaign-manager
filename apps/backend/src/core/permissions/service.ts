@@ -2,8 +2,12 @@ import {
   ForbiddenError,
   NotFoundError,
   UnauthenticatedError,
-} from "#core/http/domain-errors";
-import type { CampaignContext, CampaignRole } from "#core/http/request-context";
+} from "#core/http/domainErrors";
+import type {
+  CampaignContext,
+  CampaignRole,
+  SystemRole,
+} from "#core/http/requestContext";
 import {
   activeMembershipPolicy,
   allPolicies,
@@ -18,6 +22,7 @@ import {
 export type PermissionDefinition = {
   key: string;
   description: string;
+  allowedSystemRoles?: readonly SystemRole[];
   allowedCampaignRoles: readonly CampaignRole[];
   resourcePolicy?: PermissionPolicy;
 };
@@ -71,13 +76,21 @@ export class PermissionService {
     context: CampaignContext,
     resource?: PermissionResource,
   ): boolean {
+    const definition = this.definitionsByKey.get(key);
+
+    if (!definition) {
+      return false;
+    }
+
+    if (definition.allowedSystemRoles?.includes(context.systemRole)) {
+      return true;
+    }
+
     if (context.systemRole === "ADMIN") {
       return true;
     }
 
-    const definition = this.definitionsByKey.get(key);
-
-    if (!definition || !context.campaignRole) {
+    if (!context.campaignRole) {
       return false;
     }
 
@@ -138,14 +151,20 @@ export class PermissionService {
       return Array.from(this.definitionsByKey.keys()).sort();
     }
 
-    if (!context.campaignRole) {
-      return [];
-    }
-
     return Array.from(this.definitionsByKey.values())
-      .filter((definition) =>
-        definition.allowedCampaignRoles.includes(context.campaignRole as CampaignRole),
-      )
+      .filter((definition) => {
+        if (definition.allowedSystemRoles?.includes(context.systemRole)) {
+          return true;
+        }
+
+        if (!context.campaignRole) {
+          return false;
+        }
+
+        return definition.allowedCampaignRoles.includes(
+          context.campaignRole as CampaignRole,
+        );
+      })
       .map((definition) => definition.key)
       .sort();
   }

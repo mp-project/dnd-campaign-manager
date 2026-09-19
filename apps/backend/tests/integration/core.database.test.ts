@@ -16,7 +16,7 @@ import {
 import {
   updateCampaignScopedRowWithOptimisticLock,
   VersionConflictError,
-} from "#core/db/optimistic-lock";
+} from "#core/db/optimisticLock";
 
 describe("core database", () => {
   const databaseUrl =

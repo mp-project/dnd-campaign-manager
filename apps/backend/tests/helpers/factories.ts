@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { CampaignContext, RequestContext } from "#core/http/request-context";
+import type { CampaignContext, RequestContext } from "#core/http/requestContext";
 
 export type UserFactoryInput = {
   id?: string;

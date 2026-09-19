@@ -1,6 +1,6 @@
 import { buildApp } from "#src/app";
 import { getEnv, type AppEnv } from "#core/env";
-import { ensureS3BucketAndCors } from "#core/storage/s3-storage";
+import { ensureS3BucketAndCors } from "#core/storage/s3Storage";
 
 function shouldSuppressStartupInfo(level: string): boolean {
   return level === "trace" || level === "debug" || level === "info";

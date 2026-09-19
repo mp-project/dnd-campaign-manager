@@ -3,13 +3,13 @@ import { fileURLToPath } from "node:url";
 
 import type { AppEnv } from "#core/env";
 import { StorageError } from "#core/storage/errors";
-import { LocalStorage } from "#core/storage/local-storage";
+import { LocalStorage } from "#core/storage/localStorage";
 import {
   defaultAllowedMimeTypes,
   parseMimeAllowlist,
 } from "#core/storage/mime";
 import type { StoragePort } from "#core/storage/port";
-import { S3CompatibleStorage } from "#core/storage/s3-storage";
+import { S3CompatibleStorage } from "#core/storage/s3Storage";
 
 const backendRootDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

@@ -9,7 +9,7 @@ import {
   createTemporaryObjectKey,
 } from "#core/storage/keys";
 import type { StoragePort } from "#core/storage/port";
-import { UploadInspectorTransform } from "#core/storage/upload-inspector";
+import { UploadInspectorTransform } from "#core/storage/uploadInspector";
 
 export type PersistUploadMetadataInput = {
   objectId: string;

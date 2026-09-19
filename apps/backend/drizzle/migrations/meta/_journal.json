@@ -15,6 +15,13 @@
       "when": 1789719666639,
       "tag": "0001_thin_roxanne_simpson",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789748675881,
+      "tag": "0002_broken_romulus",
+      "breakpoints": true
     }
   ]
 }

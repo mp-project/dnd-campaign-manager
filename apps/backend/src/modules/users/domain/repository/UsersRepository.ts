@@ -59,7 +59,7 @@ export class UsersRepository {
   }
 
   async createUser(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
-    const auditActorId = input.actorId ? toAuditActorId(input.actorId) : null;
+    const auditActorId = toAuditActorId(input.actorId);
 
     const [created] = await db
       .insert(users)
@@ -88,14 +88,18 @@ export class UsersRepository {
       email: string;
       codeHash: string;
       expiresAt: Date;
+      actorId?: string;
     },
   ): Promise<EmailVerificationRequestRow> {
+    const auditActorId = toAuditActorId(params.actorId);
+
     await db
       .update(emailVerificationRequests)
       .set({
         status: "SUPERSEDED",
         version: sql`${emailVerificationRequests.version} + 1`,
         updatedAt: new Date(),
+        updatedBy: auditActorId,
       })
       .where(
         and(
@@ -112,6 +116,8 @@ export class UsersRepository {
         codeHash: params.codeHash,
         status: "PENDING",
         expiresAt: params.expiresAt,
+        createdBy: auditActorId,
+        updatedBy: auditActorId,
       })
       .returning();
 
@@ -127,14 +133,18 @@ export class UsersRepository {
     params: {
       userId: string;
       verifiedAt: Date;
+      actorId?: string;
     },
   ): Promise<UserRow | null> {
+    const auditActorId = toAuditActorId(params.actorId);
+
     const [updated] = await db
       .update(users)
       .set({
         emailVerifiedAt: params.verifiedAt,
         version: sql`${users.version} + 1`,
         updatedAt: new Date(),
+        updatedBy: auditActorId,
       })
       .where(and(eq(users.id, params.userId), isNull(users.deletedAt)))
       .returning();
@@ -163,13 +173,17 @@ export class UsersRepository {
   async incrementEmailVerificationAttemptCount(
     db: AppDatabase,
     verificationId: string,
+    actorId?: string,
   ): Promise<void> {
+    const auditActorId = toAuditActorId(actorId);
+
     await db
       .update(emailVerificationRequests)
       .set({
         attemptCount: sql`${emailVerificationRequests.attemptCount} + 1`,
         version: sql`${emailVerificationRequests.version} + 1`,
         updatedAt: new Date(),
+        updatedBy: auditActorId,
       })
       .where(
         and(
@@ -185,8 +199,10 @@ export class UsersRepository {
       verificationId: string;
       status: EmailVerificationRequestRow["status"];
       verifiedAt?: Date | null;
+      actorId?: string;
     },
   ): Promise<EmailVerificationRequestRow | null> {
+    const auditActorId = toAuditActorId(params.actorId);
     const updateInput: Partial<typeof emailVerificationRequests.$inferInsert> = {
       status: params.status,
     };
@@ -201,6 +217,7 @@ export class UsersRepository {
         ...updateInput,
         version: sql`${emailVerificationRequests.version} + 1`,
         updatedAt: new Date(),
+        updatedBy: auditActorId,
       })
       .where(
         and(

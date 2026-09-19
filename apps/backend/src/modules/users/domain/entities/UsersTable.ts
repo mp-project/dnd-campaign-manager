@@ -42,6 +42,11 @@ export const users = pgTable(
     uniqueIndex("users_email_active_unique_idx")
       .on(table.email)
       .where(sql`${table.deletedAt} is null`),
+    uniqueIndex("users_single_system_user_active_unique_idx")
+      .on(table.systemRole)
+      .where(
+        sql`${table.systemRole} = 'SYSTEM' and ${table.deletedAt} is null`,
+      ),
   ],
 );
 

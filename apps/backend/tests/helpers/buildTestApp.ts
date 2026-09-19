@@ -1,10 +1,11 @@
 import type { InjectOptions, Response as InjectResponse } from "light-my-request";
+import { sign, type SignOptions } from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
-import { SYSTEM_ROLE, type SystemRole } from "#core/permissions/roles";
+import type { SystemRole } from "#core/permissions/roles";
 import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
 import { createTestEnv } from "#test/helpers/testEnv";
 
@@ -23,16 +24,18 @@ export type BuildTestAppOptions = {
 
 export type TestInjectRequest = InjectOptions;
 
-function createActorToken(actor: TestActor): string {
-  if (actor.systemRole === SYSTEM_ROLE.SUPER_ADMIN) {
-    return `super-admin:${actor.actorId}`;
-  }
+function createActorToken(actor: TestActor, env: AppEnv): string {
+  const expiresIn = env.JWT_ACCESS_TTL as NonNullable<SignOptions["expiresIn"]>;
 
-  if (actor.systemRole === SYSTEM_ROLE.ADMIN) {
-    return `admin:${actor.actorId}`;
-  }
-
-  return `user:${actor.actorId}`;
+  return sign(
+    { systemRole: actor.systemRole },
+    env.JWT_ACCESS_SECRET,
+    {
+      algorithm: "HS256",
+      subject: actor.actorId,
+      expiresIn,
+    },
+  );
 }
 
 function createDefaultTestPorts(): AppPublicPorts {
@@ -85,7 +88,7 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
   ): Promise<InjectResponse> => {
     const existingHeaders =
       (request.headers as Record<string, string | string[] | undefined> | undefined) ?? {};
-    const actorToken = createActorToken(actor);
+    const actorToken = createActorToken(actor, env);
     const existingCookieHeader =
       typeof existingHeaders.cookie === "string" ? existingHeaders.cookie : "";
     const authCookie = `access_token=${encodeURIComponent(actorToken)}`;

@@ -85,7 +85,10 @@ export class PermissionService {
       return false;
     }
 
-    if (context.systemRole === SYSTEM_ROLE.SUPER_ADMIN) {
+    if (
+      context.systemRole === SYSTEM_ROLE.SYSTEM ||
+      context.systemRole === SYSTEM_ROLE.SUPER_ADMIN
+    ) {
       return true;
     }
 

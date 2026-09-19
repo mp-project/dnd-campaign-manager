@@ -20,7 +20,11 @@ describe("users permission definitions", () => {
     );
 
     for (const definition of adminOnly) {
-      expect(definition.allowedSystemRoles).toEqual(["SUPER_ADMIN", "ADMIN"]);
+      expect(definition.allowedSystemRoles).toEqual([
+        "SYSTEM",
+        "SUPER_ADMIN",
+        "ADMIN",
+      ]);
       expect(definition.allowedCampaignRoles).toEqual([]);
     }
   });

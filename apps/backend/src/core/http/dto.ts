@@ -28,6 +28,8 @@ export const baseEntityResponseDto = z.strictObject({
   createdAt: isoDateTimeDto,
   updatedAt: isoDateTimeDto,
   deletedAt: isoDateTimeDto.nullable(),
+  createdBy: uuidDto,
+  updatedBy: uuidDto.nullable(),
 });
 
 export const expectedVersionDto = z.strictObject({

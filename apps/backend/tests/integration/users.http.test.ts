@@ -143,6 +143,7 @@ describe("users HTTP routes", () => {
     const adminA = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
     const adminB = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
     const managedUser = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const systemUser = "00000000-0000-4000-8000-000000000001";
 
     await seedUser({
       id: superAdmin,
@@ -167,6 +168,12 @@ describe("users HTTP routes", () => {
       email: "user@example.test",
       displayName: "Managed User",
       systemRole: "USER",
+    });
+    await seedUser({
+      id: systemUser,
+      email: "system@local.invalid",
+      displayName: "SYSTEM",
+      systemRole: "SYSTEM",
     });
 
     const listResponse = await injectAs(
@@ -248,6 +255,30 @@ describe("users HTTP routes", () => {
     );
 
     expect(superAdminSelfDemotion.statusCode).toBe(409);
+
+    const superAdminTouchesSystem = await injectAs(
+      { actorId: superAdmin, systemRole: "SUPER_ADMIN" },
+      {
+        method: "PATCH",
+        url: `/api/v1/admin/users/${systemUser}`,
+        payload: {
+          expectedVersion: 1,
+          status: "LOCKED",
+        },
+      },
+    );
+
+    expect(superAdminTouchesSystem.statusCode).toBe(403);
+
+    const superAdminDeletesSystem = await injectAs(
+      { actorId: superAdmin, systemRole: "SUPER_ADMIN" },
+      {
+        method: "DELETE",
+        url: `/api/v1/admin/users/${systemUser}`,
+      },
+    );
+
+    expect(superAdminDeletesSystem.statusCode).toBe(403);
 
     const adminSelfDemotion = await injectAs(
       { actorId: adminA, systemRole: "ADMIN" },

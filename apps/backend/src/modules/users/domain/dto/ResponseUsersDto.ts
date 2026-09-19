@@ -41,8 +41,6 @@ export const ResponseAdminUserSchema = baseEntityResponseDto.extend({
   status: UserStatusSchema,
   emailVerifiedAt: isoDateTimeDto.nullable(),
   lastLoginAt: isoDateTimeDto.nullable(),
-  createdBy: uuidDto.nullable(),
-  updatedBy: uuidDto.nullable(),
 });
 
 export const ResponseAdminUserListSchema = standardListResponseDto(

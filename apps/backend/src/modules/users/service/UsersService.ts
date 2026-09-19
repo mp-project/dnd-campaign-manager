@@ -508,6 +508,13 @@ export class UsersService {
     targetCurrentRole: UserRow["systemRole"],
     targetNextRole: UserRow["systemRole"],
   ): void {
+    if (
+      targetCurrentRole === SYSTEM_ROLE.SYSTEM ||
+      targetNextRole === SYSTEM_ROLE.SYSTEM
+    ) {
+      throw new ForbiddenError("SYSTEM user cannot be modified via admin API");
+    }
+
     if (!isAdminRole(actorRole)) {
       return;
     }

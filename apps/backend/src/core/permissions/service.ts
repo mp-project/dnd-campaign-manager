@@ -5,9 +5,12 @@ import {
 } from "#core/http/domainErrors";
 import type {
   CampaignContext,
-  CampaignRole,
-  SystemRole,
 } from "#core/http/requestContext";
+import type { CampaignRole, SystemRole } from "#core/permissions/roles";
+import {
+  isElevatedSystemRole,
+  SYSTEM_ROLE,
+} from "#core/permissions/roles";
 import {
   activeMembershipPolicy,
   allPolicies,
@@ -82,11 +85,15 @@ export class PermissionService {
       return false;
     }
 
+    if (context.systemRole === SYSTEM_ROLE.SUPER_ADMIN) {
+      return true;
+    }
+
     if (definition.allowedSystemRoles?.includes(context.systemRole)) {
       return true;
     }
 
-    if (context.systemRole === "ADMIN") {
+    if (context.systemRole === SYSTEM_ROLE.ADMIN) {
       return true;
     }
 
@@ -133,7 +140,7 @@ export class PermissionService {
       return;
     }
 
-    if (options.hideAsNotFoundForPlayers && context.systemRole !== "ADMIN") {
+    if (options.hideAsNotFoundForPlayers && !isElevatedSystemRole(context.systemRole)) {
       throw new NotFoundError("Resource not found");
     }
 
@@ -147,7 +154,7 @@ export class PermissionService {
    * @returns Sorted permission keys.
    */
   listEffectivePermissions(context: CampaignContext): string[] {
-    if (context.systemRole === "ADMIN") {
+    if (isElevatedSystemRole(context.systemRole)) {
       return Array.from(this.definitionsByKey.keys()).sort();
     }
 

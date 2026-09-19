@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
+import { SYSTEM_ROLE } from "#core/permissions/roles";
 import type {
   CampaignContext,
   RequestContext,
@@ -79,10 +80,30 @@ function extractTokenFromAuthorizationHeader(request: FastifyRequest): string | 
  * @returns Verified token payload or null when token format is invalid.
  */
 function verifyAccessToken(token: string): VerifiedAccessToken | null {
+  if (token === "system-super-admin") {
+    return {
+      actorId: "system-super-admin",
+      systemRole: SYSTEM_ROLE.SUPER_ADMIN,
+    };
+  }
+
   if (token === "system-admin") {
     return {
       actorId: "system-admin",
-      systemRole: "ADMIN",
+      systemRole: SYSTEM_ROLE.ADMIN,
+    };
+  }
+
+  if (token.startsWith("super-admin:")) {
+    const actorId = token.slice("super-admin:".length).trim();
+
+    if (!actorId) {
+      return null;
+    }
+
+    return {
+      actorId,
+      systemRole: SYSTEM_ROLE.SUPER_ADMIN,
     };
   }
 
@@ -95,7 +116,7 @@ function verifyAccessToken(token: string): VerifiedAccessToken | null {
 
     return {
       actorId,
-      systemRole: "ADMIN",
+      systemRole: SYSTEM_ROLE.ADMIN,
     };
   }
 
@@ -108,7 +129,7 @@ function verifyAccessToken(token: string): VerifiedAccessToken | null {
 
     return {
       actorId,
-      systemRole: "USER",
+      systemRole: SYSTEM_ROLE.USER,
     };
   }
 
@@ -118,7 +139,7 @@ function verifyAccessToken(token: string): VerifiedAccessToken | null {
 
   return {
     actorId: token,
-    systemRole: "USER",
+    systemRole: SYSTEM_ROLE.USER,
   };
 }
 
@@ -248,7 +269,7 @@ export function resolveRequestContext(request: FastifyRequest): RequestContext {
   if (!request.verifiedAccessToken) {
     return {
       actorId: null,
-      systemRole: "USER",
+      systemRole: SYSTEM_ROLE.USER,
     };
   }
 

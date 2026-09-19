@@ -7,6 +7,7 @@ import {
 } from "#core/http/domainErrors";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import { isElevatedSystemRole } from "#core/permissions/roles";
 import type {
   CreateRulesetInput,
   RulesetAggregate,
@@ -261,7 +262,7 @@ export class RulesetService {
   private assertAdmin(context: RequestContext): string {
     const actorId = this.assertAuthenticated(context);
 
-    if (context.systemRole !== "ADMIN") {
+    if (!isElevatedSystemRole(context.systemRole)) {
       throw new ForbiddenError("Admin permissions required");
     }
 

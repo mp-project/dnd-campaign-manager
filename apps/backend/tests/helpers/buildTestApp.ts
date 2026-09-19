@@ -4,12 +4,13 @@ import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
+import { SYSTEM_ROLE, type SystemRole } from "#core/permissions/roles";
 import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
 import { createTestEnv } from "#test/helpers/testEnv";
 
 export type TestActor = {
   actorId: string;
-  systemRole: "ADMIN" | "USER";
+  systemRole: SystemRole;
 };
 
 export type BuildTestAppOptions = {
@@ -23,7 +24,11 @@ export type BuildTestAppOptions = {
 export type TestInjectRequest = InjectOptions;
 
 function createActorToken(actor: TestActor): string {
-  if (actor.systemRole === "ADMIN") {
+  if (actor.systemRole === SYSTEM_ROLE.SUPER_ADMIN) {
+    return `super-admin:${actor.actorId}`;
+  }
+
+  if (actor.systemRole === SYSTEM_ROLE.ADMIN) {
     return `admin:${actor.actorId}`;
   }
 

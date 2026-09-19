@@ -1,6 +1,6 @@
-export type SystemRole = "ADMIN" | "USER";
+import type { CampaignRole, SystemRole } from "#core/permissions/roles";
 
-export type CampaignRole = "EDITOR" | "PLAYER";
+export type { CampaignRole, SystemRole } from "#core/permissions/roles";
 
 export type RequestContext = {
   actorId: string | null;

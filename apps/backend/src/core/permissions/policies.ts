@@ -1,4 +1,5 @@
 import type { CampaignContext } from "#core/http/requestContext";
+import { isElevatedSystemRole } from "#core/permissions/roles";
 
 export type PermissionResource = {
   campaignId?: string;
@@ -45,7 +46,7 @@ export function activeMembershipPolicy(
   context: CampaignContext,
   resource?: PermissionResource,
 ): boolean {
-  if (context.systemRole === "ADMIN") {
+  if (isElevatedSystemRole(context.systemRole)) {
     return true;
   }
 

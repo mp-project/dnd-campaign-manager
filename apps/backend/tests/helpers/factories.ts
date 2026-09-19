@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
 
 import type { CampaignContext, RequestContext } from "#core/http/requestContext";
+import type { SystemRole } from "#core/permissions/roles";
 
 export type UserFactoryInput = {
   id?: string;
   email?: string;
   displayName?: string;
-  systemRole?: "ADMIN" | "USER";
+  systemRole?: SystemRole;
   status?: "ACTIVE" | "LOCKED" | "DISABLED";
 };
 

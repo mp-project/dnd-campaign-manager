@@ -1,44 +1,42 @@
-import { and, eq, isNull } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { fileURLToPath } from "node:url";
 
-import { createPgPool } from "#core/db/pool";
+import {
+  createDrizzleDb,
+  createPgPool,
+} from "#core/db/pool";
 import { getEnv } from "#core/env";
-import { systemRuntimeState } from "#core/db/schema";
+import { seedBootstrapState } from "./seed/bootstrap.seed.js";
+import { seedRulesets } from "./seed/ruleset.seed.js";
 
 async function runSeed(): Promise<void> {
   const env = getEnv();
   const pool = createPgPool(env.DATABASE_URL);
 
   try {
-    const db = drizzle(pool);
+    const db = createDrizzleDb(pool);
+    const bootstrapCreated = await seedBootstrapState(db);
+    const createdRulesets = await seedRulesets(db);
 
-    const existingBootstrapState = await db
-      .select({ id: systemRuntimeState.id })
-      .from(systemRuntimeState)
-      .where(
-        and(
-          eq(systemRuntimeState.stateKey, "bootstrap"),
-          isNull(systemRuntimeState.deletedAt),
-        ),
-      )
-      .limit(1);
-
-    if (existingBootstrapState.length > 0) {
-      console.info("Seed skipped, bootstrap runtime state already exists.");
+    if (!bootstrapCreated && createdRulesets === 0) {
+      console.info("Seed skipped, all baseline data already exists.");
       return;
     }
 
-    await db.insert(systemRuntimeState).values({
-      stateKey: "bootstrap",
-      value: {
-        seededAt: new Date().toISOString(),
-      },
-    });
-
-    console.info("Seed completed.");
+    console.info(
+      `Seed completed. bootstrapCreated=${bootstrapCreated} createdRulesets=${createdRulesets}`,
+    );
   } finally {
     await pool.end();
   }
 }
 
-void runSeed();
+const isInvokedDirectly = process.argv[1]
+  ? fileURLToPath(import.meta.url) === process.argv[1]
+  : false;
+
+if (isInvokedDirectly) {
+  void runSeed();
+}
+
+export { runSeed };
+export { seedBootstrapState, seedRulesets };

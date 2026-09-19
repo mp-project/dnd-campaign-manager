@@ -7,7 +7,7 @@ import {
   DomainError,
   type DomainErrorCode,
   statusCodeForDomainError,
-} from "#core/http/domain-errors";
+} from "#core/http/domainErrors";
 
 export type MappedHttpError = {
   statusCode: number;
@@ -79,6 +79,10 @@ function mapStatusCodeToDomainCode(statusCode: number): DomainErrorCode {
     return "CONFLICT";
   }
 
+  if (statusCode === 412) {
+    return "VERSION_CONFLICT";
+  }
+
   if (statusCode === 429) {
     return "RATE_LIMITED";
   }
@@ -115,7 +119,7 @@ export function mapErrorToHttp(error: unknown): MappedHttpError {
 
   if (candidate.code === "VERSION_CONFLICT") {
     return {
-      statusCode: 409,
+      statusCode: 412,
       code: "VERSION_CONFLICT",
       message: candidate.message ?? "Version conflict",
       details: candidate.details ?? null,

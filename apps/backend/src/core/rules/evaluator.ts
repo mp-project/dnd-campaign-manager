@@ -1,4 +1,4 @@
-import type { CampaignFactValue } from "#core/contracts/campaign-facts";
+import type { CampaignFactValue } from "#core/rules/campaignFacts";
 import type { PredicateExpression, ValueExpression } from "#core/rules/contracts";
 
 export type RuleEvaluationOptions = {

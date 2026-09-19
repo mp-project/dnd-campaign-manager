@@ -1,11 +1,11 @@
 import type { InjectOptions, Response as InjectResponse } from "light-my-request";
 
 import { buildApp } from "#src/app";
-import type { AppModule } from "#core/app/module-system";
+import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
-import { createUnknownCampaignFactPort } from "#core/contracts";
-import { createTestEnv } from "#test/helpers/test-env";
+import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
+import { createTestEnv } from "#test/helpers/testEnv";
 
 export type TestActor = {
   actorId: string;
@@ -80,12 +80,20 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
   ): Promise<InjectResponse> => {
     const existingHeaders =
       (request.headers as Record<string, string | string[] | undefined> | undefined) ?? {};
+    const actorToken = createActorToken(actor);
+    const existingCookieHeader =
+      typeof existingHeaders.cookie === "string" ? existingHeaders.cookie : "";
+    const authCookie = `access_token=${encodeURIComponent(actorToken)}`;
+    const mergedCookieHeader = existingCookieHeader
+      ? `${existingCookieHeader}; ${authCookie}`
+      : authCookie;
 
     return app.inject({
       ...request,
       headers: {
         ...existingHeaders,
-        authorization: `Bearer ${createActorToken(actor)}`,
+        authorization: `Bearer ${actorToken}`,
+        cookie: mergedCookieHeader,
       },
     }) as Promise<InjectResponse>;
   };

@@ -1,4 +1,4 @@
-import type { CampaignContext } from "#core/http/request-context";
+import type { CampaignContext } from "#core/http/requestContext";
 
 export type PermissionResource = {
   campaignId?: string;

@@ -8,12 +8,69 @@ import type {
   CampaignContext,
   RequestContext,
   SystemRole,
-} from "#core/http/request-context";
+} from "#core/http/requestContext";
 
 type VerifiedAccessToken = {
   actorId: string;
   systemRole: SystemRole;
 };
+
+const AUTH_COOKIE_KEYS = ["access_token", "auth_token", "token"] as const;
+
+function parseCookieHeader(cookieHeader: string): Map<string, string> {
+  const values = new Map<string, string>();
+
+  for (const pair of cookieHeader.split(";")) {
+    const separatorIndex = pair.indexOf("=");
+
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = pair.slice(0, separatorIndex).trim();
+    const rawValue = pair.slice(separatorIndex + 1).trim();
+
+    if (!key || !rawValue) {
+      continue;
+    }
+
+    values.set(key, decodeURIComponent(rawValue));
+  }
+
+  return values;
+}
+
+function extractTokenFromCookies(request: FastifyRequest): string | null {
+  const cookieHeader = request.headers.cookie;
+
+  if (typeof cookieHeader !== "string" || !cookieHeader.trim()) {
+    return null;
+  }
+
+  const cookies = parseCookieHeader(cookieHeader);
+
+  for (const cookieKey of AUTH_COOKIE_KEYS) {
+    const value = cookies.get(cookieKey);
+
+    if (value?.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function extractTokenFromAuthorizationHeader(request: FastifyRequest): string | null {
+  const authorizationHeader = request.headers.authorization;
+
+  if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authorizationHeader.slice("Bearer ".length).trim();
+
+  return token || null;
+}
 
 /**
  * Parses a lightweight bearer token format used in local/dev flows.
@@ -142,21 +199,16 @@ export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void
 }
 
 /**
- * Authenticates a request by parsing and verifying bearer token headers.
+ * Authenticates a request by parsing cookie or bearer token values.
  *
  * @param request Fastify request to enrich with auth fields.
  */
 export function authenticate(request: FastifyRequest): void {
-  const authorizationHeader = request.headers.authorization;
-
   request.authToken = null;
   request.verifiedAccessToken = null;
 
-  if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
-    return;
-  }
-
-  const token = authorizationHeader.slice("Bearer ".length).trim();
+  const token =
+    extractTokenFromCookies(request) ?? extractTokenFromAuthorizationHeader(request);
 
   if (!token) {
     return;

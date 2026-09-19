@@ -20,27 +20,28 @@ import {
 import {
   resolveModuleRegistrationOrder,
   type AppModule,
-} from "#core/app/module-system";
+} from "#core/app/moduleSystem";
 import {
   checkDatabaseReadiness,
   createPgPool,
   type ReadyState,
 } from "#core/db/pool";
 import { getEnv, type AppEnv } from "#core/env";
-import { mapErrorToHttp } from "#core/http/error-mapper";
-import { createErrorPayload } from "#core/http/error-payload";
+import { mapErrorToHttp } from "#core/http/errorMapper";
+import { createErrorPayload } from "#core/http/errorPayload";
+import { registerAuthorizationPlugin } from "#core/http/authorization";
 import {
   registerAuthPlugin,
   registerCampaignContextPlugin,
   registerRequestContextPlugin,
   registerSecurityPlugins,
-} from "#core/http/security-and-context";
+} from "#core/http/securityAndContext";
 import {
   notFound,
   registerApiBaseRoute,
-  registerApiPingRoute,
   registerHealthRoutes,
-} from "#core/http/system-routes";
+} from "#core/http/systemRoutes";
+import { appModules } from "#src/modules/index";
 
 type BuildAppOptions = {
   env?: AppEnv;
@@ -55,16 +56,6 @@ type BuildAppOptions = {
 const SPA_FALLBACK_EXCLUDES = ["/api", "/documentation", "/health", "/ready"];
 const backendSourceDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultStaticRoot = path.resolve(backendSourceDir, "../../frontend/dist");
-
-const defaultAppModules: readonly AppModule[] = [
-  {
-    name: "system",
-    dependencies: [],
-    register: async (app) => {
-      registerApiPingRoute(app);
-    },
-  },
-];
 
 function shouldServeSpaFallback(
   url: string,
@@ -116,6 +107,11 @@ function registerOpenApi(app: FastifyInstance): void {
             scheme: "bearer",
             bearerFormat: "JWT",
           },
+          cookieAuth: {
+            type: "apiKey",
+            in: "cookie",
+            name: "access_token",
+          },
         },
       },
     },
@@ -163,7 +159,7 @@ function registerModulePermissions(
   }
 }
 
-function registerModuleContracts(
+function registerModuleDependencies(
   modules: readonly AppModule[],
   container: ReturnType<typeof createAppContainer>,
 ): void {
@@ -252,7 +248,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const readyProbe = options.readyProbe ?? (() => checkDatabaseReadiness(pool));
   const staticRoot = options.staticRoot ?? defaultStaticRoot;
   const indexHtmlPath = path.join(staticRoot, "index.html");
-  const modules = resolveModuleRegistrationOrder(options.modules ?? defaultAppModules);
+  const modules = resolveModuleRegistrationOrder(options.modules ?? appModules);
   const container = createAppContainer(
     options.publicPorts
       ? {
@@ -267,12 +263,13 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   );
 
   registerModulePermissions(modules, container);
-  registerModuleContracts(modules, container);
+  registerModuleDependencies(modules, container);
 
   registerSecurityPlugins(app, env);
   registerAuthPlugin(app);
   registerRequestContextPlugin(app);
   registerCampaignContextPlugin(app, container);
+  registerAuthorizationPlugin(app, container);
   registerErrorHandler(app, env);
   registerOpenApi(app);
   registerHealthRoutes(app, readyProbe);

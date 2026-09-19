@@ -14,11 +14,13 @@ import {
 import {
   AssetRelationRegistry,
   AssetTypeRegistry,
-  createUnknownCampaignFactPort,
   SessionContentProviderRegistry,
-  type CampaignFactPort as ContractCampaignFactPort,
   UsageProviderRegistry,
-} from "#core/contracts";
+} from "#core/app/moduleDependencies";
+import {
+  createUnknownCampaignFactPort,
+  type CampaignFactPort as BaseCampaignFactPort,
+} from "#core/app/campaignFactPort";
 import {
   createStoragePortFromEnv,
   type StoragePort,
@@ -33,10 +35,10 @@ export type CampaignAccessFacts = {
 };
 
 export type CampaignFactPort = {
-  hasVisitedLocation: ContractCampaignFactPort["hasVisitedLocation"];
-  hasMetNpc: ContractCampaignFactPort["hasMetNpc"];
-  hasResolvedEncounter: ContractCampaignFactPort["hasResolvedEncounter"];
-  isQuestCompleted: ContractCampaignFactPort["isQuestCompleted"];
+  hasVisitedLocation: BaseCampaignFactPort["hasVisitedLocation"];
+  hasMetNpc: BaseCampaignFactPort["hasMetNpc"];
+  hasResolvedEncounter: BaseCampaignFactPort["hasResolvedEncounter"];
+  isQuestCompleted: BaseCampaignFactPort["isQuestCompleted"];
   resolveCampaignAccess(input: {
     campaignId: string;
     actorId: string | null;
@@ -53,12 +55,19 @@ export type AppPublicPorts = {
   storagePort?: StoragePort;
 };
 
+export type DependencyRegistry = {
+  set<T>(token: string, dependency: T): void;
+  get<T>(token: string): T | undefined;
+  require<T>(token: string): T;
+};
+
 export type AppContainer = {
   config: AppEnv;
   pool: Pool;
   db: AppDatabase;
   transactionManager: TransactionManager;
   ports: AppPublicPorts;
+  dependencies: DependencyRegistry;
 };
 
 type CreateAppContainerParams = {
@@ -66,6 +75,28 @@ type CreateAppContainerParams = {
   pool: Pool;
   publicPorts?: AppPublicPorts;
 };
+
+function createDependencyRegistry(): DependencyRegistry {
+  const entries = new Map<string, unknown>();
+
+  return {
+    set: (token, dependency) => {
+      entries.set(token, dependency);
+    },
+    get: <T>(token: string) => {
+      return entries.get(token) as T | undefined;
+    },
+    require: <T>(token: string) => {
+      const dependency = entries.get(token);
+
+      if (dependency === undefined) {
+        throw new Error(`Missing dependency registration for '${token}'`);
+      }
+
+      return dependency as T;
+    },
+  };
+}
 
 /**
  * Creates the application DI container with default core ports when not overridden.
@@ -98,6 +129,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     pool: params.pool,
     db,
     transactionManager: createTransactionManager(db),
+    dependencies: createDependencyRegistry(),
     ports: {
       ...params.publicPorts,
       permissionService,

@@ -1,9 +1,9 @@
-import { NotFoundError } from "#core/http/domain-errors";
+import { NotFoundError } from "#core/http/domainErrors";
 import type {
   CampaignContext,
   CampaignRole,
   SystemRole,
-} from "#core/http/request-context";
+} from "#core/http/requestContext";
 import {
   createPermissionService,
   type PermissionService,

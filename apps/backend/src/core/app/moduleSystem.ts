@@ -6,7 +6,7 @@ import type {
   AssetTypeDefinition,
   SessionContentProvider,
   UsageProvider,
-} from "#core/contracts";
+} from "#core/app/moduleDependencies";
 import type { PermissionDefinition } from "#core/permissions/service";
 
 export type AppModule = {

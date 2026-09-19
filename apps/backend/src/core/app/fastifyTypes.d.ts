@@ -1,6 +1,7 @@
 import "fastify";
 
-import type { CampaignContext, RequestContext, SystemRole } from "#core/http/request-context";
+import type { CampaignContext, RequestContext, SystemRole } from "#core/http/requestContext";
+import type { RoutePermissionConfig } from "#core/http/authorization";
 
 type VerifiedAccessToken = {
   actorId: string;
@@ -8,6 +9,10 @@ type VerifiedAccessToken = {
 };
 
 declare module "fastify" {
+  interface FastifyContextConfig {
+    permission?: RoutePermissionConfig;
+  }
+
   interface FastifyRequest {
     authToken: string | null;
     verifiedAccessToken: VerifiedAccessToken | null;

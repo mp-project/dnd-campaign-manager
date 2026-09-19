@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { buildApp } from "#src/app";
 import { createPgPool } from "#core/db/pool";
-import { createTestEnv } from "#test/helpers/test-env";
+import { createTestEnv } from "#test/helpers/testEnv";
 
 describe("HTTP smoke tests", () => {
   const testDatabaseUrl =

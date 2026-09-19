@@ -1,6 +1,4 @@
-export const campaignFactValues = ["TRUE", "FALSE", "UNKNOWN"] as const;
-
-export type CampaignFactValue = (typeof campaignFactValues)[number];
+import type { CampaignFactValue } from "#core/rules/campaignFacts";
 
 export type CampaignFactPort = {
   hasVisitedLocation(input: {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { campaignFactValues } from "#core/contracts/campaign-facts";
+import { campaignFactValues } from "#core/rules/campaignFacts";
 
 export const valueOperators = [
   "ADD",

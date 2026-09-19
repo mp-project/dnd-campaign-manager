@@ -17,7 +17,7 @@ const statusByCode: Record<DomainErrorCode, number> = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
-  VERSION_CONFLICT: 409,
+  VERSION_CONFLICT: 412,
   RATE_LIMITED: 429,
   INTERNAL_ERROR: 500,
 };

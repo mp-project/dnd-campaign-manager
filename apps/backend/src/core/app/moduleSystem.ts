@@ -1,12 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
-import type {
-  AssetRelationDefinition,
-  AssetTypeDefinition,
-  SessionContentProvider,
-  UsageProvider,
-} from "#core/app/moduleDependencies";
 import type { PermissionDefinition } from "#core/permissions/service";
 
 export type AppModule = {
@@ -17,10 +11,6 @@ export type AppModule = {
     container: AppContainer,
   ) => Promise<void> | void;
   permissions?: readonly PermissionDefinition[];
-  assetTypes?: readonly AssetTypeDefinition[];
-  relations?: readonly AssetRelationDefinition[];
-  usageProviders?: readonly UsageProvider[];
-  sessionProviders?: readonly SessionContentProvider[];
 };
 
 export type ModuleRegistrationErrorCode =

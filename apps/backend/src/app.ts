@@ -166,61 +166,6 @@ function registerModulePermissions(
   }
 }
 
-function registerModuleDependencies(
-  modules: readonly AppModule[],
-  container: ReturnType<typeof createAppContainer>,
-): void {
-  const assetTypeRegistry = container.ports.assetTypeRegistry;
-  const relationRegistry = container.ports.relationRegistry;
-  const usageProviderRegistry = container.ports.usageProviderRegistry;
-  const sessionProviderRegistry = container.ports.sessionProviderRegistry;
-
-  if (assetTypeRegistry) {
-    for (const module of modules) {
-      if (!module.assetTypes || module.assetTypes.length === 0) {
-        continue;
-      }
-
-      assetTypeRegistry.register(module.name, module.assetTypes);
-    }
-  }
-
-  if (relationRegistry && assetTypeRegistry) {
-    for (const module of modules) {
-      if (!module.relations || module.relations.length === 0) {
-        continue;
-      }
-
-      relationRegistry.register(module.name, module.relations, assetTypeRegistry);
-    }
-  }
-
-  if (usageProviderRegistry) {
-    for (const module of modules) {
-      if (!module.usageProviders || module.usageProviders.length === 0) {
-        continue;
-      }
-
-      usageProviderRegistry.register(module.name, module.usageProviders);
-    }
-  }
-
-  if (sessionProviderRegistry) {
-    for (const module of modules) {
-      if (!module.sessionProviders || module.sessionProviders.length === 0) {
-        continue;
-      }
-
-      sessionProviderRegistry.register(module.name, module.sessionProviders);
-    }
-  }
-
-  assetTypeRegistry?.freeze();
-  relationRegistry?.freeze();
-  usageProviderRegistry?.freeze();
-  sessionProviderRegistry?.freeze();
-}
-
 function registerStaticFrontend(app: FastifyInstance, staticRoot: string): void {
   if (!existsSync(staticRoot)) {
     return;
@@ -270,7 +215,6 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   );
 
   registerModulePermissions(modules, container);
-  registerModuleDependencies(modules, container);
 
   registerSecurityPlugins(app, env);
   registerAuthPlugin(app, env);

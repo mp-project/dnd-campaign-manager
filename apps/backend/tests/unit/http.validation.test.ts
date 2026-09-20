@@ -162,7 +162,6 @@ function createValidationApp(nodeEnv: "test" | "production" = "test") {
     env: createTestEnv({ NODE_ENV: nodeEnv, LOG_LEVEL: "warn" }),
     modules: [validationModule],
     readyProbe: async () => ({ database: true, migrations: true }),
-    staticRoot: "/tmp/non-existent-static-root",
   });
 }
 

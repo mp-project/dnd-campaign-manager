@@ -52,7 +52,6 @@ describe("request and campaign context hooks", () => {
       env,
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
       publicPorts: {
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
@@ -108,7 +107,6 @@ describe("request and campaign context hooks", () => {
       env,
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
       publicPorts: {
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",

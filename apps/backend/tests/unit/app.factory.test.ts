@@ -8,7 +8,6 @@ describe("buildApp", () => {
     const app = buildApp({
       env: createTestEnv(),
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     const response = await app.inject({
@@ -26,7 +25,6 @@ describe("buildApp", () => {
     const app = buildApp({
       env: createTestEnv(),
       readyProbe: async () => ({ database: true, migrations: false }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     const response = await app.inject({
@@ -48,7 +46,6 @@ describe("buildApp", () => {
     const app = buildApp({
       env: createTestEnv(),
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     const response = await app.inject({
@@ -69,7 +66,6 @@ describe("buildApp", () => {
     const app = buildApp({
       env: createTestEnv(),
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     const response = await app.inject({
@@ -86,13 +82,11 @@ describe("buildApp", () => {
     const appA = buildApp({
       env: createTestEnv(),
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     const appB = buildApp({
       env: createTestEnv({ PORT: 3001 }),
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     const [responseA, responseB] = await Promise.all([
@@ -119,7 +113,6 @@ describe("buildApp", () => {
       pool: fakePool as unknown as Pool,
       closePoolOnShutdown: true,
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
     });
 
     await app.close();

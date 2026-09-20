@@ -1,4 +1,3 @@
-import fastifyStatic from "@fastify/static";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import {
@@ -8,9 +7,6 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import Fastify, { LogController, type FastifyInstance } from "fastify";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Pool } from "pg";
 
 import {
@@ -47,30 +43,10 @@ type BuildAppOptions = {
   env?: AppEnv;
   pool?: Pool;
   readyProbe?: () => Promise<ReadyState>;
-  staticRoot?: string;
   modules?: readonly AppModule[];
   publicPorts?: AppPublicPorts;
   closePoolOnShutdown?: boolean;
 };
-
-const SPA_FALLBACK_EXCLUDES = ["/api", "/documentation", "/health", "/ready"];
-const backendSourceDir = path.dirname(fileURLToPath(import.meta.url));
-const defaultStaticRoot = path.resolve(backendSourceDir, "../../frontend/dist");
-
-function shouldServeSpaFallback(
-  url: string,
-  acceptHeader: string | undefined,
-): boolean {
-  if (!acceptHeader?.includes("text/html")) {
-    return false;
-  }
-
-  const pathname = url.split("?")[0] ?? "/";
-
-  return !SPA_FALLBACK_EXCLUDES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
 
 function registerErrorHandler(app: FastifyInstance, env: AppEnv): void {
   app.setErrorHandler((error, request, reply) => {
@@ -166,18 +142,6 @@ function registerModulePermissions(
   }
 }
 
-function registerStaticFrontend(app: FastifyInstance, staticRoot: string): void {
-  if (!existsSync(staticRoot)) {
-    return;
-  }
-
-  app.register(fastifyStatic, {
-    root: staticRoot,
-    prefix: "/",
-    index: ["index.html"],
-  });
-}
-
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const env = options.env ?? getEnv();
   const baseApp = Fastify({
@@ -198,8 +162,6 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const closePoolOnShutdown =
     options.closePoolOnShutdown ?? options.pool === undefined;
   const readyProbe = options.readyProbe ?? (() => checkDatabaseReadiness(pool));
-  const staticRoot = options.staticRoot ?? defaultStaticRoot;
-  const indexHtmlPath = path.join(staticRoot, "index.html");
   const modules = resolveModuleRegistrationOrder(options.modules ?? appModules);
   const container = createAppContainer(
     options.publicPorts
@@ -225,16 +187,8 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   registerOpenApi(app);
   registerHealthRoutes(app, readyProbe);
   registerApiRoutes(app, modules, container);
-  registerStaticFrontend(app, staticRoot);
 
   app.setNotFoundHandler(async (request, reply) => {
-    if (
-      existsSync(indexHtmlPath) &&
-      shouldServeSpaFallback(request.url, request.headers.accept)
-    ) {
-      return reply.type("text/html; charset=utf-8").sendFile("/index.html");
-    }
-
     return notFound(request, reply);
   });
 

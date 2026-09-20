@@ -18,7 +18,6 @@ export type BuildTestAppOptions = {
   env?: Partial<AppEnv>;
   modules?: readonly AppModule[];
   readyProbe?: () => Promise<{ database: boolean; migrations: boolean }>;
-  staticRoot?: string;
   publicPorts?: AppPublicPorts;
 };
 
@@ -59,7 +58,6 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
     env: AppEnv;
     modules?: readonly AppModule[];
     readyProbe: () => Promise<{ database: boolean; migrations: boolean }>;
-    staticRoot: string;
     publicPorts: AppPublicPorts;
   } = {
     env,
@@ -69,7 +67,6 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
         database: true,
         migrations: true,
       })),
-    staticRoot: options.staticRoot ?? "/tmp/non-existent-static-root",
     publicPorts: {
       ...createDefaultTestPorts(),
       ...(options.publicPorts ?? {}),

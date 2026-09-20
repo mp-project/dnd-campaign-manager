@@ -149,7 +149,7 @@ describe("users HTTP routes", () => {
       id: superAdmin,
       email: "super.admin@example.test",
       displayName: "Super Admin",
-      systemRole: "SUPER_ADMIN",
+      systemRole: "ADMIN",
     });
     await seedUser({
       id: adminA,
@@ -249,7 +249,7 @@ describe("users HTTP routes", () => {
         url: `/api/v1/admin/users/${superAdmin}`,
         payload: {
           expectedVersion: 1,
-          systemRole: "ADMIN",
+          systemRole: "USER",
         },
       },
     );

@@ -74,9 +74,14 @@ function shouldServeSpaFallback(
 
 function registerErrorHandler(app: FastifyInstance, env: AppEnv): void {
   app.setErrorHandler((error, request, reply) => {
-    request.log.error({ err: error }, "Unhandled request error");
-
     const mappedError = mapErrorToHttp(error);
+    const isTestRuntime =
+      env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined;
+
+    if (!isTestRuntime) {
+      request.log.error({ err: error }, "Unhandled request error");
+    }
+
     const isInternalError = mappedError.code === "INTERNAL_ERROR";
     const shouldMaskInternalError =
       (env.NODE_ENV === "production" || env.NODE_ENV === "stage") &&

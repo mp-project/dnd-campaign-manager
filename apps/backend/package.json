@@ -28,7 +28,9 @@
     "test": "jest",
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration --runInBand",
-    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:push": "drizzle-kit push --config drizzle.config.ts",
+    "db:generate-migration": "drizzle-kit generate --config drizzle.config.ts",
+    "db:generate": "npm run db:generate-migration",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "db:migrate:prod": "NODE_ENV=production drizzle-kit migrate --config drizzle.config.ts",
     "db:seed": "NODE_OPTIONS=--conditions=development tsx scripts/seed.ts"

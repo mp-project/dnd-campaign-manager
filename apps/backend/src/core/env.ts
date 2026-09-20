@@ -42,10 +42,14 @@ const optionalNonEmptyString = z.preprocess((value) => {
   return normalized.length === 0 ? undefined : normalized;
 }, z.string().min(1).optional());
 
+function isProductionLikeNodeEnv(nodeEnv: string): boolean {
+  return nodeEnv === "production" || nodeEnv === "stage";
+}
+
 const envSchema = z
   .object({
     NODE_ENV: z
-      .enum(["development", "test", "production"])
+      .enum(["development", "test", "stage", "production"])
       .default("development"),
     HOST: z.string().min(1),
     PORT: z.coerce.number().int().min(1).max(65_535),
@@ -107,11 +111,11 @@ const envSchema = z
       }
     }
 
-    if (env.NODE_ENV === "production" && env.STORAGE_DRIVER !== "s3") {
+    if (isProductionLikeNodeEnv(env.NODE_ENV) && env.STORAGE_DRIVER !== "s3") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["STORAGE_DRIVER"],
-        message: "STORAGE_DRIVER must be \"s3\" when NODE_ENV=production",
+        message: "STORAGE_DRIVER must be \"s3\" when NODE_ENV=production or stage",
       });
     }
 

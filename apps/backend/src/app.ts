@@ -78,7 +78,9 @@ function registerErrorHandler(app: FastifyInstance, env: AppEnv): void {
 
     const mappedError = mapErrorToHttp(error);
     const isInternalError = mappedError.code === "INTERNAL_ERROR";
-    const shouldMaskInternalError = env.NODE_ENV === "production" && isInternalError;
+    const shouldMaskInternalError =
+      (env.NODE_ENV === "production" || env.NODE_ENV === "stage") &&
+      isInternalError;
 
     reply.code(mappedError.statusCode).send(
       createErrorPayload({

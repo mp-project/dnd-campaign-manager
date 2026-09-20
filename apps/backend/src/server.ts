@@ -11,20 +11,73 @@ function buildPublicApiUrl(baseUrl: string): string {
   return new URL("api/v1", normalizedBase).toString().replace(/\/$/, "");
 }
 
-function resolveStorageDashboardUrl(env: AppEnv): string | null {
-  if (env.STORAGE_DRIVER !== "s3") {
+function isDevelopmentRuntime(env: AppEnv): boolean {
+  return env.NODE_ENV === "development";
+}
+
+function hasExplicitUrlPort(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.port.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function resolveStorageEndpointForLog(env: AppEnv): string | null {
+  if (!isDevelopmentRuntime(env) || env.STORAGE_DRIVER !== "s3") {
     return null;
   }
 
-  return env.STORAGE_S3_DASHBOARD_URL ?? null;
+  const endpoint = env.STORAGE_S3_ENDPOINT?.trim();
+
+  if (!endpoint || !hasExplicitUrlPort(endpoint)) {
+    return null;
+  }
+
+  return endpoint;
+}
+
+function resolveStorageDashboardUrl(env: AppEnv): string | null {
+  if (!isDevelopmentRuntime(env) || env.STORAGE_DRIVER !== "s3") {
+    return null;
+  }
+
+  const dashboardUrl = env.STORAGE_S3_DASHBOARD_URL?.trim();
+
+  if (!dashboardUrl || !hasExplicitUrlPort(dashboardUrl)) {
+    return null;
+  }
+
+  return dashboardUrl;
 }
 
 function resolveMailpitUiUrl(env: AppEnv): string | null {
-  if (env.MAIL_DRIVER !== "smtp") {
+  if (!isDevelopmentRuntime(env) || env.MAIL_DRIVER !== "smtp") {
     return null;
   }
 
-  return env.MAILPIT_UI_URL ?? null;
+  const mailpitUiUrl = env.MAILPIT_UI_URL?.trim();
+
+  if (!mailpitUiUrl || !hasExplicitUrlPort(mailpitUiUrl)) {
+    return null;
+  }
+
+  return mailpitUiUrl;
+}
+
+function resolveAdminerUiUrl(env: AppEnv): string | null {
+  if (!isDevelopmentRuntime(env)) {
+    return null;
+  }
+
+  const dashboardPort = process.env.DB_DASHBOARD_PORT?.trim();
+
+  if (!dashboardPort) {
+    return null;
+  }
+
+  return `http://127.0.0.1:${dashboardPort}`;
 }
 
 /**
@@ -128,9 +181,20 @@ async function startServer(): Promise<void> {
 
     console.log(`REST-API: ${apiBaseUrl} (${apiStatus})`);
 
-    if (env.STORAGE_DRIVER === "s3") {
-      const endpoint = env.STORAGE_S3_ENDPOINT ?? "managed-provider";
-      console.log(`Storage: s3 (${endpoint})`);
+    const adminerUiUrl = resolveAdminerUiUrl(env);
+
+    if (adminerUiUrl) {
+      console.log(`DB Dashboard (Adminer): ${adminerUiUrl}`);
+    }
+
+    if (!isDevelopmentRuntime(env)) {
+      return;
+    }
+
+    const storageEndpointForLog = resolveStorageEndpointForLog(env);
+
+    if (storageEndpointForLog) {
+      console.log(`Storage: s3 (${storageEndpointForLog})`);
 
       const dashboardUrl = resolveStorageDashboardUrl(env);
 

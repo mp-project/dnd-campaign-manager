@@ -6,6 +6,7 @@ import {
 import {
   registerApiPingRoute,
 } from "#core/http/systemRoutes";
+import { authModule } from "#src/modules/auth/index";
 import { rulesetModule } from "#src/modules/ruleset/index";
 import { usersModule } from "#src/modules/users/index";
 
@@ -19,6 +20,7 @@ export const systemModule: AppModule = {
 
 export const defaultAppModules: readonly AppModule[] = [
   systemModule,
+  authModule,
   usersModule,
   rulesetModule,
 ];
@@ -31,5 +33,6 @@ export async function registerAppModules(
   await registerModules(app, container, modules);
 }
 
+export { authModule } from "#src/modules/auth/index";
 export { rulesetModule } from "#src/modules/ruleset/index";
 export { usersModule } from "#src/modules/users/index";

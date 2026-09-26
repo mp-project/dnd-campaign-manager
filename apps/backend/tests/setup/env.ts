@@ -16,9 +16,11 @@ const defaults: Record<string, string> = {
   JWT_REFRESH_TTL: "7d",
   LOG_LEVEL: "warn",
   CORS_ORIGIN: "http://app.localhost:5173",
+  FRONTEND_ORIGIN: "http://app.localhost:5173",
   VITE_API_BASE_URL:
     process.env.COMPOSE_BACKEND_PUBLIC_API_URL ??
     "http://localhost:3100/api/v1",
+  OAUTH_STATE_SECRET: "test-oauth-state-secret-1234",
   STORAGE_MAX_UPLOAD_BYTES: "5242880",
   STORAGE_MAX_TOTAL_BYTES: "104857600",
 };

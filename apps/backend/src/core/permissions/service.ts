@@ -30,6 +30,10 @@ export type PermissionDefinition = {
   resourcePolicy?: PermissionPolicy;
 };
 
+export type SystemRolePermissionAssignments = Partial<
+  Record<SystemRole, readonly string[]>
+>;
+
 type RequireOptions = {
   hideAsNotFoundForPlayers?: boolean;
 };
@@ -41,6 +45,8 @@ export class PermissionService {
   private readonly definitionsByKey = new Map<string, PermissionDefinition>();
 
   private readonly ownerByKey = new Map<string, string>();
+
+  private readonly permissionsBySystemRole = new Map<SystemRole, Set<string>>();
 
   /**
    * Registers permission definitions for a module and enforces unique keys.
@@ -63,6 +69,32 @@ export class PermissionService {
 
       this.definitionsByKey.set(definition.key, definition);
       this.ownerByKey.set(definition.key, moduleName);
+    }
+  }
+
+  /**
+   * Registers effective permission keys for system roles.
+   *
+   * This is intentionally additive so modules can extend role permissions over time.
+   *
+   * @param assignments Role to permission-key assignments.
+   */
+  registerSystemRolePermissions(assignments: SystemRolePermissionAssignments): void {
+    for (const [role, permissionKeys] of Object.entries(assignments) as Array<
+      [SystemRole, readonly string[] | undefined]
+    >) {
+      if (!permissionKeys || permissionKeys.length === 0) {
+        continue;
+      }
+
+      const rolePermissions =
+        this.permissionsBySystemRole.get(role) ?? new Set<string>();
+
+      for (const permissionKey of permissionKeys) {
+        rolePermissions.add(permissionKey);
+      }
+
+      this.permissionsBySystemRole.set(role, rolePermissions);
     }
   }
 
@@ -92,11 +124,13 @@ export class PermissionService {
       return true;
     }
 
-    if (definition.allowedSystemRoles?.includes(context.systemRole)) {
+    const rolePermissions = this.permissionsBySystemRole.get(context.systemRole);
+
+    if (rolePermissions?.has(key)) {
       return true;
     }
 
-    if (context.systemRole === SYSTEM_ROLE.ADMIN) {
+    if (definition.allowedSystemRoles?.includes(context.systemRole)) {
       return true;
     }
 
@@ -157,26 +191,38 @@ export class PermissionService {
    * @returns Sorted permission keys.
    */
   listEffectivePermissions(context: CampaignContext): string[] {
-    if (isElevatedSystemRole(context.systemRole)) {
+    if (
+      context.systemRole === SYSTEM_ROLE.SYSTEM ||
+      context.systemRole === SYSTEM_ROLE.SUPER_ADMIN
+    ) {
       return Array.from(this.definitionsByKey.keys()).sort();
     }
 
-    return Array.from(this.definitionsByKey.values())
-      .filter((definition) => {
-        if (definition.allowedSystemRoles?.includes(context.systemRole)) {
-          return true;
-        }
+    const rolePermissions = this.permissionsBySystemRole.get(context.systemRole);
+    const effectivePermissions = new Set<string>();
 
-        if (!context.campaignRole) {
-          return false;
-        }
+    for (const permissionKey of rolePermissions ?? []) {
+      if (this.definitionsByKey.has(permissionKey)) {
+        effectivePermissions.add(permissionKey);
+      }
+    }
 
-        return definition.allowedCampaignRoles.includes(
-          context.campaignRole as CampaignRole,
-        );
-      })
-      .map((definition) => definition.key)
-      .sort();
+    for (const definition of this.definitionsByKey.values()) {
+      if (definition.allowedSystemRoles?.includes(context.systemRole)) {
+        effectivePermissions.add(definition.key);
+        continue;
+      }
+
+      if (!context.campaignRole) {
+        continue;
+      }
+
+      if (definition.allowedCampaignRoles.includes(context.campaignRole as CampaignRole)) {
+        effectivePermissions.add(definition.key);
+      }
+    }
+
+    return Array.from(effectivePermissions).sort();
   }
 
   /**
@@ -259,5 +305,8 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
 export function createPermissionService(): PermissionService {
   const service = new PermissionService();
   service.registerDefinitions("core", defaultPermissionDefinitions);
+  service.registerSystemRolePermissions({
+    ADMIN: defaultPermissionDefinitions.map((definition) => definition.key),
+  });
   return service;
 }

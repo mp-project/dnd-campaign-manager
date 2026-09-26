@@ -4,7 +4,7 @@
       <header>
         <h1 class="layout-title">Auth Workspace</h1>
         <p class="layout-subtitle">
-          Placeholder for login and account recovery flows.
+          Temporäre Templates für Login, Registrierung und Passwort-Reset.
         </p>
       </header>
       <RouterView />

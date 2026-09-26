@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "imports": {
     "#core/*": {
       "development": "./src/core/*.ts",
@@ -19,10 +19,10 @@
     }
   },
   "scripts": {
-    "dev": "NODE_OPTIONS=--conditions=development tsx watch src/server.ts",
+    "dev": "NODE_OPTIONS=--conditions=development tsx watch src/index.ts",
     "clean": "rimraf dist coverage",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
     "test": "jest",

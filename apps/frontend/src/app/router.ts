@@ -20,6 +20,41 @@ export const router = createRouter({
           path: "",
           name: "auth",
           component: AuthPage,
+          props: {
+            mode: "login",
+          },
+        },
+        {
+          path: "login",
+          name: "auth-login",
+          component: AuthPage,
+          props: {
+            mode: "login",
+          },
+        },
+        {
+          path: "callback",
+          name: "auth-callback",
+          component: AuthPage,
+          props: {
+            mode: "login",
+          },
+        },
+        {
+          path: "register",
+          name: "auth-register",
+          component: AuthPage,
+          props: {
+            mode: "register",
+          },
+        },
+        {
+          path: "reset-password",
+          name: "auth-reset-password",
+          component: AuthPage,
+          props: {
+            mode: "reset-password",
+          },
         },
       ],
     },

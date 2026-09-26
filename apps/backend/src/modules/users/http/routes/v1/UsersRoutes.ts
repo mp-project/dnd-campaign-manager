@@ -5,22 +5,14 @@ import { errorResponseDto } from "#core/http/dto";
 import {
   AdminUpdateUserSchema,
 } from "#src/modules/users/domain/dto/AdminUpdateUserDto";
-import {
-  RequestEmailVerificationSchema,
-  RequestEmailVerificationStatusParamsSchema,
-} from "#src/modules/users/domain/dto/RequestEmailVerificationDto";
-import { RegisterUserSchema } from "#src/modules/users/domain/dto/RegisterUserDto";
-import { VerifyEmailVerificationSchema } from "#src/modules/users/domain/dto/VerifyEmailVerificationDto";
 import { RequestUserParamsSchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { RequestAdminUsersListQuerySchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import {
   ResponseAdminUserListSchema,
   ResponseAdminUserSchema,
-  ResponseEmailVerificationSchema,
   ResponseMeCampaignOverviewSchema,
   ResponseMeInvitationsSchema,
   ResponseMeSchema,
-  ResponseRegisterUserSchema,
 } from "#src/modules/users/domain/dto/ResponseUsersDto";
 import { UpdateMeSchema } from "#src/modules/users/domain/dto/UpdateMeDto";
 import { UpdateSettingsSchema } from "#src/modules/users/domain/dto/UpdateSettingsDto";
@@ -38,10 +30,6 @@ import { GetMyInvitationsController } from "#src/modules/users/http/controller/G
 import { AdminListUsersController } from "#src/modules/users/http/controller/AdminListUsersController";
 import { AdminGetUserByIdController } from "#src/modules/users/http/controller/AdminGetUserByIdController";
 import { AdminUpdateUserController } from "#src/modules/users/http/controller/AdminUpdateUserController";
-import { GetEmailVerificationStatusController } from "#src/modules/users/http/controller/GetEmailVerificationStatusController";
-import { RegisterUserController } from "#src/modules/users/http/controller/RegisterUserController";
-import { RequestEmailVerificationController } from "#src/modules/users/http/controller/RequestEmailVerificationController";
-import { VerifyEmailVerificationController } from "#src/modules/users/http/controller/VerifyEmailVerificationController";
 
 export type UsersRouteControllers = {
   getMeController: GetMeController;
@@ -49,10 +37,6 @@ export type UsersRouteControllers = {
   updateSettingsController: UpdateSettingsController;
   getMyCampaignOverviewController: GetMyCampaignOverviewController;
   getMyInvitationsController: GetMyInvitationsController;
-  requestEmailVerificationController: RequestEmailVerificationController;
-  getEmailVerificationStatusController: GetEmailVerificationStatusController;
-  registerUserController: RegisterUserController;
-  verifyEmailVerificationController: VerifyEmailVerificationController;
   adminListUsersController: AdminListUsersController;
   adminGetUserByIdController: AdminGetUserByIdController;
   adminUpdateUserController: AdminUpdateUserController;
@@ -62,96 +46,6 @@ export function registerUsersRoutes(
   app: FastifyInstance,
   controllers: UsersRouteControllers,
 ): void {
-  app.post(
-    USERS_HTTP_PATHS.registerRequestVerification,
-    {
-      config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
-      },
-      schema: {
-        tags: ["Auth"],
-        operationId: "requestRegistrationVerification",
-        body: RequestEmailVerificationSchema,
-        response: {
-          202: ResponseEmailVerificationSchema,
-          400: errorResponseDto,
-          404: errorResponseDto,
-          409: errorResponseDto,
-        },
-      },
-    },
-    async (request, reply) => {
-      const payload = await controllers.requestEmailVerificationController.handle(request);
-
-      return reply.code(202).send(payload);
-    },
-  );
-
-  app.get(
-    USERS_HTTP_PATHS.registerVerificationStatus,
-    {
-      config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.read,
-      },
-      schema: {
-        tags: ["Auth"],
-        operationId: "getRegistrationVerificationStatus",
-        params: RequestEmailVerificationStatusParamsSchema,
-        response: {
-          200: ResponseEmailVerificationSchema,
-          400: errorResponseDto,
-          404: errorResponseDto,
-        },
-      },
-    },
-    controllers.getEmailVerificationStatusController.handle,
-  );
-
-  app.post(
-    USERS_HTTP_PATHS.register,
-    {
-      config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
-      },
-      schema: {
-        tags: ["Auth"],
-        operationId: "registerUser",
-        body: RegisterUserSchema,
-        response: {
-          201: ResponseRegisterUserSchema,
-          400: errorResponseDto,
-          409: errorResponseDto,
-        },
-      },
-    },
-    async (request, reply) => {
-      const payload = await controllers.registerUserController.handle(request);
-
-      return reply.code(201).send(payload);
-    },
-  );
-
-  app.post(
-    USERS_HTTP_PATHS.registerVerify,
-    {
-      config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
-      },
-      schema: {
-        tags: ["Auth"],
-        operationId: "verifyRegistrationEmail",
-        body: VerifyEmailVerificationSchema,
-        response: {
-          200: ResponseRegisterUserSchema,
-          400: errorResponseDto,
-          404: errorResponseDto,
-          409: errorResponseDto,
-        },
-      },
-    },
-    controllers.verifyEmailVerificationController.handle,
-  );
-
   app.get(
     USERS_HTTP_PATHS.me,
     {

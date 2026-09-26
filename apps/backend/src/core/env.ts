@@ -42,6 +42,16 @@ const optionalNonEmptyString = z.preprocess((value) => {
   return normalized.length === 0 ? undefined : normalized;
 }, z.string().min(1).optional());
 
+const optionalUrlString = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim();
+
+  return normalized.length === 0 ? undefined : normalized;
+}, z.string().url().optional());
+
 function isProductionLikeNodeEnv(nodeEnv: string): boolean {
   return nodeEnv === "production" || nodeEnv === "stage";
 }
@@ -75,7 +85,23 @@ const envSchema = z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),
     CORS_ORIGIN: z.string().min(1),
+    FRONTEND_ORIGIN: z.string().url().default("http://app.localhost:5173"),
     VITE_API_BASE_URL: z.string().url(),
+    OAUTH_GOOGLE_CLIENT_ID: optionalNonEmptyString,
+    OAUTH_GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
+    OAUTH_GOOGLE_CALLBACK_URL: optionalUrlString,
+    OAUTH_DISCORD_CLIENT_ID: optionalNonEmptyString,
+    OAUTH_DISCORD_CLIENT_SECRET: optionalNonEmptyString,
+    OAUTH_DISCORD_CALLBACK_URL: optionalUrlString,
+    OAUTH_STATE_SECRET: z.preprocess((value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const normalized = value.trim();
+
+      return normalized.length === 0 ? undefined : normalized;
+    }, z.string().min(16).optional()),
     STORAGE_DRIVER: z.enum(["local", "s3"]).default("s3"),
     STORAGE_LOCAL_ROOT: z.string().min(1).default("var/storage"),
     STORAGE_ALLOWED_MIME_TYPES: z
@@ -117,6 +143,65 @@ const envSchema = z
         path: ["STORAGE_DRIVER"],
         message: "STORAGE_DRIVER must be \"s3\" when NODE_ENV=production or stage",
       });
+    }
+
+    const providerFieldGroups = [
+      {
+        name: "GOOGLE",
+        fields: [
+          "OAUTH_GOOGLE_CLIENT_ID",
+          "OAUTH_GOOGLE_CLIENT_SECRET",
+          "OAUTH_GOOGLE_CALLBACK_URL",
+        ] as const,
+      },
+      {
+        name: "DISCORD",
+        fields: [
+          "OAUTH_DISCORD_CLIENT_ID",
+          "OAUTH_DISCORD_CLIENT_SECRET",
+          "OAUTH_DISCORD_CALLBACK_URL",
+        ] as const,
+      },
+    ] as const;
+
+    for (const group of providerFieldGroups) {
+      const values = group.fields.map((field) => env[field]);
+      const hasAny = values.some(Boolean);
+      const hasAll = values.every(Boolean);
+
+      if (hasAny && !hasAll) {
+        for (const field of group.fields) {
+          if (!env[field]) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: [field],
+              message: `${field} is required when enabling ${group.name} OAuth`,
+            });
+          }
+        }
+      }
+    }
+
+    if (isProductionLikeNodeEnv(env.NODE_ENV)) {
+      const requiredProductionOAuthKeys = [
+        "OAUTH_STATE_SECRET",
+        "OAUTH_GOOGLE_CLIENT_ID",
+        "OAUTH_GOOGLE_CLIENT_SECRET",
+        "OAUTH_GOOGLE_CALLBACK_URL",
+        "OAUTH_DISCORD_CLIENT_ID",
+        "OAUTH_DISCORD_CLIENT_SECRET",
+        "OAUTH_DISCORD_CALLBACK_URL",
+      ] as const;
+
+      for (const key of requiredProductionOAuthKeys) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when NODE_ENV=production or stage`,
+          });
+        }
+      }
     }
 
     if (env.STORAGE_DRIVER !== "s3") {

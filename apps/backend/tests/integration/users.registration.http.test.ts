@@ -20,6 +20,16 @@ function extractVerificationCode(message: EmailMessage): string {
   return match[1] as string;
 }
 
+function extractVerificationLink(message: EmailMessage): URL {
+  const match = message.text.match(/https?:\/\/\S+/);
+
+  if (!match) {
+    throw new Error("Verification link not found in email text");
+  }
+
+  return new URL(match[0]);
+}
+
 describe("users registration verification HTTP routes", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
@@ -117,6 +127,56 @@ describe("users registration verification HTTP routes", () => {
     const createdUsers = await db.select().from(users).where(eq(users.email, email));
     expect(createdUsers).toHaveLength(1);
     expect(createdUsers[0]?.emailVerifiedAt).not.toBeNull();
+  });
+
+  it("verifies account by one-time email link and redirects to frontend start", async () => {
+    const email = "link.verify@example.test";
+    const password = "super-secure-password";
+
+    const registerResponse = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: {
+        email,
+        displayName: "Link Verify",
+        password,
+      },
+    });
+
+    expect(registerResponse.statusCode).toBe(201);
+    expect(sentEmails).toHaveLength(1);
+
+    const verificationLink = extractVerificationLink(sentEmails[0] as EmailMessage);
+    const verifyViaLinkResponse = await app.inject({
+      method: "GET",
+      url: `${verificationLink.pathname}${verificationLink.search}`,
+      headers: {
+        "user-agent": "jest-test-agent",
+      },
+    });
+
+    expect(verifyViaLinkResponse.statusCode).toBe(302);
+    expect(verifyViaLinkResponse.headers.location).toBe("http://app.localhost:5173/");
+
+    const setCookieHeader = verifyViaLinkResponse.headers["set-cookie"];
+    const setCookieValues = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : setCookieHeader
+        ? [setCookieHeader]
+        : [];
+    expect(setCookieValues.some((value) => value.startsWith("access_token="))).toBe(true);
+    expect(setCookieValues.some((value) => value.startsWith("refresh_token="))).toBe(true);
+
+    const createdUsers = await db.select().from(users).where(eq(users.email, email));
+    expect(createdUsers).toHaveLength(1);
+    expect(createdUsers[0]?.emailVerifiedAt).not.toBeNull();
+
+    const secondClickResponse = await app.inject({
+      method: "GET",
+      url: `${verificationLink.pathname}${verificationLink.search}`,
+    });
+
+    expect(secondClickResponse.statusCode).toBe(409);
   });
 
   it("supersedes older pending verification requests when a new code is requested", async () => {

@@ -1,7 +1,7 @@
-import { UsersService } from "#src/modules/users/service/UsersService";
+import { AuthService } from "#src/modules/auth/service/AuthService";
 
 export class GetEmailVerificationStatusUseCase {
-  constructor(private readonly service: UsersService) {}
+  constructor(private readonly service: AuthService) {}
 
   async execute(verificationId: string) {
     return this.service.getRegistrationVerificationStatus(verificationId);

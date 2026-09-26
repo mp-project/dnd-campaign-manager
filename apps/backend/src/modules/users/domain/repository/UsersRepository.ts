@@ -29,11 +29,13 @@ export type AdminUserPatch = Omit<AdminUpdateUserDto, "expectedVersion">;
 
 export type CreateUserInput = {
   email: string;
-  passwordHash: string;
+  passwordHash: string | null;
   displayName: string;
   systemRole: UserRow["systemRole"];
   status: UserRow["status"];
   emailVerifiedAt: Date | null;
+  googleSubject?: string;
+  discordUserId?: string;
   actorId?: string;
 };
 
@@ -60,19 +62,28 @@ export class UsersRepository {
 
   async createUser(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
     const auditActorId = toAuditActorId(input.actorId);
+    const values: typeof users.$inferInsert = {
+      email: input.email,
+      passwordHash: input.passwordHash,
+      displayName: input.displayName,
+      systemRole: input.systemRole,
+      status: input.status,
+      emailVerifiedAt: input.emailVerifiedAt,
+      createdBy: auditActorId,
+      updatedBy: auditActorId,
+    };
+
+    if (input.googleSubject !== undefined) {
+      values.googleSubject = input.googleSubject;
+    }
+
+    if (input.discordUserId !== undefined) {
+      values.discordUserId = input.discordUserId;
+    }
 
     const [created] = await db
       .insert(users)
-      .values({
-        email: input.email,
-        passwordHash: input.passwordHash,
-        displayName: input.displayName,
-        systemRole: input.systemRole,
-        status: input.status,
-        emailVerifiedAt: input.emailVerifiedAt,
-        createdBy: auditActorId,
-        updatedBy: auditActorId,
-      })
+      .values(values)
       .returning();
 
     if (!created) {

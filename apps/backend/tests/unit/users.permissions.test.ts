@@ -1,4 +1,5 @@
 import { usersPermissionDefinitions } from "#src/modules/users/permissions/UsersPermissions";
+import { ROLE_PERMISSIONS } from "#src/modules/auth/permissions/roles";
 
 describe("users permission definitions", () => {
   it("contains self-service and admin permissions", () => {
@@ -15,26 +16,20 @@ describe("users permission definitions", () => {
   });
 
   it("keeps admin actions admin-only", () => {
-    const adminOnly = usersPermissionDefinitions.filter((item) =>
-      ["users.read", "users.update", "users.delete"].includes(item.key),
-    );
+    const userPermissions = ROLE_PERMISSIONS.USER;
 
-    for (const definition of adminOnly) {
-      expect(definition.allowedSystemRoles).toEqual([
-        "SYSTEM",
-        "SUPER_ADMIN",
-        "ADMIN",
-      ]);
-      expect(definition.allowedCampaignRoles).toEqual([]);
-    }
+    expect(userPermissions).not.toContain("users.read");
+    expect(userPermissions).not.toContain("users.update");
+    expect(userPermissions).not.toContain("users.delete");
+
+    expect(ROLE_PERMISSIONS.ADMIN).toContain("users.read");
+    expect(ROLE_PERMISSIONS.ADMIN).toContain("users.update");
+    expect(ROLE_PERMISSIONS.ADMIN).toContain("users.delete");
   });
 
   it("restricts users.manageRole to super admins", () => {
-    const manageRole = usersPermissionDefinitions.find(
-      (item) => item.key === "users.manageRole",
-    );
-
-    expect(manageRole?.allowedSystemRoles).toEqual(["SUPER_ADMIN"]);
-    expect(manageRole?.allowedCampaignRoles).toEqual([]);
+    expect(ROLE_PERMISSIONS.USER).not.toContain("users.manageRole");
+    expect(ROLE_PERMISSIONS.ADMIN).not.toContain("users.manageRole");
+    expect(ROLE_PERMISSIONS.SUPER_ADMIN).toContain("users.manageRole");
   });
 });

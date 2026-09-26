@@ -230,6 +230,7 @@ export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void
       env.CORS_ORIGIN === "*"
         ? true
         : env.CORS_ORIGIN.split(",").map((value) => value.trim()),
+    credentials: true,
   });
 }
 

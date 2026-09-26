@@ -27,9 +27,11 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     EMAIL_VERIFICATION_CODE_TTL_HOURS: 24,
     LOG_LEVEL: "warn",
     CORS_ORIGIN: "http://app.localhost:5173",
+    FRONTEND_ORIGIN: "http://app.localhost:5173",
     VITE_API_BASE_URL:
       process.env.COMPOSE_BACKEND_PUBLIC_API_URL ??
       "http://localhost:3100/api/v1",
+    OAUTH_STATE_SECRET: "test-oauth-state-secret-1234",
     STORAGE_DRIVER: "local",
     STORAGE_LOCAL_ROOT: "var/storage-test",
     STORAGE_ALLOWED_MIME_TYPES:

@@ -31,7 +31,9 @@ export const users = pgTable(
   {
     ...baseColumns(),
     email: varchar("email", { length: 320 }).notNull(),
-    passwordHash: text("password_hash").notNull(),
+    passwordHash: text("password_hash"),
+    googleSubject: varchar("google_subject", { length: 255 }),
+    discordUserId: varchar("discord_user_id", { length: 32 }),
     displayName: varchar("display_name", { length: 120 }).notNull(),
     systemRole: userSystemRoleEnum("system_role").notNull().default(SYSTEM_ROLE.USER),
     status: userStatusEnum("status").notNull().default("ACTIVE"),
@@ -46,6 +48,16 @@ export const users = pgTable(
       .on(table.systemRole)
       .where(
         sql`${table.systemRole} = 'SYSTEM' and ${table.deletedAt} is null`,
+      ),
+    uniqueIndex("users_google_subject_active_unique_idx")
+      .on(table.googleSubject)
+      .where(
+        sql`${table.googleSubject} is not null and ${table.deletedAt} is null`,
+      ),
+    uniqueIndex("users_discord_user_id_active_unique_idx")
+      .on(table.discordUserId)
+      .where(
+        sql`${table.discordUserId} is not null and ${table.deletedAt} is null`,
       ),
   ],
 );

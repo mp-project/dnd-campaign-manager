@@ -5,10 +5,6 @@ export const USERS_HTTP_SECURITY = [
 ] as const;
 
 export const USERS_HTTP_PATHS = {
-  registerRequestVerification: "/auth/register/request-verification",
-  registerVerificationStatus: "/auth/register/verification/:verificationId/status",
-  registerVerify: "/auth/register/verify-email",
-  register: "/auth/register",
   me: "/me",
   meSettings: "/me/settings",
   meCampaigns: "/me/campaigns",

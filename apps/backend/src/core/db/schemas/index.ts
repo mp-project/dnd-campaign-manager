@@ -25,3 +25,9 @@ export {
   userSystemRoleEnum,
   userThemeEnum,
 } from "../../../modules/users/domain/entities/UsersTable.js";
+
+export {
+  oauthProviderEnum,
+  passwordResetTokens,
+  refreshTokens,
+} from "../../../modules/auth/domain/entities/AuthTable.js";

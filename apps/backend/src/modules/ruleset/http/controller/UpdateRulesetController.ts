@@ -1,4 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
+import { AbstractController } from "#core/http/controller/AbstractController";
 import {
   type UpdateRulesetDto,
   UpdateRulesetSchema,
@@ -7,23 +8,26 @@ import { RequestRulesetParamsSchema } from "#src/modules/ruleset/domain/dto/Requ
 import { UpdateRulesetUseCase } from "#src/modules/ruleset/useCase/UpdateRulesetUseCase";
 import { toRulesetResponse } from "#src/modules/ruleset/http/controller/RulesetResponseMapper";
 
-export class UpdateRulesetController {
-  constructor(private readonly updateRulesetUseCase: UpdateRulesetUseCase) {}
+export class UpdateRulesetController extends AbstractController {
+  constructor(private readonly updateRulesetUseCase: UpdateRulesetUseCase) {
+    super();
+  }
 
   handle = async (request: {
     params: unknown;
     body: unknown;
     requestContext: RequestContext;
-  }) => {
-    const params = RequestRulesetParamsSchema.parse(request.params);
-    const body: UpdateRulesetDto = UpdateRulesetSchema.parse(request.body);
+  }) =>
+    this.execute(async () => {
+      const params = RequestRulesetParamsSchema.parse(request.params);
+      const body: UpdateRulesetDto = UpdateRulesetSchema.parse(request.body);
 
-    const updated = await this.updateRulesetUseCase.execute(
-      request.requestContext,
-      params.rulesetId,
-      body,
-    );
+      const updated = await this.updateRulesetUseCase.execute(
+        request.requestContext,
+        params.rulesetId,
+        body,
+      );
 
-    return toRulesetResponse(updated);
-  };
+      return toRulesetResponse(updated);
+    });
 }

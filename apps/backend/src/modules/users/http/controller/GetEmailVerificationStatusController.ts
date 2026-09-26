@@ -1,18 +1,22 @@
 import { RequestEmailVerificationStatusParamsSchema } from "#src/modules/users/domain/dto/RequestEmailVerificationDto";
 import { GetEmailVerificationStatusUseCase } from "#src/modules/users/useCase/GetEmailVerificationStatusUseCase";
 import { toEmailVerificationResponse } from "#src/modules/users/http/controller/UserResponseMapper";
+import { AbstractController } from "#core/http/controller/AbstractController";
 
-export class GetEmailVerificationStatusController {
+export class GetEmailVerificationStatusController extends AbstractController {
   constructor(
     private readonly getEmailVerificationStatusUseCase: GetEmailVerificationStatusUseCase,
-  ) {}
+  ) {
+    super();
+  }
 
-  handle = async (request: { params: unknown }) => {
-    const params = RequestEmailVerificationStatusParamsSchema.parse(request.params);
-    const verification = await this.getEmailVerificationStatusUseCase.execute(
-      params.verificationId,
-    );
+  handle = async (request: { params: unknown }) =>
+    this.execute(async () => {
+      const params = RequestEmailVerificationStatusParamsSchema.parse(request.params);
+      const verification = await this.getEmailVerificationStatusUseCase.execute(
+        params.verificationId,
+      );
 
-    return toEmailVerificationResponse(verification);
-  };
+      return toEmailVerificationResponse(verification);
+    });
 }

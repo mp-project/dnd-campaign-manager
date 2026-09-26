@@ -4,16 +4,16 @@ services:
   db:
     image: postgres:18
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: dnd_campaign_manager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "${DB_PORT}:${DB_INTERNAL_PORT}"
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+        ["CMD-SHELL", "pg_isready -U postgres -d dnd_campaign_manager"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -69,8 +69,8 @@ services:
       HOST: ${CONTAINER_HOST}
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${DB_INTERNAL_PORT}/${POSTGRES_DB}
-      TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
+      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
@@ -108,8 +108,8 @@ services:
       HOST: ${CONTAINER_HOST}
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${DB_INTERNAL_PORT}/${POSTGRES_DB}
-      TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
+      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
@@ -172,12 +172,12 @@ services:
     ports:
       - "${TEST_DB_PORT}:${DB_TEST_INTERNAL_PORT}"
     environment:
-      POSTGRES_DB: ${POSTGRES_TEST_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: dnd_campaign_manager_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_TEST_DB}"]
+        ["CMD-SHELL", "pg_isready -U postgres -d dnd_campaign_manager_test"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -195,8 +195,8 @@ services:
       HOST: 127.0.0.1
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${DB_INTERNAL_PORT}/${POSTGRES_DB}
-      TEST_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-test:${DB_TEST_INTERNAL_PORT}/${POSTGRES_TEST_DB}
+      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: noop

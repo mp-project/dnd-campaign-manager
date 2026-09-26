@@ -56,9 +56,9 @@ node webapp to manage dnd campaign
 - Login values in Adminer:
 	- System: PostgreSQL
 	- Server: db
-	- Username: ${POSTGRES_USER}
-	- Password: ${POSTGRES_PASSWORD}
-	- Database: ${POSTGRES_DB}
+	- Username: postgres
+	- Password: postgres
+	- Database: dnd_campaign_manager
 
 ## HTTPS with Caddy
 

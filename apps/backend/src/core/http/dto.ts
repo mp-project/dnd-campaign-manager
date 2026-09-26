@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { domainErrorCodes } from "#core/http/domainErrors";
+import { domainErrorCodes } from "#core/error/http/index";
 
 export const uuidDto = z.string().uuid();
 
@@ -28,6 +28,8 @@ export const baseEntityResponseDto = z.strictObject({
   createdAt: isoDateTimeDto,
   updatedAt: isoDateTimeDto,
   deletedAt: isoDateTimeDto.nullable(),
+  createdBy: uuidDto,
+  updatedBy: uuidDto.nullable(),
 });
 
 export const expectedVersionDto = z.strictObject({

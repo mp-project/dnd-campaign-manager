@@ -1,33 +1,40 @@
 import type { InjectOptions, Response as InjectResponse } from "light-my-request";
+import jsonwebtoken, { type SignOptions } from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
+import type { SystemRole } from "#core/permissions/roles";
 import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
 import { createTestEnv } from "#test/helpers/testEnv";
 
 export type TestActor = {
   actorId: string;
-  systemRole: "ADMIN" | "USER";
+  systemRole: SystemRole;
 };
 
 export type BuildTestAppOptions = {
   env?: Partial<AppEnv>;
   modules?: readonly AppModule[];
   readyProbe?: () => Promise<{ database: boolean; migrations: boolean }>;
-  staticRoot?: string;
   publicPorts?: AppPublicPorts;
 };
 
 export type TestInjectRequest = InjectOptions;
 
-function createActorToken(actor: TestActor): string {
-  if (actor.systemRole === "ADMIN") {
-    return `admin:${actor.actorId}`;
-  }
+function createActorToken(actor: TestActor, env: AppEnv): string {
+  const expiresIn = env.JWT_ACCESS_TTL as NonNullable<SignOptions["expiresIn"]>;
 
-  return `user:${actor.actorId}`;
+  return jsonwebtoken.sign(
+    { systemRole: actor.systemRole },
+    env.JWT_ACCESS_SECRET,
+    {
+      algorithm: "HS256",
+      subject: actor.actorId,
+      expiresIn,
+    },
+  );
 }
 
 function createDefaultTestPorts(): AppPublicPorts {
@@ -51,7 +58,6 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
     env: AppEnv;
     modules?: readonly AppModule[];
     readyProbe: () => Promise<{ database: boolean; migrations: boolean }>;
-    staticRoot: string;
     publicPorts: AppPublicPorts;
   } = {
     env,
@@ -61,7 +67,6 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
         database: true,
         migrations: true,
       })),
-    staticRoot: options.staticRoot ?? "/tmp/non-existent-static-root",
     publicPorts: {
       ...createDefaultTestPorts(),
       ...(options.publicPorts ?? {}),
@@ -80,7 +85,7 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
   ): Promise<InjectResponse> => {
     const existingHeaders =
       (request.headers as Record<string, string | string[] | undefined> | undefined) ?? {};
-    const actorToken = createActorToken(actor);
+    const actorToken = createActorToken(actor, env);
     const existingCookieHeader =
       typeof existingHeaders.cookie === "string" ? existingHeaders.cookie : "";
     const authCookie = `access_token=${encodeURIComponent(actorToken)}`;

@@ -32,10 +32,24 @@ const booleanFromEnv = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+const optionalNonEmptyString = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim();
+
+  return normalized.length === 0 ? undefined : normalized;
+}, z.string().min(1).optional());
+
+function isProductionLikeNodeEnv(nodeEnv: string): boolean {
+  return nodeEnv === "production" || nodeEnv === "stage";
+}
+
 const envSchema = z
   .object({
     NODE_ENV: z
-      .enum(["development", "test", "production"])
+      .enum(["development", "test", "stage", "production"])
       .default("development"),
     HOST: z.string().min(1),
     PORT: z.coerce.number().int().min(1).max(65_535),
@@ -46,6 +60,17 @@ const envSchema = z
     JWT_REFRESH_SECRET: z.string().min(16),
     JWT_ACCESS_TTL: z.string().min(2),
     JWT_REFRESH_TTL: z.string().min(2),
+    MAIL_DRIVER: z.enum(["smtp", "noop"]).default("smtp"),
+    MAIL_FROM_ADDRESS: z.string().email().default("no-reply@api.localhost"),
+    MAIL_FROM_NAME: z.string().min(1).max(120).default("DnD Campaign Manager"),
+    MAIL_SMTP_HOST: z.string().min(1).default("127.0.0.1"),
+    MAIL_SMTP_PORT: positiveInt.default(1025),
+    MAIL_SMTP_SECURE: booleanFromEnv.default(false),
+    MAIL_SMTP_USER: optionalNonEmptyString,
+    MAIL_SMTP_PASS: optionalNonEmptyString,
+    MAILPIT_UI_URL: z.string().url().optional(),
+    EMAIL_VERIFICATION_SECRET: z.string().min(16).optional(),
+    EMAIL_VERIFICATION_CODE_TTL_HOURS: positiveInt.default(24),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),
@@ -73,11 +98,24 @@ const envSchema = z
     STORAGE_MAX_TOTAL_BYTES: positiveInt,
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === "production" && env.STORAGE_DRIVER !== "s3") {
+    if (env.MAIL_DRIVER === "smtp") {
+      const hasSmtpUser = Boolean(env.MAIL_SMTP_USER);
+      const hasSmtpPass = Boolean(env.MAIL_SMTP_PASS);
+
+      if (hasSmtpUser !== hasSmtpPass) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["MAIL_SMTP_USER"],
+          message: "MAIL_SMTP_USER and MAIL_SMTP_PASS must both be set or both be omitted",
+        });
+      }
+    }
+
+    if (isProductionLikeNodeEnv(env.NODE_ENV) && env.STORAGE_DRIVER !== "s3") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["STORAGE_DRIVER"],
-        message: "STORAGE_DRIVER must be \"s3\" when NODE_ENV=production",
+        message: "STORAGE_DRIVER must be \"s3\" when NODE_ENV=production or stage",
       });
     }
 

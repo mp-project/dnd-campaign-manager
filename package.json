@@ -26,6 +26,8 @@
     "test:integration": "npm run test:integration --workspace @dnd/backend",
     "test:integration:docker": "docker compose --profile test run --rm tests",
     "test:e2e": "npm run build && playwright test",
+    "db:push": "npm run db:push --workspace @dnd/backend",
+    "db:generate-migration": "npm run db:generate-migration --workspace @dnd/backend",
     "db:generate": "npm run db:generate --workspace @dnd/backend",
     "db:migrate": "npm run db:migrate --workspace @dnd/backend",
     "db:migrate:prod": "npm run db:migrate:prod --workspace @dnd/backend",

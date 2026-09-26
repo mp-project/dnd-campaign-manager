@@ -9,7 +9,7 @@ import {
   pingResponseDto,
   readyResponseDto,
 } from "#core/http/dto";
-import { createErrorPayload } from "#core/http/errorPayload";
+import { createErrorPayload } from "#core/error/errorPayload";
 
 /**
  * Registers API ping endpoint used for lightweight liveness checks.

@@ -4,6 +4,10 @@ function toNullableIsoString(value: Date | null): string | null {
   return value ? value.toISOString() : null;
 }
 
+function toNullableUuid(value: string | null): string | null {
+  return value;
+}
+
 export function toRulesetResponse(rulesetAggregate: RulesetAggregate) {
   const { ruleset, levelProgressions, spellSlotProgressions } = rulesetAggregate;
 
@@ -13,6 +17,8 @@ export function toRulesetResponse(rulesetAggregate: RulesetAggregate) {
     createdAt: ruleset.createdAt.toISOString(),
     updatedAt: ruleset.updatedAt.toISOString(),
     deletedAt: toNullableIsoString(ruleset.deletedAt),
+    createdBy: toNullableUuid(ruleset.createdBy),
+    updatedBy: toNullableUuid(ruleset.updatedBy),
     code: ruleset.code,
     name: ruleset.name,
     description: ruleset.description,

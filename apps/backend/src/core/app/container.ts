@@ -12,12 +12,6 @@ import {
   type PermissionService,
 } from "#core/permissions/service";
 import {
-  AssetRelationRegistry,
-  AssetTypeRegistry,
-  SessionContentProviderRegistry,
-  UsageProviderRegistry,
-} from "#core/app/moduleDependencies";
-import {
   createUnknownCampaignFactPort,
   type CampaignFactPort as BaseCampaignFactPort,
 } from "#core/app/campaignFactPort";
@@ -25,12 +19,14 @@ import {
   createStoragePortFromEnv,
   type StoragePort,
 } from "#core/storage";
+import type { CampaignRole } from "#core/permissions/roles";
+import { createEmailPortFromEnv, type EmailPort } from "#core/email/index";
 
 export type CampaignAccessFacts = {
   campaignId: string;
   rulesetId: string;
   campaignMemberId: string | null;
-  campaignRole: "EDITOR" | "PLAYER" | null;
+  campaignRole: CampaignRole | null;
   membershipActive: boolean;
 };
 
@@ -47,12 +43,9 @@ export type CampaignFactPort = {
 
 export type AppPublicPorts = {
   permissionService?: PermissionService;
-  assetTypeRegistry?: AssetTypeRegistry;
-  relationRegistry?: AssetRelationRegistry;
-  usageProviderRegistry?: UsageProviderRegistry;
-  sessionProviderRegistry?: SessionContentProviderRegistry;
   campaignFactPort?: CampaignFactPort;
   storagePort?: StoragePort;
+  emailPort?: EmailPort;
 };
 
 export type DependencyRegistry = {
@@ -108,14 +101,6 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
   const db = createDrizzleDb(params.pool);
   const permissionService =
     params.publicPorts?.permissionService ?? createPermissionService();
-  const assetTypeRegistry =
-    params.publicPorts?.assetTypeRegistry ?? new AssetTypeRegistry();
-  const relationRegistry =
-    params.publicPorts?.relationRegistry ?? new AssetRelationRegistry();
-  const usageProviderRegistry =
-    params.publicPorts?.usageProviderRegistry ?? new UsageProviderRegistry();
-  const sessionProviderRegistry =
-    params.publicPorts?.sessionProviderRegistry ?? new SessionContentProviderRegistry();
   const campaignFactPort =
     params.publicPorts?.campaignFactPort ?? {
       ...createUnknownCampaignFactPort(),
@@ -123,6 +108,8 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     };
   const storagePort =
     params.publicPorts?.storagePort ?? createStoragePortFromEnv(params.config);
+  const emailPort =
+    params.publicPorts?.emailPort ?? createEmailPortFromEnv(params.config);
 
   return {
     config: params.config,
@@ -133,12 +120,9 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     ports: {
       ...params.publicPorts,
       permissionService,
-      assetTypeRegistry,
-      relationRegistry,
-      usageProviderRegistry,
-      sessionProviderRegistry,
       campaignFactPort,
       storagePort,
+      emailPort,
     },
   };
 }

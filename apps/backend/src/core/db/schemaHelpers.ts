@@ -7,6 +7,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+const SYSTEM_USER_ID = "00000000-0000-4000-8000-000000000001";
+
 /**
  * Returns standard audit/version columns reused by most domain tables.
  *
@@ -23,7 +25,7 @@ export function baseColumns() {
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdBy: uuid("created_by"),
+    createdBy: uuid("created_by").notNull().default(SYSTEM_USER_ID),
     updatedBy: uuid("updated_by"),
   };
 }

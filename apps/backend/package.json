@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "imports": {
     "#core/*": {
       "development": "./src/core/*.ts",
@@ -19,16 +19,18 @@
     }
   },
   "scripts": {
-    "dev": "NODE_OPTIONS=--conditions=development tsx watch src/server.ts",
+    "dev": "NODE_OPTIONS=--conditions=development tsx watch src/index.ts",
     "clean": "rimraf dist coverage",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
     "test": "jest",
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration --runInBand",
-    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:push": "drizzle-kit push --config drizzle.config.ts",
+    "db:generate-migration": "drizzle-kit generate --config drizzle.config.ts",
+    "db:generate": "npm run db:generate-migration",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "db:migrate:prod": "NODE_ENV=production drizzle-kit migrate --config drizzle.config.ts",
     "db:seed": "NODE_OPTIONS=--conditions=development tsx scripts/seed.ts"
@@ -45,6 +47,8 @@
     "drizzle-orm": "^0.44.7",
     "fastify": "^5.6.1",
     "fastify-type-provider-zod": "^7.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.0.10",
     "pg": "^8.16.3",
     "zod": "^4.1.11"
   },
@@ -52,6 +56,7 @@
     "@swc/core": "^1.13.5",
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.6.0",
     "@types/pg": "^8.15.5",
     "drizzle-kit": "^0.31.5",

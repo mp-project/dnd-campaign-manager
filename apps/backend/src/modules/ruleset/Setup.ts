@@ -39,6 +39,11 @@ async function registerRulesetModule(
   app: FastifyInstance,
   container: AppContainer,
 ): Promise<void> {
+  container.ports.permissionService?.registerDefinitions(
+    "ruleset",
+    rulesetPermissionDefinitions,
+  );
+
   const repository = new RulesetRepository();
   const service = new RulesetService(container.db, container.transactionManager, repository);
   const listRulesetsUseCase = new ListRulesetsUseCase(service);
@@ -88,6 +93,5 @@ async function registerRulesetModule(
 export const rulesetModule: AppModule = {
   name: "ruleset",
   dependencies: ["system"],
-  permissions: rulesetPermissionDefinitions,
   register: registerRulesetModule,
 };

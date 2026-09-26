@@ -1,4 +1,4 @@
-import { NotFoundError } from "#core/http/domainErrors";
+import { NotFoundError } from "#core/error/http/index";
 import type {
   CampaignContext,
   CampaignRole,

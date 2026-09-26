@@ -1,9 +1,11 @@
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import jsonwebtoken, { type JwtPayload } from "jsonwebtoken";
 
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
+import { SYSTEM_ROLE } from "#core/permissions/roles";
 import type {
   CampaignContext,
   RequestContext,
@@ -13,6 +15,12 @@ import type {
 type VerifiedAccessToken = {
   actorId: string;
   systemRole: SystemRole;
+};
+
+type AccessTokenPayload = JwtPayload & {
+  actorId?: unknown;
+  systemRole?: unknown;
+  role?: unknown;
 };
 
 const AUTH_COOKIE_KEYS = ["access_token", "auth_token", "token"] as const;
@@ -72,54 +80,81 @@ function extractTokenFromAuthorizationHeader(request: FastifyRequest): string | 
   return token || null;
 }
 
+function resolveActorId(payload: AccessTokenPayload): string | null {
+  const candidates = [payload.sub, payload.actorId];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") {
+      continue;
+    }
+
+    const actorId = candidate.trim();
+
+    if (actorId.length > 0) {
+      return actorId;
+    }
+  }
+
+  return null;
+}
+
+function resolveSystemRole(payload: AccessTokenPayload): SystemRole | null {
+  const roleValue =
+    typeof payload.systemRole === "string"
+      ? payload.systemRole
+      : typeof payload.role === "string"
+        ? payload.role
+        : null;
+
+  if (
+    roleValue === SYSTEM_ROLE.SYSTEM ||
+    roleValue === SYSTEM_ROLE.SUPER_ADMIN ||
+    roleValue === SYSTEM_ROLE.ADMIN ||
+    roleValue === SYSTEM_ROLE.USER
+  ) {
+    return roleValue;
+  }
+
+  return null;
+}
+
 /**
- * Parses a lightweight bearer token format used in local/dev flows.
+ * Verifies an access token as signed JWT using backend secret configuration.
  *
  * @param token Bearer token value.
- * @returns Verified token payload or null when token format is invalid.
+ * @param env Validated runtime environment.
+ * @returns Verified token payload or null when verification fails.
  */
-function verifyAccessToken(token: string): VerifiedAccessToken | null {
-  if (token === "system-admin") {
-    return {
-      actorId: "system-admin",
-      systemRole: "ADMIN",
-    };
-  }
+async function verifyAccessToken(
+  token: string,
+  env: AppEnv,
+): Promise<VerifiedAccessToken | null> {
+  try {
+    const verificationResult = jsonwebtoken.verify(token, env.JWT_ACCESS_SECRET, {
+      algorithms: ["HS256", "HS384", "HS512"],
+      maxAge: env.JWT_ACCESS_TTL,
+      clockTolerance: 5,
+    });
 
-  if (token.startsWith("admin:")) {
-    const actorId = token.slice("admin:".length).trim();
+    if (typeof verificationResult === "string") {
+      return null;
+    }
 
-    if (!actorId) {
+    const payload = verificationResult as AccessTokenPayload;
+    const actorId = resolveActorId(payload);
+    const systemRole = resolveSystemRole(payload);
+
+    if (!actorId || !systemRole) {
       return null;
     }
 
     return {
       actorId,
-      systemRole: "ADMIN",
+      systemRole,
     };
-  }
-
-  if (token.startsWith("user:")) {
-    const actorId = token.slice("user:".length).trim();
-
-    if (!actorId) {
-      return null;
-    }
-
-    return {
-      actorId,
-      systemRole: "USER",
-    };
-  }
-
-  if (!token.trim()) {
+  } catch {
     return null;
   }
-
-  return {
-    actorId: token,
-    systemRole: "USER",
-  };
 }
 
 /**
@@ -199,11 +234,15 @@ export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void
 }
 
 /**
- * Authenticates a request by parsing cookie or bearer token values.
+ * Authenticates a request by verifying cookie or bearer JWT values.
  *
  * @param request Fastify request to enrich with auth fields.
+ * @param env Validated runtime environment.
  */
-export function authenticate(request: FastifyRequest): void {
+export async function authenticate(
+  request: FastifyRequest,
+  env: AppEnv,
+): Promise<void> {
   request.authToken = null;
   request.verifiedAccessToken = null;
 
@@ -214,7 +253,7 @@ export function authenticate(request: FastifyRequest): void {
     return;
   }
 
-  const verifiedToken = verifyAccessToken(token);
+  const verifiedToken = await verifyAccessToken(token, env);
 
   if (!verifiedToken) {
     return;
@@ -228,13 +267,14 @@ export function authenticate(request: FastifyRequest): void {
  * Registers request decorations and onRequest auth hook.
  *
  * @param app Fastify app instance.
+ * @param env Validated runtime environment.
  */
-export function registerAuthPlugin(app: FastifyInstance): void {
+export function registerAuthPlugin(app: FastifyInstance, env: AppEnv): void {
   app.decorateRequest("authToken", null as string | null);
   app.decorateRequest("verifiedAccessToken", null as VerifiedAccessToken | null);
 
   app.addHook("onRequest", async (request) => {
-    authenticate(request);
+    await authenticate(request, env);
   });
 }
 
@@ -248,7 +288,7 @@ export function resolveRequestContext(request: FastifyRequest): RequestContext {
   if (!request.verifiedAccessToken) {
     return {
       actorId: null,
-      systemRole: "USER",
+      systemRole: SYSTEM_ROLE.USER,
     };
   }
 

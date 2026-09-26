@@ -1,7 +1,9 @@
 import { z } from "zod";
+import jsonwebtoken from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
+import { SYSTEM_ROLE } from "#core/permissions/roles";
 import { createTestEnv } from "#test/helpers/testEnv";
 
 const contextProbeModule: AppModule = {
@@ -27,13 +29,29 @@ const contextProbeModule: AppModule = {
   },
 };
 
+async function createAccessToken(
+  actorId: string,
+  systemRole: (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE],
+  secret: string,
+): Promise<string> {
+  return jsonwebtoken.sign(
+    { systemRole },
+    secret,
+    {
+      algorithm: "HS256",
+      subject: actorId,
+      expiresIn: "15m",
+    },
+  );
+}
+
 describe("request and campaign context hooks", () => {
   it("derives contexts from verified token and campaign facts instead of client role/ruleset", async () => {
+    const env = createTestEnv();
     const app = buildApp({
-      env: createTestEnv(),
+      env,
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
       publicPorts: {
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
@@ -51,11 +69,17 @@ describe("request and campaign context hooks", () => {
       },
     });
 
+    const accessToken = await createAccessToken(
+      "alice",
+      SYSTEM_ROLE.USER,
+      env.JWT_ACCESS_SECRET,
+    );
+
     const response = await app.inject({
       method: "GET",
       url: "/api/v1/context/campaign-1",
       headers: {
-        authorization: "Bearer user:alice",
+        authorization: `Bearer ${accessToken}`,
         "x-campaign-role": "PLAYER",
         "x-ruleset-id": "forged-ruleset",
       },
@@ -78,11 +102,11 @@ describe("request and campaign context hooks", () => {
   });
 
   it("sets null campaign role and no permissions for inactive membership", async () => {
+    const env = createTestEnv();
     const app = buildApp({
-      env: createTestEnv(),
+      env,
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
-      staticRoot: "/tmp/non-existent-static-root",
       publicPorts: {
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
@@ -100,11 +124,17 @@ describe("request and campaign context hooks", () => {
       },
     });
 
+    const accessToken = await createAccessToken(
+      "player-1",
+      SYSTEM_ROLE.USER,
+      env.JWT_ACCESS_SECRET,
+    );
+
     const response = await app.inject({
       method: "GET",
       url: "/api/v1/context/campaign-2",
       headers: {
-        authorization: "Bearer user:player-1",
+        authorization: `Bearer ${accessToken}`,
       },
     });
 

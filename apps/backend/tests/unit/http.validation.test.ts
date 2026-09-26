@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
-import { ForbiddenError } from "#core/http/domainErrors";
+import { ForbiddenError } from "#core/error/http/index";
 import {
   baseEntityResponseDto,
   expectedVersionDto,
@@ -71,6 +71,8 @@ const validationModule: AppModule = {
               createdAt: "2026-01-01T00:00:00.000Z",
               updatedAt: "2026-01-01T00:00:00.000Z",
               deletedAt: null,
+              createdBy: "11111111-1111-4111-8111-111111111111",
+              updatedBy: null,
               slug: "example-item",
             },
           ],
@@ -107,6 +109,8 @@ const validationModule: AppModule = {
           createdAt: body.scheduledAt.toISOString(),
           updatedAt: body.scheduledAt.toISOString(),
           deletedAt: null,
+          createdBy: "11111111-1111-4111-8111-111111111111",
+          updatedBy: null,
           slug: body.slug,
         };
       },
@@ -158,7 +162,6 @@ function createValidationApp(nodeEnv: "test" | "production" = "test") {
     env: createTestEnv({ NODE_ENV: nodeEnv, LOG_LEVEL: "warn" }),
     modules: [validationModule],
     readyProbe: async () => ({ database: true, migrations: true }),
-    staticRoot: "/tmp/non-existent-static-root",
   });
 }
 

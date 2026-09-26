@@ -3,15 +3,14 @@ import {
   isResponseSerializationError,
 } from "fastify-type-provider-zod";
 
+import { AppError } from "#core/error/AppError";
 import {
-  DomainError,
   type DomainErrorCode,
-  statusCodeForDomainError,
-} from "#core/http/domainErrors";
+} from "#core/error/http/index";
 
 export type MappedHttpError = {
   statusCode: number;
-  code: DomainErrorCode;
+  code: string;
   message: string;
   details?: unknown;
 };
@@ -106,9 +105,9 @@ export function mapErrorToHttp(error: unknown): MappedHttpError {
     };
   }
 
-  if (error instanceof DomainError) {
+  if (error instanceof AppError) {
     return {
-      statusCode: statusCodeForDomainError(error.code),
+      statusCode: error.statusCode,
       code: error.code,
       message: error.message,
       details: error.details,

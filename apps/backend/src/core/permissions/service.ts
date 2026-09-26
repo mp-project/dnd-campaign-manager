@@ -2,7 +2,7 @@ import {
   ForbiddenError,
   NotFoundError,
   UnauthenticatedError,
-} from "#core/http/domainErrors";
+} from "#core/error/http/index";
 import type {
   CampaignContext,
 } from "#core/http/requestContext";

@@ -1,3 +1,5 @@
+import { AppError } from "#core/error/AppError";
+
 export type StorageErrorCode =
   | "INVALID_KEY"
   | "NOT_FOUND"
@@ -11,11 +13,7 @@ export type StorageErrorCode =
 /**
  * Domain error type for storage operations with HTTP-friendly metadata.
  */
-export class StorageError extends Error {
-  readonly code: StorageErrorCode;
-  readonly statusCode: number;
-  readonly details: unknown;
-
+export class StorageError extends AppError<StorageErrorCode> {
   /**
    * @param code Stable error code used by callers and HTTP mappers.
    * @param message Human-readable error message.
@@ -26,10 +24,7 @@ export class StorageError extends Error {
     message: string,
     options: { statusCode?: number; details?: unknown } = {},
   ) {
-    super(message);
+    super(code, message, options);
     this.name = "StorageError";
-    this.code = code;
-    this.statusCode = options.statusCode ?? 500;
-    this.details = options.details ?? null;
   }
 }

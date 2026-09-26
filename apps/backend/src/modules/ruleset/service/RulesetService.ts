@@ -4,7 +4,7 @@ import {
   NotFoundError,
   UnauthenticatedError,
   VersionConflictError,
-} from "#core/http/domainErrors";
+} from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { isElevatedSystemRole } from "#core/permissions/roles";

@@ -1,4 +1,4 @@
-import { ConflictError, ForbiddenError } from "#core/http/domainErrors";
+import { ConflictError, ForbiddenError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
 import { UsersService } from "#src/modules/users/service/UsersService";

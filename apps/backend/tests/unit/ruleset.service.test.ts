@@ -1,4 +1,4 @@
-import { ConflictError, ForbiddenError } from "#core/http/domainErrors";
+import { ConflictError, ForbiddenError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 import type { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { domainErrorCodes } from "#core/http/domainErrors";
+import { domainErrorCodes } from "#core/error/http/index";
 
 export const uuidDto = z.string().uuid();
 

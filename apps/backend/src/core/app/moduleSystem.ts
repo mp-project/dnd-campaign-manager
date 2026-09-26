@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
-import type { PermissionDefinition } from "#core/permissions/service";
+import { AppError } from "#core/error/AppError";
 
 export type AppModule = {
   name: string;
@@ -10,7 +10,6 @@ export type AppModule = {
     app: FastifyInstance,
     container: AppContainer,
   ) => Promise<void> | void;
-  permissions?: readonly PermissionDefinition[];
 };
 
 export type ModuleRegistrationErrorCode =
@@ -21,13 +20,10 @@ export type ModuleRegistrationErrorCode =
 /**
  * Error thrown when module registration constraints are violated.
  */
-export class AppModuleRegistrationError extends Error {
-  readonly code: ModuleRegistrationErrorCode;
-
+export class AppModuleRegistrationError extends AppError<ModuleRegistrationErrorCode> {
   constructor(code: ModuleRegistrationErrorCode, message: string) {
-    super(message);
+    super(code, message);
     this.name = "AppModuleRegistrationError";
-    this.code = code;
   }
 }
 

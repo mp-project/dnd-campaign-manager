@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
-import { ForbiddenError } from "#core/http/domainErrors";
+import { ForbiddenError } from "#core/error/http/index";
 import {
   baseEntityResponseDto,
   expectedVersionDto,

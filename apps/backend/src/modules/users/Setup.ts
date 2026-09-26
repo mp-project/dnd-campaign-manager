@@ -62,6 +62,11 @@ async function registerUsersModule(
   app: FastifyInstance,
   container: AppContainer,
 ): Promise<void> {
+  container.ports.permissionService?.registerDefinitions(
+    "users",
+    usersPermissionDefinitions,
+  );
+
   const repository = new UsersRepository();
   const authSessionDependencies =
     container.dependencies.get<AuthSessionDependencies>(AUTH_SESSION_DEPENDENCIES);
@@ -167,6 +172,5 @@ async function registerUsersModule(
 export const usersModule: AppModule = {
   name: "users",
   dependencies: ["system"],
-  permissions: usersPermissionDefinitions,
   register: registerUsersModule,
 };

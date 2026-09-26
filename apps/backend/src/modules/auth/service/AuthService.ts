@@ -45,6 +45,10 @@ export type {
 } from "#src/modules/auth/service/AuthService.contracts";
 
 export class AuthService {
+  private readonly transactionManager: TransactionManager;
+
+  private readonly repository: AuthRepository;
+
   private readonly registrationService: AuthRegistrationService;
 
   private readonly sessionService: AuthSessionService;
@@ -61,6 +65,9 @@ export class AuthService {
     config: AuthServiceConfig,
     oauthProviders: Partial<Record<OAuthProvider, OAuthProviderPort>>,
   ) {
+    this.transactionManager = transactionManager;
+    this.repository = repository;
+
     const deps: AuthServiceDependencies = {
       db,
       transactionManager,
@@ -110,6 +117,43 @@ export class AuthService {
 
   verifyRegistrationEmail(input: VerifyEmailVerificationDto): Promise<UserRow> {
     return this.registrationService.verifyRegistrationEmail(input);
+  }
+
+  verifyRegistrationEmailByToken(input: {
+    token: string;
+    metadata: ClientMetadata;
+  }): Promise<{ session: AuthSession; redirectPath: string }> {
+    return this.verifyRegistrationEmailByTokenInternal(input);
+  }
+
+  private async verifyRegistrationEmailByTokenInternal(input: {
+    token: string;
+    metadata: ClientMetadata;
+  }): Promise<{ session: AuthSession; redirectPath: string }> {
+    const result = await this.registrationService.verifyRegistrationEmailByToken(
+      input.token,
+    );
+
+    return this.transactionManager.inTransaction(async (tx) => {
+      this.sessionService.assertUserCanAuthenticate(result.user);
+
+      await this.repository.updateLastLogin(tx, {
+        userId: result.user.id,
+        at: new Date(),
+        actorId: result.user.id,
+      });
+
+      const issuedSession = await this.sessionService.issueSession(
+        tx,
+        result.user,
+        input.metadata,
+      );
+
+      return {
+        session: issuedSession.session,
+        redirectPath: result.redirectPath,
+      };
+    });
   }
 
   login(input: LoginDto, metadata: ClientMetadata): Promise<AuthSession> {

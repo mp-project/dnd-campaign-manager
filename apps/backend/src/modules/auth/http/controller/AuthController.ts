@@ -17,6 +17,7 @@ import {
   RequestEmailVerificationSchema,
   RequestEmailVerificationStatusParamsSchema,
   ResetPasswordSchema,
+  VerifyEmailVerificationLinkQuerySchema,
   VerifyEmailVerificationSchema,
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import { AuthService } from "#src/modules/auth/service/AuthService";
@@ -87,6 +88,22 @@ export class AuthController extends AbstractController {
         verificationId: body.verificationId,
         verificationCode: null,
       });
+    });
+
+  verifyRegistrationEmailByLink = async (request: FastifyRequest, reply: FastifyReply) =>
+    this.execute(async () => {
+      const query = VerifyEmailVerificationLinkQuerySchema.parse(request.query);
+      const result = await this.authService.verifyRegistrationEmailByToken({
+        token: query.token,
+        metadata: {
+          userAgent: request.headers["user-agent"],
+          ip: request.ip,
+        },
+      });
+
+      this.setSessionCookies(reply, result.session);
+
+      return reply.redirect(this.buildFrontendRedirectUrl(result.redirectPath));
     });
 
   login = async (request: FastifyRequest, reply: FastifyReply) =>
@@ -172,10 +189,11 @@ export class AuthController extends AbstractController {
       return null;
     });
 
-  startOAuth = async (request: FastifyRequest, reply: FastifyReply) =>
-    this.execute(async () => {
-      const params = OAuthStartParamsSchema.parse(request.params);
-      const query = OAuthStartQuerySchema.parse(request.query);
+  startOAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = OAuthStartParamsSchema.parse(request.params);
+    const query = OAuthStartQuerySchema.parse(request.query);
+
+    try {
       const start = await this.authService.startOAuth({
         provider: params.provider,
         intent: query.intent,
@@ -194,7 +212,20 @@ export class AuthController extends AbstractController {
       );
 
       return reply.redirect(start.authorizationUrl.toString());
-    });
+    } catch (error) {
+      if (error instanceof AuthError && error.code === "OAUTH_PROVIDER_UNAVAILABLE") {
+        return reply.redirect(
+          this.buildFrontendCallbackUrl("error", query.redirect, {
+            reason: "provider_unavailable",
+            provider: params.provider,
+            intent: query.intent,
+          }),
+        );
+      }
+
+      this.handleError(error);
+    }
+  };
 
   oauthCallback = async (request: FastifyRequest, reply: FastifyReply) =>
     this.execute(async () => {
@@ -360,12 +391,26 @@ export class AuthController extends AbstractController {
     );
   }
 
-  private buildFrontendCallbackUrl(status: string, redirectPath: string): string {
+  private buildFrontendCallbackUrl(
+    status: string,
+    redirectPath: string,
+    extraQuery?: Record<string, string>,
+  ): string {
     const url = new URL("/auth/callback", this.options.frontendOrigin);
     url.searchParams.set("status", status);
     url.searchParams.set("redirect", redirectPath);
 
+    if (extraQuery) {
+      for (const [key, value] of Object.entries(extraQuery)) {
+        url.searchParams.set(key, value);
+      }
+    }
+
     return url.toString();
+  }
+
+  private buildFrontendRedirectUrl(redirectPath: string): string {
+    return new URL(redirectPath, this.options.frontendOrigin).toString();
   }
 
   private appendSetCookie(reply: FastifyReply, cookie: string): void {

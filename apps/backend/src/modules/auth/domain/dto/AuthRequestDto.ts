@@ -61,6 +61,10 @@ export const VerifyEmailVerificationSchema = z.strictObject({
   verificationCode: z.string().regex(/^\d{6}$/),
 });
 
+export const VerifyEmailVerificationLinkQuerySchema = z.strictObject({
+  token: z.string().min(1).max(4096),
+});
+
 export const OAuthStartParamsSchema = z.strictObject({
   provider: OAuthProviderSchema,
 });

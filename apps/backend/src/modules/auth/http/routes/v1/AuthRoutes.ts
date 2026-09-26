@@ -21,6 +21,7 @@ import {
   RequestEmailVerificationSchema,
   RequestEmailVerificationStatusParamsSchema,
   ResetPasswordSchema,
+  VerifyEmailVerificationLinkQuerySchema,
   VerifyEmailVerificationSchema,
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import {
@@ -129,6 +130,27 @@ export function registerAuthRoutes(
       },
     },
     controllers.authController.verifyRegistrationEmail,
+  );
+
+  app.get(
+    AUTH_HTTP_PATHS.registerVerifyLink,
+    {
+      config: {
+        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+      },
+      schema: {
+        tags: ["Auth"],
+        operationId: "verifyRegistrationEmailByLink",
+        querystring: VerifyEmailVerificationLinkQuerySchema,
+        response: {
+          302: z.null(),
+          400: errorResponseDto,
+          404: errorResponseDto,
+          409: errorResponseDto,
+        },
+      },
+    },
+    controllers.authController.verifyRegistrationEmailByLink,
   );
 
   app.post(

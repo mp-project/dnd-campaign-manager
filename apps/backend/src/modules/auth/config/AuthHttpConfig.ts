@@ -9,6 +9,7 @@ export const AUTH_HTTP_PATHS = {
   registerRequestVerification: "/auth/register/request-verification",
   registerVerificationStatus: "/auth/register/verification/:verificationId/status",
   registerVerify: "/auth/register/verify-email",
+  registerVerifyLink: "/auth/register/verify-email-link",
   register: "/auth/register",
   login: "/auth/login",
   refresh: "/auth/refresh",

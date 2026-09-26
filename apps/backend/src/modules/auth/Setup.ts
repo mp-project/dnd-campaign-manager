@@ -50,6 +50,7 @@ async function registerAuthModule(
       emailVerificationSecret:
         container.config.EMAIL_VERIFICATION_SECRET ?? container.config.JWT_ACCESS_SECRET,
       emailVerificationCodeTtlHours: container.config.EMAIL_VERIFICATION_CODE_TTL_HOURS,
+      apiBaseUrl: container.config.VITE_API_BASE_URL,
       oauthStateSecret: container.config.OAUTH_STATE_SECRET,
       frontendOrigin: container.config.FRONTEND_ORIGIN,
     },

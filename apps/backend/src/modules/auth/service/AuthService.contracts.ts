@@ -46,6 +46,11 @@ export type RegisterUserResult = {
   verificationCode: string;
 };
 
+export type VerifyRegistrationLinkResult = {
+  user: UserRow;
+  redirectPath: string;
+};
+
 export type AuthSession = {
   user: {
     id: string;
@@ -87,6 +92,7 @@ export type AuthServiceConfig = {
   jwtRefreshTtl: string;
   emailVerificationSecret: string;
   emailVerificationCodeTtlHours: number;
+  apiBaseUrl: string;
   oauthStateSecret: string | undefined;
   frontendOrigin: string;
 };

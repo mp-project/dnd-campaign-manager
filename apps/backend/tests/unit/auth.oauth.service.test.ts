@@ -120,6 +120,7 @@ function createDeps(input: {
       jwtRefreshTtl: "7d",
       emailVerificationSecret: "email-verification-secret",
       emailVerificationCodeTtlHours: 24,
+      apiBaseUrl: "http://api.localhost:3000/api/v1",
       oauthStateSecret: OAUTH_SECRET,
       frontendOrigin: "http://app.localhost:5173",
     },

@@ -1,4 +1,5 @@
 import { randomInt, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
 
 import { ConflictError, InternalError, NotFoundError } from "#core/error/http/index";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
@@ -6,13 +7,30 @@ import type {
   RegisterDto,
   VerifyEmailVerificationDto,
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
+import {
+  buildRegistrationVerificationUrl,
+  renderRegistrationVerificationEmail,
+} from "#src/modules/auth/email/RegistrationVerificationEmailTemplate";
 import type {
   AuthServiceDependencies,
   RegisterUserResult,
+  VerifyRegistrationLinkResult,
 } from "#src/modules/auth/service/AuthService.contracts";
 import { MAX_VERIFICATION_ATTEMPTS } from "#src/modules/auth/service/AuthService.contracts";
-import { normalizeEmail } from "#src/modules/auth/service/AuthService.utils";
-import { sha256 } from "#src/modules/auth/utils/crypto";
+import { normalizeEmail, normalizeRedirectPath } from "#src/modules/auth/service/AuthService.utils";
+import { decodeSignedJson, encodeSignedJson, sha256 } from "#src/modules/auth/utils/crypto";
+
+const registrationVerificationLinkPayloadSchema = z.strictObject({
+  email: z.string().email(),
+  verificationId: z.string().uuid(),
+  verificationCode: z.string().regex(/^\d{6}$/),
+  redirectPath: z.string().min(1).max(500).default("/"),
+  expiresAt: z.number().int().positive(),
+});
+
+type RegistrationVerificationLinkPayload = z.infer<
+  typeof registrationVerificationLinkPayloadSchema
+>;
 
 export class AuthRegistrationService {
   constructor(
@@ -47,7 +65,12 @@ export class AuthRegistrationService {
     });
 
     try {
-      await this.sendVerificationEmail(normalizedEmail, code, expiresAt);
+      await this.sendVerificationEmail({
+        email: normalizedEmail,
+        verificationId: verificationRequest.id,
+        code,
+        expiresAt,
+      });
     } catch {
       await this.deps.transactionManager.inTransaction(async (tx) => {
         await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
@@ -128,7 +151,12 @@ export class AuthRegistrationService {
     });
 
     try {
-      await this.sendVerificationEmail(normalizedEmail, code, expiresAt);
+      await this.sendVerificationEmail({
+        email: normalizedEmail,
+        verificationId: created.verificationRequest.id,
+        code,
+        expiresAt,
+      });
     } catch {
       await this.deps.transactionManager.inTransaction(async (tx) => {
         await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
@@ -222,6 +250,25 @@ export class AuthRegistrationService {
     });
   }
 
+  async verifyRegistrationEmailByToken(token: string): Promise<VerifyRegistrationLinkResult> {
+    const payload = this.decodeRegistrationVerificationToken(token);
+
+    if (!payload || payload.expiresAt <= Date.now()) {
+      throw new ConflictError("Verification link is invalid or expired");
+    }
+
+    const user = await this.verifyRegistrationEmail({
+      email: payload.email,
+      verificationId: payload.verificationId,
+      verificationCode: payload.verificationCode,
+    });
+
+    return {
+      user,
+      redirectPath: normalizeRedirectPath(payload.redirectPath),
+    };
+  }
+
   private generateVerificationCode(): string {
     return randomInt(0, 1_000_000).toString().padStart(6, "0");
   }
@@ -245,21 +292,62 @@ export class AuthRegistrationService {
     return expiresAt.getTime() <= Date.now();
   }
 
-  private async sendVerificationEmail(
-    email: string,
-    code: string,
-    expiresAt: Date,
-  ): Promise<void> {
+  private async sendVerificationEmail(input: {
+    email: string;
+    verificationId: string;
+    code: string;
+    expiresAt: Date;
+  }): Promise<void> {
     if (!this.deps.emailPort) {
       throw new InternalError("Email service unavailable");
     }
 
-    await this.deps.emailPort.send({
-      to: email,
-      subject: "Dein Verifizierungscode",
-      text:
-        `Dein Verifizierungscode lautet: ${code}\n` +
-        `Der Code ist bis ${expiresAt.toISOString()} gueltig.`,
+    const token = this.createRegistrationVerificationToken({
+      email: input.email,
+      verificationId: input.verificationId,
+      verificationCode: input.code,
+      redirectPath: "/",
+      expiresAt: input.expiresAt.getTime(),
     });
+
+    const verificationUrl = buildRegistrationVerificationUrl({
+      apiBaseUrl: this.deps.config.apiBaseUrl,
+      token,
+    });
+
+    const message = renderRegistrationVerificationEmail({
+      locale: undefined,
+      verificationCode: input.code,
+      verificationUrl,
+      expiresAt: input.expiresAt,
+    });
+
+    await this.deps.emailPort.send({
+      to: input.email,
+      subject: message.subject,
+      text: message.text,
+    });
+  }
+
+  private createRegistrationVerificationToken(
+    payload: RegistrationVerificationLinkPayload,
+  ): string {
+    return encodeSignedJson(payload, this.deps.config.emailVerificationSecret);
+  }
+
+  private decodeRegistrationVerificationToken(
+    token: string,
+  ): RegistrationVerificationLinkPayload | null {
+    const rawPayload = decodeSignedJson<unknown>(
+      token,
+      this.deps.config.emailVerificationSecret,
+    );
+
+    if (!rawPayload) {
+      return null;
+    }
+
+    const parsed = registrationVerificationLinkPayloadSchema.safeParse(rawPayload);
+    return parsed.success ? parsed.data : null;
   }
 }

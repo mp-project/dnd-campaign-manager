@@ -8,6 +8,15 @@ export type PasswordResetErrorCode =
   | "PASSWORD_RESET_USED";
 
 type AuthLangPack = {
+  registrationVerificationEmail: {
+    subject: string;
+    intro: string;
+    codeLabel: string;
+    actionLabel: string;
+    oneTimeHint: string;
+    expiresHintPrefix: string;
+    ignoreHint: string;
+  };
   passwordResetEmail: {
     subject: string;
     intro: string;
@@ -21,6 +30,15 @@ type AuthLangPack = {
 
 const AUTH_LANG: Record<AuthLocale, AuthLangPack> = {
   en: {
+    registrationVerificationEmail: {
+      subject: "Verify your account",
+      intro: "You requested account verification.",
+      codeLabel: "Your verification code:",
+      actionLabel: "Or open this one-time verification link:",
+      oneTimeHint: "The link can only be used once.",
+      expiresHintPrefix: "This verification is valid until",
+      ignoreHint: "If you did not request this, you can safely ignore this email.",
+    },
     passwordResetEmail: {
       subject: "Reset your password",
       intro: "You requested a password reset for your account.",
@@ -36,6 +54,15 @@ const AUTH_LANG: Record<AuthLocale, AuthLangPack> = {
     },
   },
   de: {
+    registrationVerificationEmail: {
+      subject: "Konto verifizieren",
+      intro: "Du hast die Verifizierung deines Kontos angefordert.",
+      codeLabel: "Dein Verifizierungscode:",
+      actionLabel: "Oder oeffne diesen einmaligen Verifizierungslink:",
+      oneTimeHint: "Der Link kann nur einmal verwendet werden.",
+      expiresHintPrefix: "Die Verifizierung ist gueltig bis",
+      ignoreHint: "Falls du das nicht warst, kannst du diese E-Mail ignorieren.",
+    },
     passwordResetEmail: {
       subject: "Passwort zuruecksetzen",
       intro: "Du hast ein Zuruecksetzen deines Passworts angefordert.",

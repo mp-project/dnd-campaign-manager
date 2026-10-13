@@ -103,7 +103,6 @@ export function createCampaignContextFactory(
     campaignId: overrides.campaignId ?? randomUUID(),
     rulesetId: overrides.rulesetId ?? "ruleset-default",
     campaignMemberId: overrides.campaignMemberId ?? randomUUID(),
-    campaignRole: overrides.campaignRole ?? "PLAYER",
     permissions: overrides.permissions ?? [],
   };
 }

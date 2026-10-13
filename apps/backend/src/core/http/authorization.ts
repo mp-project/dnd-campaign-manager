@@ -27,7 +27,6 @@ function toGlobalContext(request: FastifyRequest): CampaignContext {
     campaignId: "global",
     rulesetId: "global",
     campaignMemberId: null,
-    campaignRole: null,
     permissions: [],
   };
 }

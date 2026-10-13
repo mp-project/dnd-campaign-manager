@@ -71,6 +71,20 @@
       "when": 1790411418601,
       "tag": "0009_adorable_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790446193444,
+      "tag": "0010_worthless_inertia",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791907487463,
+      "tag": "0011_wealthy_mordo",
+      "breakpoints": true
     }
   ]
 }

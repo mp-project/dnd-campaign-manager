@@ -21,7 +21,6 @@ describe("test factories", () => {
     const campaignContext = createCampaignContextFactory({
       actorId: user.id,
       campaignId: campaign.id,
-      campaignRole: "EDITOR",
     });
 
     expect(user.systemRole).toBe("ADMIN");

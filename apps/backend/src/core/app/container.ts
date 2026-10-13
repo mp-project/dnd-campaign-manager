@@ -19,14 +19,12 @@ import {
   createStoragePortFromEnv,
   type StoragePort,
 } from "#core/storage";
-import type { CampaignRole } from "#core/permissions/roles";
 import { createEmailPortFromEnv, type EmailPort } from "#core/email/index";
 
 export type CampaignAccessFacts = {
   campaignId: string;
   rulesetId: string;
   campaignMemberId: string | null;
-  campaignRole: CampaignRole | null;
   membershipActive: boolean;
 };
 

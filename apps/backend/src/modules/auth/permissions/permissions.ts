@@ -1,4 +1,3 @@
-import { defaultPermissionDefinitions } from "#core/permissions/service";
 import {
   AUTH_PERMISSION_KEYS,
 } from "#src/modules/auth/permissions/AuthPermissions";
@@ -7,25 +6,37 @@ import {
   RULESET_READ_PERMISSION_KEYS,
 } from "#src/modules/ruleset/permissions/RulesetPermissions";
 import {
+  CAMPAIGNS_PERMISSION_KEYS,
+  CAMPAIGNS_USER_PERMISSION_KEYS,
+} from "#src/modules/campaigns/permissions/CampaignsPermissions";
+import {
   USERS_PERMISSION_KEYS,
   USERS_SELF_SERVICE_PERMISSION_KEYS,
 } from "#src/modules/users/permissions/UsersPermissions";
 
-export type Permission = string;
-
-const corePermissionKeys = defaultPermissionDefinitions.map((definition) => definition.key);
+export const CORE_PERMISSION_KEYS = [
+  "campaign.crud",
+  "campaign.special",
+  "campaign.readShared",
+  "character.createOwn",
+  "character.readOwn",
+  "character.updateOwn",
+] as const;
 
 export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...AUTH_PERMISSION_KEYS,
   ...USERS_SELF_SERVICE_PERMISSION_KEYS,
+  USERS_PERMISSION_KEYS[2],
   ...RULESET_READ_PERMISSION_KEYS,
+  ...CAMPAIGNS_USER_PERMISSION_KEYS,
 ];
 
-export const ALL_PERMISSIONS: readonly Permission[] = Array.from(
-  new Set<Permission>([
-    ...corePermissionKeys,
-    ...AUTH_PERMISSION_KEYS,
-    ...USERS_PERMISSION_KEYS,
-    ...RULESET_PERMISSION_KEYS,
-  ]),
-);
+export const ALL_PERMISSIONS = [
+  ...CORE_PERMISSION_KEYS,
+  ...AUTH_PERMISSION_KEYS,
+  ...CAMPAIGNS_PERMISSION_KEYS,
+  ...USERS_PERMISSION_KEYS,
+  ...RULESET_PERMISSION_KEYS,
+] as const;
+
+export type Permission = (typeof ALL_PERMISSIONS)[number];

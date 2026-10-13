@@ -1,5 +1,5 @@
 import type { CampaignContext } from "#core/http/requestContext";
-import { isElevatedSystemRole } from "#core/permissions/roles";
+import { isSysAdminRole } from "#core/permissions/roles";
 
 export type PermissionResource = {
   campaignId?: string;
@@ -46,7 +46,7 @@ export function activeMembershipPolicy(
   context: CampaignContext,
   resource?: PermissionResource,
 ): boolean {
-  if (isElevatedSystemRole(context.systemRole)) {
+  if (isSysAdminRole(context.systemRole)) {
     return true;
   }
 
@@ -56,7 +56,7 @@ export function activeMembershipPolicy(
     return activeFromResource;
   }
 
-  return context.campaignMemberId !== null && context.campaignRole !== null;
+  return context.campaignMemberId !== null;
 }
 
 /**

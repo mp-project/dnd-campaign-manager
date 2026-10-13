@@ -1,6 +1,6 @@
-import type { CampaignRole, SystemRole } from "#core/permissions/roles";
+import type { SystemRole } from "#core/permissions/roles";
 
-export type { CampaignRole, SystemRole } from "#core/permissions/roles";
+export type { SystemRole } from "#core/permissions/roles";
 
 export type RequestContext = {
   actorId: string | null;
@@ -11,6 +11,5 @@ export type CampaignContext = RequestContext & {
   campaignId: string;
   rulesetId: string;
   campaignMemberId: string | null;
-  campaignRole: CampaignRole | null;
   permissions: string[];
 };

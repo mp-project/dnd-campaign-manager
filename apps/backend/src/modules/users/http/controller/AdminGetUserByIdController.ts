@@ -3,7 +3,7 @@ import { AbstractController } from "#core/http/controller/AbstractController";
 
 import { RequestUserParamsSchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { AdminGetUserByIdUseCase } from "#src/modules/users/useCase/AdminGetUserByIdUseCase";
-import { toAdminUserResponse } from "#src/modules/users/http/controller/UserResponseMapper";
+import { toReadableUserResponse } from "#src/modules/users/http/controller/UserResponseMapper";
 
 export class AdminGetUserByIdController extends AbstractController {
   constructor(private readonly adminGetUserByIdUseCase: AdminGetUserByIdUseCase) {
@@ -18,6 +18,6 @@ export class AdminGetUserByIdController extends AbstractController {
         params.userId,
       );
 
-      return toAdminUserResponse(user);
+      return toReadableUserResponse(user, request.requestContext);
     });
 }

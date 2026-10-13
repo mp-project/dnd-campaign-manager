@@ -31,3 +31,12 @@ export {
   passwordResetTokens,
   refreshTokens,
 } from "../../../modules/auth/domain/entities/AuthTable.js";
+
+export {
+  campaigns,
+  campaignMemberships,
+  campaignMemberRoleEnum,
+  campaignStatusEnum,
+  campaignTimeEvents,
+  campaignTimeEventTypeEnum,
+} from "../../../modules/campaigns/domain/entities/CampaignsTable.js";

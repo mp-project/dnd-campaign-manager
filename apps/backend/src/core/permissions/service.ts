@@ -6,10 +6,10 @@ import {
 import type {
   CampaignContext,
 } from "#core/http/requestContext";
-import type { CampaignRole, SystemRole } from "#core/permissions/roles";
+import type { SystemRole } from "#core/permissions/roles";
 import {
+  isSysAdminRole,
   isElevatedSystemRole,
-  SYSTEM_ROLE,
 } from "#core/permissions/roles";
 import {
   activeMembershipPolicy,
@@ -26,7 +26,6 @@ export type PermissionDefinition = {
   key: string;
   description: string;
   allowedSystemRoles?: readonly SystemRole[];
-  allowedCampaignRoles: readonly CampaignRole[];
   resourcePolicy?: PermissionPolicy;
 };
 
@@ -117,34 +116,16 @@ export class PermissionService {
       return false;
     }
 
-    if (
-      context.systemRole === SYSTEM_ROLE.SYSTEM ||
-      context.systemRole === SYSTEM_ROLE.SUPER_ADMIN
-    ) {
+    if (isElevatedSystemRole(context.systemRole)) {
       return true;
     }
 
     const rolePermissions = this.permissionsBySystemRole.get(context.systemRole);
+    const hasRolePermission = Boolean(rolePermissions?.has(key));
+    const hasSystemRolePermission =
+      definition.allowedSystemRoles?.includes(context.systemRole) ?? false;
 
-    if (rolePermissions?.has(key)) {
-      return true;
-    }
-
-    if (definition.allowedSystemRoles?.includes(context.systemRole)) {
-      return true;
-    }
-
-    if (!context.campaignRole) {
-      return false;
-    }
-
-    if (!definition.allowedCampaignRoles.includes(context.campaignRole)) {
-      return false;
-    }
-
-    const hasEffectivePermission = context.permissions.includes(key);
-
-    if (!hasEffectivePermission) {
+    if (!hasRolePermission && !hasSystemRolePermission) {
       return false;
     }
 
@@ -177,7 +158,7 @@ export class PermissionService {
       return;
     }
 
-    if (options.hideAsNotFoundForPlayers && !isElevatedSystemRole(context.systemRole)) {
+    if (options.hideAsNotFoundForPlayers && !isSysAdminRole(context.systemRole)) {
       throw new NotFoundError("Resource not found");
     }
 
@@ -191,10 +172,7 @@ export class PermissionService {
    * @returns Sorted permission keys.
    */
   listEffectivePermissions(context: CampaignContext): string[] {
-    if (
-      context.systemRole === SYSTEM_ROLE.SYSTEM ||
-      context.systemRole === SYSTEM_ROLE.SUPER_ADMIN
-    ) {
+    if (isElevatedSystemRole(context.systemRole)) {
       return Array.from(this.definitionsByKey.keys()).sort();
     }
 
@@ -209,15 +187,6 @@ export class PermissionService {
 
     for (const definition of this.definitionsByKey.values()) {
       if (definition.allowedSystemRoles?.includes(context.systemRole)) {
-        effectivePermissions.add(definition.key);
-        continue;
-      }
-
-      if (!context.campaignRole) {
-        continue;
-      }
-
-      if (definition.allowedCampaignRoles.includes(context.campaignRole as CampaignRole)) {
         effectivePermissions.add(definition.key);
       }
     }
@@ -239,7 +208,6 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: "campaign.crud",
     description: "Create, update and delete resources in own campaign",
-    allowedCampaignRoles: ["EDITOR"],
     resourcePolicy: allPolicies(
       sameCampaignPolicy,
       activeMembershipPolicy,
@@ -249,7 +217,6 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: "campaign.special",
     description: "Execute special actions in own campaign",
-    allowedCampaignRoles: ["EDITOR"],
     resourcePolicy: allPolicies(
       sameCampaignPolicy,
       activeMembershipPolicy,
@@ -259,7 +226,6 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: "campaign.readShared",
     description: "Read shared campaign resources",
-    allowedCampaignRoles: ["EDITOR", "PLAYER"],
     resourcePolicy: allPolicies(
       sameCampaignPolicy,
       activeMembershipPolicy,
@@ -270,13 +236,11 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: "character.createOwn",
     description: "Create own player character in active membership",
-    allowedCampaignRoles: ["EDITOR", "PLAYER"],
     resourcePolicy: allPolicies(sameCampaignPolicy, activeMembershipPolicy),
   },
   {
     key: "character.readOwn",
     description: "Read own assigned player character",
-    allowedCampaignRoles: ["EDITOR", "PLAYER"],
     resourcePolicy: allPolicies(
       sameCampaignPolicy,
       activeMembershipPolicy,
@@ -287,7 +251,6 @@ export const defaultPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: "character.updateOwn",
     description: "Update own assigned player character",
-    allowedCampaignRoles: ["EDITOR", "PLAYER"],
     resourcePolicy: allPolicies(
       sameCampaignPolicy,
       activeMembershipPolicy,

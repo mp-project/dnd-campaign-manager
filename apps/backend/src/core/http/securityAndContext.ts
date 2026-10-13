@@ -108,7 +108,7 @@ function resolveSystemRole(payload: AccessTokenPayload): SystemRole | null {
 
   if (
     roleValue === SYSTEM_ROLE.SYSTEM ||
-    roleValue === SYSTEM_ROLE.SUPER_ADMIN ||
+    roleValue === SYSTEM_ROLE.SYSTEM_MAINTAINER ||
     roleValue === SYSTEM_ROLE.ADMIN ||
     roleValue === SYSTEM_ROLE.USER
   ) {
@@ -183,7 +183,6 @@ async function resolveCampaignAccessFacts(
     campaignId,
     rulesetId: "ruleset-default",
     campaignMemberId: null,
-    campaignRole: null,
     membershipActive: false,
   };
 }
@@ -344,7 +343,6 @@ export async function resolveCampaignContext(
     campaignMemberId: accessFacts.membershipActive
       ? accessFacts.campaignMemberId
       : null,
-    campaignRole: accessFacts.membershipActive ? accessFacts.campaignRole : null,
     permissions: [],
   };
 

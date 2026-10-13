@@ -49,7 +49,7 @@ describe("buildTestApp helper", () => {
       },
       campaignContext: {
         campaignId: "campaign-1",
-        campaignRole: "EDITOR",
+        campaignMemberId: "member-alice",
       },
     });
 

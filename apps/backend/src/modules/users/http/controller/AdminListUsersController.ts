@@ -4,7 +4,7 @@ import { AbstractController } from "#core/http/controller/AbstractController";
 
 import { RequestAdminUsersListQuerySchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { AdminListUsersUseCase } from "#src/modules/users/useCase/AdminListUsersUseCase";
-import { toAdminUserResponse } from "#src/modules/users/http/controller/UserResponseMapper";
+import { toReadableUserResponse } from "#src/modules/users/http/controller/UserResponseMapper";
 
 export class AdminListUsersController extends AbstractController {
   constructor(private readonly adminListUsersUseCase: AdminListUsersUseCase) {
@@ -17,7 +17,7 @@ export class AdminListUsersController extends AbstractController {
       const result = await this.adminListUsersUseCase.execute(request.requestContext, query);
 
       return createStandardListResponse({
-        data: result.items.map(toAdminUserResponse),
+        data: result.items.map((item) => toReadableUserResponse(item, request.requestContext)),
         limit: query.limit,
         nextCursor: null,
         total: result.total,

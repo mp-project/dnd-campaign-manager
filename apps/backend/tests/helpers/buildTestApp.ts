@@ -45,7 +45,6 @@ function createDefaultTestPorts(): AppPublicPorts {
         campaignId,
         rulesetId: "ruleset-default",
         campaignMemberId: actorId ? `member-${actorId}` : null,
-        campaignRole: actorId ? "EDITOR" : null,
         membershipActive: Boolean(actorId),
       }),
     },

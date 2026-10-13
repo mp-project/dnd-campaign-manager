@@ -43,8 +43,18 @@ export const ResponseAdminUserSchema = baseEntityResponseDto.extend({
   lastLoginAt: isoDateTimeDto.nullable(),
 });
 
-export const ResponseAdminUserListSchema = standardListResponseDto(
+export const ResponseLimitedUserSchema = z.strictObject({
+  id: uuidDto,
+  displayName: z.string().min(1).max(120),
+});
+
+export const ResponseReadableUserSchema = z.union([
   ResponseAdminUserSchema,
+  ResponseLimitedUserSchema,
+]);
+
+export const ResponseReadableUserListSchema = standardListResponseDto(
+  ResponseReadableUserSchema,
 );
 
 const ResponseMeCampaignItemSchema = z.strictObject({

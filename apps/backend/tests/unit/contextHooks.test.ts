@@ -62,7 +62,6 @@ describe("request and campaign context hooks", () => {
             campaignId,
             rulesetId: "ruleset-from-campaign",
             campaignMemberId: actorId ? `member-${actorId}` : null,
-            campaignRole: "EDITOR",
             membershipActive: true,
           }),
         },
@@ -94,7 +93,7 @@ describe("request and campaign context hooks", () => {
       campaignContext: {
         campaignId: "campaign-1",
         rulesetId: "ruleset-from-campaign",
-        campaignRole: "EDITOR",
+        campaignMemberId: "member-alice",
       },
     });
 
@@ -117,7 +116,6 @@ describe("request and campaign context hooks", () => {
             campaignId,
             rulesetId: "ruleset-x",
             campaignMemberId: "member-player-1",
-            campaignRole: "PLAYER",
             membershipActive: false,
           }),
         },
@@ -142,7 +140,6 @@ describe("request and campaign context hooks", () => {
     expect(response.json()).toMatchObject({
       campaignContext: {
         campaignMemberId: null,
-        campaignRole: null,
         permissions: [],
       },
     });

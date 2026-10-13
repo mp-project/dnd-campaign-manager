@@ -1,7 +1,6 @@
 import { NotFoundError } from "#core/error/http/index";
 import type {
   CampaignContext,
-  CampaignRole,
   SystemRole,
 } from "#core/http/requestContext";
 import {
@@ -14,16 +13,15 @@ type AccessAction = "crud" | "share" | "own";
 type MatrixCase = {
   label: string;
   systemRole: SystemRole;
-  campaignRole: CampaignRole | null;
   actorId: string | null;
   campaignMemberId: string | null;
+  membershipActive: boolean;
   expected: Record<AccessAction, boolean>;
 };
 
 function createContext(params: {
   actorId: string | null;
   systemRole: SystemRole;
-  campaignRole: CampaignRole | null;
   campaignMemberId: string | null;
   campaignId?: string;
 }): CampaignContext {
@@ -33,7 +31,6 @@ function createContext(params: {
     campaignId: params.campaignId ?? "campaign-alpha",
     rulesetId: "ruleset-a",
     campaignMemberId: params.campaignMemberId,
-    campaignRole: params.campaignRole,
     permissions: [],
   };
 }
@@ -51,11 +48,18 @@ function hydratePermissions(
 describe("permission service", () => {
   const service = createPermissionService();
 
+  service.registerSystemRolePermissions({
+    USER: ["campaign.crud", "campaign.readShared", "character.updateOwn", "character.readOwn"],
+  });
+
   const actionMap: Record<
     AccessAction,
     {
       key: string;
-      createResource: (context: CampaignContext) => {
+      createResource: (
+        context: CampaignContext,
+        membershipActive: boolean,
+      ) => {
         campaignId: string;
         membershipActive: boolean;
         assetShared?: boolean;
@@ -67,26 +71,26 @@ describe("permission service", () => {
   > = {
     crud: {
       key: "campaign.crud",
-      createResource: (context) => ({
+      createResource: (context, membershipActive) => ({
         campaignId: context.campaignId,
-        membershipActive: true,
+        membershipActive,
         deletedAt: null,
       }),
     },
     share: {
       key: "campaign.readShared",
-      createResource: (context) => ({
+      createResource: (context, membershipActive) => ({
         campaignId: context.campaignId,
-        membershipActive: true,
+        membershipActive,
         assetShared: true,
         deletedAt: null,
       }),
     },
     own: {
       key: "character.updateOwn",
-      createResource: (context) => ({
+      createResource: (context, membershipActive) => ({
         campaignId: context.campaignId,
-        membershipActive: true,
+        membershipActive,
         ownerActorId: context.actorId,
         assignmentActive: true,
         deletedAt: null,
@@ -98,9 +102,9 @@ describe("permission service", () => {
     {
       label: "ADMIN",
       systemRole: "ADMIN",
-      campaignRole: null,
       actorId: "admin-1",
       campaignMemberId: null,
+      membershipActive: false,
       expected: {
         crud: true,
         share: true,
@@ -108,11 +112,11 @@ describe("permission service", () => {
       },
     },
     {
-      label: "EDITOR",
+      label: "MEMBER",
       systemRole: "USER",
-      campaignRole: "EDITOR",
-      actorId: "editor-1",
-      campaignMemberId: "member-editor-1",
+      actorId: "member-1",
+      campaignMemberId: "member-row-1",
+      membershipActive: true,
       expected: {
         crud: true,
         share: true,
@@ -120,23 +124,11 @@ describe("permission service", () => {
       },
     },
     {
-      label: "PLAYER",
+      label: "INACTIVE_MEMBERSHIP",
       systemRole: "USER",
-      campaignRole: "PLAYER",
-      actorId: "player-1",
-      campaignMemberId: "member-player-1",
-      expected: {
-        crud: false,
-        share: true,
-        own: true,
-      },
-    },
-    {
-      label: "NOT_MEMBER",
-      systemRole: "USER",
-      campaignRole: null,
-      actorId: "user-no-member",
-      campaignMemberId: null,
+      actorId: "member-2",
+      campaignMemberId: "member-row-2",
+      membershipActive: false,
       expected: {
         crud: false,
         share: false,
@@ -144,11 +136,11 @@ describe("permission service", () => {
       },
     },
     {
-      label: "INACTIVE_MEMBERSHIP",
+      label: "NOT_MEMBER",
       systemRole: "USER",
-      campaignRole: null,
-      actorId: "player-inactive",
+      actorId: "user-no-member",
       campaignMemberId: null,
+      membershipActive: false,
       expected: {
         crud: false,
         share: false,
@@ -158,11 +150,11 @@ describe("permission service", () => {
   ];
 
   it.each(matrix)(
-    "applies role matrix for $label",
-    ({ actorId, campaignMemberId, campaignRole, expected, systemRole }) => {
+    "applies role and membership matrix for $label",
+    ({ actorId, campaignMemberId, membershipActive, expected, systemRole }) => {
       const context = hydratePermissions(
         service,
-        createContext({ actorId, systemRole, campaignRole, campaignMemberId }),
+        createContext({ actorId, systemRole, campaignMemberId }),
       );
 
       (Object.keys(actionMap) as AccessAction[]).forEach((action) => {
@@ -170,7 +162,7 @@ describe("permission service", () => {
         const allowed = service.can(
           actionConfig.key,
           context,
-          actionConfig.createResource(context),
+          actionConfig.createResource(context, membershipActive),
         );
 
         expect(allowed).toBe(expected[action]);
@@ -178,27 +170,28 @@ describe("permission service", () => {
     },
   );
 
-  it("ignores forged role and ruleset values from client context data", () => {
+  it("ignores forged effective permissions from client context data", () => {
     const context = hydratePermissions(
       service,
       createContext({
-        actorId: "player-1",
+        actorId: "user-no-member",
         systemRole: "USER",
-        campaignRole: "PLAYER",
-        campaignMemberId: "member-player-1",
+        campaignMemberId: null,
       }),
     );
 
-    const deniedCrud = service.can("campaign.crud", {
-      ...context,
-      permissions: ["campaign.readShared", "campaign.crud"],
-      rulesetId: "forged-ruleset",
-      campaignRole: "PLAYER",
-    }, {
-      campaignId: "campaign-alpha",
-      membershipActive: true,
-      deletedAt: null,
-    });
+    const deniedCrud = service.can(
+      "campaign.crud",
+      {
+        ...context,
+        permissions: ["campaign.readShared", "campaign.crud"],
+      },
+      {
+        campaignId: "campaign-alpha",
+        membershipActive: false,
+        deletedAt: null,
+      },
+    );
 
     expect(deniedCrud).toBe(false);
   });
@@ -207,10 +200,9 @@ describe("permission service", () => {
     const context = hydratePermissions(
       service,
       createContext({
-        actorId: "editor-1",
+        actorId: "member-1",
         systemRole: "USER",
-        campaignRole: "EDITOR",
-        campaignMemberId: "member-editor-1",
+        campaignMemberId: "member-row-1",
       }),
     );
 
@@ -227,17 +219,16 @@ describe("permission service", () => {
     const context = hydratePermissions(
       service,
       createContext({
-        actorId: "player-1",
+        actorId: "member-1",
         systemRole: "USER",
-        campaignRole: "PLAYER",
-        campaignMemberId: "member-player-1",
+        campaignMemberId: "member-row-1",
       }),
     );
 
     const allowed = service.can("character.readOwn", context, {
       campaignId: "campaign-alpha",
       membershipActive: true,
-      ownerActorId: "player-1",
+      ownerActorId: "member-1",
       assignmentActive: false,
       deletedAt: null,
     });
@@ -245,14 +236,13 @@ describe("permission service", () => {
     expect(allowed).toBe(false);
   });
 
-  it("denies non-shared campaign resources for players and can hide as 404", () => {
+  it("denies non-shared campaign resources and can hide as 404", () => {
     const context = hydratePermissions(
       service,
       createContext({
-        actorId: "player-1",
+        actorId: "member-1",
         systemRole: "USER",
-        campaignRole: "PLAYER",
-        campaignMemberId: "member-player-1",
+        campaignMemberId: "member-row-1",
       }),
     );
 

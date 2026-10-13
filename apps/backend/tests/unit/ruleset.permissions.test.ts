@@ -13,15 +13,9 @@ describe("ruleset permission definitions", () => {
     ]);
   });
 
-  it("limits mutating actions to admins by campaign-role policy", () => {
-    const mutating = rulesetPermissionDefinitions.filter((item) =>
-      ["rulesets.create", "rulesets.update", "rulesets.delete", "rulesets.validate"].includes(
-        item.key,
-      ),
-    );
-
-    for (const definition of mutating) {
-      expect(definition.allowedCampaignRoles).toEqual([]);
+  it("does not use campaign-role metadata", () => {
+    for (const definition of rulesetPermissionDefinitions) {
+      expect("allowedCampaignRoles" in definition).toBe(false);
     }
   });
 });

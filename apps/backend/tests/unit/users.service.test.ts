@@ -42,7 +42,7 @@ describe("UsersService", () => {
 
     await expect(
       service.adminUpdate(
-        { actorId: "super-admin-actor", systemRole: "SUPER_ADMIN" },
+        { actorId: "super-admin-actor", systemRole: "SYSTEM_MAINTAINER" },
         "11111111-1111-4111-8111-111111111111",
         {
           expectedVersion: 1,
@@ -99,7 +99,7 @@ describe("UsersService", () => {
         email: "super-admin@example.test",
         passwordHash: "hash",
         displayName: "Super Admin",
-        systemRole: "SUPER_ADMIN",
+        systemRole: "SYSTEM_MAINTAINER",
         status: "ACTIVE",
         emailVerifiedAt: null,
         lastLoginAt: null,
@@ -112,7 +112,7 @@ describe("UsersService", () => {
       service.adminUpdate(
         {
           actorId: "11111111-1111-4111-8111-111111111111",
-          systemRole: "SUPER_ADMIN",
+          systemRole: "SYSTEM_MAINTAINER",
         },
         "11111111-1111-4111-8111-111111111111",
         {

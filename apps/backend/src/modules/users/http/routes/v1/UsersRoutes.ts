@@ -8,8 +8,9 @@ import {
 import { RequestUserParamsSchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { RequestAdminUsersListQuerySchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import {
-  ResponseAdminUserListSchema,
   ResponseAdminUserSchema,
+  ResponseReadableUserListSchema,
+  ResponseReadableUserSchema,
   ResponseMeCampaignOverviewSchema,
   ResponseMeInvitationsSchema,
   ResponseMeSchema,
@@ -176,7 +177,7 @@ export function registerUsersRoutes(
         security: USERS_HTTP_SECURITY,
         querystring: RequestAdminUsersListQuerySchema,
         response: {
-          200: ResponseAdminUserListSchema,
+          200: ResponseReadableUserListSchema,
           401: errorResponseDto,
           403: errorResponseDto,
         },
@@ -200,7 +201,7 @@ export function registerUsersRoutes(
         security: USERS_HTTP_SECURITY,
         params: RequestUserParamsSchema,
         response: {
-          200: ResponseAdminUserSchema,
+          200: ResponseReadableUserSchema,
           401: errorResponseDto,
           403: errorResponseDto,
           404: errorResponseDto,

@@ -18,7 +18,7 @@ describe("users permission definitions", () => {
   it("keeps admin actions admin-only", () => {
     const userPermissions = ROLE_PERMISSIONS.USER;
 
-    expect(userPermissions).not.toContain("users.read");
+    expect(userPermissions).toContain("users.read");
     expect(userPermissions).not.toContain("users.update");
     expect(userPermissions).not.toContain("users.delete");
 
@@ -27,9 +27,9 @@ describe("users permission definitions", () => {
     expect(ROLE_PERMISSIONS.ADMIN).toContain("users.delete");
   });
 
-  it("restricts users.manageRole to super admins", () => {
+  it("restricts users.manageRole to system maintainers", () => {
     expect(ROLE_PERMISSIONS.USER).not.toContain("users.manageRole");
     expect(ROLE_PERMISSIONS.ADMIN).not.toContain("users.manageRole");
-    expect(ROLE_PERMISSIONS.SUPER_ADMIN).toContain("users.manageRole");
+    expect(ROLE_PERMISSIONS.SYSTEM_MAINTAINER).toContain("users.manageRole");
   });
 });

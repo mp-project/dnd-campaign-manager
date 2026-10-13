@@ -4,6 +4,8 @@ import type {
   UserRow,
   UserSettingsRow,
 } from "#src/modules/users/domain/repository/UsersRepository";
+import type { RequestContext } from "#core/http/requestContext";
+import { resolveUserReadScope } from "#src/modules/users/policies/UserReadPolicy";
 
 function toIso(value: Date | null): string | null {
   return value ? value.toISOString() : null;
@@ -57,6 +59,23 @@ export function toAdminUserResponse(user: UserRow) {
     createdBy: toUuid(user.createdBy),
     updatedBy: toUuid(user.updatedBy),
   };
+}
+
+export function toLimitedUserResponse(user: UserRow) {
+  return {
+    id: user.id,
+    displayName: user.displayName,
+  };
+}
+
+export function toReadableUserResponse(user: UserRow, context: RequestContext) {
+  const scope = resolveUserReadScope(context);
+
+  if (scope === "FULL") {
+    return toAdminUserResponse(user);
+  }
+
+  return toLimitedUserResponse(user);
 }
 
 export function toEmailVerificationResponse(request: EmailVerificationRequestRow) {

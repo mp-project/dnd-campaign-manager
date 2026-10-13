@@ -117,14 +117,22 @@ describe("users HTTP routes", () => {
     expect(rows[0]?.emailVerifiedAt).toBeNull();
   });
 
-  it("forbids non-admin access to admin user listing", async () => {
+  it("allows users to read player accounts but not elevated users", async () => {
     const userId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const adminUserId = "99999999-9999-4999-8999-999999999999";
 
     await seedUser({
       id: userId,
       email: "viewer@example.test",
       displayName: "Viewer",
       systemRole: "USER",
+    });
+
+    await seedUser({
+      id: adminUserId,
+      email: "admin.viewer@example.test",
+      displayName: "Admin Viewer",
+      systemRole: "ADMIN",
     });
 
     const response = await injectAs(
@@ -135,7 +143,45 @@ describe("users HTTP routes", () => {
       },
     );
 
-    expect(response.statusCode).toBe(403);
+    expect(response.statusCode).toBe(200);
+    const listBody = response.json();
+    expect(Array.isArray(listBody.data)).toBe(true);
+    expect(
+      listBody.data.every(
+        (item: { id: string; displayName: string; email?: string; systemRole?: string }) =>
+          typeof item.id === "string" &&
+          typeof item.displayName === "string" &&
+          item.email === undefined &&
+          item.systemRole === undefined,
+      ),
+    ).toBe(true);
+
+    const playerGet = await injectAs(
+      { actorId: userId, systemRole: "USER" },
+      {
+        method: "GET",
+        url: `/api/v1/admin/users/${userId}`,
+      },
+    );
+
+    expect(playerGet.statusCode).toBe(200);
+    expect(playerGet.json()).toMatchObject({
+      id: userId,
+      displayName: "Viewer",
+    });
+    expect(playerGet.json().email).toBeUndefined();
+    expect(playerGet.json().systemRole).toBeUndefined();
+    expect(playerGet.json().status).toBeUndefined();
+
+    const adminGetHidden = await injectAs(
+      { actorId: userId, systemRole: "USER" },
+      {
+        method: "GET",
+        url: `/api/v1/admin/users/${adminUserId}`,
+      },
+    );
+
+    expect(adminGetHidden.statusCode).toBe(404);
   });
 
   it("enforces admin/super-admin management boundaries and self-demotion guard", async () => {
@@ -233,7 +279,7 @@ describe("users HTTP routes", () => {
     expect(disableAdminB.statusCode).toBe(403);
 
     const superAdminDisablesAdminB = await injectAs(
-      { actorId: superAdmin, systemRole: "SUPER_ADMIN" },
+      { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "DELETE",
         url: `/api/v1/admin/users/${adminB}`,
@@ -243,7 +289,7 @@ describe("users HTTP routes", () => {
     expect(superAdminDisablesAdminB.statusCode).toBe(204);
 
     const superAdminSelfDemotion = await injectAs(
-      { actorId: superAdmin, systemRole: "SUPER_ADMIN" },
+      { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "PATCH",
         url: `/api/v1/admin/users/${superAdmin}`,
@@ -257,7 +303,7 @@ describe("users HTTP routes", () => {
     expect(superAdminSelfDemotion.statusCode).toBe(409);
 
     const superAdminTouchesSystem = await injectAs(
-      { actorId: superAdmin, systemRole: "SUPER_ADMIN" },
+      { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "PATCH",
         url: `/api/v1/admin/users/${systemUser}`,
@@ -271,7 +317,7 @@ describe("users HTTP routes", () => {
     expect(superAdminTouchesSystem.statusCode).toBe(403);
 
     const superAdminDeletesSystem = await injectAs(
-      { actorId: superAdmin, systemRole: "SUPER_ADMIN" },
+      { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "DELETE",
         url: `/api/v1/admin/users/${systemUser}`,

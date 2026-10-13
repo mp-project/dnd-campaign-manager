@@ -23,6 +23,7 @@ import { AdminGetUserByIdUseCase } from "#src/modules/users/useCase/AdminGetUser
 import { AdminListUsersUseCase } from "#src/modules/users/useCase/AdminListUsersUseCase";
 import { AdminUpdateUserUseCase } from "#src/modules/users/useCase/AdminUpdateUserUseCase";
 import { GetMeUseCase } from "#src/modules/users/useCase/GetMeUseCase";
+import { GetOneUserByUseCase } from "#src/modules/users/useCase/GetOneUserByUseCase";
 import { GetMyCampaignOverviewUseCase } from "#src/modules/users/useCase/GetMyCampaignOverviewUseCase";
 import { GetMyInvitationsUseCase } from "#src/modules/users/useCase/GetMyInvitationsUseCase";
 import { UpdateMeUseCase } from "#src/modules/users/useCase/UpdateMeUseCase";
@@ -35,6 +36,7 @@ export type UsersModuleDependencies = {
   service: UsersService;
   useCases: {
     getMe: GetMeUseCase;
+    getOneUserBy: GetOneUserByUseCase;
     updateMe: UpdateMeUseCase;
     updateSettings: UpdateSettingsUseCase;
     getMyCampaignOverview: GetMyCampaignOverviewUseCase;
@@ -66,6 +68,7 @@ async function registerUsersModule(
   );
 
   const getMeUseCase = new GetMeUseCase(service);
+  const getOneUserByUseCase = new GetOneUserByUseCase(service);
   const updateMeUseCase = new UpdateMeUseCase(service);
   const updateSettingsUseCase = new UpdateSettingsUseCase(service);
   const getMyCampaignOverviewUseCase = new GetMyCampaignOverviewUseCase(service);
@@ -79,6 +82,7 @@ async function registerUsersModule(
     service,
     useCases: {
       getMe: getMeUseCase,
+      getOneUserBy: getOneUserByUseCase,
       updateMe: updateMeUseCase,
       updateSettings: updateSettingsUseCase,
       getMyCampaignOverview: getMyCampaignOverviewUseCase,

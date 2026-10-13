@@ -9,9 +9,8 @@ import type { CampaignContext, RequestContext, SystemRole } from "#core/http/req
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import {
   isAdminRole,
-  isElevatedSystemRole,
+  isSysAdminRole,
   SYSTEM_ROLE,
-  type CampaignRole,
 } from "#core/permissions/roles";
 import type { PermissionService } from "#core/permissions/service";
 import type { UpdateMeDto } from "#src/modules/users/domain/dto/UpdateMeDto";
@@ -27,16 +26,18 @@ import { UsersRepository } from "#src/modules/users/domain/repository/UsersRepos
 
 type CampaignOverviewItem = {
   campaignId: string;
-  role: "OWNER" | CampaignRole;
+  role: "OWNER" | CampaignMembershipRole;
   source: "owned" | "managed" | "joined";
 };
 
 type UserInvitation = {
   invitationId: string;
   campaignId: string;
-  role: CampaignRole;
+  role: CampaignMembershipRole;
   invitedAt: string;
 };
+
+type CampaignMembershipRole = "EDITOR" | "PLAYER";
 
 export class UsersService {
   constructor(
@@ -151,7 +152,21 @@ export class UsersService {
     context: RequestContext,
     filter: AdminUserListFilter,
   ): Promise<{ items: UserRow[]; total: number }> {
-    this.assertAdminOrSuperAdmin(context);
+    this.assertAuthenticated(context);
+
+    if (!isSysAdminRole(context.systemRole)) {
+      const userOnlyFilter: AdminUserListFilter = {
+        ...filter,
+        systemRole: SYSTEM_ROLE.USER,
+      };
+
+      const [items, total] = await Promise.all([
+        this.repository.listAdminUsers(this.db, userOnlyFilter),
+        this.repository.countAdminUsers(this.db, userOnlyFilter),
+      ]);
+
+      return { items, total };
+    }
 
     const [items, total] = await Promise.all([
       this.repository.listAdminUsers(this.db, filter),
@@ -162,7 +177,7 @@ export class UsersService {
   }
 
   async adminGetById(context: RequestContext, userId: string): Promise<UserRow> {
-    this.assertAdminOrSuperAdmin(context);
+    this.assertAuthenticated(context);
 
     const user = await this.repository.findById(this.db, userId);
 
@@ -170,7 +185,19 @@ export class UsersService {
       throw new NotFoundError("User not found");
     }
 
+    if (!isSysAdminRole(context.systemRole) && user.systemRole !== SYSTEM_ROLE.USER) {
+      throw new NotFoundError("User not found");
+    }
+
     return user;
+  }
+
+  async getOneBy(input: { userId: string } | { email: string }): Promise<UserRow | null> {
+    if ("userId" in input) {
+      return this.repository.findById(this.db, input.userId);
+    }
+
+    return this.repository.findByEmail(this.db, normalizeEmail(input.email));
   }
 
   async adminUpdate(
@@ -178,7 +205,7 @@ export class UsersService {
     userId: string,
     input: AdminUpdateUserDto,
   ): Promise<UserRow> {
-    const { actorId, actorRole } = this.assertAdminOrSuperAdmin(context);
+    const { actorId, actorRole } = this.assertSysAdmin(context);
 
     return this.transactionManager.inTransaction(async (tx) => {
       const current = await this.repository.findById(tx, userId);
@@ -234,7 +261,6 @@ export class UsersService {
       campaignId: "global",
       rulesetId: "global",
       campaignMemberId: null,
-      campaignRole: null,
       permissions: [],
     };
 
@@ -249,13 +275,13 @@ export class UsersService {
     return context.actorId;
   }
 
-  private assertAdminOrSuperAdmin(context: RequestContext): {
+  private assertSysAdmin(context: RequestContext): {
     actorId: string;
     actorRole: SystemRole;
   } {
     const actorId = this.assertAuthenticated(context);
 
-    if (!isElevatedSystemRole(context.systemRole)) {
+    if (!isSysAdminRole(context.systemRole)) {
       throw new ForbiddenError("Admin permissions required");
     }
 
@@ -301,7 +327,7 @@ export class UsersService {
       return;
     }
 
-    if (!isElevatedSystemRole(currentRole)) {
+    if (!isSysAdminRole(currentRole)) {
       return;
     }
 

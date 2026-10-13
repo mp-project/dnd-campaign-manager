@@ -7,18 +7,18 @@ import {
 } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
-import { isElevatedSystemRole } from "#core/permissions/roles";
-import type {
-  CreateRulesetInput,
-  RulesetAggregate,
-  RulesetListFilter,
-  RulesetLevelProgressionRow,
-  RulesetSpellSlotProgressionRow,
-  RulesetStatus,
-  UpdateRulesetPatch,
-} from "#src/modules/ruleset/domain/repository/RulesetRepository";
-import { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";
+import { isSysAdminRole } from "#core/permissions/roles";
 import type { UpdateRulesetDto } from "#src/modules/ruleset/domain/dto/UpdateRulesetDto";
+import {
+  type CreateRulesetInput,
+  type RulesetAggregate,
+  type RulesetListFilter,
+  type RulesetLevelProgressionRow,
+  type RulesetSpellSlotProgressionRow,
+  type RulesetStatus,
+  type UpdateRulesetPatch,
+  RulesetRepository,
+} from "#src/modules/ruleset/domain/repository/RulesetRepository";
 
 export class RulesetService {
   constructor(
@@ -262,7 +262,7 @@ export class RulesetService {
   private assertAdmin(context: RequestContext): string {
     const actorId = this.assertAuthenticated(context);
 
-    if (!isElevatedSystemRole(context.systemRole)) {
+    if (!isSysAdminRole(context.systemRole)) {
       throw new ForbiddenError("Admin permissions required");
     }
 

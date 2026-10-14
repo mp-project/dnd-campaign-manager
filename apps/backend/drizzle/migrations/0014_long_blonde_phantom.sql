@@ -21,7 +21,7 @@ CREATE TABLE "campaign_invitations" (
 );
 --> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "username" varchar(24) DEFAULT 'player' NOT NULL;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "user_tag" varchar(32) DEFAULT 'player#' || lpad(floor(random() * 1000000)::int::text, 6, '0') NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN "user_tag" varchar(32) DEFAULT ('player#' || lpad(floor(random() * 1000000)::int::text, 6, '0')) NOT NULL;--> statement-breakpoint
 ALTER TABLE "campaign_invitations" ADD CONSTRAINT "campaign_invitations_campaign_id_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."campaigns"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaign_invitations" ADD CONSTRAINT "campaign_invitations_target_user_id_users_id_fk" FOREIGN KEY ("target_user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "campaign_invitations" ADD CONSTRAINT "campaign_invitations_invited_by_users_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

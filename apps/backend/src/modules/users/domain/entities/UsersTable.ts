@@ -38,7 +38,7 @@ export const users = pgTable(
     username: varchar("username", { length: 24 }).notNull().default("player"),
     userTag: varchar("user_tag", { length: 32 })
       .notNull()
-      .default(sql`'player#' || lpad(floor(random() * 1000000)::int::text, 6, '0')`),
+      .default(sql`('player#' || lpad(floor(random() * 1000000)::int::text, 6, '0'))`),
     systemRole: userSystemRoleEnum("system_role").notNull().default(SYSTEM_ROLE.USER),
     status: userStatusEnum("status").notNull().default("ACTIVE"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),

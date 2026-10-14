@@ -2309,7 +2309,7 @@
           "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'player#' || lpad(floor(random() * 1000000)::int::text, 6, '0')"
+          "default": "('player#' || lpad(floor(random() * 1000000)::int::text, 6, '0'))"
         },
         "system_role": {
           "name": "system_role",

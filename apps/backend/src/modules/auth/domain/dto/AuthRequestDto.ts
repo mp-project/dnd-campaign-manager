@@ -4,6 +4,7 @@ import { uuidDto } from "#core/http/dto";
 import {
   UserDisplayNameSchema,
   UserEmailSchema,
+  UserUsernameSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 export {
@@ -31,6 +32,7 @@ export const OAuthIntentSchema = z.enum(["login", "register"]);
 export const RegisterSchema = z.strictObject({
   email: UserEmailSchema,
   displayName: UserDisplayNameSchema,
+  username: UserUsernameSchema.optional(),
   password: z.string().min(12).max(200),
 });
 
@@ -90,6 +92,7 @@ export const OAuthCallbackQuerySchema = z.strictObject({
 
 export const OAuthCompleteRegistrationSchema = z.strictObject({
   displayName: UserDisplayNameSchema,
+  username: UserUsernameSchema.optional(),
   privacyAccepted: z.literal(true),
 });
 

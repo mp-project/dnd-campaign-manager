@@ -61,6 +61,14 @@ export class CampaignsService {
     });
   }
 
+  findMembershipCampaign(db: AppDatabase, campaignId: string) {
+    return this.repository.findMembershipCampaign(db, campaignId);
+  }
+
+  lockCampaign(db: AppDatabase, campaignId: string): Promise<void> {
+    return this.repository.lockCampaign(db, campaignId);
+  }
+
   attachEffectivePermissions(
     context: RequestContext,
     aggregate: CampaignAggregate,

@@ -1,5 +1,13 @@
+import { eq } from "drizzle-orm";
+
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { campaigns, campaignTimeEvents, rulesets, users } from "#core/db/schema";
+import {
+  campaigns,
+  campaignMemberships,
+  campaignTimeEvents,
+  rulesets,
+  users,
+} from "#core/db/schema";
 import { buildTestApp } from "#test/helpers/buildTestApp";
 
 const TEST_DB_URL =
@@ -416,5 +424,135 @@ describe("campaigns HTTP routes", () => {
     );
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it("manages active campaign memberships and removes access after revocation", async () => {
+    const createResponse = await injectAs(
+      { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" },
+      {
+        method: "POST",
+        url: "/api/v1/campaigns",
+        payload: {
+          name: "Membership Lifecycle",
+          slug: "membership-lifecycle",
+          rulesetId: "11111111-1111-4111-8111-111111111111",
+          settings: {},
+        },
+      },
+    );
+
+    expect(createResponse.statusCode).toBe(201);
+    const campaignId = createResponse.json().id as string;
+    const [membership] = await db
+      .insert(campaignMemberships)
+      .values({
+        campaignId,
+        userId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        role: "PLAYER",
+        status: "ACTIVE",
+        joinedAt: new Date(),
+        createdBy: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      })
+      .returning();
+
+    expect(membership).toBeDefined();
+
+    const listResponse = await injectAs(
+      { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" },
+      {
+        method: "GET",
+        url: `/api/v1/campaigns/${campaignId}/members`,
+      },
+    );
+
+    expect(listResponse.statusCode).toBe(200);
+    expect(listResponse.json().data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ displayName: "Other", role: "PLAYER", userTag: expect.stringMatching(/^.+#[0-9]{6}$/) }),
+      ]),
+    );
+    expect(listResponse.json().data[0].email).toBeUndefined();
+    expect(listResponse.json().data.every((item: { userId?: string }) => item.userId === undefined)).toBe(
+      true,
+    );
+
+    const playerListResponse = await injectAs(
+      { actorId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", systemRole: "USER" },
+      {
+        method: "GET",
+        url: `/api/v1/campaigns/${campaignId}/members`,
+      },
+    );
+
+    expect(playerListResponse.statusCode).toBe(200);
+    const playerMemberRows = playerListResponse.json().data;
+    expect(playerMemberRows).toEqual(
+      expect.arrayContaining([
+        {
+          id: membership?.id,
+          userTag: expect.stringMatching(/^.+#[0-9]{6}$/),
+          displayName: "Other",
+          role: "PLAYER",
+        },
+      ]),
+    );
+    expect(
+      playerMemberRows.every(
+        (item: Record<string, unknown>) =>
+          Object.keys(item).sort().join(",") === "displayName,id,role,userTag",
+      ),
+    ).toBe(true);
+
+    const playerPermissionsResponse = await injectAs(
+      { actorId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", systemRole: "USER" },
+      {
+        method: "GET",
+        url: `/api/v1/campaigns/${campaignId}/me/permissions`,
+      },
+    );
+
+    expect(playerPermissionsResponse.statusCode).toBe(200);
+    expect(playerPermissionsResponse.json().permissions).toEqual(["campaignMembers.read"]);
+
+    const roleResponse = await injectAs(
+      { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" },
+      {
+        method: "PATCH",
+        url: `/api/v1/campaigns/${campaignId}/members/${membership?.id}`,
+        payload: { role: "EDITOR", expectedVersion: 1 },
+      },
+    );
+
+    expect(roleResponse.statusCode).toBe(200);
+    expect(roleResponse.json().role).toBe("EDITOR");
+
+    const revokeResponse = await injectAs(
+      { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" },
+      {
+        method: "DELETE",
+        url: `/api/v1/campaigns/${campaignId}/members/${membership?.id}`,
+      },
+    );
+
+    expect(revokeResponse.statusCode).toBe(204);
+    const [revoked] = await db
+      .select()
+      .from(campaignMemberships)
+      .where(eq(campaignMemberships.id, membership!.id));
+
+    expect(revoked).toMatchObject({
+      status: "REVOKED",
+      revokedBy: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    });
+
+    const revokedUserAccess = await injectAs(
+      { actorId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", systemRole: "USER" },
+      {
+        method: "GET",
+        url: `/api/v1/campaigns/${campaignId}/members`,
+      },
+    );
+
+    expect(revokedUserAccess.statusCode).toBe(404);
   });
 });

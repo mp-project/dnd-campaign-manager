@@ -29,6 +29,8 @@ function createUserRow(overrides: Partial<UserRow> = {}): UserRow {
     googleSubject: null,
     discordUserId: null,
     displayName: "User",
+    username: "user",
+    userTag: "user#000001",
     systemRole: "USER",
     status: "ACTIVE",
     emailVerifiedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -43,6 +45,8 @@ function createAuthSession(user: UserRow): AuthSession {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
+      username: user.username,
+      userTag: user.userTag,
       systemRole: user.systemRole,
       status: user.status,
       emailVerifiedAt: user.emailVerifiedAt,
@@ -62,6 +66,7 @@ function createDeps(input: {
       | "findByGoogleSubject"
       | "findByDiscordUserId"
       | "findByEmail"
+      | "findByUserTag"
       | "setOAuthIdentity"
       | "updateLastLogin"
       | "createUser"
@@ -78,6 +83,7 @@ function createDeps(input: {
     | "findByGoogleSubject"
     | "findByDiscordUserId"
     | "findByEmail"
+    | "findByUserTag"
     | "setOAuthIdentity"
     | "updateLastLogin"
     | "createUser"
@@ -85,6 +91,7 @@ function createDeps(input: {
     findByGoogleSubject: jest.fn(async () => null),
     findByDiscordUserId: jest.fn(async () => null),
     findByEmail: jest.fn(async () => null),
+    findByUserTag: jest.fn(async () => null),
     setOAuthIdentity: jest.fn(async () => null),
     updateLastLogin: jest.fn(async () => undefined),
     createUser: jest.fn(async () => createUserRow()),

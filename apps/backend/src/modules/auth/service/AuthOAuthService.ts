@@ -26,6 +26,7 @@ import {
 } from "#src/modules/auth/service/AuthService.utils";
 import { decodeSignedJson, encodeSignedJson } from "#src/modules/auth/utils/crypto";
 import type { AuthSessionService } from "#src/modules/auth/service/AuthSessionService";
+import { generateUniqueUserTag, usernameFromDisplayName } from "#src/modules/auth/service/UserTag";
 
 export class AuthOAuthService {
   constructor(
@@ -215,6 +216,7 @@ export class AuthOAuthService {
   async completeOAuthRegistration(
     input: {
       displayName: string;
+      username?: string | undefined;
       privacyAccepted: true;
     },
     onboardingCookieValue: string | null,
@@ -256,9 +258,17 @@ export class AuthOAuthService {
         );
       }
 
+      const displayName = input.displayName.trim();
+      const username = input.username ?? usernameFromDisplayName(displayName);
+      const userTag = await generateUniqueUserTag(username, async (candidate) =>
+        Boolean(await this.deps.repository.findByUserTag(tx, candidate)),
+      );
+
       const user = await this.deps.repository.createUser(tx, {
         email: onboarding.email,
-        displayName: input.displayName.trim(),
+        displayName,
+        username,
+        userTag,
         passwordHash: null,
         systemRole: SYSTEM_ROLE.USER,
         status: "ACTIVE",

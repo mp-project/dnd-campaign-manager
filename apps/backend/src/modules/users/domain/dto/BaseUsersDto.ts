@@ -24,6 +24,20 @@ export const UserDisplayNameSchema = z
   .min(1)
   .max(120);
 
+export const UserUsernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3)
+  .max(24)
+  .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])$/);
+
+export const UserTagSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9][a-z0-9_-]{1,22}[a-z0-9]#[0-9]{6}$/);
+
 export const UserLocaleSchema = z
   .string()
   .trim()

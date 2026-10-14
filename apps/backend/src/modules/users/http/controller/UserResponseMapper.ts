@@ -33,6 +33,8 @@ export function toMeResponse(
     id: aggregate.user.id,
     email: aggregate.user.email,
     displayName: aggregate.user.displayName,
+    username: aggregate.user.username,
+    userTag: aggregate.user.userTag,
     systemRole: aggregate.user.systemRole,
     status: aggregate.user.status,
     emailVerificationRequiredCode: toEmailVerificationRequiredCode(
@@ -52,6 +54,8 @@ export function toAdminUserResponse(user: UserRow) {
     deletedAt: toIso(user.deletedAt),
     email: user.email,
     displayName: user.displayName,
+    username: user.username,
+    userTag: user.userTag,
     systemRole: user.systemRole,
     status: user.status,
     emailVerifiedAt: toIso(user.emailVerifiedAt),
@@ -63,7 +67,7 @@ export function toAdminUserResponse(user: UserRow) {
 
 export function toLimitedUserResponse(user: UserRow) {
   return {
-    id: user.id,
+    userTag: user.userTag,
     displayName: user.displayName,
   };
 }
@@ -96,6 +100,8 @@ export function toRegisterUserResponse(input: {
     id: input.user.id,
     email: input.user.email,
     displayName: input.user.displayName,
+    username: input.user.username,
+    userTag: input.user.userTag,
     systemRole: input.user.systemRole,
     status: input.user.status,
     emailVerifiedAt: toIso(input.user.emailVerifiedAt),

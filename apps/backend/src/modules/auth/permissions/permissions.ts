@@ -10,6 +10,13 @@ import {
   CAMPAIGNS_USER_PERMISSION_KEYS,
 } from "#src/modules/campaigns/permissions/CampaignsPermissions";
 import {
+  CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
+  CAMPAIGN_MEMBERSHIP_USER_PERMISSION_KEYS,
+} from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
+import {
+  CAMPAIGN_INVITATION_PERMISSION_KEYS,
+} from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";
+import {
   USERS_PERMISSION_KEYS,
   USERS_SELF_SERVICE_PERMISSION_KEYS,
 } from "#src/modules/users/permissions/UsersPermissions";
@@ -29,12 +36,16 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   USERS_PERMISSION_KEYS[2],
   ...RULESET_READ_PERMISSION_KEYS,
   ...CAMPAIGNS_USER_PERMISSION_KEYS,
+  ...CAMPAIGN_MEMBERSHIP_USER_PERMISSION_KEYS,
+  ...CAMPAIGN_INVITATION_PERMISSION_KEYS,
 ];
 
 export const ALL_PERMISSIONS = [
   ...CORE_PERMISSION_KEYS,
   ...AUTH_PERMISSION_KEYS,
   ...CAMPAIGNS_PERMISSION_KEYS,
+  ...CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
+  ...CAMPAIGN_INVITATION_PERMISSION_KEYS,
   ...USERS_PERMISSION_KEYS,
   ...RULESET_PERMISSION_KEYS,
 ] as const;

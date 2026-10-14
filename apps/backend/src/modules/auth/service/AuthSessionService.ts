@@ -197,6 +197,8 @@ export class AuthSessionService {
           id: user.id,
           email: user.email,
           displayName: user.displayName,
+          username: user.username,
+          userTag: user.userTag,
           systemRole: user.systemRole,
           status: user.status,
           emailVerifiedAt: user.emailVerifiedAt,

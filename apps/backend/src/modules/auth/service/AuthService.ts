@@ -211,6 +211,7 @@ export class AuthService {
   completeOAuthRegistration(
     input: {
       displayName: string;
+      username?: string | undefined;
       privacyAccepted: true;
     },
     onboardingCookieValue: string | null,

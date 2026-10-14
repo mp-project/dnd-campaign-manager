@@ -36,7 +36,13 @@ export {
   campaigns,
   campaignMemberships,
   campaignMemberRoleEnum,
+  campaignMembershipStatusEnum,
   campaignStatusEnum,
   campaignTimeEvents,
   campaignTimeEventTypeEnum,
 } from "../../../modules/campaigns/domain/entities/CampaignsTable.js";
+
+export {
+  campaignInvitationStatusEnum,
+  campaignInvitations,
+} from "../../../modules/campaign-invitations/domain/entities/CampaignInvitationsTable.js";

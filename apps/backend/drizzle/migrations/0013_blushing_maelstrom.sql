@@ -1,0 +1,4 @@
+ALTER TABLE "campaign_memberships" DROP CONSTRAINT "campaign_memberships_status_timestamps_check";--> statement-breakpoint
+ALTER TABLE "campaign_memberships" ADD CONSTRAINT "campaign_memberships_status_timestamps_check" CHECK (("campaign_memberships"."status" = 'PENDING' and "campaign_memberships"."joined_at" is null and "campaign_memberships"."revoked_at" is null and "campaign_memberships"."revoked_by" is null)
+        or ("campaign_memberships"."status" = 'ACTIVE' and "campaign_memberships"."joined_at" is not null and "campaign_memberships"."revoked_at" is null and "campaign_memberships"."revoked_by" is null)
+        or ("campaign_memberships"."status" = 'REVOKED' and "campaign_memberships"."revoked_at" is not null and "campaign_memberships"."revoked_by" is not null));

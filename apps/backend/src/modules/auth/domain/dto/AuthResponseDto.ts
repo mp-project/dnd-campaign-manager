@@ -5,12 +5,16 @@ import {
   EmailVerificationStatusSchema,
   UserStatusSchema,
   UserSystemRoleSchema,
+  UserTagSchema,
+  UserUsernameSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 export const AuthUserProfileSchema = z.strictObject({
   id: uuidDto,
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
+  username: UserUsernameSchema,
+  userTag: UserTagSchema,
   systemRole: UserSystemRoleSchema,
   status: UserStatusSchema,
   emailVerifiedAt: isoDateTimeDto.nullable(),
@@ -33,6 +37,8 @@ export const ResponseRegisterUserSchema = z.strictObject({
   id: uuidDto,
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
+  username: UserUsernameSchema,
+  userTag: UserTagSchema,
   systemRole: UserSystemRoleSchema,
   status: UserStatusSchema,
   emailVerifiedAt: isoDateTimeDto.nullable(),

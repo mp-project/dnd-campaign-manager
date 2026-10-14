@@ -26,6 +26,8 @@ export function toRegisterUserResponse(input: {
     id: input.user.id,
     email: input.user.email,
     displayName: input.user.displayName,
+    username: input.user.username,
+    userTag: input.user.userTag,
     systemRole: input.user.systemRole,
     status: input.user.status,
     emailVerifiedAt: toIso(input.user.emailVerifiedAt),

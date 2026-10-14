@@ -73,6 +73,8 @@ describe("users registration verification HTTP routes", () => {
     expect(registerPayload).toMatchObject({
       email,
       displayName: "New Player",
+      username: "new-player",
+      userTag: expect.stringMatching(/^new-player#[0-9]{6}$/),
       status: "ACTIVE",
       systemRole: "USER",
       emailVerificationRequiredCode: "EMAIL_NOT_VERIFIED",
@@ -108,6 +110,8 @@ describe("users registration verification HTTP routes", () => {
     expect(verifyResponse.json()).toMatchObject({
       email,
       displayName: "New Player",
+      username: registerPayload.username,
+      userTag: registerPayload.userTag,
       status: "ACTIVE",
       systemRole: "USER",
       verificationCode: null,

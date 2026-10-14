@@ -200,6 +200,14 @@ export class UsersService {
     return this.repository.findByEmail(this.db, normalizeEmail(input.email));
   }
 
+  async getOneByUserTag(userTag: string): Promise<UserRow | null> {
+    return this.repository.findByUserTag(this.db, userTag);
+  }
+
+  listPublicSummaries(userIds: string[]) {
+    return this.repository.listPublicSummaries(this.db, userIds);
+  }
+
   async adminUpdate(
     context: RequestContext,
     userId: string,

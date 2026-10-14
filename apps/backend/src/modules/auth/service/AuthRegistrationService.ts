@@ -19,6 +19,7 @@ import type {
 import { MAX_VERIFICATION_ATTEMPTS } from "#src/modules/auth/service/AuthService.contracts";
 import { normalizeEmail, normalizeRedirectPath } from "#src/modules/auth/service/AuthService.utils";
 import { decodeSignedJson, encodeSignedJson, sha256 } from "#src/modules/auth/utils/crypto";
+import { generateUniqueUserTag, usernameFromDisplayName } from "#src/modules/auth/service/UserTag";
 
 const registrationVerificationLinkPayloadSchema = z.strictObject({
   email: z.string().email(),
@@ -127,11 +128,18 @@ export class AuthRegistrationService {
         throw new ConflictError("Email is already in use");
       }
 
+      const username = input.username ?? usernameFromDisplayName(normalizedDisplayName);
+      const userTag = await generateUniqueUserTag(username, async (candidate) =>
+        Boolean(await this.deps.repository.findByUserTag(tx, candidate)),
+      );
+
       const passwordHash = await this.hashPassword(input.password);
       const user = await this.deps.repository.createUser(tx, {
         email: normalizedEmail,
         passwordHash,
         displayName: normalizedDisplayName,
+        username,
+        userTag,
         systemRole: SYSTEM_ROLE.USER,
         status: "ACTIVE",
         emailVerifiedAt: null,

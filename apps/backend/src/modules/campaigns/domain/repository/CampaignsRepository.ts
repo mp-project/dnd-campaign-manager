@@ -26,6 +26,29 @@ export type CampaignAggregate = {
 };
 
 export class CampaignsRepository {
+  async findMembershipCampaign(db: AppDatabase, campaignId: string) {
+    const [campaign] = await db
+      .select({
+        id: campaigns.id,
+        ownerUserId: campaigns.ownerUserId,
+        rulesetId: campaigns.rulesetId,
+        name: campaigns.name,
+      })
+      .from(campaigns)
+      .where(and(eq(campaigns.id, campaignId), isNull(campaigns.deletedAt)))
+      .limit(1);
+
+    return campaign ?? null;
+  }
+
+  async lockCampaign(db: AppDatabase, campaignId: string): Promise<void> {
+    await db
+      .select({ id: campaigns.id })
+      .from(campaigns)
+      .where(and(eq(campaigns.id, campaignId), isNull(campaigns.deletedAt)))
+      .for("update");
+  }
+
   async insertCampaignWithOwnerMembership(
     db: AppDatabase,
     params: {
@@ -88,6 +111,7 @@ export class CampaignsRepository {
         and(
           eq(campaignMemberships.campaignId, campaignId),
           eq(campaignMemberships.userId, userId),
+          eq(campaignMemberships.status, "ACTIVE"),
           isNull(campaignMemberships.deletedAt),
         ),
       )
@@ -114,6 +138,7 @@ export class CampaignsRepository {
         and(
           eq(campaignMemberships.campaignId, campaigns.id),
           eq(campaignMemberships.userId, actorId),
+          eq(campaignMemberships.status, "ACTIVE"),
           isNull(campaignMemberships.deletedAt),
         ),
       )
@@ -149,6 +174,7 @@ export class CampaignsRepository {
         and(
           eq(campaignMemberships.campaignId, campaigns.id),
           eq(campaignMemberships.userId, actorId),
+          eq(campaignMemberships.status, "ACTIVE"),
           isNull(campaignMemberships.deletedAt),
         ),
       )

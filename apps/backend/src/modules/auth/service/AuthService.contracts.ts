@@ -56,6 +56,8 @@ export type AuthSession = {
     id: string;
     email: string;
     displayName: string;
+    username: string;
+    userTag: string;
     systemRole: UserRow["systemRole"];
     status: UserRow["status"];
     emailVerifiedAt: Date | null;

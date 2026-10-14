@@ -148,9 +148,10 @@ describe("users HTTP routes", () => {
     expect(Array.isArray(listBody.data)).toBe(true);
     expect(
       listBody.data.every(
-        (item: { id: string; displayName: string; email?: string; systemRole?: string }) =>
-          typeof item.id === "string" &&
+        (item: { userTag: string; displayName: string; id?: string; email?: string; systemRole?: string }) =>
+          /^.+#[0-9]{6}$/.test(item.userTag) &&
           typeof item.displayName === "string" &&
+          item.id === undefined &&
           item.email === undefined &&
           item.systemRole === undefined,
       ),
@@ -166,9 +167,10 @@ describe("users HTTP routes", () => {
 
     expect(playerGet.statusCode).toBe(200);
     expect(playerGet.json()).toMatchObject({
-      id: userId,
       displayName: "Viewer",
     });
+    expect(playerGet.json().userTag).toMatch(/^.+#[0-9]{6}$/);
+    expect(playerGet.json().id).toBeUndefined();
     expect(playerGet.json().email).toBeUndefined();
     expect(playerGet.json().systemRole).toBeUndefined();
     expect(playerGet.json().status).toBeUndefined();

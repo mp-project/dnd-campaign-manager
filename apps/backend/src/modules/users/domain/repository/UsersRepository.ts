@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
@@ -31,6 +31,8 @@ export type CreateUserInput = {
   email: string;
   passwordHash: string | null;
   displayName: string;
+  username: string;
+  userTag: string;
   systemRole: UserRow["systemRole"];
   status: UserRow["status"];
   emailVerifiedAt: Date | null;
@@ -60,12 +62,38 @@ export class UsersRepository {
     return rows[0] ?? null;
   }
 
+  async findByUserTag(db: AppDatabase, userTag: string): Promise<UserRow | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.userTag, userTag.toLowerCase()), isNull(users.deletedAt)))
+      .limit(1);
+
+    return user ?? null;
+  }
+
+  async listPublicSummaries(
+    db: AppDatabase,
+    userIds: string[],
+  ): Promise<Array<{ id: string; userTag: string; displayName: string }>> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ id: users.id, userTag: users.userTag, displayName: users.displayName })
+      .from(users)
+      .where(and(inArray(users.id, userIds), isNull(users.deletedAt)));
+  }
+
   async createUser(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
     const auditActorId = toAuditActorId(input.actorId);
     const values: typeof users.$inferInsert = {
       email: input.email,
       passwordHash: input.passwordHash,
       displayName: input.displayName,
+      username: input.username,
+      userTag: input.userTag,
       systemRole: input.systemRole,
       status: input.status,
       emailVerifiedAt: input.emailVerifiedAt,

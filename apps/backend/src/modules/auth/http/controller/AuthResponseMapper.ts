@@ -51,6 +51,8 @@ export function toAuthResponse(session: AuthSession) {
       id: session.user.id,
       email: session.user.email,
       displayName: session.user.displayName,
+      username: session.user.username,
+      userTag: session.user.userTag,
       systemRole: session.user.systemRole,
       status: session.user.status,
       emailVerifiedAt: toIso(session.user.emailVerifiedAt),

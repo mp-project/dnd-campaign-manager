@@ -35,6 +35,10 @@ export const users = pgTable(
     googleSubject: varchar("google_subject", { length: 255 }),
     discordUserId: varchar("discord_user_id", { length: 32 }),
     displayName: varchar("display_name", { length: 120 }).notNull(),
+    username: varchar("username", { length: 24 }).notNull().default("player"),
+    userTag: varchar("user_tag", { length: 32 })
+      .notNull()
+      .default(sql`'player#' || lpad(floor(random() * 1000000)::int::text, 6, '0')`),
     systemRole: userSystemRoleEnum("system_role").notNull().default(SYSTEM_ROLE.USER),
     status: userStatusEnum("status").notNull().default("ACTIVE"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
@@ -44,6 +48,7 @@ export const users = pgTable(
     uniqueIndex("users_email_active_unique_idx")
       .on(table.email)
       .where(sql`${table.deletedAt} is null`),
+    uniqueIndex("users_user_tag_unique_idx").on(table.userTag),
     uniqueIndex("users_single_system_user_active_unique_idx")
       .on(table.systemRole)
       .where(

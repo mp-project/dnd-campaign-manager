@@ -6,13 +6,14 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  timestamp,
   text,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { baseColumns, uniqueActiveIndex } from "../../../../core/db/schemaHelpers.js";
+import { baseColumns } from "../../../../core/db/schemaHelpers.js";
 import { rulesets } from "../../../ruleset/domain/entities/RulesetTable.js";
 import { users } from "../../../users/domain/entities/UsersTable.js";
 
@@ -25,6 +26,11 @@ export const campaignStatusEnum = pgEnum("campaign_status", [
 ]);
 
 export const campaignMemberRoleEnum = pgEnum("campaign_member_role", campaignMemberRoles);
+export const campaignMembershipStatusEnum = pgEnum("campaign_membership_status", [
+  "PENDING",
+  "ACTIVE",
+  "REVOKED",
+]);
 
 export const campaignTimeEventTypeEnum = pgEnum("campaign_time_event_type", [
   "ADVANCE_DAYS",
@@ -74,15 +80,25 @@ export const campaignMemberships = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     role: campaignMemberRoleEnum("role").notNull(),
+    status: campaignMembershipStatusEnum("status").notNull().default("ACTIVE"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revokedBy: uuid("revoked_by").references(() => users.id, { onDelete: "restrict" }),
   },
   (table) => [
-    uniqueActiveIndex(
-      "campaign_memberships_campaign_user_active_unique_idx",
-      [table.campaignId, table.userId],
-      table.deletedAt,
-    ),
+    uniqueIndex("campaign_memberships_campaign_user_active_unique_idx")
+      .on(table.campaignId, table.userId)
+      .where(
+        sql`${table.deletedAt} is null and ${table.status} in ('PENDING', 'ACTIVE')`,
+      ),
     index("campaign_memberships_campaign_id_idx").on(table.campaignId),
     index("campaign_memberships_user_id_idx").on(table.userId),
+    check(
+      "campaign_memberships_status_timestamps_check",
+      sql`(${table.status} = 'PENDING' and ${table.joinedAt} is null and ${table.revokedAt} is null and ${table.revokedBy} is null)
+        or (${table.status} = 'ACTIVE' and ${table.joinedAt} is not null and ${table.revokedAt} is null and ${table.revokedBy} is null)
+        or (${table.status} = 'REVOKED' and ${table.revokedAt} is not null and ${table.revokedBy} is not null)`,
+    ),
   ],
 );
 

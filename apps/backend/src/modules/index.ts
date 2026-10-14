@@ -10,6 +10,8 @@ import { authModule } from "#src/modules/auth/index";
 import { rulesetModule } from "#src/modules/ruleset/index";
 import { usersModule } from "#src/modules/users/index";
 import { campaignsModule } from "#src/modules/campaigns/index";
+import { campaignMembershipsModule } from "#src/modules/campaign-memberships/index";
+import { campaignInvitationsModule } from "#src/modules/campaign-invitations/index";
 
 export const systemModule: AppModule = {
   name: "system",
@@ -25,6 +27,8 @@ export const defaultAppModules: readonly AppModule[] = [
   usersModule,
   rulesetModule,
   campaignsModule,
+  campaignMembershipsModule,
+  campaignInvitationsModule,
 ];
 
 export async function registerAppModules(
@@ -37,5 +41,7 @@ export async function registerAppModules(
 
 export { authModule } from "#src/modules/auth/index";
 export { campaignsModule } from "#src/modules/campaigns/index";
+export { campaignMembershipsModule } from "#src/modules/campaign-memberships/index";
+export { campaignInvitationsModule } from "#src/modules/campaign-invitations/index";
 export { rulesetModule } from "#src/modules/ruleset/index";
 export { usersModule } from "#src/modules/users/index";

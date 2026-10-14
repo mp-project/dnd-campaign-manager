@@ -8,6 +8,7 @@ export {
   campaigns,
   campaignMemberships,
   campaignMemberRoleEnum,
+  campaignMembershipStatusEnum,
   campaignStatusEnum,
   campaignTimeEvents,
   campaignTimeEventTypeEnum,

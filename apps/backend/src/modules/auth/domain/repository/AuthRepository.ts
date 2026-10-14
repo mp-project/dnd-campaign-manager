@@ -20,6 +20,8 @@ export type EmailVerificationRequestRow = typeof emailVerificationRequests.$infe
 export type CreateUserInput = {
   email: string;
   displayName: string;
+  username: string;
+  userTag: string;
   passwordHash: string | null;
   systemRole: UserRow["systemRole"];
   status: UserRow["status"];
@@ -60,6 +62,16 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
+  async findByUserTag(db: AppDatabase, userTag: string): Promise<UserRow | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.userTag, userTag.toLowerCase()), isNull(users.deletedAt)))
+      .limit(1);
+
+    return user ?? null;
+  }
+
   async findByGoogleSubject(
     db: AppDatabase,
     googleSubject: string,
@@ -91,6 +103,8 @@ export class AuthRepository {
     const values: typeof users.$inferInsert = {
       email: input.email,
       displayName: input.displayName,
+      username: input.username,
+      userTag: input.userTag,
       passwordHash: input.passwordHash,
       systemRole: input.systemRole,
       status: input.status,

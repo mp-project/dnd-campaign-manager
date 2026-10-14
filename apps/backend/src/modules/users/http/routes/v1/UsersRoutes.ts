@@ -12,7 +12,6 @@ import {
   ResponseReadableUserListSchema,
   ResponseReadableUserSchema,
   ResponseMeCampaignOverviewSchema,
-  ResponseMeInvitationsSchema,
   ResponseMeSchema,
 } from "#src/modules/users/domain/dto/ResponseUsersDto";
 import { UpdateMeSchema } from "#src/modules/users/domain/dto/UpdateMeDto";
@@ -138,28 +137,6 @@ export function registerUsersRoutes(
       },
     },
     controllers.getMyCampaignOverviewController.handle,
-  );
-
-  app.get(
-    USERS_HTTP_PATHS.meInvitations,
-    {
-      config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.read,
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.readSelf,
-        },
-      },
-      schema: {
-        tags: ["Users"],
-        operationId: "getMyInvitations",
-        security: USERS_HTTP_SECURITY,
-        response: {
-          200: ResponseMeInvitationsSchema,
-          401: errorResponseDto,
-        },
-      },
-    },
-    controllers.getMyInvitationsController.handle,
   );
 
   app.get(

@@ -10,6 +10,7 @@ import {
   EmailVerificationStatusSchema,
   UserStatusSchema,
   UserSystemRoleSchema,
+  UserTagSchema,
   UserThemeSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
@@ -20,11 +21,12 @@ export const ResponseUserSettingsSchema = z.strictObject({
   reducedMotion: z.boolean(),
   uiPreferences: z.record(z.string(), z.unknown()),
 });
-
 export const ResponseMeSchema = z.strictObject({
   id: uuidDto,
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
+  username: z.string().min(3).max(24),
+  userTag: UserTagSchema,
   systemRole: UserSystemRoleSchema,
   status: UserStatusSchema,
   emailVerificationRequiredCode: z
@@ -37,6 +39,8 @@ export const ResponseMeSchema = z.strictObject({
 export const ResponseAdminUserSchema = baseEntityResponseDto.extend({
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
+  username: z.string().min(3).max(24),
+  userTag: UserTagSchema,
   systemRole: UserSystemRoleSchema,
   status: UserStatusSchema,
   emailVerifiedAt: isoDateTimeDto.nullable(),
@@ -44,7 +48,7 @@ export const ResponseAdminUserSchema = baseEntityResponseDto.extend({
 });
 
 export const ResponseLimitedUserSchema = z.strictObject({
-  id: uuidDto,
+  userTag: UserTagSchema,
   displayName: z.string().min(1).max(120),
 });
 
@@ -90,6 +94,8 @@ export const ResponseRegisterUserSchema = z.strictObject({
   id: uuidDto,
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
+  username: z.string().min(3).max(24),
+  userTag: UserTagSchema,
   systemRole: UserSystemRoleSchema,
   status: UserStatusSchema,
   emailVerifiedAt: isoDateTimeDto.nullable(),

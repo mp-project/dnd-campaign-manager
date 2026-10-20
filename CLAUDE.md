@@ -97,6 +97,34 @@ Throw subclasses of `AppError` / the HTTP errors in `src/core/error/http/` (`Not
 - `apps/backend/tests/unit/**/*.test.ts` and `tests/integration/**/*.test.ts` are separate Jest projects (SWC transform, `maxWorkers: 1`). `tests/unit/http.validation.test.ts` uses snapshots.
 - Integration HTTP tests use `buildTestApp` with signed test JWTs and `app.inject`; `tests/helpers/factories.ts` and `deterministic.ts` give fixtures.
 
+## Frontend UI reference
+
+`example/UI/` holds mockup screenshots ("Chronik", German UI) to use as a reference for UI templates and the theme:
+
+- `chronik-ui-mockups/`: desktop screens, numbered by content type. Each type has a list screen (`NN-<type>-liste.png`) and a create/edit screen (`NN-<type>-erstellen-bearbeiten.png`): Orte, NPCs, Monster, Gegenstände, Zauber, Quests, Encounter, Klassen, Spezies, Storylines. There are also auth screens (21–22) and import screens (24–25).
+- `chronik-ui-mobile-mockups/`: the same screens at mobile size (`*-mobile.png`).
+
+**The screenshots are not consistent with each other.** Use them only for the basic theme and design language, not as an exact spec for layout, fields, labels or data. The common look:
+
+- dark navy sidebar and top bar
+- parchment-textured content area with ornamental corners
+- deep burgundy/wine primary color for actions, active nav and links
+- serif typography
+- soft colored pill tags
+- table lists with filter bars and pagination
+- create/edit opens as a right-hand slide-over panel with section tabs on the left and Verwerfen/Speichern actions in the footer
+
+### Theme and component rules
+
+- **Styling uses Tailwind** (`apps/frontend/tailwind.config.ts`, `src/assets/main.css`). Custom CSS is fine where Tailwind isn't enough, for example parchment textures, ornamental borders or complex animations, as long as it is well structured: put it in a clear place (an `@layer` in the global stylesheet or a scoped component style), give it meaningful names, and use the theme variables instead of hardcoded values.
+- **Theme values are variables.** Colors, fonts, radii, shadows, spacing and other basic theme elements are defined once as CSS custom properties (in `main.css`, e.g. `--color-primary`). They are mapped to Tailwind theme keys in `tailwind.config.ts` (e.g. `primary: "var(--color-primary)"`). Components only use these semantic Tailwind classes (`bg-primary`, `text-ink`), never raw hex values or arbitrary values like `bg-[#7a1f2b]`. To change the theme, change the variables.
+- **Structure lives in reusable Vue components.** Build the shared UI pieces as components in `src/components/` and compose pages and layouts from them: app shell/sidebar/top bar, page header, buttons, inputs/selects, tags, filter bar, data table, pagination, slide-over form panel. Don't repeat the markup in each page.
+- The current `tailwind.config.ts` colors (`parchment`, `ink`, `ember`, `spruce`) and the `.layout-*` classes in `main.css` are early placeholders with hardcoded hex values. Move them to the variable-based setup when working on the theme.
+
+## Git
+
+- Commit messages must **not** contain a `Co-Authored-By: Claude ...` trailer or any other Claude/AI attribution line.
+
 ## Notes
 
 - `copilot-docs/` is gitignored, older reference material (it calls the wiring file `setup.ts`; the real convention is `Setup.ts`). Its `module-setup.md` describes the module checklist used above.

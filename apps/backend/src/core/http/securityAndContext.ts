@@ -5,6 +5,7 @@ import jsonwebtoken, { type JwtPayload } from "jsonwebtoken";
 
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
+import { uuidDto } from "#core/http/dto";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
 import type {
   CampaignContext,
@@ -191,24 +192,23 @@ async function resolveCampaignAccessFacts(
  * Extracts campaign id from route params first, then fallback header.
  *
  * @param request Fastify request.
- * @returns Campaign id or null when no campaign scope is provided.
+ * @returns Campaign id or null when no campaign scope (or no valid UUID) is provided.
  */
 function extractCampaignId(request: FastifyRequest): string | null {
   const params = request.params as Record<string, unknown>;
   const campaignIdFromParams =
     params && typeof params.campaignId === "string" ? params.campaignId : null;
 
-  if (campaignIdFromParams) {
-    return campaignIdFromParams;
-  }
-
   const campaignIdHeader = request.headers["x-campaign-id"];
+  const campaignId =
+    campaignIdFromParams ??
+    (typeof campaignIdHeader === "string" && campaignIdHeader.trim()
+      ? campaignIdHeader.trim()
+      : null);
 
-  if (typeof campaignIdHeader === "string" && campaignIdHeader.trim()) {
-    return campaignIdHeader.trim();
-  }
-
-  return null;
+  // Context resolution runs before schema validation; malformed ids are left to the route
+  // schema (400) instead of reaching the database.
+  return campaignId && uuidDto.safeParse(campaignId).success ? campaignId : null;
 }
 
 /**
@@ -299,14 +299,15 @@ export function resolveRequestContext(request: FastifyRequest): RequestContext {
 }
 
 /**
- * Registers requestContext decoration and preHandler population hook.
+ * Registers requestContext decoration and preValidation population hook.
  *
  * @param app Fastify app instance.
  */
 export function registerRequestContextPlugin(app: FastifyInstance): void {
   app.decorateRequest("requestContext", null as unknown as RequestContext);
 
-  app.addHook("preHandler", async (request) => {
+  // preValidation, so authentication and authorization run before request schema validation.
+  app.addHook("preValidation", async (request) => {
     request.requestContext = resolveRequestContext(request);
   });
 }
@@ -356,7 +357,7 @@ export async function resolveCampaignContext(
 }
 
 /**
- * Registers campaignContext decoration and preHandler resolution hook.
+ * Registers campaignContext decoration and preValidation resolution hook.
  *
  * @param app Fastify app instance.
  * @param container Application container.
@@ -367,7 +368,7 @@ export function registerCampaignContextPlugin(
 ): void {
   app.decorateRequest("campaignContext", null as CampaignContext | null);
 
-  app.addHook("preHandler", async (request) => {
+  app.addHook("preValidation", async (request) => {
     request.campaignContext = await resolveCampaignContext(request, container);
   });
 }

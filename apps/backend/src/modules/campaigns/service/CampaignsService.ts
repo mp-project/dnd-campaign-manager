@@ -65,6 +65,38 @@ export class CampaignsService {
     return this.repository.findMembershipCampaign(db, campaignId);
   }
 
+  /**
+   * Resolves the campaign and the actor's campaign role for cross-module access checks.
+   * The owner counts as EDITOR; inactive memberships yield `role: null`.
+   */
+  async findCampaignRole(
+    campaignId: string,
+    actorId: string,
+    db: AppDatabase = this.db,
+  ): Promise<{
+    campaignId: string;
+    rulesetId: string;
+    role: "EDITOR" | "PLAYER" | null;
+  } | null> {
+    const campaign = await this.repository.findMembershipCampaign(db, campaignId);
+
+    if (!campaign) {
+      return null;
+    }
+
+    if (campaign.ownerUserId === actorId) {
+      return { campaignId: campaign.id, rulesetId: campaign.rulesetId, role: "EDITOR" };
+    }
+
+    const membership = await this.repository.findMembership(db, campaignId, actorId);
+
+    return {
+      campaignId: campaign.id,
+      rulesetId: campaign.rulesetId,
+      role: membership?.role ?? null,
+    };
+  }
+
   lockCampaign(db: AppDatabase, campaignId: string): Promise<void> {
     return this.repository.lockCampaign(db, campaignId);
   }

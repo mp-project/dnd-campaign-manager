@@ -12,6 +12,7 @@ import { usersModule } from "#src/modules/users/index";
 import { campaignsModule } from "#src/modules/campaigns/index";
 import { campaignMembershipsModule } from "#src/modules/campaign-memberships/index";
 import { campaignInvitationsModule } from "#src/modules/campaign-invitations/index";
+import { assetsModule } from "#src/modules/assets/index";
 
 export const systemModule: AppModule = {
   name: "system",
@@ -29,6 +30,7 @@ export const defaultAppModules: readonly AppModule[] = [
   campaignsModule,
   campaignMembershipsModule,
   campaignInvitationsModule,
+  assetsModule,
 ];
 
 export async function registerAppModules(
@@ -39,6 +41,7 @@ export async function registerAppModules(
   await registerModules(app, container, modules);
 }
 
+export { assetsModule } from "#src/modules/assets/index";
 export { authModule } from "#src/modules/auth/index";
 export { campaignsModule } from "#src/modules/campaigns/index";
 export { campaignMembershipsModule } from "#src/modules/campaign-memberships/index";

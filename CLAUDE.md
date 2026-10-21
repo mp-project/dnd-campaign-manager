@@ -83,9 +83,10 @@ Flow: route (Zod `schema` + `config.permission` + `config.rateLimit`) → contro
 ### Auth, permissions, campaign context
 
 - JWT access tokens carry `sub` (actor id) and `systemRole`; request context is on `request.requestContext`.
-- Routes declare `config.permission = { key, hideAsNotFoundForPlayers? }`; the authorization `preHandler` (`src/core/http/authorization.ts`) calls `permissionService.require` against `request.campaignContext`, falling back to a `"global"` context.
+- Routes declare `config.permission = { key, hideAsNotFoundForPlayers? }`; the authorization `preValidation` hook (`src/core/http/authorization.ts`) calls `permissionService.require` against `request.campaignContext`, falling back to a `"global"` context. Request context, campaign context and authorization run in `preValidation`, so 401/403 come before schema validation (400); malformed campaign ids are ignored there and left to the schema.
 - `request.campaignContext` is resolved from a `:campaignId` route param or an `x-campaign-id` header via `campaignFactPort.resolveCampaignAccess`.
 - Adding a permission: define keys + `PermissionDefinition`s in the module's `permissions/`, register them in `Setup.ts` (`permissionService.registerDefinitions`), and add keys to the aggregation in `src/modules/auth/permissions/permissions.ts` (`ALL_PERMISSIONS`, `APPLICATION_USER_PERMISSIONS`). System role → permission mapping is in `src/modules/auth/permissions/roles.ts`.
+- Linkable content (notes, spells, NPCs, locations, ...) shares its identity in `assets` (`src/modules/assets`). Domain modules don't write `assets` themselves. They call the `AssetsModuleDependencies.service` port (`createBase`, `updateMetadata`, `archiveBase`, `restoreBase`, `assertAvailable`, `resolveVariant`, ...) inside their own transaction and check their own domain permissions. Players only see campaign assets that a registered `AssetVisibilityProvider` (e.g. content shares) grants.
 - Campaign-scoped updates use optimistic locking (`src/core/db/optimisticLock.ts`, `version` column, `VersionConflictError` → HTTP 412).
 
 ### Errors

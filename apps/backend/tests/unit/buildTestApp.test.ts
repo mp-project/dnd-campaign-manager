@@ -37,7 +37,7 @@ describe("buildTestApp helper", () => {
       },
       {
         method: "GET",
-        url: "/api/v1/probe/campaign-1",
+        url: "/api/v1/probe/c0000000-0000-4000-8000-000000000001",
       },
     );
 
@@ -48,7 +48,7 @@ describe("buildTestApp helper", () => {
         systemRole: "USER",
       },
       campaignContext: {
-        campaignId: "campaign-1",
+        campaignId: "c0000000-0000-4000-8000-000000000001",
         campaignMemberId: "member-alice",
       },
     });

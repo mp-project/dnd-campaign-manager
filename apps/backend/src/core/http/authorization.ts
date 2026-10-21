@@ -35,7 +35,7 @@ export function registerAuthorizationPlugin(
   app: FastifyInstance,
   container: AppContainer,
 ): void {
-  app.addHook("preHandler", async (request) => {
+  app.addHook("preValidation", async (request) => {
     const permissionConfig = resolveRoutePermissionConfig(request);
 
     if (!permissionConfig) {

@@ -1,11 +1,13 @@
 import type { PermissionDefinition } from "#core/permissions/service";
 
-export const CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS = [
-  "campaignMembers.read",
-  "campaignMembers.invite",
-  "campaignMembers.updateRole",
-  "campaignMembers.revoke",
-] as const;
+export const CAMPAIGN_MEMBERSHIP_PERMISSIONS = {
+  read: "campaignMembers.read",
+  invite: "campaignMembers.invite",
+  updateRole: "campaignMembers.updateRole",
+  revoke: "campaignMembers.revoke",
+} as const;
+
+export const CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS = Object.values(CAMPAIGN_MEMBERSHIP_PERMISSIONS);
 
 export const CAMPAIGN_MEMBERSHIP_USER_PERMISSION_KEYS = [
   ...CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
@@ -13,19 +15,19 @@ export const CAMPAIGN_MEMBERSHIP_USER_PERMISSION_KEYS = [
 
 export const campaignMembershipPermissionDefinitions: readonly PermissionDefinition[] = [
   {
-    key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[0],
+    key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.read,
     description: "Read active members of an accessible campaign",
   },
   {
-    key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[1],
+    key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.invite,
     description: "Invite users to a campaign",
   },
   {
-    key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[2],
+    key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.updateRole,
     description: "Change campaign membership roles",
   },
   {
-    key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[3],
+    key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.revoke,
     description: "Revoke campaign memberships",
   },
 ];

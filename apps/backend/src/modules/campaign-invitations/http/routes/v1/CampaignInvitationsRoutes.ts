@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
-import { CAMPAIGN_INVITATION_PERMISSION_KEYS } from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";
+import { CAMPAIGN_INVITATION_PERMISSIONS } from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";
 import { CreateCampaignInvitationSchema } from "#src/modules/campaign-invitations/domain/dto/CreateCampaignInvitationDto";
 import {
   AcceptCampaignInvitationSchema,
@@ -26,7 +26,7 @@ export function registerCampaignInvitationRoutes(
   app.post(
     "/:campaignId/invitations",
     {
-      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSION_KEYS[0] } },
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.create } },
       schema: {
         tags: ["Campaign Invitations"],
         operationId: "createCampaignInvitation",
@@ -49,7 +49,7 @@ export function registerCampaignInvitationRoutes(
   app.get(
     "/:campaignId/invitations",
     {
-      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSION_KEYS[1] } },
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.read } },
       schema: {
         tags: ["Campaign Invitations"],
         operationId: "listCampaignInvitations",
@@ -69,7 +69,7 @@ export function registerCampaignInvitationRoutes(
   app.get(
     "/:campaignId/invitations/lookup",
     {
-      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSION_KEYS[1] } },
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.read } },
       schema: {
         tags: ["Campaign Invitations"],
         operationId: "lookupCampaignInvitationTarget",
@@ -92,7 +92,7 @@ export function registerCampaignInvitationRoutes(
   app.delete(
     "/:campaignId/invitations/:invitationId",
     {
-      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSION_KEYS[2] } },
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.revoke } },
       schema: {
         tags: ["Campaign Invitations"],
         operationId: "revokeCampaignInvitation",
@@ -138,7 +138,7 @@ export function registerUserInvitationRoutes(
   app.get(
     "/me/invitations",
     {
-      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSION_KEYS[1] } },
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.read } },
       schema: {
         tags: ["Campaign Invitations"],
         operationId: "listMyCampaignInvitations",

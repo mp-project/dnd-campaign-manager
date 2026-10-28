@@ -2,9 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
-import {
-  CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
-} from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
+import { CAMPAIGN_MEMBERSHIP_PERMISSIONS } from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
 import {
   CampaignMemberListResponseSchema,
   CampaignMembershipResponseSchema,
@@ -25,7 +23,7 @@ export function registerCampaignMembershipRoutes(
     "/:campaignId/members",
     {
       config: {
-        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[0] },
+        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.read },
       },
       schema: {
         tags: ["Campaign Memberships"],
@@ -47,7 +45,7 @@ export function registerCampaignMembershipRoutes(
     "/:campaignId/members/:memberId",
     {
       config: {
-        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[2] },
+        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.updateRole },
       },
       schema: {
         tags: ["Campaign Memberships"],
@@ -73,7 +71,7 @@ export function registerCampaignMembershipRoutes(
     "/:campaignId/members/:memberId",
     {
       config: {
-        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[3] },
+        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.revoke },
       },
       schema: {
         tags: ["Campaign Memberships"],
@@ -97,7 +95,7 @@ export function registerCampaignMembershipRoutes(
     "/:campaignId/me/permissions",
     {
       config: {
-        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[0] },
+        permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.read },
       },
       schema: {
         tags: ["Campaign Memberships"],

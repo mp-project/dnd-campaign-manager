@@ -8,7 +8,10 @@ import {
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import { CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS } from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
+import {
+  CAMPAIGN_MEMBERSHIP_PERMISSIONS,
+  CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
+} from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
 import type { CampaignMembershipsRepository } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 import type { CreateCampaignMembershipDto } from "#src/modules/campaign-memberships/domain/dto/CreateCampaignMembershipDto";
 import type { UpdateCampaignMembershipRoleDto } from "#src/modules/campaign-memberships/domain/dto/UpdateCampaignMembershipDto";
@@ -77,7 +80,7 @@ export class CampaignMembershipsService {
       return [...CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS];
     }
 
-    return [CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS[0]];
+    return [CAMPAIGN_MEMBERSHIP_PERMISSIONS.read];
   }
 
   async createPendingMembership(

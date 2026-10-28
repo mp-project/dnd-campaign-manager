@@ -6,6 +6,7 @@ export {
 export { CampaignMembershipsService } from "#src/modules/campaign-memberships/service/CampaignMembershipsService";
 export { CampaignMembershipsRepository } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 export {
+  CAMPAIGN_MEMBERSHIP_PERMISSIONS,
   CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
   campaignMembershipPermissionDefinitions,
 } from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";

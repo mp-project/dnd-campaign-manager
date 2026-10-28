@@ -7,6 +7,7 @@ export { campaignInvitations } from "#src/modules/campaign-invitations/domain/en
 export { CampaignInvitationsRepository } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
 export { CampaignInvitationsService } from "#src/modules/campaign-invitations/service/CampaignInvitationsService";
 export {
+  CAMPAIGN_INVITATION_PERMISSIONS,
   CAMPAIGN_INVITATION_PERMISSION_KEYS,
   campaignInvitationPermissionDefinitions,
 } from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";

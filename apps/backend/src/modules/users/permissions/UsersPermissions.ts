@@ -1,50 +1,52 @@
 import type { PermissionDefinition } from "#core/permissions/service";
 
-export const USERS_PERMISSION_KEYS = [
-  "users.readSelf",
-  "users.updateSelf",
-  "users.read",
-  "users.update",
-  "users.delete",
-  "users.manageRole",
-] as const;
+export const USERS_PERMISSIONS = {
+  readSelf: "users.readSelf",
+  updateSelf: "users.updateSelf",
+  read: "users.read",
+  update: "users.update",
+  delete: "users.delete",
+  manageRole: "users.manageRole",
+} as const;
+
+export const USERS_PERMISSION_KEYS = Object.values(USERS_PERMISSIONS);
 
 export const USERS_SELF_SERVICE_PERMISSION_KEYS = [
-  USERS_PERMISSION_KEYS[0],
-  USERS_PERMISSION_KEYS[1],
+  USERS_PERMISSIONS.readSelf,
+  USERS_PERMISSIONS.updateSelf,
 ] as const;
 
 export const USERS_ADMIN_PERMISSION_KEYS = [
-  USERS_PERMISSION_KEYS[2],
-  USERS_PERMISSION_KEYS[3],
-  USERS_PERMISSION_KEYS[4],
+  USERS_PERMISSIONS.read,
+  USERS_PERMISSIONS.update,
+  USERS_PERMISSIONS.delete,
 ] as const;
 
-export const USERS_SYSTEM_MAINTAINER_PERMISSION_KEYS = [USERS_PERMISSION_KEYS[5]] as const;
+export const USERS_SYSTEM_MAINTAINER_PERMISSION_KEYS = [USERS_PERMISSIONS.manageRole] as const;
 
 export const usersPermissionDefinitions: readonly PermissionDefinition[] = [
   {
-    key: USERS_PERMISSION_KEYS[0],
+    key: USERS_PERMISSIONS.readSelf,
     description: "Read own user profile",
   },
   {
-    key: USERS_PERMISSION_KEYS[1],
+    key: USERS_PERMISSIONS.updateSelf,
     description: "Update own user profile and settings",
   },
   {
-    key: USERS_PERMISSION_KEYS[2],
+    key: USERS_PERMISSIONS.read,
     description: "Read users as administrator",
   },
   {
-    key: USERS_PERMISSION_KEYS[3],
+    key: USERS_PERMISSIONS.update,
     description: "Update users as administrator",
   },
   {
-    key: USERS_PERMISSION_KEYS[4],
+    key: USERS_PERMISSIONS.delete,
     description: "Delete users as administrator",
   },
   {
-    key: USERS_PERMISSION_KEYS[5],
+    key: USERS_PERMISSIONS.manageRole,
     description: "Change user system roles",
   },
 ];

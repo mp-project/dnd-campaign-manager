@@ -8,5 +8,12 @@
       "approve": true,
       "matchCommandLine": true
     }
-  }
+  },
+  "terminal.integrated.env.osx": {
+    "CLAUDE_CONFIG_DIR": "/Users/markpimpl/.claude-mp-project",
+    "PATH": "${env:HOME}/.local/bin:${env:PATH}"
+  },
+  "claudeCode.environmentVariables": [
+    { "name": "CLAUDE_CONFIG_DIR", "value": "/Users/markpimpl/.claude-mp-project" }
+  ]
 }

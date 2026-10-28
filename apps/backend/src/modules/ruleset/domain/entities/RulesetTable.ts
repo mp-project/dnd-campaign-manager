@@ -16,11 +16,6 @@ import { baseColumns, uniqueActiveIndex } from "../../../../core/db/schemaHelper
 
 export const rulesetStatusEnum = pgEnum("ruleset_status", ["ACTIVE", "ARCHIVED"]);
 
-export const assetRulesetCompatibilityEnum = pgEnum("asset_ruleset_compatibility", [
-  "SUPPORTED",
-  "NEUTRAL",
-]);
-
 export const rulesets = pgTable(
   "rulesets",
   {
@@ -102,27 +97,6 @@ export const rulesetSpellSlotProgressions = pgTable(
     check(
       "ruleset_spell_slot_progressions_slot_count_check",
       sql`${table.slotCount} >= 0`,
-    ),
-  ],
-);
-
-export const assetRulesets = pgTable(
-  "asset_rulesets",
-  {
-    ...baseColumns(),
-    assetId: uuid("asset_id").notNull(),
-    rulesetId: uuid("ruleset_id")
-      .notNull()
-      .references(() => rulesets.id, { onDelete: "restrict" }),
-    compatibility: assetRulesetCompatibilityEnum("compatibility")
-      .notNull()
-      .default("SUPPORTED"),
-  },
-  (table) => [
-    uniqueActiveIndex(
-      "asset_rulesets_asset_ruleset_active_unique_idx",
-      [table.assetId, table.rulesetId],
-      table.deletedAt,
     ),
   ],
 );

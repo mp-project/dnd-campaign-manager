@@ -2,7 +2,6 @@ import { and, asc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import {
-  assetRulesets,
   rulesetLevelProgressions,
   rulesets,
   rulesetSpellSlotProgressions,
@@ -16,7 +15,6 @@ export type RulesetRow = typeof rulesets.$inferSelect;
 export type RulesetLevelProgressionRow = typeof rulesetLevelProgressions.$inferSelect;
 export type RulesetSpellSlotProgressionRow =
   typeof rulesetSpellSlotProgressions.$inferSelect;
-export type AssetRulesetRow = typeof assetRulesets.$inferSelect;
 
 export type RulesetStatus = RulesetRow["status"];
 
@@ -314,16 +312,6 @@ export class RulesetRepository {
         asc(rulesetSpellSlotProgressions.casterLevel),
         asc(rulesetSpellSlotProgressions.slotLevel),
       );
-  }
-
-  async listAssetRulesets(
-    db: AppDatabase,
-    assetId: string,
-  ): Promise<AssetRulesetRow[]> {
-    return db
-      .select()
-      .from(assetRulesets)
-      .where(and(eq(assetRulesets.assetId, assetId), isNull(assetRulesets.deletedAt)));
   }
 
   private async loadAggregate(

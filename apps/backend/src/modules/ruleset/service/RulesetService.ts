@@ -200,43 +200,6 @@ export class RulesetService {
     return this.repository.listSpellSlotProgressions(this.db, rulesetId);
   }
 
-  async assertCompatible(
-    context: RequestContext,
-    assetId: string,
-    rulesetId: string,
-  ): Promise<void> {
-    this.assertAuthenticated(context);
-    await this.assertCompatibleInternal(assetId, rulesetId);
-  }
-
-  async assertCompatibleInternal(assetId: string, rulesetId: string): Promise<void> {
-    const ruleset = await this.repository.findById(this.db, rulesetId);
-
-    if (!ruleset) {
-      throw new NotFoundError("Ruleset not found");
-    }
-
-    const mappings = await this.repository.listAssetRulesets(this.db, assetId);
-
-    if (mappings.length === 0) {
-      return;
-    }
-
-    const match = mappings.find((item) => item.rulesetId === rulesetId);
-
-    if (match && (match.compatibility === "SUPPORTED" || match.compatibility === "NEUTRAL")) {
-      return;
-    }
-
-    throw new ConflictError("RULESET_CHANGE_REQUIRES_MIGRATION", {
-      assetId,
-      rulesetId,
-      supportedRulesetIds: mappings
-        .filter((item) => item.compatibility === "SUPPORTED")
-        .map((item) => item.rulesetId),
-    });
-  }
-
   async assertRulesetChangeRequiresMigration(input: {
     currentRulesetId: string;
     nextRulesetId: string;

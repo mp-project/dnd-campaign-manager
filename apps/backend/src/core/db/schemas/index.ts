@@ -8,8 +8,6 @@ export type {
 } from "./runtimeState.table.js";
 
 export {
-  assetRulesets,
-  assetRulesetCompatibilityEnum,
   rulesetLevelProgressions,
   rulesets,
   rulesetSpellSlotProgressions,
@@ -46,3 +44,14 @@ export {
   campaignInvitationStatusEnum,
   campaignInvitations,
 } from "../../../modules/campaign-invitations/domain/entities/CampaignInvitationsTable.js";
+
+export {
+  assetFamilies,
+  assetOriginEnum,
+  assetRulesetPolicyEnum,
+  assetRulesets,
+  assetScopeEnum,
+  assetStatusEnum,
+  assets,
+  assetTypeEnum,
+} from "../../../modules/assets/domain/entities/AssetsTable.js";

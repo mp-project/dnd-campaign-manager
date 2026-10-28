@@ -76,7 +76,7 @@ describe("request and campaign context hooks", () => {
 
     const response = await app.inject({
       method: "GET",
-      url: "/api/v1/context/campaign-1",
+      url: "/api/v1/context/c0000000-0000-4000-8000-000000000001",
       headers: {
         authorization: `Bearer ${accessToken}`,
         "x-campaign-role": "PLAYER",
@@ -91,7 +91,7 @@ describe("request and campaign context hooks", () => {
         systemRole: "USER",
       },
       campaignContext: {
-        campaignId: "campaign-1",
+        campaignId: "c0000000-0000-4000-8000-000000000001",
         rulesetId: "ruleset-from-campaign",
         campaignMemberId: "member-alice",
       },
@@ -130,7 +130,7 @@ describe("request and campaign context hooks", () => {
 
     const response = await app.inject({
       method: "GET",
-      url: "/api/v1/context/campaign-2",
+      url: "/api/v1/context/c0000000-0000-4000-8000-000000000002",
       headers: {
         authorization: `Bearer ${accessToken}`,
       },
@@ -143,6 +143,42 @@ describe("request and campaign context hooks", () => {
         permissions: [],
       },
     });
+
+    await app.close();
+  });
+
+  it("ignores malformed campaign ids instead of resolving them", async () => {
+    const env = createTestEnv();
+    const resolveCampaignAccess = jest.fn();
+    const app = buildApp({
+      env,
+      modules: [contextProbeModule],
+      readyProbe: async () => ({ database: true, migrations: true }),
+      publicPorts: {
+        campaignFactPort: {
+          hasVisitedLocation: async () => "UNKNOWN",
+          hasMetNpc: async () => "UNKNOWN",
+          hasResolvedEncounter: async () => "UNKNOWN",
+          isQuestCompleted: async () => "UNKNOWN",
+          resolveCampaignAccess,
+        },
+      },
+    });
+
+    const accessToken = await createAccessToken("alice", SYSTEM_ROLE.USER, env.JWT_ACCESS_SECRET);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/context/not-a-uuid",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-campaign-id": "also-not-a-uuid",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ campaignContext: null });
+    expect(resolveCampaignAccess).not.toHaveBeenCalled();
 
     await app.close();
   });

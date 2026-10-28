@@ -2,12 +2,11 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
-import { CAMPAIGN_INVITATION_PERMISSIONS } from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";
 import { CreateCampaignInvitationSchema } from "#src/modules/campaign-invitations/domain/dto/CreateCampaignInvitationDto";
 import {
   AcceptCampaignInvitationSchema,
-  CampaignInvitationLookupQuerySchema,
   CampaignInvitationItemParamsSchema,
+  CampaignInvitationLookupQuerySchema,
   CampaignInvitationParamsSchema,
 } from "#src/modules/campaign-invitations/domain/dto/RequestCampaignInvitationDto";
 import {
@@ -17,20 +16,38 @@ import {
   CampaignInvitationTargetResponseSchema,
   MyCampaignInvitationListResponseSchema,
 } from "#src/modules/campaign-invitations/domain/dto/ResponseCampaignInvitationDto";
-import { CampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/CampaignInvitationsController";
+import { AcceptCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/AcceptCampaignInvitationController";
+import { CreateCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/CreateCampaignInvitationController";
+import { DeleteCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/DeleteCampaignInvitationController";
+import { ListCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListCampaignInvitationsController";
+import { ListMyCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListMyCampaignInvitationsController";
+import { LookupCampaignInvitationTargetController } from "#src/modules/campaign-invitations/http/controller/LookupCampaignInvitationTargetController";
+import { CAMPAIGN_INVITATION_PERMISSIONS } from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";
 
-export function registerCampaignInvitationRoutes(
+export type CampaignInvitationsRouteControllers = {
+  createCampaignInvitationController: CreateCampaignInvitationController;
+  listCampaignInvitationsController: ListCampaignInvitationsController;
+  lookupCampaignInvitationTargetController: LookupCampaignInvitationTargetController;
+  deleteCampaignInvitationController: DeleteCampaignInvitationController;
+  acceptCampaignInvitationController: AcceptCampaignInvitationController;
+  listMyCampaignInvitationsController: ListMyCampaignInvitationsController;
+};
+
+const tags = ["Campaign Invitations"];
+const security = [{ cookieAuth: [] }] as const;
+
+export function registerCampaignInvitationsRoutes(
   app: FastifyInstance,
-  controller: CampaignInvitationsController,
+  controllers: CampaignInvitationsRouteControllers,
 ): void {
   app.post(
-    "/:campaignId/invitations",
+    "/campaigns/:campaignId/invitations",
     {
       config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.create } },
       schema: {
-        tags: ["Campaign Invitations"],
+        tags,
         operationId: "createCampaignInvitation",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignInvitationParamsSchema,
         body: CreateCampaignInvitationSchema,
         response: {
@@ -43,17 +60,18 @@ export function registerCampaignInvitationRoutes(
         },
       },
     },
-    async (request, reply) => reply.code(201).send(await controller.create(request)),
+    async (request, reply) =>
+      reply.code(201).send(await controllers.createCampaignInvitationController.handle(request)),
   );
 
   app.get(
-    "/:campaignId/invitations",
+    "/campaigns/:campaignId/invitations",
     {
       config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.read } },
       schema: {
-        tags: ["Campaign Invitations"],
+        tags,
         operationId: "listCampaignInvitations",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignInvitationParamsSchema,
         response: {
           200: CampaignInvitationListResponseSchema,
@@ -63,17 +81,17 @@ export function registerCampaignInvitationRoutes(
         },
       },
     },
-    controller.list,
+    controllers.listCampaignInvitationsController.handle,
   );
 
   app.get(
-    "/:campaignId/invitations/lookup",
+    "/campaigns/:campaignId/invitations/lookup",
     {
       config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.read } },
       schema: {
-        tags: ["Campaign Invitations"],
+        tags,
         operationId: "lookupCampaignInvitationTarget",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignInvitationParamsSchema,
         querystring: CampaignInvitationLookupQuerySchema,
         response: {
@@ -86,17 +104,17 @@ export function registerCampaignInvitationRoutes(
         },
       },
     },
-    controller.lookupUserTag,
+    controllers.lookupCampaignInvitationTargetController.handle,
   );
 
   app.delete(
-    "/:campaignId/invitations/:invitationId",
+    "/campaigns/:campaignId/invitations/:invitationId",
     {
       config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.revoke } },
       schema: {
-        tags: ["Campaign Invitations"],
+        tags,
         operationId: "revokeCampaignInvitation",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignInvitationItemParamsSchema,
         response: {
           204: z.null(),
@@ -106,21 +124,19 @@ export function registerCampaignInvitationRoutes(
         },
       },
     },
-    controller.revoke,
+    async (request, reply) => {
+      await controllers.deleteCampaignInvitationController.handle(request);
+      return reply.code(204).send();
+    },
   );
-}
 
-export function registerUserInvitationRoutes(
-  app: FastifyInstance,
-  controller: CampaignInvitationsController,
-): void {
   app.post(
     "/invitations/accept",
     {
       schema: {
-        tags: ["Campaign Invitations"],
+        tags,
         operationId: "acceptCampaignInvitation",
-        security: [{ cookieAuth: [] }],
+        security,
         body: AcceptCampaignInvitationSchema,
         response: {
           200: AcceptCampaignInvitationResponseSchema,
@@ -132,7 +148,7 @@ export function registerUserInvitationRoutes(
         },
       },
     },
-    controller.accept,
+    controllers.acceptCampaignInvitationController.handle,
   );
 
   app.get(
@@ -140,15 +156,15 @@ export function registerUserInvitationRoutes(
     {
       config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.read } },
       schema: {
-        tags: ["Campaign Invitations"],
+        tags,
         operationId: "listMyCampaignInvitations",
-        security: [{ cookieAuth: [] }],
+        security,
         response: {
           200: MyCampaignInvitationListResponseSchema,
           401: errorResponseDto,
         },
       },
     },
-    controller.listForCurrentUser,
+    controllers.listMyCampaignInvitationsController.handle,
   );
 }

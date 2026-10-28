@@ -5,6 +5,9 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { CampaignInvitationsRepository } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
 import type { CampaignInvitationRow } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
 import { CampaignInvitationsService } from "#src/modules/campaign-invitations/service/CampaignInvitationsService";
+import { AcceptCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/AcceptCampaignInvitationUseCase";
+import { CreateCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/CreateCampaignInvitationUseCase";
+import { LookupCampaignInvitationTargetUseCase } from "#src/modules/campaign-invitations/useCase/LookupCampaignInvitationTargetUseCase";
 import type { CampaignMembershipsService } from "#src/modules/campaign-memberships/service/CampaignMembershipsService";
 import type { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
@@ -59,14 +62,13 @@ function createHarness(input: {
   };
   const invitation = input.invitation ?? buildInvitation();
   const repository = {
-    expirePending: jest.fn(async () => undefined),
+    updateExpired: jest.fn(async () => undefined),
     findPendingByCampaignEmail: jest.fn(async () => null),
     create: jest.fn(async () => invitation),
     listPendingByCampaign: jest.fn(async () => [invitation]),
     listPendingForUser: jest.fn(async () => [invitation]),
     findByTokenHashForUpdate: jest.fn(async () => invitation),
-    markAccepted: jest.fn(async () => buildInvitation({ status: "ACCEPTED", acceptedBy: PLAYER_ID, acceptedAt: new Date() })),
-    markRevoked: jest.fn(async () => invitation),
+    updateStatus: jest.fn(async () => buildInvitation({ status: "ACCEPTED", acceptedBy: PLAYER_ID, acceptedAt: new Date() })),
   } as unknown as CampaignInvitationsRepository;
   const actor = input.actor ?? {
     id: OWNER_ID,
@@ -121,16 +123,25 @@ function createHarness(input: {
     "https://app.example.test",
   );
 
-  return { db, repository, usersDependencies, membershipsService, emailPort, service };
+  return {
+    db,
+    repository,
+    usersDependencies,
+    membershipsService,
+    emailPort,
+    createUseCase: new CreateCampaignInvitationUseCase(service),
+    lookupUseCase: new LookupCampaignInvitationTargetUseCase(service),
+    acceptUseCase: new AcceptCampaignInvitationUseCase(service),
+  };
 }
 
 const ownerContext = { actorId: OWNER_ID, systemRole: "USER" as const };
 
-describe("CampaignInvitationsService", () => {
+describe("campaign invitation use cases", () => {
   it("creates an owner invitation and emails a one-time token link without returning the token", async () => {
-    const { service, repository, emailPort } = createHarness();
+    const { createUseCase, repository, emailPort } = createHarness();
 
-    const result = await service.invite(ownerContext, CAMPAIGN_ID, {
+    const result = await createUseCase.execute(ownerContext, CAMPAIGN_ID, {
       email: "player@example.test",
       role: "PLAYER",
       expiresInDays: 7,
@@ -156,12 +167,12 @@ describe("CampaignInvitationsService", () => {
   });
 
   it("does not allow an editor/non-owner to invite", async () => {
-    const { service, repository, emailPort } = createHarness({
+    const { createUseCase, repository, emailPort } = createHarness({
       campaignOwnerId: PLAYER_ID,
     });
 
     await expect(
-      service.invite(ownerContext, CAMPAIGN_ID, {
+      createUseCase.execute(ownerContext, CAMPAIGN_ID, {
         email: "player@example.test",
         role: "PLAYER",
         expiresInDays: 7,
@@ -172,7 +183,7 @@ describe("CampaignInvitationsService", () => {
   });
 
   it("looks up active users by userTag without exposing userId or email", async () => {
-    const { service } = createHarness({
+    const { lookupUseCase } = createHarness({
       targetByTag: {
         id: PLAYER_ID,
         userTag: "player#123456",
@@ -183,7 +194,7 @@ describe("CampaignInvitationsService", () => {
     });
 
     await expect(
-      service.lookupUserTag(ownerContext, CAMPAIGN_ID, "player#123456"),
+      lookupUseCase.execute(ownerContext, CAMPAIGN_ID, "player#123456"),
     ).resolves.toEqual({
       userTag: "player#123456",
       displayName: "Player",
@@ -192,7 +203,7 @@ describe("CampaignInvitationsService", () => {
 
   it("accepts an invitation only for the authenticated verified email", async () => {
     const invitation = buildInvitation();
-    const { service, repository, membershipsService } = createHarness({
+    const { acceptUseCase, repository, membershipsService } = createHarness({
       invitation,
       actor: {
         id: PLAYER_ID,
@@ -203,7 +214,7 @@ describe("CampaignInvitationsService", () => {
     const rawToken = "a".repeat(43);
     (repository.findByTokenHashForUpdate as jest.Mock).mockResolvedValue(invitation);
 
-    const result = await service.accept(
+    const result = await acceptUseCase.execute(
       { actorId: PLAYER_ID, systemRole: "USER" },
       rawToken,
     );
@@ -224,7 +235,7 @@ describe("CampaignInvitationsService", () => {
   });
 
   it("rejects an invitation when the authenticated email does not match", async () => {
-    const { service, membershipsService } = createHarness({
+    const { acceptUseCase, membershipsService } = createHarness({
       actor: {
         id: PLAYER_ID,
         email: "different@example.test",
@@ -234,20 +245,20 @@ describe("CampaignInvitationsService", () => {
     });
 
     await expect(
-      service.accept({ actorId: PLAYER_ID, systemRole: "USER" }, "a".repeat(43)),
+      acceptUseCase.execute({ actorId: PLAYER_ID, systemRole: "USER" }, "a".repeat(43)),
     ).rejects.toBeInstanceOf(NotFoundError);
     expect(membershipsService.createActiveFromInvitation).not.toHaveBeenCalled();
   });
 
   it("marks an expired invitation before returning a conflict", async () => {
-    const { service, repository, membershipsService } = createHarness({
+    const { acceptUseCase, repository, membershipsService } = createHarness({
       invitation: buildInvitation({ expiresAt: new Date(Date.now() - 1) }),
     });
 
     await expect(
-      service.accept({ actorId: PLAYER_ID, systemRole: "USER" }, "a".repeat(43)),
+      acceptUseCase.execute({ actorId: PLAYER_ID, systemRole: "USER" }, "a".repeat(43)),
     ).rejects.toBeInstanceOf(ConflictError);
-    expect(repository.expirePending).toHaveBeenCalled();
+    expect(repository.updateExpired).toHaveBeenCalled();
     expect(membershipsService.createActiveFromInvitation).not.toHaveBeenCalled();
   });
 });

@@ -1,20 +1,19 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
-import { UserTagSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
+import { CampaignInvitationBaseSchema } from "#src/modules/campaign-invitations/domain/dto/BaseCampaignInvitationDto";
 
-export const CampaignInvitationParamsSchema = z.strictObject({
-  campaignId: uuidDto,
+export const CampaignInvitationParamsSchema = CampaignInvitationBaseSchema.pick({
+  campaignId: true,
 });
 
 export const CampaignInvitationItemParamsSchema = CampaignInvitationParamsSchema.extend({
-  invitationId: uuidDto,
+  invitationId: CampaignInvitationBaseSchema.shape.id,
 });
 
 export const AcceptCampaignInvitationSchema = z.strictObject({
   token: z.string().min(40).max(128),
 });
 
-export const CampaignInvitationLookupQuerySchema = z.strictObject({
-  userTag: UserTagSchema,
+export const CampaignInvitationLookupQuerySchema = CampaignInvitationBaseSchema.pick({
+  userTag: true,
 });

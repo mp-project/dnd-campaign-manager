@@ -5,6 +5,23 @@ import { campaignInvitations } from "#src/modules/campaign-invitations/domain/en
 
 export type CampaignInvitationRow = typeof campaignInvitations.$inferSelect;
 
+export type CreateCampaignInvitationInput = {
+  campaignId: string;
+  email: string;
+  targetUserId: string | null;
+  role: CampaignInvitationRow["role"];
+  tokenHash: string;
+  expiresAt: Date;
+  actorId: string;
+};
+
+/**
+ * Pending invitations move to `ACCEPTED` (only while unexpired) or `REVOKED` (scoped to the campaign).
+ */
+export type UpdateCampaignInvitationStatusInput =
+  | { status: "ACCEPTED"; invitationId: string; actorId: string; now: Date }
+  | { status: "REVOKED"; campaignId: string; invitationId: string; actorId: string; now: Date };
+
 export class CampaignInvitationsRepository {
   async findByTokenHashForUpdate(
     db: AppDatabase,
@@ -43,15 +60,7 @@ export class CampaignInvitationsRepository {
 
   async create(
     db: AppDatabase,
-    input: {
-      campaignId: string;
-      email: string;
-      targetUserId: string | null;
-      role: "EDITOR" | "PLAYER";
-      tokenHash: string;
-      expiresAt: Date;
-      actorId: string;
-    },
+    input: CreateCampaignInvitationInput,
   ): Promise<CampaignInvitationRow> {
     const [invitation] = await db
       .insert(campaignInvitations)
@@ -75,7 +84,7 @@ export class CampaignInvitationsRepository {
     return invitation;
   }
 
-  async expirePending(
+  async updateExpired(
     db: AppDatabase,
     now: Date,
     campaignId?: string,
@@ -138,54 +147,36 @@ export class CampaignInvitationsRepository {
       );
   }
 
-  async markAccepted(
+  async updateStatus(
     db: AppDatabase,
-    input: { invitationId: string; actorId: string; now: Date },
+    input: UpdateCampaignInvitationStatusInput,
   ): Promise<CampaignInvitationRow | null> {
+    const conditions = [
+      eq(campaignInvitations.id, input.invitationId),
+      eq(campaignInvitations.status, "PENDING"),
+      isNull(campaignInvitations.deletedAt),
+    ];
+    const statusFields =
+      input.status === "ACCEPTED"
+        ? { acceptedBy: input.actorId, acceptedAt: input.now }
+        : { revokedAt: input.now };
+
+    if (input.status === "ACCEPTED") {
+      conditions.push(gt(campaignInvitations.expiresAt, input.now));
+    } else {
+      conditions.push(eq(campaignInvitations.campaignId, input.campaignId));
+    }
+
     const [updated] = await db
       .update(campaignInvitations)
       .set({
-        status: "ACCEPTED",
-        acceptedBy: input.actorId,
-        acceptedAt: input.now,
+        status: input.status,
+        ...statusFields,
         version: sql`${campaignInvitations.version} + 1`,
         updatedAt: input.now,
         updatedBy: input.actorId,
       })
-      .where(
-        and(
-          eq(campaignInvitations.id, input.invitationId),
-          eq(campaignInvitations.status, "PENDING"),
-          gt(campaignInvitations.expiresAt, input.now),
-          isNull(campaignInvitations.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
-  }
-
-  async markRevoked(
-    db: AppDatabase,
-    input: { campaignId: string; invitationId: string; actorId: string; now: Date },
-  ): Promise<CampaignInvitationRow | null> {
-    const [updated] = await db
-      .update(campaignInvitations)
-      .set({
-        status: "REVOKED",
-        revokedAt: input.now,
-        version: sql`${campaignInvitations.version} + 1`,
-        updatedAt: input.now,
-        updatedBy: input.actorId,
-      })
-      .where(
-        and(
-          eq(campaignInvitations.id, input.invitationId),
-          eq(campaignInvitations.campaignId, input.campaignId),
-          eq(campaignInvitations.status, "PENDING"),
-          isNull(campaignInvitations.deletedAt),
-        ),
-      )
+      .where(and(...conditions))
       .returning();
 
     return updated ?? null;

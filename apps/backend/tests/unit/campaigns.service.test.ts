@@ -3,8 +3,26 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 import type { CampaignsRepository } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
 import { CreateCampaignUseCase } from "#src/modules/campaigns/useCase/CreateCampaignUseCase";
+import type { RulesetModuleDependencies } from "#src/modules/ruleset/index";
+import type { UsersModuleDependencies } from "#src/modules/users/index";
 import { GetCampaignByIdUseCase } from "#src/modules/campaigns/useCase/GetCampaignByIdUseCase";
 import { UpdateCampaignUseCase } from "#src/modules/campaigns/useCase/UpdateCampaignUseCase";
+
+function createService(tx: TransactionManager, repository: CampaignsRepository) {
+  const usersDependencies = {
+    useCases: {
+      getOneUserBy: { execute: async ({ userId }: { userId: string }) => ({ id: userId }) },
+    },
+  } as unknown as UsersModuleDependencies;
+
+  return new CampaignsService(
+    {} as AppDatabase,
+    tx,
+    repository,
+    usersDependencies,
+    {} as RulesetModuleDependencies,
+  );
+}
 
 describe("CampaignsService", () => {
   it("rejects unauthenticated create requests", async () => {
@@ -13,7 +31,7 @@ describe("CampaignsService", () => {
       inTransaction: async (work) => work({} as AppDatabase),
     };
 
-    const service = new CampaignsService({} as AppDatabase, tx, repository);
+    const service = createService(tx, repository);
 
     const useCase = new CreateCampaignUseCase(service);
 
@@ -24,7 +42,6 @@ describe("CampaignsService", () => {
           systemRole: "USER",
         },
         {
-          createdBy: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
           name: "My Campaign",
           slug: "my-campaign",
           description: null,
@@ -37,7 +54,7 @@ describe("CampaignsService", () => {
 
   it("rejects archived campaign updates", async () => {
     const repository = {
-      findCampaignById: jest.fn(async () => ({
+      findById: jest.fn(async () => ({
         id: "22222222-2222-4222-8222-222222222222",
         version: 3,
         ownerUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -73,7 +90,7 @@ describe("CampaignsService", () => {
       inTransaction: async (work) => work({} as AppDatabase),
     };
 
-    const service = new CampaignsService({} as AppDatabase, tx, repository);
+    const service = createService(tx, repository);
 
     const useCase = new UpdateCampaignUseCase(service);
 
@@ -94,14 +111,14 @@ describe("CampaignsService", () => {
 
   it("throws not found for unknown campaigns", async () => {
     const repository = {
-      findCampaignById: jest.fn(async () => null),
+      findById: jest.fn(async () => null),
     } as unknown as CampaignsRepository;
 
     const tx: TransactionManager = {
       inTransaction: async (work) => work({} as AppDatabase),
     };
 
-    const service = new CampaignsService({} as AppDatabase, tx, repository);
+    const service = createService(tx, repository);
 
     const useCase = new GetCampaignByIdUseCase(service);
 

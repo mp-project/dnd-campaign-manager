@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 import { paginationDto, uuidDto } from "#core/http/dto";
-import { CampaignStatusSchema } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
+import { CampaignBaseSchema } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
 
 const RequestCampaignListFilterSchema = z.strictObject({
   includeArchived: z.coerce.boolean().default(false),
-  status: CampaignStatusSchema.optional(),
+  status: CampaignBaseSchema.shape.status.optional(),
   search: z.string().trim().min(1).max(160).optional(),
   userId: uuidDto.optional(),
 });

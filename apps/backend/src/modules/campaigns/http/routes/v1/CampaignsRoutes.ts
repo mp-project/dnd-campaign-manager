@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
-import { CreateCampaignRequestSchema } from "#src/modules/campaigns/domain/dto/CreateCampaignDto";
+import { CreateCampaignSchema } from "#src/modules/campaigns/domain/dto/CreateCampaignDto";
 import { UpdateCampaignSchema } from "#src/modules/campaigns/domain/dto/UpdateCampaignDto";
 import { AdvanceCampaignTimeSchema } from "#src/modules/campaigns/domain/dto/AdvanceCampaignTimeDto";
 import { CorrectCampaignTimeSchema } from "#src/modules/campaigns/domain/dto/CorrectCampaignTimeDto";
@@ -16,11 +16,7 @@ import {
   ResponseCampaignSchema,
   ResponseCampaignTimeHistorySchema,
 } from "#src/modules/campaigns/domain/dto/ResponseCampaignDto";
-import {
-  CAMPAIGNS_HTTP_PATHS,
-  CAMPAIGNS_HTTP_PERMISSIONS,
-  CAMPAIGNS_HTTP_SECURITY,
-} from "#src/modules/campaigns/config/CampaignsHttpConfig";
+import { CAMPAIGNS_PERMISSIONS } from "#src/modules/campaigns/permissions/CampaignsPermissions";
 import { ListCampaignsController } from "#src/modules/campaigns/http/controller/ListCampaignsController";
 import { GetCampaignByIdController } from "#src/modules/campaigns/http/controller/GetCampaignByIdController";
 import { CreateCampaignController } from "#src/modules/campaigns/http/controller/CreateCampaignController";
@@ -41,22 +37,23 @@ export type CampaignsRouteControllers = {
   getCampaignTimeHistoryController: GetCampaignTimeHistoryController;
 };
 
+const tags = ["Campaigns"];
+const security = [{ cookieAuth: [] }] as const;
+
 export function registerCampaignsRoutes(
   app: FastifyInstance,
   controllers: CampaignsRouteControllers,
 ): void {
   app.get(
-    CAMPAIGNS_HTTP_PATHS.collection,
+    "/campaigns",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.read,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "listCampaigns",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         querystring: RequestCampaignListQuerySchema,
         response: {
           200: ResponseCampaignListSchema,
@@ -69,17 +66,15 @@ export function registerCampaignsRoutes(
   );
 
   app.get(
-    CAMPAIGNS_HTTP_PATHS.item,
+    "/campaigns/:campaignId",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.read,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "getCampaignById",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         params: RequestCampaignParamsSchema,
         response: {
           200: ResponseCampaignSchema,
@@ -93,18 +88,16 @@ export function registerCampaignsRoutes(
   );
 
   app.post(
-    CAMPAIGNS_HTTP_PATHS.collection,
+    "/campaigns",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.create,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.create },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "createCampaign",
-        security: CAMPAIGNS_HTTP_SECURITY,
-        body: CreateCampaignRequestSchema,
+        security,
+        body: CreateCampaignSchema,
         response: {
           201: ResponseCampaignSchema,
           400: errorResponseDto,
@@ -115,21 +108,22 @@ export function registerCampaignsRoutes(
         },
       },
     },
-    controllers.createCampaignController.handle,
+    async (request, reply) => {
+      const created = await controllers.createCampaignController.handle(request);
+      return reply.code(201).send(created);
+    },
   );
 
   app.patch(
-    CAMPAIGNS_HTTP_PATHS.item,
+    "/campaigns/:campaignId",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.update,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.update },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "updateCampaign",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         params: RequestCampaignParamsSchema,
         body: UpdateCampaignSchema,
         response: {
@@ -147,17 +141,15 @@ export function registerCampaignsRoutes(
   );
 
   app.delete(
-    CAMPAIGNS_HTTP_PATHS.item,
+    "/campaigns/:campaignId",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.archive,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.archive },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "archiveCampaign",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         params: RequestCampaignParamsSchema,
         response: {
           204: z.null(),
@@ -168,21 +160,22 @@ export function registerCampaignsRoutes(
         },
       },
     },
-    controllers.deleteCampaignController.handle,
+    async (request, reply) => {
+      await controllers.deleteCampaignController.handle(request);
+      return reply.code(204).send();
+    },
   );
 
   app.post(
-    CAMPAIGNS_HTTP_PATHS.advanceTime,
+    "/campaigns/:campaignId/time/advance",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.advanceTime,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.advanceTime },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "advanceCampaignTime",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         params: RequestCampaignParamsSchema,
         body: AdvanceCampaignTimeSchema,
         response: {
@@ -200,17 +193,15 @@ export function registerCampaignsRoutes(
   );
 
   app.post(
-    CAMPAIGNS_HTTP_PATHS.correctTime,
+    "/campaigns/:campaignId/time/correct",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.correctTime,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.correctTime },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "correctCampaignTime",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         params: RequestCampaignParamsSchema,
         body: CorrectCampaignTimeSchema,
         response: {
@@ -228,17 +219,15 @@ export function registerCampaignsRoutes(
   );
 
   app.get(
-    CAMPAIGNS_HTTP_PATHS.timeHistory,
+    "/campaigns/:campaignId/time/history",
     {
       config: {
-        permission: {
-          key: CAMPAIGNS_HTTP_PERMISSIONS.read,
-        },
+        permission: { key: CAMPAIGNS_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Campaigns"],
+        tags,
         operationId: "getCampaignTimeHistory",
-        security: CAMPAIGNS_HTTP_SECURITY,
+        security,
         params: RequestCampaignParamsSchema,
         querystring: RequestCampaignTimeHistoryQuerySchema,
         response: {

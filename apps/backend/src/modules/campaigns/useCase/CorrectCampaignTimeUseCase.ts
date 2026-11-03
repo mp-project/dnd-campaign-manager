@@ -1,12 +1,10 @@
+import { VersionConflictError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import {
-  ConflictError,
-  NotFoundError,
-  VersionConflictError,
-} from "#core/error/http/index";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { CorrectCampaignTimeDto } from "#src/modules/campaigns/domain/dto/CorrectCampaignTimeDto";
-import type { CampaignAggregate } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
+import {
+  type ResponseCampaignDto,
+  toCampaignResponse,
+} from "#src/modules/campaigns/domain/dto/ResponseCampaignDto";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 
 export class CorrectCampaignTimeUseCase {
@@ -16,34 +14,19 @@ export class CorrectCampaignTimeUseCase {
     context: RequestContext,
     campaignId: string,
     input: CorrectCampaignTimeDto,
-  ): Promise<CampaignAggregate> {
-    const actorId = this.campaignsService.assertAuditableActorId(context);
-    const current = await this.campaignsService.repository.findCampaignById(
-      this.campaignsService.db,
-      campaignId,
-    );
-
-    if (!current) {
-      throw new NotFoundError("Campaign not found");
-    }
-
-    const membership = await this.campaignsService.repository.findMembership(
-      this.campaignsService.db,
-      campaignId,
+  ): Promise<ResponseCampaignDto> {
+    const { repository, transactionManager } = this.campaignsService;
+    const actorId = await this.campaignsService.requireActorId(context);
+    const { campaign: current, membership } = await this.campaignsService.loadManagedCampaign(
+      context,
       actorId,
+      campaignId,
     );
-    const isOwner = current.ownerUserId === actorId;
 
-    if (!isOwner && !isSysAdminRole(context.systemRole)) {
-      throw new NotFoundError("Campaign not found");
-    }
+    this.campaignsService.assertNotArchived(current);
 
-    if (current.status === "ARCHIVED") {
-      throw new ConflictError("Archived campaigns cannot be modified");
-    }
-
-    return this.campaignsService.transactionManager.inTransaction(async (tx) => {
-      const updated = await this.campaignsService.repository.updateTimeWithVersion(tx, {
+    const updated = await transactionManager.inTransaction(async (tx) => {
+      const result = await repository.updateTime(tx, {
         campaignId,
         actorId,
         expectedVersion: current.version,
@@ -51,11 +34,11 @@ export class CorrectCampaignTimeUseCase {
         newLongRestCount: input.longRestCount,
       });
 
-      if (!updated) {
+      if (!result) {
         throw new VersionConflictError("Campaign time correction version mismatch");
       }
 
-      await this.campaignsService.repository.insertTimeEvent(tx, {
+      await repository.createTimeEvent(tx, {
         actorId,
         campaignId,
         type: "CORRECTION",
@@ -66,14 +49,11 @@ export class CorrectCampaignTimeUseCase {
         reason: input.reason,
       });
 
-      const aggregate: CampaignAggregate = {
-        campaign: updated,
-        membership,
-        isOwner: false,
-        effectivePermissions: [],
-      };
-
-      return this.campaignsService.attachEffectivePermissions(context, aggregate);
+      return result;
     });
+
+    return toCampaignResponse(
+      this.campaignsService.buildAggregate(context, updated, membership),
+    );
   }
 }

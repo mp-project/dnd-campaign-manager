@@ -1,18 +1,28 @@
-import { UnauthenticatedError } from "#core/error/http/index";
+import {
+  ConflictError,
+  NotFoundError,
+  UnauthenticatedError,
+} from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { CampaignContext, RequestContext } from "#core/http/requestContext";
+import { isSysAdminRole } from "#core/permissions/roles";
 import type { PermissionService } from "#core/permissions/service";
 import {
   type CampaignAggregate,
+  type CampaignMembershipRow,
   type CampaignRow,
   CampaignsRepository,
 } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
-import type { CampaignUserService } from "#src/modules/campaigns/service/CampaignUserService";
 import type { RulesetModuleDependencies } from "#src/modules/ruleset/index";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type LoadedCampaign = {
+  campaign: CampaignRow;
+  membership: CampaignMembershipRow | null;
+};
 
 function toCampaignContext(context: RequestContext, campaign: CampaignRow): CampaignContext {
   return {
@@ -39,10 +49,9 @@ export class CampaignsService {
     public readonly db: AppDatabase,
     public readonly transactionManager: TransactionManager,
     public readonly repository: CampaignsRepository,
+    public readonly usersDependencies: UsersModuleDependencies,
+    public readonly rulesetDependencies: RulesetModuleDependencies,
     public readonly permissionService?: PermissionService,
-    public readonly rulesetDependencies?: RulesetModuleDependencies,
-    public readonly usersDependencies?: UsersModuleDependencies,
-    public readonly campaignUserService?: CampaignUserService,
   ) {}
 
   async resolveCampaignAccess(input: {
@@ -101,6 +110,85 @@ export class CampaignsService {
     return this.repository.lockCampaign(db, campaignId);
   }
 
+  /**
+   * Resolves the authenticated actor through the users module, which uses its own connection.
+   * Call this before opening a transaction.
+   */
+  async requireActorId(context: RequestContext): Promise<string> {
+    if (!context.actorId) {
+      throw new UnauthenticatedError("Authentication required");
+    }
+
+    if (!uuidPattern.test(context.actorId)) {
+      throw new UnauthenticatedError("Valid actor identity required");
+    }
+
+    const actor = await this.usersDependencies.useCases.getOneUserBy.execute({
+      userId: context.actorId,
+    });
+
+    if (!actor) {
+      throw new UnauthenticatedError("Authenticated user not found");
+    }
+
+    return actor.id;
+  }
+
+  /**
+   * Loads a campaign the actor may read: owner, active member or system admin.
+   * Anyone else gets a 404 so the campaign stays hidden.
+   */
+  async loadReadableCampaign(
+    context: RequestContext,
+    actorId: string,
+    campaignId: string,
+  ): Promise<LoadedCampaign> {
+    const loaded = await this.loadCampaign(actorId, campaignId);
+
+    if (!loaded.membership && !this.isOwnerOrAdmin(context, actorId, loaded.campaign)) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    return loaded;
+  }
+
+  /**
+   * Loads a campaign the actor may change: owner or system admin.
+   * Anyone else gets a 404 so the campaign stays hidden.
+   */
+  async loadManagedCampaign(
+    context: RequestContext,
+    actorId: string,
+    campaignId: string,
+  ): Promise<LoadedCampaign> {
+    const loaded = await this.loadCampaign(actorId, campaignId);
+
+    if (!this.isOwnerOrAdmin(context, actorId, loaded.campaign)) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    return loaded;
+  }
+
+  assertNotArchived(campaign: CampaignRow): void {
+    if (campaign.status === "ARCHIVED") {
+      throw new ConflictError("Archived campaigns cannot be modified");
+    }
+  }
+
+  buildAggregate(
+    context: RequestContext,
+    campaign: CampaignRow,
+    membership: CampaignMembershipRow | null,
+  ): CampaignAggregate {
+    return this.attachEffectivePermissions(context, {
+      campaign,
+      membership,
+      isOwner: false,
+      effectivePermissions: [],
+    });
+  }
+
   attachEffectivePermissions(
     context: RequestContext,
     aggregate: CampaignAggregate,
@@ -123,30 +211,32 @@ export class CampaignsService {
     };
   }
 
-  assertAuthenticated(context: RequestContext): string {
-    if (!context.actorId) {
-      throw new UnauthenticatedError("Authentication required");
-    }
-
-    return context.actorId;
-  }
-
-  assertAuditableActorId(context: RequestContext): string {
-    const actorId = this.assertAuthenticated(context);
-
-    if (!uuidPattern.test(actorId)) {
-      throw new UnauthenticatedError("Valid actor identity required");
-    }
-
-    return actorId;
-  }
-
   slugify(input: string): string {
     return slugify(input);
   }
 
   isUniqueViolation(error: unknown): boolean {
     return findErrorCode(error) === "23505";
+  }
+
+  private async loadCampaign(actorId: string, campaignId: string): Promise<LoadedCampaign> {
+    const campaign = await this.repository.findById(this.db, campaignId);
+
+    if (!campaign) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    const membership = await this.repository.findMembership(this.db, campaignId, actorId);
+
+    return { campaign, membership };
+  }
+
+  private isOwnerOrAdmin(
+    context: RequestContext,
+    actorId: string,
+    campaign: CampaignRow,
+  ): boolean {
+    return campaign.ownerUserId === actorId || isSysAdminRole(context.systemRole);
   }
 }
 

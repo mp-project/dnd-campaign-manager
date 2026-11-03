@@ -1,5 +1,6 @@
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { RequestContext } from "#core/http/requestContext";
+import type { RulesetModuleDependencies } from "#src/modules/ruleset/index";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
 import type {
   CampaignAggregate,
@@ -7,7 +8,6 @@ import type {
   CampaignTimeEventRow,
   CampaignsRepository,
 } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
-import { CampaignUserService } from "#src/modules/campaigns/service/CampaignUserService";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 import { AdvanceCampaignTimeUseCase } from "#src/modules/campaigns/useCase/AdvanceCampaignTimeUseCase";
 import { CorrectCampaignTimeUseCase } from "#src/modules/campaigns/useCase/CorrectCampaignTimeUseCase";
@@ -85,16 +85,13 @@ function createService(
     {} as AppDatabase,
     transactionManager,
     repository,
-    undefined,
-    undefined,
     userLookup.dependencies,
-    userLookup.campaignUserService,
+    {} as RulesetModuleDependencies,
   );
 }
 
 function createUsersDependencies(existingUserIds: string[] = [OWNER_ID, OTHER_ID, ADMIN_ID]): {
   dependencies: UsersModuleDependencies;
-  campaignUserService: CampaignUserService;
   execute: jest.Mock;
 } {
   const existing = new Set(existingUserIds);
@@ -110,9 +107,6 @@ function createUsersDependencies(existingUserIds: string[] = [OWNER_ID, OTHER_ID
         },
       },
     } as unknown as UsersModuleDependencies,
-    campaignUserService: new CampaignUserService({
-      execute,
-    } as never),
     execute,
   };
 }
@@ -150,8 +144,8 @@ describe("campaign use cases", () => {
         limit: 20,
       });
 
-      expect(result.total).toBe(1);
-      expect(result.items).toHaveLength(1);
+      expect(result.pageInfo.total).toBe(1);
+      expect(result.data).toHaveLength(1);
       expect(repository.listForActor).toHaveBeenCalledWith(
         service.db,
         OWNER_ID,
@@ -182,8 +176,8 @@ describe("campaign use cases", () => {
         userId: OWNER_ID,
       });
 
-      expect(result.total).toBe(1);
-      expect(result.items).toHaveLength(1);
+      expect(result.pageInfo.total).toBe(1);
+      expect(result.data).toHaveLength(1);
       expect(repository.listForActor).toHaveBeenCalledWith(
         service.db,
         OWNER_ID,
@@ -241,7 +235,7 @@ describe("campaign use cases", () => {
         userId: OWNER_ID,
       });
 
-      expect(result.total).toBe(1);
+      expect(result.pageInfo.total).toBe(1);
       expect(repository.listForActor).toHaveBeenCalledWith(
         service.db,
         OWNER_ID,
@@ -331,9 +325,9 @@ describe("campaign use cases", () => {
     it("archives a campaign with current version", async () => {
       const current = buildCampaign({ version: 7 });
       const repository = {
-        findCampaignById: jest.fn(async () => current),
+        findById: jest.fn(async () => current),
         findMembership: jest.fn(async () => null),
-        softArchiveWithVersion: jest.fn(async () =>
+        delete: jest.fn(async () =>
           buildCampaign({ status: "ARCHIVED", version: 8 }),
         ),
       } as unknown as CampaignsRepository;
@@ -343,7 +337,7 @@ describe("campaign use cases", () => {
 
       await useCase.execute(ownerContext, CAMPAIGN_ID);
 
-      expect(repository.softArchiveWithVersion).toHaveBeenCalledWith(service.db, {
+      expect(repository.delete).toHaveBeenCalledWith(service.db, {
         campaignId: CAMPAIGN_ID,
         actorId: OWNER_ID,
         expectedVersion: 7,
@@ -352,7 +346,7 @@ describe("campaign use cases", () => {
 
     it("returns not found when campaign does not exist", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => null),
+        findById: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -366,9 +360,9 @@ describe("campaign use cases", () => {
 
     it("returns version conflict when archive update misses expected version", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ version: 2 })),
+        findById: jest.fn(async () => buildCampaign({ version: 2 })),
         findMembership: jest.fn(async () => null),
-        softArchiveWithVersion: jest.fn(async () => null),
+        delete: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -386,10 +380,10 @@ describe("campaign use cases", () => {
       const current = buildCampaign({ currentGameDay: 10, longRestCount: 2, version: 4 });
       const updated = buildCampaign({ currentGameDay: 10, longRestCount: 3, version: 5 });
       const repository = {
-        findCampaignById: jest.fn(async () => current),
+        findById: jest.fn(async () => current),
         findMembership: jest.fn(async () => null),
-        updateTimeWithVersion: jest.fn(async () => updated),
-        insertTimeEvent: jest.fn(async () => buildTimeEvent({ type: "LONG_REST" })),
+        updateTime: jest.fn(async () => updated),
+        createTimeEvent: jest.fn(async () => buildTimeEvent({ type: "LONG_REST" })),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -401,16 +395,16 @@ describe("campaign use cases", () => {
         reason: null,
       });
 
-      expect(result.campaign.currentGameDay).toBe(10);
-      expect(result.campaign.longRestCount).toBe(3);
-      expect(repository.updateTimeWithVersion).toHaveBeenCalledWith(service.db, {
+      expect(result.currentGameDay).toBe(10);
+      expect(result.longRestCount).toBe(3);
+      expect(repository.updateTime).toHaveBeenCalledWith(service.db, {
         campaignId: CAMPAIGN_ID,
         actorId: OWNER_ID,
         expectedVersion: 4,
         newGameDay: 10,
         newLongRestCount: 3,
       });
-      expect(repository.insertTimeEvent).toHaveBeenCalledWith(service.db, {
+      expect(repository.createTimeEvent).toHaveBeenCalledWith(service.db, {
         actorId: OWNER_ID,
         campaignId: CAMPAIGN_ID,
         type: "LONG_REST",
@@ -424,7 +418,7 @@ describe("campaign use cases", () => {
 
     it("returns conflict when campaign is archived", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ status: "ARCHIVED" })),
+        findById: jest.fn(async () => buildCampaign({ status: "ARCHIVED" })),
         findMembership: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
@@ -445,9 +439,9 @@ describe("campaign use cases", () => {
 
     it("returns version conflict when time update misses expected version", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ version: 3 })),
+        findById: jest.fn(async () => buildCampaign({ version: 3 })),
         findMembership: jest.fn(async () => null),
-        updateTimeWithVersion: jest.fn(async () => null),
+        updateTime: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -471,10 +465,10 @@ describe("campaign use cases", () => {
       const current = buildCampaign({ ownerUserId: OWNER_ID, version: 5 });
       const updated = buildCampaign({ currentGameDay: 4, longRestCount: 1, version: 6 });
       const repository = {
-        findCampaignById: jest.fn(async () => current),
+        findById: jest.fn(async () => current),
         findMembership: jest.fn(async () => null),
-        updateTimeWithVersion: jest.fn(async () => updated),
-        insertTimeEvent: jest.fn(async () => buildTimeEvent({ type: "CORRECTION" })),
+        updateTime: jest.fn(async () => updated),
+        createTimeEvent: jest.fn(async () => buildTimeEvent({ type: "CORRECTION" })),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -486,16 +480,16 @@ describe("campaign use cases", () => {
         reason: "Session log correction",
       });
 
-      expect(result.campaign.currentGameDay).toBe(4);
-      expect(result.campaign.longRestCount).toBe(1);
-      expect(repository.updateTimeWithVersion).toHaveBeenCalledWith(service.db, {
+      expect(result.currentGameDay).toBe(4);
+      expect(result.longRestCount).toBe(1);
+      expect(repository.updateTime).toHaveBeenCalledWith(service.db, {
         campaignId: CAMPAIGN_ID,
         actorId: OWNER_ID,
         expectedVersion: 5,
         newGameDay: 4,
         newLongRestCount: 1,
       });
-      expect(repository.insertTimeEvent).toHaveBeenCalledWith(service.db, {
+      expect(repository.createTimeEvent).toHaveBeenCalledWith(service.db, {
         actorId: OWNER_ID,
         campaignId: CAMPAIGN_ID,
         type: "CORRECTION",
@@ -509,7 +503,7 @@ describe("campaign use cases", () => {
 
     it("returns not found when actor has no access", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ ownerUserId: OWNER_ID })),
+        findById: jest.fn(async () => buildCampaign({ ownerUserId: OWNER_ID })),
         findMembership: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
@@ -530,9 +524,9 @@ describe("campaign use cases", () => {
 
     it("returns version conflict when correction update misses expected version", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ version: 9 })),
+        findById: jest.fn(async () => buildCampaign({ version: 9 })),
         findMembership: jest.fn(async () => null),
-        updateTimeWithVersion: jest.fn(async () => null),
+        updateTime: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -555,7 +549,7 @@ describe("campaign use cases", () => {
     it("returns campaign time events for owner", async () => {
       const event = buildTimeEvent();
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ ownerUserId: OWNER_ID })),
+        findById: jest.fn(async () => buildCampaign({ ownerUserId: OWNER_ID })),
         findMembership: jest.fn(async () => null),
         listTimeEvents: jest.fn(async () => [event]),
       } as unknown as CampaignsRepository;
@@ -565,13 +559,13 @@ describe("campaign use cases", () => {
 
       const result = await useCase.execute(ownerContext, CAMPAIGN_ID, 20);
 
-      expect(result).toEqual([event]);
+      expect(result.data.map(({ id }) => id)).toEqual([event.id]);
       expect(repository.listTimeEvents).toHaveBeenCalledWith(service.db, CAMPAIGN_ID, 20);
     });
 
     it("returns not found when campaign does not exist", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => null),
+        findById: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 
       const service = createService(repository);
@@ -585,7 +579,7 @@ describe("campaign use cases", () => {
 
     it("returns not found when actor is not owner and has no membership", async () => {
       const repository = {
-        findCampaignById: jest.fn(async () => buildCampaign({ ownerUserId: OWNER_ID })),
+        findById: jest.fn(async () => buildCampaign({ ownerUserId: OWNER_ID })),
         findMembership: jest.fn(async () => null),
       } as unknown as CampaignsRepository;
 

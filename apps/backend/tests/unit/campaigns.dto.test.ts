@@ -6,7 +6,6 @@ import { CorrectCampaignTimeSchema } from "#src/modules/campaigns/domain/dto/Cor
 describe("campaigns DTOs", () => {
   it("accepts a valid create payload", () => {
     const parsed = CreateCampaignSchema.parse({
-      createdBy: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       name: "The Northern Reach",
       slug: "the-northern-reach",
       description: "A grim frontier campaign",

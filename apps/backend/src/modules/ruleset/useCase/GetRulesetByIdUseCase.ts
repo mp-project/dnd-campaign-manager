@@ -1,11 +1,14 @@
 import type { RequestContext } from "#core/http/requestContext";
-import type { RulesetAggregate } from "#src/modules/ruleset/domain/repository/RulesetRepository";
+import {
+  type ResponseRulesetDto,
+  toRulesetResponse,
+} from "#src/modules/ruleset/domain/dto/ResponseRulesetDto";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 
 export class GetRulesetByIdUseCase {
   constructor(private readonly rulesetService: RulesetService) {}
 
-  async execute(context: RequestContext, rulesetId: string): Promise<RulesetAggregate> {
-    return this.rulesetService.getById(context, rulesetId);
+  async execute(context: RequestContext, rulesetId: string): Promise<ResponseRulesetDto> {
+    return toRulesetResponse(await this.rulesetService.getById(context, rulesetId));
   }
 }

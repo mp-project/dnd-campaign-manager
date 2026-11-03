@@ -11,15 +11,7 @@ export class ValidateRulesetController extends AbstractController {
   handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () => {
       const params = RequestRulesetParamsSchema.parse(request.params);
-      const compatible = await this.validateRulesetUseCase.execute(
-        request.requestContext,
-        params.rulesetId,
-      );
 
-      return {
-        status: "ok" as const,
-        rulesetId: params.rulesetId,
-        compatible,
-      };
+      return this.validateRulesetUseCase.execute(request.requestContext, params.rulesetId);
     });
 }

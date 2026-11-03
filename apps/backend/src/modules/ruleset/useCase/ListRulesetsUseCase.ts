@@ -1,6 +1,9 @@
 import type { RequestContext } from "#core/http/requestContext";
 import type { RequestRulesetDto } from "#src/modules/ruleset/domain/dto/RequestRulesetDto";
-import type { RulesetAggregate } from "#src/modules/ruleset/domain/repository/RulesetRepository";
+import {
+  type ResponseRulesetListDto,
+  toRulesetListResponse,
+} from "#src/modules/ruleset/domain/dto/ResponseRulesetDto";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 
 export class ListRulesetsUseCase {
@@ -9,7 +12,15 @@ export class ListRulesetsUseCase {
   async execute(
     context: RequestContext,
     filters: RequestRulesetDto["query"],
-  ): Promise<{ items: RulesetAggregate[]; total: number }> {
-    return this.rulesetService.listActive(context, filters);
+  ): Promise<ResponseRulesetListDto> {
+    const { db, repository } = this.rulesetService;
+    this.rulesetService.assertAuthenticated(context);
+
+    const [items, total] = await Promise.all([
+      repository.listAggregates(db, filters),
+      repository.countAggregates(db, filters),
+    ]);
+
+    return toRulesetListResponse(items, filters.limit, total);
   }
 }

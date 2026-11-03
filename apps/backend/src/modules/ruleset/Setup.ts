@@ -3,7 +3,6 @@ import type { FastifyInstance } from "fastify";
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
 import { rulesetPermissionDefinitions } from "#src/modules/ruleset/permissions/RulesetPermissions";
-import { RULESET_HTTP_PREFIX } from "#src/modules/ruleset/config/RulesetHttpConfig";
 import { CreateRulesetController } from "#src/modules/ruleset/http/controller/CreateRulesetController";
 import { DeleteRulesetController } from "#src/modules/ruleset/http/controller/DeleteRulesetController";
 import { GetRulesetByIdController } from "#src/modules/ruleset/http/controller/GetRulesetByIdController";
@@ -25,14 +24,6 @@ export const RULESET_MODULE_DEPENDENCIES = "ruleset.module.dependencies";
 export type RulesetModuleDependencies = {
   repository: RulesetRepository;
   service: RulesetService;
-  useCases: {
-    listRulesets: ListRulesetsUseCase;
-    getRulesetById: GetRulesetByIdUseCase;
-    createRuleset: CreateRulesetUseCase;
-    updateRuleset: UpdateRulesetUseCase;
-    deleteRuleset: DeleteRulesetUseCase;
-    validateRuleset: ValidateRulesetUseCase;
-  };
 };
 
 async function registerRulesetModule(
@@ -46,48 +37,22 @@ async function registerRulesetModule(
 
   const repository = new RulesetRepository();
   const service = new RulesetService(container.db, container.transactionManager, repository);
-  const listRulesetsUseCase = new ListRulesetsUseCase(service);
-  const getRulesetByIdUseCase = new GetRulesetByIdUseCase(service);
-  const createRulesetUseCase = new CreateRulesetUseCase(service);
-  const updateRulesetUseCase = new UpdateRulesetUseCase(service);
-  const deleteRulesetUseCase = new DeleteRulesetUseCase(service);
-  const validateRulesetUseCase = new ValidateRulesetUseCase(service);
 
-  const moduleDependencies: RulesetModuleDependencies = {
+  container.dependencies.set<RulesetModuleDependencies>(RULESET_MODULE_DEPENDENCIES, {
     repository,
     service,
-    useCases: {
-      listRulesets: listRulesetsUseCase,
-      getRulesetById: getRulesetByIdUseCase,
-      createRuleset: createRulesetUseCase,
-      updateRuleset: updateRulesetUseCase,
-      deleteRuleset: deleteRulesetUseCase,
-      validateRuleset: validateRulesetUseCase,
-    },
-  };
+  });
 
-  container.dependencies.set(RULESET_MODULE_DEPENDENCIES, moduleDependencies);
-
-  const listRulesetsController = new ListRulesetsController(listRulesetsUseCase);
-  const getRulesetByIdController = new GetRulesetByIdController(getRulesetByIdUseCase);
-  const createRulesetController = new CreateRulesetController(createRulesetUseCase);
-  const updateRulesetController = new UpdateRulesetController(updateRulesetUseCase);
-  const deleteRulesetController = new DeleteRulesetController(deleteRulesetUseCase);
-  const validateRulesetController = new ValidateRulesetController(validateRulesetUseCase);
-
-  app.register(
-    async (rulesetApp) => {
-      registerRulesetRoutes(rulesetApp, {
-        listRulesetsController,
-        getRulesetByIdController,
-        createRulesetController,
-        updateRulesetController,
-        deleteRulesetController,
-        validateRulesetController,
-      });
-    },
-    { prefix: RULESET_HTTP_PREFIX },
-  );
+  app.register(async (rulesetApp) => {
+    registerRulesetRoutes(rulesetApp, {
+      listRulesetsController: new ListRulesetsController(new ListRulesetsUseCase(service)),
+      getRulesetByIdController: new GetRulesetByIdController(new GetRulesetByIdUseCase(service)),
+      createRulesetController: new CreateRulesetController(new CreateRulesetUseCase(service)),
+      updateRulesetController: new UpdateRulesetController(new UpdateRulesetUseCase(service)),
+      deleteRulesetController: new DeleteRulesetController(new DeleteRulesetUseCase(service)),
+      validateRulesetController: new ValidateRulesetController(new ValidateRulesetUseCase(service)),
+    });
+  });
 }
 
 export const rulesetModule: AppModule = {

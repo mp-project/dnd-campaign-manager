@@ -8,6 +8,7 @@ import {
 import { rulesets } from "#core/db/schema";
 import { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
+import { CreateRulesetUseCase } from "#src/modules/ruleset/useCase/CreateRulesetUseCase";
 
 function buildLevelProgressions() {
   return Array.from({ length: 20 }, (_, index) => ({
@@ -26,7 +27,9 @@ describe("ruleset service transactions", () => {
   const db = createDrizzleDb(pool);
   const transactionManager = createTransactionManager(db);
   const repository = new RulesetRepository();
-  const service = new RulesetService(db, transactionManager, repository);
+  const useCase = new CreateRulesetUseCase(
+    new RulesetService(db, transactionManager, repository),
+  );
 
   afterAll(async () => {
     await pool.end();
@@ -34,7 +37,7 @@ describe("ruleset service transactions", () => {
 
   it("rolls back ruleset insert when progression insert fails", async () => {
     await expect(
-      service.create(
+      useCase.execute(
         {
           actorId: "admin-rollback",
           systemRole: "ADMIN",

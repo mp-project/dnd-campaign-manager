@@ -8,17 +8,12 @@ import {
 } from "#src/modules/ruleset/domain/dto/RequestRulesetDto";
 import { CreateRulesetSchema } from "#src/modules/ruleset/domain/dto/CreateRulesetDto";
 import { UpdateRulesetSchema } from "#src/modules/ruleset/domain/dto/UpdateRulesetDto";
-import { DeleteRulesetSchema } from "#src/modules/ruleset/domain/dto/DeleteRulesetDto";
 import {
   ResponseRulesetListSchema,
   ResponseRulesetSchema,
   ResponseValidateRulesetSchema,
 } from "#src/modules/ruleset/domain/dto/ResponseRulesetDto";
-import {
-  RULESET_HTTP_PERMISSIONS,
-  RULESET_HTTP_PATHS,
-  RULESET_HTTP_SECURITY,
-} from "#src/modules/ruleset/config/RulesetHttpConfig";
+import { RULESET_PERMISSIONS } from "#src/modules/ruleset/permissions/RulesetPermissions";
 import { CreateRulesetController } from "#src/modules/ruleset/http/controller/CreateRulesetController";
 import { DeleteRulesetController } from "#src/modules/ruleset/http/controller/DeleteRulesetController";
 import { GetRulesetByIdController } from "#src/modules/ruleset/http/controller/GetRulesetByIdController";
@@ -35,22 +30,23 @@ export type RulesetRouteControllers = {
   validateRulesetController: ValidateRulesetController;
 };
 
+const tags = ["Rulesets"];
+const security = [{ cookieAuth: [] }] as const;
+
 export function registerRulesetRoutes(
   app: FastifyInstance,
   controllers: RulesetRouteControllers,
 ): void {
   app.get(
-    RULESET_HTTP_PATHS.collection,
+    "/ruleset",
     {
       config: {
-        permission: {
-          key: RULESET_HTTP_PERMISSIONS.list,
-        },
+        permission: { key: RULESET_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Rulesets"],
+        tags,
         operationId: "listRulesets",
-        security: RULESET_HTTP_SECURITY,
+        security,
         querystring: RequestRulesetListQuerySchema,
         response: {
           200: ResponseRulesetListSchema,
@@ -63,17 +59,15 @@ export function registerRulesetRoutes(
   );
 
   app.get(
-    RULESET_HTTP_PATHS.item,
+    "/ruleset/:rulesetId",
     {
       config: {
-        permission: {
-          key: RULESET_HTTP_PERMISSIONS.getById,
-        },
+        permission: { key: RULESET_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Rulesets"],
+        tags,
         operationId: "getRulesetById",
-        security: RULESET_HTTP_SECURITY,
+        security,
         params: RequestRulesetParamsSchema,
         response: {
           200: ResponseRulesetSchema,
@@ -86,17 +80,15 @@ export function registerRulesetRoutes(
   );
 
   app.post(
-    RULESET_HTTP_PATHS.collection,
+    "/ruleset",
     {
       config: {
-        permission: {
-          key: RULESET_HTTP_PERMISSIONS.create,
-        },
+        permission: { key: RULESET_PERMISSIONS.create },
       },
       schema: {
-        tags: ["Rulesets"],
+        tags,
         operationId: "createRuleset",
-        security: RULESET_HTTP_SECURITY,
+        security,
         body: CreateRulesetSchema,
         response: {
           201: ResponseRulesetSchema,
@@ -107,21 +99,22 @@ export function registerRulesetRoutes(
         },
       },
     },
-    controllers.createRulesetController.handle,
+    async (request, reply) => {
+      const created = await controllers.createRulesetController.handle(request);
+      return reply.code(201).send(created);
+    },
   );
 
   app.patch(
-    RULESET_HTTP_PATHS.item,
+    "/ruleset/:rulesetId",
     {
       config: {
-        permission: {
-          key: RULESET_HTTP_PERMISSIONS.update,
-        },
+        permission: { key: RULESET_PERMISSIONS.update },
       },
       schema: {
-        tags: ["Rulesets"],
+        tags,
         operationId: "updateRuleset",
-        security: RULESET_HTTP_SECURITY,
+        security,
         params: RequestRulesetParamsSchema,
         body: UpdateRulesetSchema,
         response: {
@@ -139,18 +132,16 @@ export function registerRulesetRoutes(
   );
 
   app.delete(
-    RULESET_HTTP_PATHS.item,
+    "/ruleset/:rulesetId",
     {
       config: {
-        permission: {
-          key: RULESET_HTTP_PERMISSIONS.delete,
-        },
+        permission: { key: RULESET_PERMISSIONS.delete },
       },
       schema: {
-        tags: ["Rulesets"],
+        tags,
         operationId: "deleteRuleset",
-        security: RULESET_HTTP_SECURITY,
-        params: DeleteRulesetSchema,
+        security,
+        params: RequestRulesetParamsSchema,
         response: {
           204: z.null(),
           401: errorResponseDto,
@@ -160,21 +151,22 @@ export function registerRulesetRoutes(
         },
       },
     },
-    controllers.deleteRulesetController.handle,
+    async (request, reply) => {
+      await controllers.deleteRulesetController.handle(request);
+      return reply.code(204).send();
+    },
   );
 
   app.post(
-    RULESET_HTTP_PATHS.validate,
+    "/ruleset/:rulesetId/validate",
     {
       config: {
-        permission: {
-          key: RULESET_HTTP_PERMISSIONS.validate,
-        },
+        permission: { key: RULESET_PERMISSIONS.validate },
       },
       schema: {
-        tags: ["Rulesets"],
+        tags,
         operationId: "validateRuleset",
-        security: RULESET_HTTP_SECURITY,
+        security,
         params: RequestRulesetParamsSchema,
         response: {
           200: ResponseValidateRulesetSchema,

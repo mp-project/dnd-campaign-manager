@@ -10,7 +10,9 @@ import {
   DefaultStringWhereQueryParamSchema,
 } from "#core/domain/dto/DefaultStringWhereQueryParamSchema";
 import { paginationDto, uuidDto } from "#core/http/dto";
-import { RulesetStatusSchema } from "#src/modules/ruleset/domain/dto/BaseRulesetDto";
+import { RulesetBaseSchema } from "#src/modules/ruleset/domain/dto/BaseRulesetDto";
+
+const RulesetStatusSchema = RulesetBaseSchema.shape.status;
 
 export const RulesetStatusWhereQueryParamSchema = z
   .object({
@@ -36,9 +38,9 @@ export const DefaultRulesetWhereSchema = z
   .optional();
 
 const RequestRulesetListFilterSchema = z.strictObject({
-  code: z.string().trim().min(1).max(40).regex(/^[A-Z0-9_]+$/).optional(),
+  code: RulesetBaseSchema.shape.code.optional(),
   status: RulesetStatusSchema.optional(),
-  editionYear: z.coerce.number().int().min(1900).max(3000).optional(),
+  editionYear: RulesetBaseSchema.shape.editionYear.optional(),
   search: z.string().trim().min(1).max(120).optional(),
   includeArchived: z.coerce.boolean().default(false),
   where: DefaultRulesetWhereSchema,

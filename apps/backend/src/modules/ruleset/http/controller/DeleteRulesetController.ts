@@ -1,7 +1,6 @@
 import type { RequestContext } from "#core/http/requestContext";
-import type { FastifyReply } from "fastify";
 import { AbstractController } from "#core/http/controller/AbstractController";
-import { DeleteRulesetSchema } from "#src/modules/ruleset/domain/dto/DeleteRulesetDto";
+import { RequestRulesetParamsSchema } from "#src/modules/ruleset/domain/dto/RequestRulesetDto";
 import { DeleteRulesetUseCase } from "#src/modules/ruleset/useCase/DeleteRulesetUseCase";
 
 export class DeleteRulesetController extends AbstractController {
@@ -9,15 +8,10 @@ export class DeleteRulesetController extends AbstractController {
     super();
   }
 
-  handle = async (
-    request: { params: unknown; requestContext: RequestContext },
-    reply: FastifyReply,
-  ) =>
+  handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () => {
-      const params = DeleteRulesetSchema.parse(request.params);
+      const params = RequestRulesetParamsSchema.parse(request.params);
 
       await this.deleteRulesetUseCase.execute(request.requestContext, params.rulesetId);
-
-      return reply.code(204).send();
     });
 }

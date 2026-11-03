@@ -66,47 +66,11 @@ export class RulesetRepository {
     return rows[0] ?? null;
   }
 
-  async findByCode(db: AppDatabase, code: string): Promise<RulesetRow | null> {
-    const rows = await db
-      .select()
-      .from(rulesets)
-      .where(and(eq(rulesets.code, code), isNull(rulesets.deletedAt)))
-      .orderBy(asc(rulesets.createdAt))
-      .limit(1);
-
-    return rows[0] ?? null;
-  }
-
   async findAggregateById(
     db: AppDatabase,
     rulesetId: string,
   ): Promise<RulesetAggregate | null> {
     const row = await this.findById(db, rulesetId);
-
-    if (!row) {
-      return null;
-    }
-
-    return this.loadAggregate(db, row.id);
-  }
-
-  async findActiveAggregateByCode(
-    db: AppDatabase,
-    code: string,
-  ): Promise<RulesetAggregate | null> {
-    const rows = await db
-      .select({ id: rulesets.id })
-      .from(rulesets)
-      .where(
-        and(
-          eq(rulesets.code, code),
-          eq(rulesets.status, "ACTIVE"),
-          isNull(rulesets.deletedAt),
-        ),
-      )
-      .limit(1);
-
-    const row = rows[0];
 
     if (!row) {
       return null;
@@ -138,7 +102,7 @@ export class RulesetRepository {
     return rows.length > 0;
   }
 
-  async insertAggregate(
+  async create(
     db: AppDatabase,
     input: CreateRulesetInput & { actorId: string },
   ): Promise<RulesetAggregate> {
@@ -189,7 +153,7 @@ export class RulesetRepository {
     return this.loadAggregate(db, rulesetRow.id);
   }
 
-  async updateMetadataWithVersion(
+  async update(
     db: AppDatabase,
     params: {
       rulesetId: string;
@@ -249,7 +213,7 @@ export class RulesetRepository {
     return this.loadAggregate(db, updated.id);
   }
 
-  async softDeleteWithVersion(
+  async delete(
     db: AppDatabase,
     params: {
       rulesetId: string;

@@ -121,7 +121,7 @@ export class AuthSessionService {
 
       if (currentToken.revokedAt || currentToken.rotatedAt) {
         // Replay detection: if an old/rotated token is reused, invalidate the whole session family.
-        await this.deps.repository.revokeRefreshTokenFamily(tx, {
+        await this.deps.repository.updateRefreshTokenFamilyRevoked(tx, {
           familyId: currentToken.familyId,
           actorId: currentToken.userId,
         });
@@ -130,7 +130,7 @@ export class AuthSessionService {
       }
 
       if (currentToken.expiresAt.getTime() <= Date.now()) {
-        await this.deps.repository.revokeRefreshTokenById(tx, {
+        await this.deps.repository.updateRefreshTokenRevoked(tx, {
           tokenId: currentToken.id,
           actorId: currentToken.userId,
         });
@@ -148,7 +148,7 @@ export class AuthSessionService {
 
       const nextSession = await this.issueSession(tx, user, metadata, currentToken.familyId);
 
-      await this.deps.repository.markRefreshTokenRotated(tx, {
+      await this.deps.repository.updateRefreshTokenRotated(tx, {
         tokenId: currentToken.id,
         replacedById: nextSession.refreshTokenId,
         actorId: user.id,
@@ -178,7 +178,7 @@ export class AuthSessionService {
         return;
       }
 
-      await this.deps.repository.revokeRefreshTokenById(tx, {
+      await this.deps.repository.updateRefreshTokenRevoked(tx, {
         tokenId: currentToken.id,
         actorId: currentToken.userId,
       });
@@ -188,7 +188,7 @@ export class AuthSessionService {
   async logoutAll(actorId: string): Promise<void> {
     await this.deps.transactionManager.inTransaction(async (tx) => {
       await this.deps.repository.deleteTrustedDevicesForUser(tx, actorId);
-      await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
+      await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: actorId,
         actorId,
       });
@@ -197,7 +197,7 @@ export class AuthSessionService {
 
   async revokeRefreshTokensForUser(userId: string): Promise<void> {
     await this.deps.transactionManager.inTransaction(async (tx) => {
-      await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
+      await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId,
         actorId: userId,
       });

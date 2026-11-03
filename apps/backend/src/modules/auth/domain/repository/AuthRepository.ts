@@ -112,7 +112,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async createUser(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
+  async create(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
     const auditActorId = toAuditActorId(input.actorId);
     const values: typeof users.$inferInsert = {
       email: input.email,
@@ -188,7 +188,7 @@ export class AuthRepository {
       .where(and(eq(users.id, params.userId), isNull(users.deletedAt)));
   }
 
-  async setOAuthIdentity(
+  async updateOAuthIdentity(
     db: AppDatabase,
     params: {
       userId: string;
@@ -225,7 +225,7 @@ export class AuthRepository {
     return updated ?? null;
   }
 
-  async markEmailVerified(
+  async updateEmailVerified(
     db: AppDatabase,
     params: {
       userId: string;
@@ -313,7 +313,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async incrementEmailVerificationAttemptCount(
+  async updateEmailVerificationAttemptCount(
     db: AppDatabase,
     verificationId: string,
     actorId?: string,
@@ -431,7 +431,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async markRefreshTokenRotated(
+  async updateRefreshTokenRotated(
     db: AppDatabase,
     params: {
       tokenId: string;
@@ -453,7 +453,7 @@ export class AuthRepository {
       .where(and(eq(refreshTokens.id, params.tokenId), isNull(refreshTokens.deletedAt)));
   }
 
-  async revokeRefreshTokenById(
+  async updateRefreshTokenRevoked(
     db: AppDatabase,
     params: {
       tokenId: string;
@@ -473,7 +473,7 @@ export class AuthRepository {
       .where(and(eq(refreshTokens.id, params.tokenId), isNull(refreshTokens.deletedAt)));
   }
 
-  async revokeRefreshTokenFamily(
+  async updateRefreshTokenFamilyRevoked(
     db: AppDatabase,
     params: {
       familyId: string;
@@ -499,7 +499,7 @@ export class AuthRepository {
       );
   }
 
-  async revokeAllRefreshTokensForUser(
+  async updateRefreshTokensRevokedForUser(
     db: AppDatabase,
     params: {
       userId: string;
@@ -583,7 +583,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async consumePasswordResetToken(
+  async updatePasswordResetTokenConsumed(
     db: AppDatabase,
     params: {
       tokenId: string;

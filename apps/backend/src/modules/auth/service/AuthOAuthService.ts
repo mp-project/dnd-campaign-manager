@@ -166,7 +166,7 @@ export class AuthOAuthService {
           oauthIdentityUpdate.markEmailVerifiedAt = new Date();
         }
 
-        const linkedUser = await this.deps.repository.setOAuthIdentity(tx, oauthIdentityUpdate);
+        const linkedUser = await this.deps.repository.updateOAuthIdentity(tx, oauthIdentityUpdate);
 
         const resolvedUser = linkedUser ?? byEmail;
 
@@ -264,7 +264,7 @@ export class AuthOAuthService {
         Boolean(await this.deps.repository.findByUserTag(tx, candidate)),
       );
 
-      const user = await this.deps.repository.createUser(tx, {
+      const user = await this.deps.repository.create(tx, {
         email: onboarding.email,
         displayName,
         username,
@@ -276,7 +276,7 @@ export class AuthOAuthService {
       });
 
       if (onboarding.provider === "GOOGLE") {
-        const linkedGoogleUser = await this.deps.repository.setOAuthIdentity(tx, {
+        const linkedGoogleUser = await this.deps.repository.updateOAuthIdentity(tx, {
           userId: user.id,
           provider: "GOOGLE",
           subject: onboarding.subject,
@@ -289,7 +289,7 @@ export class AuthOAuthService {
       }
 
       if (onboarding.provider === "DISCORD") {
-        const linkedDiscordUser = await this.deps.repository.setOAuthIdentity(tx, {
+        const linkedDiscordUser = await this.deps.repository.updateOAuthIdentity(tx, {
           userId: user.id,
           provider: "DISCORD",
           subject: onboarding.subject,

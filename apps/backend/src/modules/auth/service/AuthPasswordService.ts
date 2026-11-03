@@ -70,7 +70,7 @@ export class AuthPasswordService {
         actorId: user.id,
       });
 
-      await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
+      await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: user.id,
         actorId: user.id,
       });
@@ -173,12 +173,12 @@ export class AuthPasswordService {
         actorId: user.id,
       });
 
-      await this.deps.repository.consumePasswordResetToken(tx, {
+      await this.deps.repository.updatePasswordResetTokenConsumed(tx, {
         tokenId: resetToken.id,
         actorId: user.id,
       });
 
-      await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
+      await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: user.id,
         actorId: user.id,
       });

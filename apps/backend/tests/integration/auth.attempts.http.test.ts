@@ -38,7 +38,7 @@ describe("auth attempt tracking", () => {
     return post("login", { email, password }, ip);
   }
 
-  async function createUser(email: string) {
+  async function create(email: string) {
     await db.insert(users).values({
       email,
       passwordHash: await argon2.hash(PASSWORD),
@@ -68,7 +68,7 @@ describe("auth attempt tracking", () => {
 
   it("blocks login after failed attempts, even with the correct password", async () => {
     const email = "blocked@example.test";
-    await createUser(email);
+    await create(email);
     await failLogins(email, 10);
 
     const response = await login(email, PASSWORD);
@@ -79,8 +79,8 @@ describe("auth attempt tracking", () => {
   }, 30_000);
 
   it("does not block other users in the same network", async () => {
-    await createUser("first@example.test");
-    await createUser("second@example.test");
+    await create("first@example.test");
+    await create("second@example.test");
     await failLogins("first@example.test", 10);
 
     expect((await login("second@example.test", PASSWORD)).statusCode).toBe(200);
@@ -88,7 +88,7 @@ describe("auth attempt tracking", () => {
 
   it("does not block the user from another network until the account limit", async () => {
     const email = "other-network@example.test";
-    await createUser(email);
+    await create(email);
     await failLogins(email, 10);
 
     expect((await login(email, PASSWORD, "198.51.100.1")).statusCode).toBe(200);
@@ -96,7 +96,7 @@ describe("auth attempt tracking", () => {
 
   it("blocks an account attacked from many addresses", async () => {
     const email = "distributed@example.test";
-    await createUser(email);
+    await create(email);
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       await login(email, "wrong-password", `198.51.100.${attempt + 1}`);
@@ -107,7 +107,7 @@ describe("auth attempt tracking", () => {
 
   it("resets the failures of a device after a successful login", async () => {
     const email = "reset@example.test";
-    await createUser(email);
+    await create(email);
     await failLogins(email, 9);
 
     expect((await login(email, PASSWORD)).statusCode).toBe(200);
@@ -133,7 +133,7 @@ describe("auth attempt tracking", () => {
 
   it("starts counting again after a block has expired", async () => {
     const email = "expired-block@example.test";
-    await createUser(email);
+    await create(email);
     await failLogins(email, 10);
     await db.update(authAttempts).set({
       blockedUntil: new Date(Date.now() - 1_000),
@@ -162,7 +162,7 @@ describe("auth attempt tracking", () => {
   });
 
   it("limits auth emails per recipient the same way for unknown accounts", async () => {
-    await createUser("known@example.test");
+    await create("known@example.test");
 
     for (const email of ["known@example.test", "unknown@example.test"]) {
       for (let attempt = 0; attempt < 5; attempt += 1) {

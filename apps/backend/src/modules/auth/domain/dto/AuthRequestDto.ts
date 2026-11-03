@@ -96,5 +96,6 @@ export type RegisterDto = z.infer<typeof RegisterSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;
 export type RefreshDto = z.infer<typeof RefreshSchema>;
 export type VerifyEmailVerificationDto = z.infer<typeof VerifyEmailVerificationSchema>;
+export type OAuthCompleteRegistrationDto = z.infer<typeof OAuthCompleteRegistrationSchema>;
 export type OAuthProvider = z.infer<typeof OAuthProviderSchema>;
 export type OAuthIntent = z.infer<typeof OAuthIntentSchema>;

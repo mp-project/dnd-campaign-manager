@@ -147,7 +147,7 @@ export class AuthRegistrationService {
       );
 
       const passwordHash = await this.hashPassword(input.password);
-      const user = await this.deps.repository.createUser(tx, {
+      const user = await this.deps.repository.create(tx, {
         email: normalizedEmail,
         passwordHash,
         displayName: normalizedDisplayName,
@@ -246,7 +246,7 @@ export class AuthRegistrationService {
       );
 
       if (!this.hashMatches(suppliedHash, verificationRequest.codeHash)) {
-        await this.deps.repository.incrementEmailVerificationAttemptCount(tx, verificationRequest.id);
+        await this.deps.repository.updateEmailVerificationAttemptCount(tx, verificationRequest.id);
 
         if (verificationRequest.attemptCount + 1 >= MAX_VERIFICATION_ATTEMPTS) {
           await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
@@ -261,7 +261,7 @@ export class AuthRegistrationService {
 
       const verifiedAt = new Date();
 
-      const updatedUser = await this.deps.repository.markEmailVerified(tx, {
+      const updatedUser = await this.deps.repository.updateEmailVerified(tx, {
         userId: user.id,
         verifiedAt,
       });

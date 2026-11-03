@@ -4,6 +4,7 @@ import type {
   OAuthIntent,
   OAuthProvider,
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
+import type { AuthResponseDto } from "#src/modules/auth/domain/dto/AuthResponseDto";
 import type {
   AuthRepository,
   EmailVerificationRequestRow,
@@ -68,6 +69,14 @@ export type AuthSession = {
   accessExpiresAt: Date;
   refreshToken: string;
   refreshExpiresAt: Date;
+};
+
+/**
+ * The session holds the tokens for the cookies; only the response leaves through the API body.
+ */
+export type AuthenticatedResult = {
+  session: AuthSession;
+  response: AuthResponseDto;
 };
 
 export type StartOAuthResult = {

@@ -19,7 +19,6 @@ import {
 import {
   CAMPAIGNS_HTTP_PATHS,
   CAMPAIGNS_HTTP_PERMISSIONS,
-  CAMPAIGNS_HTTP_RATE_LIMITS,
   CAMPAIGNS_HTTP_SECURITY,
 } from "#src/modules/campaigns/config/CampaignsHttpConfig";
 import { ListCampaignsController } from "#src/modules/campaigns/http/controller/ListCampaignsController";
@@ -50,7 +49,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.collection,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.read,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.read,
         },
@@ -74,7 +72,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.item,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.read,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.read,
         },
@@ -99,7 +96,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.collection,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.write,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.create,
         },
@@ -126,7 +122,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.item,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.write,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.update,
         },
@@ -155,7 +150,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.item,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.write,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.archive,
         },
@@ -181,7 +175,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.advanceTime,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.write,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.advanceTime,
         },
@@ -210,7 +203,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.correctTime,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.write,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.correctTime,
         },
@@ -239,7 +231,6 @@ export function registerCampaignsRoutes(
     CAMPAIGNS_HTTP_PATHS.timeHistory,
     {
       config: {
-        rateLimit: CAMPAIGNS_HTTP_RATE_LIMITS.read,
         permission: {
           key: CAMPAIGNS_HTTP_PERMISSIONS.read,
         },

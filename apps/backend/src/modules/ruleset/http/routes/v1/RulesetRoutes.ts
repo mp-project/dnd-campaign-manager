@@ -17,7 +17,6 @@ import {
 import {
   RULESET_HTTP_PERMISSIONS,
   RULESET_HTTP_PATHS,
-  RULESET_HTTP_RATE_LIMITS,
   RULESET_HTTP_SECURITY,
 } from "#src/modules/ruleset/config/RulesetHttpConfig";
 import { CreateRulesetController } from "#src/modules/ruleset/http/controller/CreateRulesetController";
@@ -44,7 +43,6 @@ export function registerRulesetRoutes(
     RULESET_HTTP_PATHS.collection,
     {
       config: {
-        rateLimit: RULESET_HTTP_RATE_LIMITS.read,
         permission: {
           key: RULESET_HTTP_PERMISSIONS.list,
         },
@@ -68,7 +66,6 @@ export function registerRulesetRoutes(
     RULESET_HTTP_PATHS.item,
     {
       config: {
-        rateLimit: RULESET_HTTP_RATE_LIMITS.read,
         permission: {
           key: RULESET_HTTP_PERMISSIONS.getById,
         },
@@ -92,7 +89,6 @@ export function registerRulesetRoutes(
     RULESET_HTTP_PATHS.collection,
     {
       config: {
-        rateLimit: RULESET_HTTP_RATE_LIMITS.write,
         permission: {
           key: RULESET_HTTP_PERMISSIONS.create,
         },
@@ -118,7 +114,6 @@ export function registerRulesetRoutes(
     RULESET_HTTP_PATHS.item,
     {
       config: {
-        rateLimit: RULESET_HTTP_RATE_LIMITS.write,
         permission: {
           key: RULESET_HTTP_PERMISSIONS.update,
         },
@@ -147,7 +142,6 @@ export function registerRulesetRoutes(
     RULESET_HTTP_PATHS.item,
     {
       config: {
-        rateLimit: RULESET_HTTP_RATE_LIMITS.write,
         permission: {
           key: RULESET_HTTP_PERMISSIONS.delete,
         },
@@ -173,7 +167,6 @@ export function registerRulesetRoutes(
     RULESET_HTTP_PATHS.validate,
     {
       config: {
-        rateLimit: RULESET_HTTP_RATE_LIMITS.write,
         permission: {
           key: RULESET_HTTP_PERMISSIONS.validate,
         },

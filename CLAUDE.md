@@ -76,9 +76,11 @@ The backend uses Node subpath imports (`apps/backend/package.json` `imports`): `
 
 ### Module layout and request flow
 
-Typical module folders: `config/` (`*HttpConfig.ts`: prefix, paths, permission keys, rate limits, security), `domain/dto` (Zod schemas), `domain/entities` (Drizzle tables), `domain/repository`, `service/`, `useCase/`, `http/controller`, `http/routes/v1`, `permissions/`, optionally `helpers/Audit.ts`, `email/`, `policies/`.
+Typical module folders: `config/` (`*HttpConfig.ts`: prefix, paths, permission keys, security), `domain/dto` (Zod schemas), `domain/entities` (Drizzle tables), `domain/repository`, `service/`, `useCase/`, `http/controller`, `http/routes/v1`, `permissions/`, optionally `helpers/Audit.ts`, `email/`, `policies/`.
 
-Flow: route (Zod `schema` + `config.permission` + `config.rateLimit`) → controller (extends `AbstractController`, wraps work in `this.execute(...)`, which maps `ZodError` → `ValidationError` and unknown errors → `InternalError`) → use case (one class per operation, `execute(context, ...)`) → service (holds `db`, `transactionManager`, repository) → repository (Drizzle queries, takes the db/tx handle as first arg). Response mappers in `http/controller/*ResponseMapper.ts` shape output DTOs.
+Flow: route (Zod `schema` + `config.permission`) → controller (extends `AbstractController`, wraps work in `this.execute(...)`, which maps `ZodError` → `ValidationError` and unknown errors → `InternalError`) → use case (one class per operation, `execute(context, ...)`) → service (holds `db`, `transactionManager`, repository) → repository (Drizzle queries, takes the db/tx handle as first arg). Response mappers in `http/controller/*ResponseMapper.ts` shape output DTOs.
+
+Rate limiting is central (`src/core/http/rateLimit.ts`): every route gets `ROUTE_RATE_LIMIT` (`GET` higher than writes), counted per user (or client IP when anonymous) and route pattern, so routes don't share a budget. Don't add limits per module; only auth routes and routes that send email set `config.rateLimit: SENSITIVE_ROUTE_RATE_LIMIT`, with a higher budget per IP because several users of one session often share a network.
 
 ### Auth, permissions, campaign context
 

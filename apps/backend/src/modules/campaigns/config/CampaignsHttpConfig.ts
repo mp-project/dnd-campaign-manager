@@ -19,13 +19,3 @@ export const CAMPAIGNS_HTTP_PERMISSIONS = {
   correctTime: "campaigns.correctTime",
 } as const;
 
-export const CAMPAIGNS_HTTP_RATE_LIMITS = {
-  read: {
-    max: 200,
-    timeWindow: "1 minute",
-  },
-  write: {
-    max: 60,
-    timeWindow: "1 minute",
-  },
-} as const;

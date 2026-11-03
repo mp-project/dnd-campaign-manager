@@ -52,6 +52,9 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
       level: env.LOG_LEVEL,
     },
     requestIdHeader: "x-request-id",
+    // Behind Caddy `request.ip` would be the proxy; only private proxy addresses are trusted, so
+    // X-Forwarded-For cannot be spoofed from outside.
+    trustProxy: "loopback,uniquelocal",
     logController: new LogController({
       disableRequestLogging: true,
     }),

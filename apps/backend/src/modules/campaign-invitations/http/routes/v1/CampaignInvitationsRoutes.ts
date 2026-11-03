@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { SENSITIVE_ROUTE_RATE_LIMIT } from "#core/http/rateLimit";
 import { CreateCampaignInvitationSchema } from "#src/modules/campaign-invitations/domain/dto/CreateCampaignInvitationDto";
 import {
   AcceptCampaignInvitationSchema,
@@ -43,7 +44,10 @@ export function registerCampaignInvitationsRoutes(
   app.post(
     "/campaigns/:campaignId/invitations",
     {
-      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.create } },
+      config: {
+        permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.create },
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+      },
       schema: {
         tags,
         operationId: "createCampaignInvitation",
@@ -133,6 +137,7 @@ export function registerCampaignInvitationsRoutes(
   app.post(
     "/invitations/accept",
     {
+      config: { rateLimit: SENSITIVE_ROUTE_RATE_LIMIT },
       schema: {
         tags,
         operationId: "acceptCampaignInvitation",

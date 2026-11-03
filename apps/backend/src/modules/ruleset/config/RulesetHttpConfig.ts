@@ -19,13 +19,3 @@ export const RULESET_HTTP_PERMISSIONS = {
   validate: "rulesets.validate",
 } as const;
 
-export const RULESET_HTTP_RATE_LIMITS = {
-  read: {
-    max: 200,
-    timeWindow: "1 minute",
-  },
-  write: {
-    max: 60,
-    timeWindow: "1 minute",
-  },
-} as const;

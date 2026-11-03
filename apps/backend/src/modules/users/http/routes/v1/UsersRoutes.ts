@@ -19,7 +19,6 @@ import { UpdateSettingsSchema } from "#src/modules/users/domain/dto/UpdateSettin
 import {
   USERS_HTTP_PATHS,
   USERS_HTTP_PERMISSIONS,
-  USERS_HTTP_RATE_LIMITS,
   USERS_HTTP_SECURITY,
 } from "#src/modules/users/config/UsersHttpConfig";
 import { GetMeController } from "#src/modules/users/http/controller/GetMeController";
@@ -50,7 +49,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.me,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.read,
         permission: {
           key: USERS_HTTP_PERMISSIONS.readSelf,
         },
@@ -72,7 +70,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.me,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
         permission: {
           key: USERS_HTTP_PERMISSIONS.updateSelf,
         },
@@ -97,7 +94,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.meSettings,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
         permission: {
           key: USERS_HTTP_PERMISSIONS.updateSelf,
         },
@@ -121,7 +117,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.meCampaigns,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.read,
         permission: {
           key: USERS_HTTP_PERMISSIONS.readSelf,
         },
@@ -143,7 +138,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.adminCollection,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.read,
         permission: {
           key: USERS_HTTP_PERMISSIONS.readAdmin,
         },
@@ -167,7 +161,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.adminItem,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.read,
         permission: {
           key: USERS_HTTP_PERMISSIONS.readAdmin,
         },
@@ -192,7 +185,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.adminItem,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
         permission: {
           key: USERS_HTTP_PERMISSIONS.updateAdmin,
         },
@@ -221,7 +213,6 @@ export function registerUsersRoutes(
     USERS_HTTP_PATHS.adminItem,
     {
       config: {
-        rateLimit: USERS_HTTP_RATE_LIMITS.write,
         permission: {
           key: USERS_HTTP_PERMISSIONS.deleteAdmin,
         },

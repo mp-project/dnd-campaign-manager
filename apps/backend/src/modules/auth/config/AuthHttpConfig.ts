@@ -23,17 +23,3 @@ export const AUTH_HTTP_PATHS = {
   oauthCompleteRegistration: "/auth/oauth/complete-registration",
 } as const;
 
-export const AUTH_HTTP_RATE_LIMITS = {
-  read: {
-    max: 200,
-    timeWindow: "1 minute",
-  },
-  write: {
-    max: 60,
-    timeWindow: "1 minute",
-  },
-  auth: {
-    max: 20,
-    timeWindow: "1 minute",
-  },
-} as const;

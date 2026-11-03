@@ -2,9 +2,9 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { SENSITIVE_ROUTE_RATE_LIMIT } from "#core/http/rateLimit";
 import {
   AUTH_HTTP_PATHS,
-  AUTH_HTTP_RATE_LIMITS,
   AUTH_HTTP_SECURITY,
 } from "#src/modules/auth/config/AuthHttpConfig";
 import {
@@ -44,7 +44,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.registerRequestVerification,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -71,7 +71,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.registerVerificationStatus,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.read,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -91,7 +91,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.register,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -115,7 +115,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.registerVerify,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -136,7 +136,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.registerVerifyLink,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -157,7 +157,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.login,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -178,7 +178,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.refresh,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -198,7 +198,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.logout,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.write,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
         permission: {
           key: "auth.logoutSelf",
         },
@@ -224,7 +224,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.logoutAll,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.write,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
         permission: {
           key: "auth.logoutAllSelf",
         },
@@ -249,7 +249,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.forgotPassword,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -271,7 +271,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.resetPassword,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -294,7 +294,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.changePassword,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.write,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
         permission: {
           key: "auth.changePasswordSelf",
         },
@@ -321,7 +321,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.oauthStart,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -343,7 +343,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.oauthCallback,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],
@@ -366,7 +366,7 @@ export function registerAuthRoutes(
     AUTH_HTTP_PATHS.oauthCompleteRegistration,
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
         tags: ["Auth"],

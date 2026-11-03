@@ -2,9 +2,42 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
-import { AUTH_HTTP_PREFIX } from "#src/modules/auth/config/AuthHttpConfig";
 import { AuthRepository } from "#src/modules/auth/domain/repository/AuthRepository";
-import { AuthController } from "#src/modules/auth/http/controller/AuthController";
+import { AuthHttpSupport } from "#src/modules/auth/http/AuthHttpSupport";
+import { RequestRegistrationVerificationController } from "#src/modules/auth/http/controller/RequestRegistrationVerificationController";
+import { RequestRegistrationVerificationUseCase } from "#src/modules/auth/useCase/RequestRegistrationVerificationUseCase";
+import { GetRegistrationVerificationStatusController } from "#src/modules/auth/http/controller/GetRegistrationVerificationStatusController";
+import { GetRegistrationVerificationStatusUseCase } from "#src/modules/auth/useCase/GetRegistrationVerificationStatusUseCase";
+import { RegisterController } from "#src/modules/auth/http/controller/RegisterController";
+import { RegisterUseCase } from "#src/modules/auth/useCase/RegisterUseCase";
+import { VerifyRegistrationEmailByLinkController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailByLinkController";
+import { VerifyRegistrationEmailByLinkUseCase } from "#src/modules/auth/useCase/VerifyRegistrationEmailByLinkUseCase";
+import { VerifyRegistrationEmailController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailController";
+import { VerifyRegistrationEmailUseCase } from "#src/modules/auth/useCase/VerifyRegistrationEmailUseCase";
+import { LoginController } from "#src/modules/auth/http/controller/LoginController";
+import { LoginUseCase } from "#src/modules/auth/useCase/LoginUseCase";
+import { RefreshController } from "#src/modules/auth/http/controller/RefreshController";
+import { RefreshUseCase } from "#src/modules/auth/useCase/RefreshUseCase";
+import { LogoutAllController } from "#src/modules/auth/http/controller/LogoutAllController";
+import { LogoutAllUseCase } from "#src/modules/auth/useCase/LogoutAllUseCase";
+import { LogoutController } from "#src/modules/auth/http/controller/LogoutController";
+import { LogoutUseCase } from "#src/modules/auth/useCase/LogoutUseCase";
+import { ForgotPasswordController } from "#src/modules/auth/http/controller/ForgotPasswordController";
+import { ForgotPasswordUseCase } from "#src/modules/auth/useCase/ForgotPasswordUseCase";
+import { ResetPasswordController } from "#src/modules/auth/http/controller/ResetPasswordController";
+import { ResetPasswordUseCase } from "#src/modules/auth/useCase/ResetPasswordUseCase";
+import { ChangePasswordController } from "#src/modules/auth/http/controller/ChangePasswordController";
+import { ChangePasswordUseCase } from "#src/modules/auth/useCase/ChangePasswordUseCase";
+import { TrustCurrentDeviceController } from "#src/modules/auth/http/controller/TrustCurrentDeviceController";
+import { TrustCurrentDeviceUseCase } from "#src/modules/auth/useCase/TrustCurrentDeviceUseCase";
+import { RemoveCurrentDeviceController } from "#src/modules/auth/http/controller/RemoveCurrentDeviceController";
+import { RemoveCurrentDeviceUseCase } from "#src/modules/auth/useCase/RemoveCurrentDeviceUseCase";
+import { StartOAuthController } from "#src/modules/auth/http/controller/StartOAuthController";
+import { StartOAuthUseCase } from "#src/modules/auth/useCase/StartOAuthUseCase";
+import { OAuthCallbackController } from "#src/modules/auth/http/controller/OAuthCallbackController";
+import { OAuthCallbackUseCase } from "#src/modules/auth/useCase/OAuthCallbackUseCase";
+import { CompleteOAuthRegistrationController } from "#src/modules/auth/http/controller/CompleteOAuthRegistrationController";
+import { CompleteOAuthRegistrationUseCase } from "#src/modules/auth/useCase/CompleteOAuthRegistrationUseCase";
 import { registerAuthRoutes } from "#src/modules/auth/http/routes/v1/AuthRoutes";
 import { authPermissionDefinitions } from "#src/modules/auth/permissions/AuthPermissions";
 import { ROLE_PERMISSIONS } from "#src/modules/auth/permissions/roles";
@@ -59,7 +92,7 @@ async function registerAuthModule(
 
   const sessionDependencies: AuthSessionDependencies = {
     revokeRefreshTokensForUser: async (userId) => {
-      await service.revokeRefreshTokensForUser(userId);
+      await service.sessionService.revokeRefreshTokensForUser(userId);
     },
   };
 
@@ -71,19 +104,34 @@ async function registerAuthModule(
 
   const secureCookies =
     container.config.NODE_ENV === "production" || container.config.NODE_ENV === "stage";
-  const authController = new AuthController(service, {
+  const http = new AuthHttpSupport({
     secureCookies,
     frontendOrigin: container.config.FRONTEND_ORIGIN,
   });
 
-  app.register(
-    async (authApp) => {
-      registerAuthRoutes(authApp, {
-        authController,
-      });
-    },
-    { prefix: AUTH_HTTP_PREFIX },
-  );
+  app.register(async (authApp) => {
+    registerAuthRoutes(authApp, {
+      requestRegistrationVerificationController: new RequestRegistrationVerificationController(new RequestRegistrationVerificationUseCase(service), http),
+      getRegistrationVerificationStatusController: new GetRegistrationVerificationStatusController(
+        new GetRegistrationVerificationStatusUseCase(service),
+      ),
+      registerController: new RegisterController(new RegisterUseCase(service), http),
+      verifyRegistrationEmailByLinkController: new VerifyRegistrationEmailByLinkController(new VerifyRegistrationEmailByLinkUseCase(service), http),
+      verifyRegistrationEmailController: new VerifyRegistrationEmailController(new VerifyRegistrationEmailUseCase(service), http),
+      loginController: new LoginController(new LoginUseCase(service), http),
+      refreshController: new RefreshController(new RefreshUseCase(service), http),
+      logoutAllController: new LogoutAllController(new LogoutAllUseCase(service), http),
+      logoutController: new LogoutController(new LogoutUseCase(service), http),
+      forgotPasswordController: new ForgotPasswordController(new ForgotPasswordUseCase(service), http),
+      resetPasswordController: new ResetPasswordController(new ResetPasswordUseCase(service), http),
+      changePasswordController: new ChangePasswordController(new ChangePasswordUseCase(service), http),
+      trustCurrentDeviceController: new TrustCurrentDeviceController(new TrustCurrentDeviceUseCase(service), http),
+      removeCurrentDeviceController: new RemoveCurrentDeviceController(new RemoveCurrentDeviceUseCase(service), http),
+      startOAuthController: new StartOAuthController(new StartOAuthUseCase(service), http),
+      oauthCallbackController: new OAuthCallbackController(new OAuthCallbackUseCase(service), http),
+      completeOAuthRegistrationController: new CompleteOAuthRegistrationController(new CompleteOAuthRegistrationUseCase(service), http),
+    });
+  });
 }
 
 function createOAuthProviders(

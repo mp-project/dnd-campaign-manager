@@ -15,7 +15,7 @@ export type CampaignMembershipRow = typeof campaignMemberships.$inferSelect;
 export type CampaignTimeEventRow = typeof campaignTimeEvents.$inferSelect;
 
 export type CampaignListFilter = RequestCampaignDto["listQuery"];
-export type CreateCampaignInput = Omit<CreateCampaignDto, "createdBy">;
+export type CreateCampaignInput = Omit<CreateCampaignDto, "ownerUserId">;
 export type UpdateCampaignPatch = Omit<UpdateCampaignDto, "expectedVersion">;
 
 export type CampaignAggregate = {
@@ -49,7 +49,7 @@ export class CampaignsRepository {
       .for("update");
   }
 
-  async insertCampaignWithOwnerMembership(
+  async create(
     db: AppDatabase,
     params: {
       actorId: string;
@@ -89,7 +89,7 @@ export class CampaignsRepository {
     return createdCampaign;
   }
 
-  async findCampaignById(db: AppDatabase, campaignId: string): Promise<CampaignRow | null> {
+  async findById(db: AppDatabase, campaignId: string): Promise<CampaignRow | null> {
     const rows = await db
       .select()
       .from(campaigns)
@@ -188,7 +188,7 @@ export class CampaignsRepository {
     return row?.total ?? 0;
   }
 
-  async updateCampaignWithVersion(
+  async update(
     db: AppDatabase,
     params: {
       campaignId: string;
@@ -242,7 +242,7 @@ export class CampaignsRepository {
     return updated ?? null;
   }
 
-  async softArchiveWithVersion(
+  async delete(
     db: AppDatabase,
     params: {
       campaignId: string;
@@ -270,7 +270,7 @@ export class CampaignsRepository {
     return updated ?? null;
   }
 
-  async updateTimeWithVersion(
+  async updateTime(
     db: AppDatabase,
     params: {
       campaignId: string;
@@ -301,7 +301,7 @@ export class CampaignsRepository {
     return updated ?? null;
   }
 
-  async insertTimeEvent(
+  async createTimeEvent(
     db: AppDatabase,
     params: {
       actorId: string;
@@ -364,7 +364,7 @@ export class CampaignsRepository {
     campaignMemberId: string | null;
     membershipActive: boolean;
   } | null> {
-    const campaign = await this.findCampaignById(input.db, input.campaignId);
+    const campaign = await this.findById(input.db, input.campaignId);
 
     if (!campaign) {
       return null;

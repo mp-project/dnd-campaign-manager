@@ -11,8 +11,14 @@ import {
   buildRegistrationVerificationUrl,
   renderRegistrationVerificationEmail,
 } from "#src/modules/auth/email/RegistrationVerificationEmailTemplate";
+import {
+  type AuthAttemptService,
+  authEmailAttemptKeys,
+  verificationAttemptKeys,
+} from "#src/modules/auth/service/AuthAttemptService";
 import type {
   AuthServiceDependencies,
+  ClientMetadata,
   RegisterUserResult,
   VerifyRegistrationLinkResult,
 } from "#src/modules/auth/service/AuthService.contracts";
@@ -37,10 +43,14 @@ export class AuthRegistrationService {
   constructor(
     private readonly deps: AuthServiceDependencies,
     private readonly hashPassword: (password: string) => Promise<string>,
+    private readonly attempts: AuthAttemptService,
   ) {}
 
-  async requestRegistrationVerification(email: string) {
+  async requestRegistrationVerification(email: string, metadata: ClientMetadata) {
     const normalizedEmail = normalizeEmail(email);
+
+    await this.attempts.consume(authEmailAttemptKeys(normalizedEmail, metadata.ip));
+
     const code = this.generateVerificationCode();
     const codeHash = this.hashVerificationCode(normalizedEmail, code);
     const expiresAt = new Date(
@@ -112,8 +122,11 @@ export class AuthRegistrationService {
     });
   }
 
-  async register(input: RegisterDto): Promise<RegisterUserResult> {
+  async register(input: RegisterDto, metadata: ClientMetadata): Promise<RegisterUserResult> {
     const normalizedEmail = normalizeEmail(input.email);
+
+    await this.attempts.consume(authEmailAttemptKeys(normalizedEmail, metadata.ip));
+
     const normalizedDisplayName = input.displayName.trim();
     const code = this.generateVerificationCode();
     const codeHash = this.hashVerificationCode(normalizedEmail, code);
@@ -134,7 +147,7 @@ export class AuthRegistrationService {
       );
 
       const passwordHash = await this.hashPassword(input.password);
-      const user = await this.deps.repository.createUser(tx, {
+      const user = await this.deps.repository.create(tx, {
         email: normalizedEmail,
         passwordHash,
         displayName: normalizedDisplayName,
@@ -179,10 +192,19 @@ export class AuthRegistrationService {
     return created;
   }
 
-  async verifyRegistrationEmail(input: VerifyEmailVerificationDto) {
+  async verifyRegistrationEmail(input: VerifyEmailVerificationDto, metadata: ClientMetadata) {
+    return this.attempts.trackFailures(
+      verificationAttemptKeys(normalizeEmail(input.email), metadata.ip),
+      (error) => error instanceof ConflictError || error instanceof NotFoundError,
+      () => this.verifyCode(input),
+    );
+  }
+
+  private async verifyCode(input: VerifyEmailVerificationDto) {
     const normalizedEmail = normalizeEmail(input.email);
 
-    return this.deps.transactionManager.inTransaction(async (tx) => {
+    // Failures are returned instead of thrown: throwing would roll back the attempt count.
+    const outcome = await this.deps.transactionManager.inTransaction(async (tx) => {
       const user = await this.deps.repository.findByEmail(tx, normalizedEmail);
 
       if (!user) {
@@ -215,7 +237,7 @@ export class AuthRegistrationService {
           verificationId: verificationRequest.id,
           status: "EXPIRED",
         });
-        throw new ConflictError("Verification code expired");
+        return { failure: "Verification code expired" };
       }
 
       const suppliedHash = this.hashVerificationCode(
@@ -224,22 +246,22 @@ export class AuthRegistrationService {
       );
 
       if (!this.hashMatches(suppliedHash, verificationRequest.codeHash)) {
-        await this.deps.repository.incrementEmailVerificationAttemptCount(tx, verificationRequest.id);
+        await this.deps.repository.updateEmailVerificationAttemptCount(tx, verificationRequest.id);
 
         if (verificationRequest.attemptCount + 1 >= MAX_VERIFICATION_ATTEMPTS) {
           await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
             verificationId: verificationRequest.id,
             status: "EXPIRED",
           });
-          throw new ConflictError("Verification code expired");
+          return { failure: "Verification code expired" };
         }
 
-        throw new ConflictError("Invalid verification code");
+        return { failure: "Invalid verification code" };
       }
 
       const verifiedAt = new Date();
 
-      const updatedUser = await this.deps.repository.markEmailVerified(tx, {
+      const updatedUser = await this.deps.repository.updateEmailVerified(tx, {
         userId: user.id,
         verifiedAt,
       });
@@ -254,8 +276,14 @@ export class AuthRegistrationService {
         verifiedAt,
       });
 
-      return updatedUser;
+      return { user: updatedUser };
     });
+
+    if ("failure" in outcome) {
+      throw new ConflictError(outcome.failure);
+    }
+
+    return outcome.user;
   }
 
   async verifyRegistrationEmailByToken(token: string): Promise<VerifyRegistrationLinkResult> {
@@ -265,7 +293,7 @@ export class AuthRegistrationService {
       throw new ConflictError("Verification link is invalid or expired");
     }
 
-    const user = await this.verifyRegistrationEmail({
+    const user = await this.verifyCode({
       email: payload.email,
       verificationId: payload.verificationId,
       verificationCode: payload.verificationCode,

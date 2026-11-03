@@ -40,8 +40,6 @@ export type AssetsRouteControllers = {
 
 const security = [{ cookieAuth: [] }] as const;
 
-const readRateLimit = { max: 200, timeWindow: "1 minute" } as const;
-const writeRateLimit = { max: 60, timeWindow: "1 minute" } as const;
 
 const readErrorResponses = {
   401: errorResponseDto,
@@ -64,7 +62,6 @@ export function registerAssetsRoutes(
     "/campaigns/:campaignId/assets",
     {
       config: {
-        rateLimit: readRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.read,
           hideAsNotFoundForPlayers: true,
@@ -90,7 +87,6 @@ export function registerAssetsRoutes(
     "/campaigns/:campaignId/catalog/:assetType",
     {
       config: {
-        rateLimit: readRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.readCatalog,
           hideAsNotFoundForPlayers: true,
@@ -116,7 +112,6 @@ export function registerAssetsRoutes(
     "/assets/:assetId",
     {
       config: {
-        rateLimit: readRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.read,
         },
@@ -139,7 +134,6 @@ export function registerAssetsRoutes(
     "/catalog/:assetType",
     {
       config: {
-        rateLimit: readRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.readCatalog,
         },
@@ -165,7 +159,6 @@ export function registerAssetsRoutes(
     "/assets/:assetId",
     {
       config: {
-        rateLimit: writeRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.updateMetadata,
         },
@@ -189,7 +182,6 @@ export function registerAssetsRoutes(
     "/assets/:assetId",
     {
       config: {
-        rateLimit: writeRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.archive,
         },
@@ -213,7 +205,6 @@ export function registerAssetsRoutes(
     "/assets/:assetId/restore",
     {
       config: {
-        rateLimit: writeRateLimit,
         permission: {
           key: ASSETS_PERMISSIONS.restore,
         },

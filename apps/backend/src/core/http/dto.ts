@@ -4,6 +4,16 @@ import { domainErrorCodes } from "#core/error/http/index";
 
 export const uuidDto = z.string().uuid();
 
+/**
+ * Boolean query parameter: accepts only "true" and "false", because `z.coerce.boolean()` turns
+ * every non-empty string into `true`, including "false".
+ * Real booleans stay valid because controllers parse the query again after route validation.
+ */
+export const booleanQueryDto = z.union([
+  z.boolean(),
+  z.enum(["true", "false"]).transform((value) => value === "true"),
+]);
+
 export const slugDto = z
   .string()
   .min(1)

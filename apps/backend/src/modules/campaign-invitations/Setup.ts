@@ -3,13 +3,21 @@ import type { FastifyInstance } from "fastify";
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
 import { CampaignInvitationsRepository } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
-import { CampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/CampaignInvitationsController";
-import {
-  registerCampaignInvitationRoutes,
-  registerUserInvitationRoutes,
-} from "#src/modules/campaign-invitations/http/routes/v1/CampaignInvitationsRoutes";
+import { registerCampaignInvitationsRoutes } from "#src/modules/campaign-invitations/http/routes/v1/CampaignInvitationsRoutes";
 import { campaignInvitationPermissionDefinitions } from "#src/modules/campaign-invitations/permissions/CampaignInvitationsPermissions";
 import { CampaignInvitationsService } from "#src/modules/campaign-invitations/service/CampaignInvitationsService";
+import { CreateCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/CreateCampaignInvitationUseCase";
+import { ListCampaignInvitationsUseCase } from "#src/modules/campaign-invitations/useCase/ListCampaignInvitationsUseCase";
+import { LookupCampaignInvitationTargetUseCase } from "#src/modules/campaign-invitations/useCase/LookupCampaignInvitationTargetUseCase";
+import { DeleteCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/DeleteCampaignInvitationUseCase";
+import { AcceptCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/AcceptCampaignInvitationUseCase";
+import { ListMyCampaignInvitationsUseCase } from "#src/modules/campaign-invitations/useCase/ListMyCampaignInvitationsUseCase";
+import { CreateCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/CreateCampaignInvitationController";
+import { ListCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListCampaignInvitationsController";
+import { LookupCampaignInvitationTargetController } from "#src/modules/campaign-invitations/http/controller/LookupCampaignInvitationTargetController";
+import { DeleteCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/DeleteCampaignInvitationController";
+import { AcceptCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/AcceptCampaignInvitationController";
+import { ListMyCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListMyCampaignInvitationsController";
 import {
   CAMPAIGN_MEMBERSHIPS_MODULE_DEPENDENCIES,
   type CampaignMembershipsModuleDependencies,
@@ -70,14 +78,28 @@ async function registerCampaignInvitationsModule(
     { repository, service },
   );
 
-  const controller = new CampaignInvitationsController(service);
-  app.register(
-    async (campaignInvitationApp) => {
-      registerCampaignInvitationRoutes(campaignInvitationApp, controller);
-    },
-    { prefix: "/campaigns" },
-  );
-  registerUserInvitationRoutes(app, controller);
+  app.register(async (campaignInvitationsApp) => {
+    registerCampaignInvitationsRoutes(campaignInvitationsApp, {
+      createCampaignInvitationController: new CreateCampaignInvitationController(
+        new CreateCampaignInvitationUseCase(service),
+      ),
+      listCampaignInvitationsController: new ListCampaignInvitationsController(
+        new ListCampaignInvitationsUseCase(service),
+      ),
+      lookupCampaignInvitationTargetController: new LookupCampaignInvitationTargetController(
+        new LookupCampaignInvitationTargetUseCase(service),
+      ),
+      deleteCampaignInvitationController: new DeleteCampaignInvitationController(
+        new DeleteCampaignInvitationUseCase(service),
+      ),
+      acceptCampaignInvitationController: new AcceptCampaignInvitationController(
+        new AcceptCampaignInvitationUseCase(service),
+      ),
+      listMyCampaignInvitationsController: new ListMyCampaignInvitationsController(
+        new ListMyCampaignInvitationsUseCase(service),
+      ),
+    });
+  });
 }
 
 export const campaignInvitationsModule: AppModule = {

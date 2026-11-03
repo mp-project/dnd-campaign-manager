@@ -6,10 +6,18 @@ import type { AppDatabase } from "#core/db/pool";
 import { AuthError } from "#src/modules/auth/error/http/AuthError";
 import type { LoginDto } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import type { UserRow } from "#src/modules/auth/domain/repository/AuthRepository";
-import type {
-  AuthServiceDependencies,
-  AuthSession,
-  ClientMetadata,
+import {
+  type AuthAttemptService,
+  loginAttemptKeys,
+  refreshAttemptKeys,
+  trustedDeviceAttemptKey,
+} from "#src/modules/auth/service/AuthAttemptService";
+import type { AuthTrustedDeviceService } from "#src/modules/auth/service/AuthTrustedDeviceService";
+import {
+  type AuthServiceDependencies,
+  type AuthSession,
+  type ClientMetadata,
+  REFRESH_ROTATION_GRACE_MS,
 } from "#src/modules/auth/service/AuthService.contracts";
 import { sha256 } from "#src/modules/auth/utils/crypto";
 
@@ -17,16 +25,44 @@ export class AuthSessionService {
   constructor(
     private readonly deps: AuthServiceDependencies,
     private readonly verifyPassword: (passwordHash: string | null, password: string) => Promise<boolean>,
+    private readonly attempts: AuthAttemptService,
+    private readonly devices: AuthTrustedDeviceService,
   ) {}
 
-  async login(input: LoginDto, metadata: ClientMetadata): Promise<AuthSession> {
+  async login(
+    input: LoginDto,
+    metadata: ClientMetadata,
+    deviceToken: string | null = null,
+  ): Promise<AuthSession> {
     const normalizedEmail = input.email.trim().toLowerCase();
+    const device = await this.devices.findForEmail(deviceToken, normalizedEmail);
+    const keys = loginAttemptKeys(normalizedEmail, metadata.ip);
+    const deviceKey = device ? trustedDeviceAttemptKey(device.id) : null;
+    const session = await this.attempts.trackFailures(
+      deviceKey ? [deviceKey] : keys.all,
+      (error) => error instanceof AuthError && error.code === "INVALID_CREDENTIALS",
+      () => this.loginInTransaction(normalizedEmail, input.password, metadata),
+    );
 
+    await this.attempts.clear(deviceKey ?? keys.emailIp);
+
+    if (device) {
+      await this.devices.markUsed(device.id);
+    }
+
+    return session;
+  }
+
+  private loginInTransaction(
+    normalizedEmail: string,
+    password: string,
+    metadata: ClientMetadata,
+  ): Promise<AuthSession> {
     return this.deps.transactionManager.inTransaction(async (tx) => {
       const user = await this.deps.repository.findByEmail(tx, normalizedEmail);
       const passwordValid = await this.verifyPassword(
         user?.passwordHash ?? null,
-        input.password,
+        password,
       );
 
       if (!user || !passwordValid) {
@@ -54,30 +90,52 @@ export class AuthSessionService {
   async refresh(refreshToken: string, metadata: ClientMetadata): Promise<AuthSession> {
     const tokenHash = sha256(refreshToken);
 
-    return this.deps.transactionManager.inTransaction(async (tx) => {
-      const currentToken = await this.deps.repository.findRefreshTokenByHash(tx, tokenHash);
+    return this.attempts.trackFailures(
+      refreshAttemptKeys(tokenHash, metadata.ip),
+      (error) => error instanceof AuthError && error.code === "SESSION_INVALID",
+      () => this.refreshInTransaction(tokenHash, metadata),
+    );
+  }
+
+  private async refreshInTransaction(
+    tokenHash: string,
+    metadata: ClientMetadata,
+  ): Promise<AuthSession> {
+    // Failures are returned instead of thrown: throwing would roll back the revocations.
+    const outcome = await this.deps.transactionManager.inTransaction(async (tx) => {
+      // The row lock makes parallel requests with one token run in turn, so only one can rotate it.
+      const currentToken = await this.deps.repository.findRefreshTokenByHashForUpdate(tx, tokenHash);
 
       if (!currentToken) {
         throw new AuthError("SESSION_INVALID", "Session is invalid");
       }
 
+      if (
+        !currentToken.revokedAt &&
+        currentToken.rotatedAt &&
+        Date.now() - currentToken.rotatedAt.getTime() < REFRESH_ROTATION_GRACE_MS
+      ) {
+        // Usually a second tab or a retry: it issues nothing and revokes nothing.
+        throw new AuthError("SESSION_ALREADY_ROTATED", "Session was just refreshed");
+      }
+
       if (currentToken.revokedAt || currentToken.rotatedAt) {
         // Replay detection: if an old/rotated token is reused, invalidate the whole session family.
-        await this.deps.repository.revokeRefreshTokenFamily(tx, {
+        await this.deps.repository.updateRefreshTokenFamilyRevoked(tx, {
           familyId: currentToken.familyId,
           actorId: currentToken.userId,
         });
 
-        throw new AuthError("SESSION_INVALID", "Session is invalid");
+        return { invalid: true as const };
       }
 
       if (currentToken.expiresAt.getTime() <= Date.now()) {
-        await this.deps.repository.revokeRefreshTokenById(tx, {
+        await this.deps.repository.updateRefreshTokenRevoked(tx, {
           tokenId: currentToken.id,
           actorId: currentToken.userId,
         });
 
-        throw new AuthError("SESSION_INVALID", "Session is invalid");
+        return { invalid: true as const };
       }
 
       const user = await this.deps.repository.findById(tx, currentToken.userId);
@@ -90,14 +148,20 @@ export class AuthSessionService {
 
       const nextSession = await this.issueSession(tx, user, metadata, currentToken.familyId);
 
-      await this.deps.repository.markRefreshTokenRotated(tx, {
+      await this.deps.repository.updateRefreshTokenRotated(tx, {
         tokenId: currentToken.id,
         replacedById: nextSession.refreshTokenId,
         actorId: user.id,
       });
 
-      return nextSession.session;
+      return { session: nextSession.session };
     });
+
+    if ("invalid" in outcome) {
+      throw new AuthError("SESSION_INVALID", "Session is invalid");
+    }
+
+    return outcome.session;
   }
 
   async logoutCurrent(refreshToken: string | null): Promise<void> {
@@ -114,7 +178,7 @@ export class AuthSessionService {
         return;
       }
 
-      await this.deps.repository.revokeRefreshTokenById(tx, {
+      await this.deps.repository.updateRefreshTokenRevoked(tx, {
         tokenId: currentToken.id,
         actorId: currentToken.userId,
       });
@@ -123,7 +187,8 @@ export class AuthSessionService {
 
   async logoutAll(actorId: string): Promise<void> {
     await this.deps.transactionManager.inTransaction(async (tx) => {
-      await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
+      await this.deps.repository.deleteTrustedDevicesForUser(tx, actorId);
+      await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: actorId,
         actorId,
       });
@@ -132,7 +197,7 @@ export class AuthSessionService {
 
   async revokeRefreshTokensForUser(userId: string): Promise<void> {
     await this.deps.transactionManager.inTransaction(async (tx) => {
-      await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
+      await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId,
         actorId: userId,
       });

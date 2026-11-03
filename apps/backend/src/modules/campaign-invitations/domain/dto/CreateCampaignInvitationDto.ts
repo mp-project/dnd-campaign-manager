@@ -1,18 +1,14 @@
 import { z } from "zod";
 
-import {
-  UserEmailSchema,
-  UserTagSchema,
-} from "#src/modules/users/domain/dto/BaseUsersDto";
-import { CampaignMembershipRoleSchema } from "#src/modules/campaign-memberships/domain/dto/BaseCampaignMembershipDto";
+import { CampaignInvitationBaseSchema } from "#src/modules/campaign-invitations/domain/dto/BaseCampaignInvitationDto";
 
-export const CreateCampaignInvitationSchema = z
-  .strictObject({
-    userTag: UserTagSchema.optional(),
-    email: UserEmailSchema.optional(),
-    role: CampaignMembershipRoleSchema,
-    expiresInDays: z.coerce.number().int().min(1).max(30).default(7),
-  })
+export const CreateCampaignInvitationSchema = CampaignInvitationBaseSchema.pick({
+  userTag: true,
+  email: true,
+  role: true,
+})
+  .partial({ userTag: true, email: true })
+  .extend({ expiresInDays: z.coerce.number().int().min(1).max(30).default(7) })
   .refine((value) => Boolean(value.userTag) !== Boolean(value.email), {
     message: "Provide exactly one of userTag or email",
   });

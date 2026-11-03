@@ -67,9 +67,9 @@ function createDeps(input: {
       | "findByDiscordUserId"
       | "findByEmail"
       | "findByUserTag"
-      | "setOAuthIdentity"
+      | "updateOAuthIdentity"
       | "updateLastLogin"
-      | "createUser"
+      | "create"
     >
   >;
 }) {
@@ -84,17 +84,17 @@ function createDeps(input: {
     | "findByDiscordUserId"
     | "findByEmail"
     | "findByUserTag"
-    | "setOAuthIdentity"
+    | "updateOAuthIdentity"
     | "updateLastLogin"
-    | "createUser"
+    | "create"
   > = {
     findByGoogleSubject: jest.fn(async () => null),
     findByDiscordUserId: jest.fn(async () => null),
     findByEmail: jest.fn(async () => null),
     findByUserTag: jest.fn(async () => null),
-    setOAuthIdentity: jest.fn(async () => null),
+    updateOAuthIdentity: jest.fn(async () => null),
     updateLastLogin: jest.fn(async () => undefined),
-    createUser: jest.fn(async () => createUserRow()),
+    create: jest.fn(async () => createUserRow()),
     ...input.repositoryOverrides,
   };
 
@@ -249,8 +249,8 @@ describe("AuthOAuthService", () => {
       repositoryOverrides: {
         findByDiscordUserId: jest.fn(async () => null),
         findByEmail: jest.fn(async () => null),
-        createUser: createUserMock,
-        setOAuthIdentity: linkIdentityMock,
+        create: createUserMock,
+        updateOAuthIdentity: linkIdentityMock,
       },
     });
 

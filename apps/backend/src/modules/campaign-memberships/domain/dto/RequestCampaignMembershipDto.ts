@@ -1,16 +1,9 @@
-import { z } from "zod";
+import { CampaignMembershipBaseSchema } from "#src/modules/campaign-memberships/domain/dto/BaseCampaignMembershipDto";
 
-import { uuidDto } from "#core/http/dto";
-
-export const CampaignMembershipParamsSchema = z.strictObject({
-  campaignId: uuidDto,
+export const CampaignMembershipParamsSchema = CampaignMembershipBaseSchema.pick({
+  campaignId: true,
 });
 
 export const CampaignMembershipItemParamsSchema = CampaignMembershipParamsSchema.extend({
-  memberId: uuidDto,
+  memberId: CampaignMembershipBaseSchema.shape.id,
 });
-
-export type RequestCampaignMembershipDto = {
-  params: z.infer<typeof CampaignMembershipParamsSchema>;
-  itemParams: z.infer<typeof CampaignMembershipItemParamsSchema>;
-};

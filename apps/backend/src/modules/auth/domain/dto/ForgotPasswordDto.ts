@@ -1,13 +1,12 @@
 import { z } from "zod";
 
 import {
-  UserEmailSchema,
-  UserLocaleSchema,
+  UserBaseSchema,
+  UserSettingsBaseSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
-export const ForgotPasswordSchema = z.strictObject({
-  email: UserEmailSchema,
-  locale: UserLocaleSchema.optional(),
+export const ForgotPasswordSchema = UserBaseSchema.pick({ email: true }).extend({
+  locale: UserSettingsBaseSchema.shape.locale.optional(),
 });
 
 export type ForgotPasswordDto = z.infer<typeof ForgotPasswordSchema>;

@@ -1,7 +1,11 @@
+import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { UnauthenticatedError } from "#core/error/http/index";
+import { isSysAdminRole } from "#core/permissions/roles";
 import type { RequestCampaignDto } from "#src/modules/campaigns/domain/dto/RequestCampaignDto";
-import type { CampaignAggregate } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
+import {
+  type ResponseCampaignListDto,
+  toCampaignListResponse,
+} from "#src/modules/campaigns/domain/dto/ResponseCampaignDto";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 
 export class ListCampaignsUseCase {
@@ -10,17 +14,10 @@ export class ListCampaignsUseCase {
   async execute(
     context: RequestContext,
     filter: RequestCampaignDto["listQuery"],
-  ): Promise<{ items: CampaignAggregate[]; total: number }> {
-    const campaignUserService = this.campaignsService.campaignUserService;
-
-    if (!campaignUserService) {
-      throw new UnauthenticatedError("Authenticated user not found");
-    }
-
-    const requestedUserId = await campaignUserService.resolveAccessibleUserId(
-      context,
-      filter.userId,
-    );
+  ): Promise<ResponseCampaignListDto> {
+    const { db, repository } = this.campaignsService;
+    const actorId = await this.campaignsService.requireActorId(context);
+    const targetUserId = await this.resolveTargetUserId(context, actorId, filter.userId);
 
     const listFilter: RequestCampaignDto["listQuery"] = {
       ...filter,
@@ -28,21 +25,42 @@ export class ListCampaignsUseCase {
     };
 
     const [items, total] = await Promise.all([
-      this.campaignsService.repository.listForActor(
-        this.campaignsService.db,
-        requestedUserId,
-        listFilter,
-      ),
-      this.campaignsService.repository.countForActor(
-        this.campaignsService.db,
-        requestedUserId,
-        listFilter,
-      ),
+      repository.listForActor(db, targetUserId, listFilter),
+      repository.countForActor(db, targetUserId, listFilter),
     ]);
 
-    return {
-      items: items.map((item) => this.campaignsService.attachEffectivePermissions(context, item)),
+    return toCampaignListResponse(
+      items.map((item) => this.campaignsService.attachEffectivePermissions(context, item)),
+      filter.limit,
       total,
-    };
+    );
+  }
+
+  /**
+   * Only system admins may list another user's campaigns; everyone else gets a 404.
+   */
+  private async resolveTargetUserId(
+    context: RequestContext,
+    actorId: string,
+    requestedUserId?: string,
+  ): Promise<string> {
+    if (!requestedUserId) {
+      return actorId;
+    }
+
+    const requestedUser =
+      await this.campaignsService.usersDependencies.useCases.getOneUserBy.execute({
+        userId: requestedUserId,
+      });
+
+    if (!requestedUser) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    if (requestedUserId !== actorId && !isSysAdminRole(context.systemRole)) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    return requestedUserId;
   }
 }

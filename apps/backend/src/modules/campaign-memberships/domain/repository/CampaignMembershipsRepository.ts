@@ -5,6 +5,30 @@ import { campaignMemberships } from "#src/modules/campaigns/domain/entities/Camp
 
 export type CampaignMembershipRow = typeof campaignMemberships.$inferSelect;
 
+/**
+ * Creates an active membership (e.g. when an invitation is accepted).
+ */
+export type CreateCampaignMembershipInput = {
+  actorId: string;
+  campaignId: string;
+  userId: string;
+  role: CampaignMembershipRow["role"];
+};
+
+export type UpdateCampaignMembershipInput = {
+  campaignId: string;
+  membershipId: string;
+  actorId: string;
+  expectedVersion: number;
+  role: CampaignMembershipRow["role"];
+};
+
+export type DeleteCampaignMembershipInput = {
+  campaignId: string;
+  membershipId: string;
+  actorId: string;
+};
+
 export class CampaignMembershipsRepository {
   async findById(
     db: AppDatabase,
@@ -80,33 +104,9 @@ export class CampaignMembershipsRepository {
     return result?.total ?? 0;
   }
 
-  async createPending(
+  async create(
     db: AppDatabase,
-    input: { actorId: string; campaignId: string; userId: string; role: "EDITOR" | "PLAYER" },
-  ): Promise<CampaignMembershipRow> {
-    const [membership] = await db
-      .insert(campaignMemberships)
-      .values({
-        campaignId: input.campaignId,
-        userId: input.userId,
-        role: input.role,
-        status: "PENDING",
-        joinedAt: null,
-        createdBy: input.actorId,
-        updatedBy: input.actorId,
-      })
-      .returning();
-
-    if (!membership) {
-      throw new Error("Failed to create pending campaign membership");
-    }
-
-    return membership;
-  }
-
-  async createActiveFromInvitation(
-    db: AppDatabase,
-    input: { actorId: string; campaignId: string; userId: string; role: "EDITOR" | "PLAYER" },
+    input: CreateCampaignMembershipInput,
   ): Promise<CampaignMembershipRow> {
     const [membership] = await db
       .insert(campaignMemberships)
@@ -122,47 +122,15 @@ export class CampaignMembershipsRepository {
       .returning();
 
     if (!membership) {
-      throw new Error("Failed to create campaign membership from invitation");
+      throw new Error("Failed to create campaign membership");
     }
 
     return membership;
   }
 
-  async activatePending(
+  async update(
     db: AppDatabase,
-    input: { campaignId: string; userId: string; actorId: string },
-  ): Promise<CampaignMembershipRow | null> {
-    const [membership] = await db
-      .update(campaignMemberships)
-      .set({
-        status: "ACTIVE",
-        joinedAt: new Date(),
-        version: sql`${campaignMemberships.version} + 1`,
-        updatedAt: new Date(),
-        updatedBy: input.actorId,
-      })
-      .where(
-        and(
-          eq(campaignMemberships.campaignId, input.campaignId),
-          eq(campaignMemberships.userId, input.userId),
-          eq(campaignMemberships.status, "PENDING"),
-          isNull(campaignMemberships.deletedAt),
-        ),
-      )
-      .returning();
-
-    return membership ?? null;
-  }
-
-  async updateRole(
-    db: AppDatabase,
-    input: {
-      campaignId: string;
-      membershipId: string;
-      actorId: string;
-      expectedVersion: number;
-      role: "EDITOR" | "PLAYER";
-    },
+    input: UpdateCampaignMembershipInput,
   ): Promise<CampaignMembershipRow | null> {
     const [membership] = await db
       .update(campaignMemberships)
@@ -186,9 +154,12 @@ export class CampaignMembershipsRepository {
     return membership ?? null;
   }
 
-  async revoke(
+  /**
+   * Soft delete: sets the membership to `REVOKED`.
+   */
+  async delete(
     db: AppDatabase,
-    input: { campaignId: string; membershipId: string; actorId: string },
+    input: DeleteCampaignMembershipInput,
   ): Promise<CampaignMembershipRow | null> {
     const [membership] = await db
       .update(campaignMemberships)
@@ -212,5 +183,4 @@ export class CampaignMembershipsRepository {
 
     return membership ?? null;
   }
-
 }

@@ -2,11 +2,8 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
-import {
-  AUTH_HTTP_PATHS,
-  AUTH_HTTP_RATE_LIMITS,
-  AUTH_HTTP_SECURITY,
-} from "#src/modules/auth/config/AuthHttpConfig";
+import { SENSITIVE_ROUTE_RATE_LIMIT } from "#core/http/rateLimit";
+import { AUTH_PERMISSIONS } from "#src/modules/auth/permissions/AuthPermissions";
 import {
   ChangePasswordSchema,
   ForgotPasswordSchema,
@@ -30,24 +27,59 @@ import {
   ResponseEmailVerificationSchema,
   ResponseRegisterUserSchema,
 } from "#src/modules/auth/domain/dto/AuthResponseDto";
-import { AuthController } from "#src/modules/auth/http/controller/AuthController";
+import { RequestRegistrationVerificationController } from "#src/modules/auth/http/controller/RequestRegistrationVerificationController";
+import { GetRegistrationVerificationStatusController } from "#src/modules/auth/http/controller/GetRegistrationVerificationStatusController";
+import { RegisterController } from "#src/modules/auth/http/controller/RegisterController";
+import { VerifyRegistrationEmailByLinkController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailByLinkController";
+import { VerifyRegistrationEmailController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailController";
+import { LoginController } from "#src/modules/auth/http/controller/LoginController";
+import { RefreshController } from "#src/modules/auth/http/controller/RefreshController";
+import { LogoutAllController } from "#src/modules/auth/http/controller/LogoutAllController";
+import { LogoutController } from "#src/modules/auth/http/controller/LogoutController";
+import { ForgotPasswordController } from "#src/modules/auth/http/controller/ForgotPasswordController";
+import { ResetPasswordController } from "#src/modules/auth/http/controller/ResetPasswordController";
+import { ChangePasswordController } from "#src/modules/auth/http/controller/ChangePasswordController";
+import { TrustCurrentDeviceController } from "#src/modules/auth/http/controller/TrustCurrentDeviceController";
+import { RemoveCurrentDeviceController } from "#src/modules/auth/http/controller/RemoveCurrentDeviceController";
+import { StartOAuthController } from "#src/modules/auth/http/controller/StartOAuthController";
+import { OAuthCallbackController } from "#src/modules/auth/http/controller/OAuthCallbackController";
+import { CompleteOAuthRegistrationController } from "#src/modules/auth/http/controller/CompleteOAuthRegistrationController";
 
 export type AuthRouteControllers = {
-  authController: AuthController;
+  requestRegistrationVerificationController: RequestRegistrationVerificationController;
+  getRegistrationVerificationStatusController: GetRegistrationVerificationStatusController;
+  registerController: RegisterController;
+  verifyRegistrationEmailByLinkController: VerifyRegistrationEmailByLinkController;
+  verifyRegistrationEmailController: VerifyRegistrationEmailController;
+  loginController: LoginController;
+  refreshController: RefreshController;
+  logoutAllController: LogoutAllController;
+  logoutController: LogoutController;
+  forgotPasswordController: ForgotPasswordController;
+  resetPasswordController: ResetPasswordController;
+  changePasswordController: ChangePasswordController;
+  trustCurrentDeviceController: TrustCurrentDeviceController;
+  removeCurrentDeviceController: RemoveCurrentDeviceController;
+  startOAuthController: StartOAuthController;
+  oauthCallbackController: OAuthCallbackController;
+  completeOAuthRegistrationController: CompleteOAuthRegistrationController;
 };
+
+const tags = ["Auth"];
+const security = [{ cookieAuth: [] }, { bearerAuth: [] }] as const;
 
 export function registerAuthRoutes(
   app: FastifyInstance,
   controllers: AuthRouteControllers,
 ): void {
   app.post(
-    AUTH_HTTP_PATHS.registerRequestVerification,
+    "/auth/register/request-verification",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "requestRegistrationVerification",
         body: RequestEmailVerificationSchema,
         response: {
@@ -59,22 +91,20 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      const payload = await controllers.authController.requestRegistrationVerification(
-        request,
-      );
+      const payload = await controllers.requestRegistrationVerificationController.handle(request);
 
       return reply.code(202).send(payload);
     },
   );
 
   app.get(
-    AUTH_HTTP_PATHS.registerVerificationStatus,
+    "/auth/register/verification/:verificationId/status",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.read,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "getRegistrationVerificationStatus",
         params: RequestEmailVerificationStatusParamsSchema,
         response: {
@@ -84,17 +114,17 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.getRegistrationVerificationStatus,
+    controllers.getRegistrationVerificationStatusController.handle,
   );
 
   app.post(
-    AUTH_HTTP_PATHS.register,
+    "/auth/register",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "registerUser",
         body: RegisterSchema,
         response: {
@@ -105,20 +135,20 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      const payload = await controllers.authController.register(request);
+      const payload = await controllers.registerController.handle(request);
 
       return reply.code(201).send(payload);
     },
   );
 
   app.post(
-    AUTH_HTTP_PATHS.registerVerify,
+    "/auth/register/verify-email",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "verifyRegistrationEmail",
         body: VerifyEmailVerificationSchema,
         response: {
@@ -129,17 +159,17 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.verifyRegistrationEmail,
+    controllers.verifyRegistrationEmailController.handle,
   );
 
   app.get(
-    AUTH_HTTP_PATHS.registerVerifyLink,
+    "/auth/register/verify-email-link",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "verifyRegistrationEmailByLink",
         querystring: VerifyEmailVerificationLinkQuerySchema,
         response: {
@@ -150,17 +180,17 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.verifyRegistrationEmailByLink,
+    controllers.verifyRegistrationEmailByLinkController.handle,
   );
 
   app.post(
-    AUTH_HTTP_PATHS.login,
+    "/auth/login",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "login",
         body: LoginSchema,
         response: {
@@ -171,42 +201,41 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.login,
+    controllers.loginController.handle,
   );
 
   app.post(
-    AUTH_HTTP_PATHS.refresh,
+    "/auth/refresh",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "refresh",
         body: RefreshSchema,
         response: {
           200: AuthResponseSchema,
           400: errorResponseDto,
           401: errorResponseDto,
+          409: errorResponseDto,
         },
       },
     },
-    controllers.authController.refresh,
+    controllers.refreshController.handle,
   );
 
   app.post(
-    AUTH_HTTP_PATHS.logout,
+    "/auth/logout",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.write,
-        permission: {
-          key: "auth.logoutSelf",
-        },
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.logoutSelf },
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "logout",
-        security: AUTH_HTTP_SECURITY,
+        security,
         body: RefreshSchema,
         response: {
           204: z.null(),
@@ -215,24 +244,22 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      await controllers.authController.logout(request, reply);
+      await controllers.logoutController.handle(request, reply);
       return reply.code(204).send();
     },
   );
 
   app.post(
-    AUTH_HTTP_PATHS.logoutAll,
+    "/auth/logout-all",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.write,
-        permission: {
-          key: "auth.logoutAllSelf",
-        },
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.logoutAllSelf },
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "logoutAll",
-        security: AUTH_HTTP_SECURITY,
+        security,
         response: {
           204: z.null(),
           401: errorResponseDto,
@@ -240,19 +267,19 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      await controllers.authController.logoutAll(request, reply);
+      await controllers.logoutAllController.handle(request, reply);
       return reply.code(204).send();
     },
   );
 
   app.post(
-    AUTH_HTTP_PATHS.forgotPassword,
+    "/auth/forgot-password",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "forgotPassword",
         body: ForgotPasswordSchema,
         response: {
@@ -262,19 +289,19 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      const payload = await controllers.authController.forgotPassword(request);
+      const payload = await controllers.forgotPasswordController.handle(request);
       return reply.code(202).send(payload);
     },
   );
 
   app.post(
-    AUTH_HTTP_PATHS.resetPassword,
+    "/auth/reset-password",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "resetPassword",
         body: ResetPasswordSchema,
         response: {
@@ -285,24 +312,22 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      await controllers.authController.resetPassword(request, reply);
+      await controllers.resetPasswordController.handle(request, reply);
       return reply.code(204).send();
     },
   );
 
   app.post(
-    AUTH_HTTP_PATHS.changePassword,
+    "/me/change-password",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.write,
-        permission: {
-          key: "auth.changePasswordSelf",
-        },
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.changePasswordSelf },
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "changePassword",
-        security: AUTH_HTTP_SECURITY,
+        security,
         body: ChangePasswordSchema,
         response: {
           204: z.null(),
@@ -312,19 +337,65 @@ export function registerAuthRoutes(
       },
     },
     async (request, reply) => {
-      await controllers.authController.changePassword(request, reply);
+      await controllers.changePasswordController.handle(request, reply);
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    "/me/trusted-device",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.trustDeviceSelf },
+      },
+      schema: {
+        tags,
+        operationId: "trustCurrentDevice",
+        security,
+        response: {
+          204: z.null(),
+          401: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.trustCurrentDeviceController.handle(request, reply);
+      return reply.code(204).send();
+    },
+  );
+
+  app.delete(
+    "/me/trusted-device",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.trustDeviceSelf },
+      },
+      schema: {
+        tags,
+        operationId: "removeCurrentDevice",
+        security,
+        response: {
+          204: z.null(),
+          401: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.removeCurrentDeviceController.handle(request, reply);
       return reply.code(204).send();
     },
   );
 
   app.get(
-    AUTH_HTTP_PATHS.oauthStart,
+    "/auth/oauth/:provider/start",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "startOAuth",
         params: OAuthStartParamsSchema,
         querystring: OAuthStartQuerySchema,
@@ -336,17 +407,17 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.startOAuth,
+    controllers.startOAuthController.handle,
   );
 
   app.get(
-    AUTH_HTTP_PATHS.oauthCallback,
+    "/auth/oauth/:provider/callback",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "oauthCallback",
         params: OAuthCallbackParamsSchema,
         querystring: OAuthCallbackQuerySchema,
@@ -359,17 +430,17 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.oauthCallback,
+    controllers.oauthCallbackController.handle,
   );
 
   app.post(
-    AUTH_HTTP_PATHS.oauthCompleteRegistration,
+    "/auth/oauth/complete-registration",
     {
       config: {
-        rateLimit: AUTH_HTTP_RATE_LIMITS.auth,
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
       },
       schema: {
-        tags: ["Auth"],
+        tags,
         operationId: "completeOAuthRegistration",
         body: OAuthCompleteRegistrationSchema,
         response: {
@@ -379,6 +450,6 @@ export function registerAuthRoutes(
         },
       },
     },
-    controllers.authController.completeOAuthRegistration,
+    controllers.completeOAuthRegistrationController.handle,
   );
 }

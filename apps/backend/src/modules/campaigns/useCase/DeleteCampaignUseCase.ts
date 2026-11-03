@@ -1,39 +1,27 @@
+import { VersionConflictError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import {
-  NotFoundError,
-  VersionConflictError,
-} from "#core/error/http/index";
-import { isSysAdminRole } from "#core/permissions/roles";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 
+/**
+ * Archives the campaign; it stays readable with status ARCHIVED.
+ */
 export class DeleteCampaignUseCase {
   constructor(private readonly campaignsService: CampaignsService) {}
 
   async execute(context: RequestContext, campaignId: string): Promise<void> {
-    const actorId = this.campaignsService.assertAuditableActorId(context);
-    const current = await this.campaignsService.repository.findCampaignById(
-      this.campaignsService.db,
+    const { db, repository } = this.campaignsService;
+    const actorId = await this.campaignsService.requireActorId(context);
+    const { campaign } = await this.campaignsService.loadManagedCampaign(
+      context,
+      actorId,
       campaignId,
     );
 
-    if (!current) {
-      throw new NotFoundError("Campaign not found");
-    }
-
-    const isOwner = current.ownerUserId === actorId;
-
-    if (!isOwner && !isSysAdminRole(context.systemRole)) {
-      throw new NotFoundError("Campaign not found");
-    }
-
-    const archived = await this.campaignsService.repository.softArchiveWithVersion(
-      this.campaignsService.db,
-      {
-        campaignId,
-        actorId,
-        expectedVersion: current.version,
-      },
-    );
+    const archived = await repository.delete(db, {
+      campaignId,
+      actorId,
+      expectedVersion: campaign.version,
+    });
 
     if (!archived) {
       throw new VersionConflictError("Campaign archive version mismatch");

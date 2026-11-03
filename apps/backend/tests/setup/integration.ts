@@ -22,13 +22,16 @@ async function rebuildTestDatabaseSchema(): Promise<void> {
   await resetTestDatabase(pool, databaseUrl);
 }
 
+// Rerunning all migrations can take longer than Jest's default 5 s on a freshly started database.
+const REBUILD_TIMEOUT_MS = 30_000;
+
 beforeAll(async () => {
   await rebuildTestDatabaseSchema();
-});
+}, REBUILD_TIMEOUT_MS);
 
 beforeEach(async () => {
   await rebuildTestDatabaseSchema();
-});
+}, REBUILD_TIMEOUT_MS);
 
 afterAll(async () => {
   await pool.end();

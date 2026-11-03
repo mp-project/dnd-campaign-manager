@@ -70,15 +70,27 @@ The backend uses Node subpath imports (`apps/backend/package.json` `imports`): `
 ### Module system
 
 - Modules are `AppModule` objects `{ name, dependencies, register(app, container) }` (`src/core/app/moduleSystem.ts`). They are listed in `src/modules/index.ts` (`defaultAppModules`) and registered in topologically sorted order; duplicates, missing deps and cycles throw `AppModuleRegistrationError`.
-- Each module's wiring lives in `src/modules/<name>/Setup.ts` and is re-exported from its `index.ts`. `Setup.ts` manually constructs repository → service → use cases → controllers, then mounts routes with `app.register(..., { prefix })`.
+- Each module's wiring lives in `src/modules/<name>/Setup.ts` and is re-exported from its `index.ts`. `Setup.ts` manually constructs repository → service → use cases → controllers, then mounts routes with `app.register(...)`. Route files use full paths, so `Setup.ts` sets no prefix.
 - **Cross-module access goes through the container's dependency registry**, not direct imports of another module's internals: a module publishes `container.dependencies.set(<MODULE>_MODULE_DEPENDENCIES, {...})` (a string token plus exported type), and dependents read it with `container.dependencies.get/require`. The dependency must also be declared in `dependencies` so it registers first. `tests/unit/*.moduleDependencies.test.ts` covers this per module.
 - Shared infrastructure is exposed as **ports** on `container.ports`: `permissionService`, `campaignFactPort`, `storagePort` (local / S3 / in-memory), `emailPort` (SMTP / noop). Modules may wrap ports (e.g. campaigns fills in `campaignFactPort.resolveCampaignAccess`).
 
 ### Module layout and request flow
 
-Typical module folders: `config/` (`*HttpConfig.ts`: prefix, paths, permission keys, rate limits, security), `domain/dto` (Zod schemas), `domain/entities` (Drizzle tables), `domain/repository`, `service/`, `useCase/`, `http/controller`, `http/routes/v1`, `permissions/`, optionally `helpers/Audit.ts`, `email/`, `policies/`.
+Typical module folders: `domain/dto` (Zod schemas), `domain/entities` (Drizzle tables), `domain/repository`, `service/`, `useCase/`, `http/controller`, `http/routes/v1`, `permissions/`, optionally `email/`. There is no `config/` folder: permission keys live only in `permissions/` (a named object like `ASSETS_PERMISSIONS`, accessed by name), paths are inline in the routes file and `security` is a constant there.
 
-Flow: route (Zod `schema` + `config.permission` + `config.rateLimit`) → controller (extends `AbstractController`, wraps work in `this.execute(...)`, which maps `ZodError` → `ValidationError` and unknown errors → `InternalError`) → use case (one class per operation, `execute(context, ...)`) → service (holds `db`, `transactionManager`, repository) → repository (Drizzle queries, takes the db/tx handle as first arg). Response mappers in `http/controller/*ResponseMapper.ts` shape output DTOs.
+Flow: route (Zod `schema` + `config.permission`) → controller (extends `AbstractController`, wraps work in `this.execute(...)`, which maps `ZodError` → `ValidationError` and unknown errors → `InternalError`) → use case (one class per operation, `execute(context, ...)`) → service (holds `db`, `transactionManager`, repository) → repository (Drizzle queries, takes the db/tx handle as first arg). Each operation has its own use case and controller (`handle`). The controller only parses input and passes the result on; the use case decides what the user gets and returns the response DTO. Mapping functions (`to<Entity>Response`) live next to the schema in `domain/dto/Response<Entity>Dto.ts`. The service holds only shared logic and exposes `db`, `transactionManager` and `repository` publicly. In `auth`, use cases return the session next to the response DTO because controllers set the token cookies (`http/AuthHttpSupport.ts`); the sub-services under `auth/service` keep the domain logic.
+
+DTOs derive from one `domain/dto/Base<Entity>Dto.ts` schema (`<Entity>BaseSchema`) via `pick`/`partial`/`extend`. Response schemas inherit the input rules, so check that stored data can't violate them before deriving a field; a violation becomes a 500 at serialization. Repository writes are named `create`/`update`/`delete` (with a suffix for secondary entities, status changes are `update*`); reads stay `find*`/`list*`/`count*`. There are no `/admin/...` routes: the route checks the permission and the use case picks the view by role. Boolean query parameters use `booleanQueryDto`, not `z.coerce.boolean()`, which turns "false" into `true`.
+
+Rate limiting is central (`src/core/http/rateLimit.ts`): every route gets `ROUTE_RATE_LIMIT` (`GET` higher than writes), counted per user (or client IP when anonymous) and route pattern, so routes don't share a budget. Don't add limits per module; only auth routes and routes that send email set `config.rateLimit: SENSITIVE_ROUTE_RATE_LIMIT`, with a higher budget per IP because several users of one session often share a network.
+
+Auth attempts are counted on top of that in `auth_attempts` (`AuthAttemptService`): failed logins, refreshes and verification codes, plus every auth email. Limits are per account or token and, much higher, per IP; blocked requests get 429 with `Retry-After`. Attempts must be recorded outside the request transaction, because the thrown error rolls it back.
+
+Trusted devices (`trusted_devices`, `AuthTrustedDeviceService`) are opt-in: a checkbox on login or password reset, or `POST /me/trusted-device` later. A device still needs the password but has its own attempt limit, so attacks on the account can't lock it out. A password reset during a block lifts the block and links the browser automatically. Password changes, resets and logout from all devices remove all devices.
+
+Busy database: the pool sets `connectionTimeoutMillis` and `lock_timeout` (5 s); both timeouts map to `ServiceUnavailableError` (503).
+
+Inside `inTransaction`, only run queries on the `tx` handle. Calling something that uses its own `db` (for example another module's service or use case) needs a second pool connection while the first is held; with a row lock this can block the whole API (`tests/integration/campaign-memberships.concurrency.test.ts`). Do those lookups before opening the transaction.
 
 ### Auth, permissions, campaign context
 
@@ -129,3 +141,22 @@ Throw subclasses of `AppError` / the HTTP errors in `src/core/error/http/` (`Not
 ## Notes
 
 - `copilot-docs/` is gitignored, older reference material (it calls the wiring file `setup.ts`; the real convention is `Setup.ts`). Its `module-setup.md` describes the module checklist used above.
+
+## Optional local tooling: graphify
+
+graphify is optional and runs only locally. If it is configured in a workspace (the `graphify` CLI and `graphify-out/graph.json` exist), use it as described in the `## graphify` section below. If not, ignore that section and work as usual. Nothing in the project may depend on it: the app, tests, CI and npm scripts must work without it.
+
+- Build and update the graph only with `graphify update .`, which extracts locally from the code. Don't use the hosted graphify platform and don't configure API keys or external backends for it.
+- The files graphify creates stay in the local workspace and are never committed: `graphify-out/`, `.claude/skills/`, `.claude/settings.json` and `.claude/CLAUDE.md`. They are excluded through `.git/info/exclude`, not `.gitignore`.
+- To set it up in a checkout, add those exclusions, then run `graphify install --project`, `graphify claude install --project` and `graphify update .`.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

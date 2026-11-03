@@ -1,8 +1,11 @@
-import type { RequestContext } from "#core/http/requestContext";
 import { ConflictError, UnauthenticatedError } from "#core/error/http/index";
+import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import type { CreateCampaignDto } from "#src/modules/campaigns/domain/dto/CreateCampaignDto";
-import type { CampaignAggregate } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
+import {
+  type ResponseCampaignDto,
+  toCampaignResponse,
+} from "#src/modules/campaigns/domain/dto/ResponseCampaignDto";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 
 export class CreateCampaignUseCase {
@@ -11,89 +14,50 @@ export class CreateCampaignUseCase {
   async execute(
     context: RequestContext,
     input: CreateCampaignDto,
-  ): Promise<CampaignAggregate> {
-    const { createdBy, ownerUserId: requestedOwnerUserId, ...campaignInput } = input;
-    const actorId = this.campaignsService.assertAuditableActorId(context);
-    const ownerUserId = requestedOwnerUserId ?? createdBy;
-
-    if (actorId !== createdBy) {
-      throw new UnauthenticatedError("Valid actor identity required");
-    }
+  ): Promise<ResponseCampaignDto> {
+    const { repository, transactionManager, usersDependencies, rulesetDependencies } =
+      this.campaignsService;
+    const { ownerUserId: requestedOwnerUserId, ...campaignInput } = input;
+    const actorId = await this.campaignsService.requireActorId(context);
+    const ownerUserId = requestedOwnerUserId ?? actorId;
 
     if (ownerUserId !== actorId && !isSysAdminRole(context.systemRole)) {
       throw new UnauthenticatedError("Valid actor identity required");
     }
 
-    await this.assertUserExists(ownerUserId);
+    const owner = await usersDependencies.useCases.getOneUserBy.execute({ userId: ownerUserId });
+
+    if (!owner) {
+      throw new UnauthenticatedError("Authenticated user not found");
+    }
+
+    await rulesetDependencies.service.getById(context, campaignInput.rulesetId);
+
+    const slug = campaignInput.slug ?? this.campaignsService.slugify(campaignInput.name);
+
+    if (!slug) {
+      throw new ConflictError("Campaign slug cannot be derived from name");
+    }
 
     try {
-      return await this.campaignsService.transactionManager.inTransaction(async (tx) => {
-        await this.assertRulesetExistsAndReadable(context, campaignInput.rulesetId);
-
-        const slug = campaignInput.slug ?? this.campaignsService.slugify(campaignInput.name);
-
-        if (!slug) {
-          throw new ConflictError("Campaign slug cannot be derived from name");
-        }
-
-        const createdCampaign =
-          await this.campaignsService.repository.insertCampaignWithOwnerMembership(tx, {
-            actorId,
-            ownerUserId,
-            campaign: {
-              ...campaignInput,
-              slug,
-            },
-          });
-
-        const membership = await this.campaignsService.repository.findMembership(
-          tx,
-          createdCampaign.id,
+      const aggregate = await transactionManager.inTransaction(async (tx) => {
+        const campaign = await repository.create(tx, {
           actorId,
-        );
+          ownerUserId,
+          campaign: { ...campaignInput, slug },
+        });
+        const membership = await repository.findMembership(tx, campaign.id, actorId);
 
-        const aggregate: CampaignAggregate = {
-          campaign: createdCampaign,
-          membership,
-          isOwner: false,
-          effectivePermissions: [],
-        };
-
-        return this.campaignsService.attachEffectivePermissions(context, aggregate);
+        return this.campaignsService.buildAggregate(context, campaign, membership);
       });
+
+      return toCampaignResponse(aggregate);
     } catch (error) {
       if (this.campaignsService.isUniqueViolation(error)) {
         throw new ConflictError("Campaign slug is already in use for this owner");
       }
 
       throw error;
-    }
-  }
-
-  private async assertRulesetExistsAndReadable(
-    context: RequestContext,
-    rulesetId: string,
-  ): Promise<void> {
-    const rulesetService = this.campaignsService.rulesetDependencies?.service;
-
-    if (!rulesetService) {
-      return;
-    }
-
-    await rulesetService.getById(context, rulesetId);
-  }
-
-  private async assertUserExists(userId: string): Promise<void> {
-    const getOneUserByUseCase = this.campaignsService.usersDependencies?.useCases.getOneUserBy;
-
-    if (!getOneUserByUseCase) {
-      throw new UnauthenticatedError("Authenticated user not found");
-    }
-
-    const user = await getOneUserByUseCase.execute({ userId });
-
-    if (!user) {
-      throw new UnauthenticatedError("Authenticated user not found");
     }
   }
 }

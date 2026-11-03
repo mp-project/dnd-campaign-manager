@@ -1,10 +1,8 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
 import {
-  UserDisplayNameSchema,
-  UserEmailSchema,
-  UserUsernameSchema,
+  EmailVerificationBaseSchema,
+  UserBaseSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 export {
@@ -29,16 +27,17 @@ export type {
 export const OAuthProviderSchema = z.enum(["GOOGLE", "DISCORD"]);
 export const OAuthIntentSchema = z.enum(["login", "register"]);
 
-export const RegisterSchema = z.strictObject({
-  email: UserEmailSchema,
-  displayName: UserDisplayNameSchema,
-  username: UserUsernameSchema.optional(),
-  password: z.string().min(12).max(200),
-});
+export const RegisterSchema = UserBaseSchema.pick({
+  email: true,
+  displayName: true,
+  username: true,
+})
+  .partial({ username: true })
+  .extend({ password: z.string().min(12).max(200) });
 
-export const LoginSchema = z.strictObject({
-  email: UserEmailSchema,
+export const LoginSchema = UserBaseSchema.pick({ email: true }).extend({
   password: z.string().min(1).max(200),
+  trustDevice: z.boolean().optional(),
 });
 
 export const RefreshSchema = z.strictObject({
@@ -49,19 +48,15 @@ export const LogoutSchema = z.strictObject({
   refreshToken: z.string().min(1).max(1024).optional(),
 });
 
-export const RequestEmailVerificationSchema = z.strictObject({
-  email: UserEmailSchema,
+export const RequestEmailVerificationSchema = UserBaseSchema.pick({ email: true });
+
+export const RequestEmailVerificationStatusParamsSchema = EmailVerificationBaseSchema.pick({
+  verificationId: true,
 });
 
-export const RequestEmailVerificationStatusParamsSchema = z.strictObject({
-  verificationId: uuidDto,
-});
-
-export const VerifyEmailVerificationSchema = z.strictObject({
-  email: UserEmailSchema,
-  verificationId: uuidDto,
-  verificationCode: z.string().regex(/^\d{6}$/),
-});
+export const VerifyEmailVerificationSchema = UserBaseSchema.pick({ email: true }).extend(
+  EmailVerificationBaseSchema.pick({ verificationId: true, verificationCode: true }).shape,
+);
 
 export const VerifyEmailVerificationLinkQuerySchema = z.strictObject({
   token: z.string().min(1).max(4096),
@@ -90,15 +85,17 @@ export const OAuthCallbackQuerySchema = z.strictObject({
   state: z.string().min(1).max(512),
 });
 
-export const OAuthCompleteRegistrationSchema = z.strictObject({
-  displayName: UserDisplayNameSchema,
-  username: UserUsernameSchema.optional(),
-  privacyAccepted: z.literal(true),
-});
+export const OAuthCompleteRegistrationSchema = UserBaseSchema.pick({
+  displayName: true,
+  username: true,
+})
+  .partial({ username: true })
+  .extend({ privacyAccepted: z.literal(true) });
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;
 export type RefreshDto = z.infer<typeof RefreshSchema>;
 export type VerifyEmailVerificationDto = z.infer<typeof VerifyEmailVerificationSchema>;
+export type OAuthCompleteRegistrationDto = z.infer<typeof OAuthCompleteRegistrationSchema>;
 export type OAuthProvider = z.infer<typeof OAuthProviderSchema>;
 export type OAuthIntent = z.infer<typeof OAuthIntentSchema>;

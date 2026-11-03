@@ -2,6 +2,8 @@ import { ConflictError, ForbiddenError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
 import { UsersService } from "#src/modules/users/service/UsersService";
+import { UpdateMeUseCase } from "#src/modules/users/useCase/UpdateMeUseCase";
+import { UpdateUserUseCase } from "#src/modules/users/useCase/UpdateUserUseCase";
 
 function buildServiceWithRepository(repository: Partial<UsersRepository>) {
   const tx: TransactionManager = {
@@ -15,7 +17,7 @@ function buildServiceWithRepository(repository: Partial<UsersRepository>) {
   );
 }
 
-describe("UsersService", () => {
+describe("users use cases", () => {
   it("rejects demoting the last active admin", async () => {
     const repository: Partial<UsersRepository> = {
       findById: jest.fn().mockResolvedValue({
@@ -35,13 +37,13 @@ describe("UsersService", () => {
         lastLoginAt: null,
       }),
       countActiveAdmins: jest.fn().mockResolvedValue(1),
-      updateAdminWithVersion: jest.fn(),
+      update: jest.fn(),
     };
 
     const service = buildServiceWithRepository(repository);
 
     await expect(
-      service.adminUpdate(
+      new UpdateUserUseCase(service).execute(
         { actorId: "super-admin-actor", systemRole: "SYSTEM_MAINTAINER" },
         "11111111-1111-4111-8111-111111111111",
         {
@@ -75,7 +77,7 @@ describe("UsersService", () => {
     const service = buildServiceWithRepository(repository);
 
     await expect(
-      service.adminUpdate(
+      new UpdateUserUseCase(service).execute(
         { actorId: "admin-actor", systemRole: "ADMIN" },
         "11111111-1111-4111-8111-111111111111",
         {
@@ -109,7 +111,7 @@ describe("UsersService", () => {
     const service = buildServiceWithRepository(repository);
 
     await expect(
-      service.adminUpdate(
+      new UpdateUserUseCase(service).execute(
         {
           actorId: "11111111-1111-4111-8111-111111111111",
           systemRole: "SYSTEM_MAINTAINER",
@@ -124,7 +126,7 @@ describe("UsersService", () => {
   });
 
   it("normalizes email for self updates", async () => {
-    const updateMe = jest.fn().mockResolvedValue({
+    const updateProfile = jest.fn().mockResolvedValue({
       id: "22222222-2222-4222-8222-222222222222",
       version: 2,
       createdAt: new Date(),
@@ -159,8 +161,8 @@ describe("UsersService", () => {
         lastLoginAt: null,
       }),
       isActiveEmailTaken: jest.fn().mockResolvedValue(false),
-      updateMe,
-      loadUserAggregate: jest.fn().mockResolvedValue({
+      updateProfile,
+      findAggregate: jest.fn().mockResolvedValue({
         user: {
           id: "22222222-2222-4222-8222-222222222222",
           version: 2,
@@ -197,7 +199,7 @@ describe("UsersService", () => {
 
     const service = buildServiceWithRepository(repository);
 
-    await service.updateMe(
+    await new UpdateMeUseCase(service).execute(
       {
         actorId: "22222222-2222-4222-8222-222222222222",
         systemRole: "USER",
@@ -207,7 +209,7 @@ describe("UsersService", () => {
       },
     );
 
-    expect(updateMe).toHaveBeenCalledWith(
+    expect(updateProfile).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         patch: expect.objectContaining({
@@ -217,4 +219,55 @@ describe("UsersService", () => {
     );
   });
 
+  it("revokes refresh tokens only after the transaction committed", async () => {
+    const userId = "44444444-4444-4444-8444-444444444444";
+    const steps: string[] = [];
+    const row = {
+      id: userId,
+      version: 2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+      createdBy: "00000000-0000-4000-8000-000000000001",
+      updatedBy: null,
+      email: "user@example.test",
+      displayName: "User",
+      username: "user",
+      userTag: "user#000001",
+      systemRole: "USER",
+      status: "DISABLED",
+      emailVerifiedAt: null,
+      lastLoginAt: null,
+    };
+    const repository: Partial<UsersRepository> = {
+      findById: jest.fn().mockResolvedValue({ ...row, version: 1, status: "ACTIVE" }),
+      update: jest.fn().mockResolvedValue(row),
+    };
+    const tx: TransactionManager = {
+      inTransaction: async (work) => {
+        const result = await work({} as AppDatabase);
+        steps.push("commit");
+        return result;
+      },
+    };
+    const service = new UsersService(
+      {} as AppDatabase,
+      tx,
+      repository as UsersRepository,
+      undefined,
+      {
+        revokeRefreshTokensForUser: async () => {
+          steps.push("revoke");
+        },
+      },
+    );
+
+    await new UpdateUserUseCase(service).execute(
+      { actorId: "55555555-5555-4555-8555-555555555555", systemRole: "ADMIN" },
+      userId,
+      { expectedVersion: 1, status: "DISABLED" },
+    );
+
+    expect(steps).toEqual(["commit", "revoke"]);
+  });
 });

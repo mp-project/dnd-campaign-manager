@@ -25,9 +25,12 @@ export {
 } from "../../../modules/users/domain/entities/UsersTable.js";
 
 export {
+  authAttemptActionEnum,
+  authAttempts,
   oauthProviderEnum,
   passwordResetTokens,
   refreshTokens,
+  trustedDevices,
 } from "../../../modules/auth/domain/entities/AuthTable.js";
 
 export {

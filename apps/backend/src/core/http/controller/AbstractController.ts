@@ -1,7 +1,12 @@
 import { ZodError } from "zod";
 
 import { AppError } from "#core/error/AppError";
-import { InternalError, ValidationError } from "#core/error/http/index";
+import { isDatabaseBusyError } from "#core/error/databaseBusy";
+import {
+  InternalError,
+  ServiceUnavailableError,
+  ValidationError,
+} from "#core/error/http/index";
 
 /**
  * Base controller with centralized error normalization for route handlers.
@@ -28,6 +33,10 @@ export abstract class AbstractController {
 
     if (error instanceof ZodError) {
       throw new ValidationError(ValidationError.DEFAULT_MESSAGE, error.issues);
+    }
+
+    if (isDatabaseBusyError(error)) {
+      throw new ServiceUnavailableError();
     }
 
     throw new InternalError("Unhandled server error", {

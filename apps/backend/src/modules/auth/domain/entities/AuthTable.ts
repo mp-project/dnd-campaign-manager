@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -14,6 +15,12 @@ import { baseColumns } from "../../../../core/db/schemaHelpers.js";
 import { users } from "../../../users/domain/entities/UsersTable.js";
 
 export const oauthProviderEnum = pgEnum("oauth_provider", ["GOOGLE", "DISCORD"]);
+export const authAttemptActionEnum = pgEnum("auth_attempt_action", [
+  "LOGIN",
+  "REFRESH",
+  "EMAIL_VERIFICATION",
+  "AUTH_EMAIL",
+]);
 
 export const refreshTokens = pgTable(
   "refresh_tokens",
@@ -63,4 +70,41 @@ export const passwordResetTokens = pgTable(
     index("password_reset_tokens_user_id_idx").on(table.userId),
     index("password_reset_tokens_expires_at_idx").on(table.expiresAt),
   ],
+);
+
+/**
+ * Browsers a user linked to their account; only the token hash is stored.
+ */
+export const trustedDevices = pgTable(
+  "trusted_devices",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    userAgent: varchar("user_agent", { length: 500 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("trusted_devices_token_hash_unique_idx").on(table.tokenHash),
+    index("trusted_devices_user_id_idx").on(table.userId),
+  ],
+);
+
+/**
+ * Counts auth attempts per hashed key (for example email + IP) outside the request transaction.
+ */
+export const authAttempts = pgTable(
+  "auth_attempts",
+  {
+    keyHash: text("key_hash").primaryKey(),
+    action: authAttemptActionEnum("action").notNull(),
+    count: integer("count").notNull(),
+    windowExpiresAt: timestamp("window_expires_at", { withTimezone: true }).notNull(),
+    blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+  },
+  (table) => [index("auth_attempts_window_expires_at_idx").on(table.windowExpiresAt)],
 );

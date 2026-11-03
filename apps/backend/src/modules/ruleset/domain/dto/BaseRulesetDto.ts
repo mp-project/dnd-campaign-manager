@@ -1,46 +1,34 @@
 import { z } from "zod";
 
-export const RulesetStatusSchema = z.enum(["ACTIVE", "ARCHIVED"]);
-export const AssetRulesetCompatibilitySchema = z.enum(["SUPPORTED", "NEUTRAL"]);
+import { baseEntityResponseDto } from "#core/http/dto";
+import { rulesetStatusEnum } from "#src/modules/ruleset/domain/entities/RulesetTable";
 
-export const BaseRulesetWriteSchema = z.strictObject({
+/**
+ * All ruleset fields with their validation rules.
+ * Request and response DTOs derive their fields from this schema.
+ */
+export const RulesetBaseSchema = baseEntityResponseDto.extend({
   code: z.string().trim().min(1).max(40).regex(/^[A-Z0-9_]+$/),
   name: z.string().trim().min(1).max(120),
-  description: z.string().trim().min(1).max(4000).nullable().optional(),
+  description: z.string().trim().min(1).max(4000).nullable(),
+  status: z.enum(rulesetStatusEnum.enumValues),
   editionYear: z.coerce.number().int().min(1900).max(3000),
-  sourceReference: z.record(z.string(), z.unknown()).default({}),
+  sourceReference: z.record(z.string(), z.unknown()),
   licenseCode: z.string().trim().min(1).max(80),
-  attribution: z.string().trim().min(1).max(4000).nullable().optional(),
+  attribution: z.string().trim().min(1).max(4000).nullable(),
 });
 
-export const RulesetLevelProgressionSchema = z.strictObject({
+export const RulesetLevelProgressionBaseSchema = z.strictObject({
   characterLevel: z.coerce.number().int().min(1).max(20),
   proficiencyBonus: z.coerce.number().int().min(1),
   experienceThreshold: z.coerce.number().int().nonnegative().nullable(),
 });
 
-export const RulesetSpellSlotProgressionSchema = z.strictObject({
+export const RulesetSpellSlotProgressionBaseSchema = z.strictObject({
   casterLevel: z.coerce.number().int().min(1).max(20),
   slotLevel: z.coerce.number().int().min(1).max(9),
   slotCount: z.coerce.number().int().min(0),
 });
 
-export function hasAllCharacterLevels(
-  levelProgressions: { characterLevel: number }[],
-): boolean {
-  const uniqueLevels = new Set(levelProgressions.map((item) => item.characterLevel));
-
-  if (uniqueLevels.size !== 20) {
-    return false;
-  }
-
-  for (let level = 1; level <= 20; level += 1) {
-    if (!uniqueLevels.has(level)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-export type BaseRulesetDto = z.infer<typeof BaseRulesetWriteSchema>;
+export type RulesetBaseDto = z.infer<typeof RulesetBaseSchema>;
+export type RulesetStatus = RulesetBaseDto["status"];

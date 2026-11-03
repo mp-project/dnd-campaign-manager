@@ -10,6 +10,13 @@ export function registerErrorHandler(app: FastifyInstance, env: AppEnv): void {
     const mappedError = mapErrorToHttp(error);
     logUnhandledRequestError(env, request, error);
 
+    const retryAfterSeconds = (mappedError.details as { retryAfterSeconds?: unknown } | null | undefined)
+      ?.retryAfterSeconds;
+
+    if (mappedError.code === "RATE_LIMITED" && typeof retryAfterSeconds === "number") {
+      reply.header("retry-after", retryAfterSeconds);
+    }
+
     const isInternalError = mappedError.code === "INTERNAL_ERROR";
     const shouldMaskInternalError =
       (env.NODE_ENV === "production" || env.NODE_ENV === "stage") &&

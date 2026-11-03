@@ -4,6 +4,7 @@ import type {
   OAuthIntent,
   OAuthProvider,
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
+import type { AuthResponseDto } from "#src/modules/auth/domain/dto/AuthResponseDto";
 import type {
   AuthRepository,
   EmailVerificationRequestRow,
@@ -15,6 +16,8 @@ export const MAX_VERIFICATION_ATTEMPTS = 5;
 export const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 export const OAUTH_ONBOARDING_TTL_MS = 10 * 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+export const REFRESH_ROTATION_GRACE_MS = 10 * 1000;
+export const TRUSTED_DEVICE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 export type ClientMetadata = {
   userAgent: string | undefined;
@@ -66,6 +69,14 @@ export type AuthSession = {
   accessExpiresAt: Date;
   refreshToken: string;
   refreshExpiresAt: Date;
+};
+
+/**
+ * The session holds the tokens for the cookies; only the response leaves through the API body.
+ */
+export type AuthenticatedResult = {
+  session: AuthSession;
+  response: AuthResponseDto;
 };
 
 export type StartOAuthResult = {

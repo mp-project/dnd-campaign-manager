@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import {
@@ -7,15 +7,29 @@ import {
 } from "#src/modules/users/domain/entities/UsersTable";
 import type { OAuthProvider } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import {
+  authAttempts,
   passwordResetTokens,
   refreshTokens,
+  trustedDevices,
 } from "#src/modules/auth/domain/entities/AuthTable";
-import { toAuditActorId } from "#src/modules/users/helpers/Audit";
+import { toAuditActorId } from "#core/db/auditActor";
 
 export type UserRow = typeof users.$inferSelect;
 export type RefreshTokenRow = typeof refreshTokens.$inferSelect;
 export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type EmailVerificationRequestRow = typeof emailVerificationRequests.$inferSelect;
+
+export type TrustedDeviceRow = typeof trustedDevices.$inferSelect;
+export type AuthAttemptRow = typeof authAttempts.$inferSelect;
+
+export type UpdateAuthAttemptInput = {
+  keyHash: string;
+  action: AuthAttemptRow["action"];
+  max: number;
+  now: Date;
+  windowExpiresAt: Date;
+  blockedUntil: Date;
+};
 
 export type CreateUserInput = {
   email: string;
@@ -98,7 +112,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async createUser(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
+  async create(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
     const auditActorId = toAuditActorId(input.actorId);
     const values: typeof users.$inferInsert = {
       email: input.email,
@@ -174,7 +188,7 @@ export class AuthRepository {
       .where(and(eq(users.id, params.userId), isNull(users.deletedAt)));
   }
 
-  async setOAuthIdentity(
+  async updateOAuthIdentity(
     db: AppDatabase,
     params: {
       userId: string;
@@ -211,7 +225,7 @@ export class AuthRepository {
     return updated ?? null;
   }
 
-  async markEmailVerified(
+  async updateEmailVerified(
     db: AppDatabase,
     params: {
       userId: string;
@@ -299,7 +313,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async incrementEmailVerificationAttemptCount(
+  async updateEmailVerificationAttemptCount(
     db: AppDatabase,
     verificationId: string,
     actorId?: string,
@@ -403,7 +417,21 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async markRefreshTokenRotated(
+  async findRefreshTokenByHashForUpdate(
+    db: AppDatabase,
+    tokenHash: string,
+  ): Promise<RefreshTokenRow | null> {
+    const rows = await db
+      .select()
+      .from(refreshTokens)
+      .where(and(eq(refreshTokens.tokenHash, tokenHash), isNull(refreshTokens.deletedAt)))
+      .for("update")
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  async updateRefreshTokenRotated(
     db: AppDatabase,
     params: {
       tokenId: string;
@@ -425,7 +453,7 @@ export class AuthRepository {
       .where(and(eq(refreshTokens.id, params.tokenId), isNull(refreshTokens.deletedAt)));
   }
 
-  async revokeRefreshTokenById(
+  async updateRefreshTokenRevoked(
     db: AppDatabase,
     params: {
       tokenId: string;
@@ -445,7 +473,7 @@ export class AuthRepository {
       .where(and(eq(refreshTokens.id, params.tokenId), isNull(refreshTokens.deletedAt)));
   }
 
-  async revokeRefreshTokenFamily(
+  async updateRefreshTokenFamilyRevoked(
     db: AppDatabase,
     params: {
       familyId: string;
@@ -471,7 +499,7 @@ export class AuthRepository {
       );
   }
 
-  async revokeAllRefreshTokensForUser(
+  async updateRefreshTokensRevokedForUser(
     db: AppDatabase,
     params: {
       userId: string;
@@ -555,7 +583,7 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
-  async consumePasswordResetToken(
+  async updatePasswordResetTokenConsumed(
     db: AppDatabase,
     params: {
       tokenId: string;
@@ -578,5 +606,110 @@ export class AuthRepository {
           isNull(passwordResetTokens.deletedAt),
         ),
       );
+  }
+
+  async findTrustedDeviceByHash(
+    db: AppDatabase,
+    tokenHash: string,
+    now: Date,
+  ): Promise<{ device: TrustedDeviceRow; email: string } | null> {
+    const rows = await db
+      .select({ device: trustedDevices, email: users.email })
+      .from(trustedDevices)
+      .innerJoin(users, eq(users.id, trustedDevices.userId))
+      .where(and(eq(trustedDevices.tokenHash, tokenHash), gt(trustedDevices.expiresAt, now)))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  async createTrustedDevice(
+    db: AppDatabase,
+    input: Pick<TrustedDeviceRow, "userId" | "tokenHash" | "userAgent" | "expiresAt">,
+  ): Promise<void> {
+    await db.insert(trustedDevices).values(input);
+  }
+
+  async updateTrustedDeviceLastUsed(db: AppDatabase, deviceId: string, at: Date): Promise<void> {
+    await db.update(trustedDevices).set({ lastUsedAt: at }).where(eq(trustedDevices.id, deviceId));
+  }
+
+  async deleteTrustedDevice(db: AppDatabase, userId: string, tokenHash: string): Promise<void> {
+    await db
+      .delete(trustedDevices)
+      .where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.tokenHash, tokenHash)));
+  }
+
+  async deleteTrustedDevicesForUser(db: AppDatabase, userId: string): Promise<void> {
+    await db.delete(trustedDevices).where(eq(trustedDevices.userId, userId));
+  }
+
+  async deleteExpiredTrustedDevices(db: AppDatabase, userId: string, now: Date): Promise<void> {
+    await db
+      .delete(trustedDevices)
+      .where(and(eq(trustedDevices.userId, userId), lte(trustedDevices.expiresAt, now)));
+  }
+
+  /**
+   * Returns the latest active block of the given keys.
+   */
+  async findAttemptBlockedUntil(
+    db: AppDatabase,
+    keyHashes: string[],
+    now: Date,
+  ): Promise<Date | null> {
+    const rows = await db
+      .select({ blockedUntil: authAttempts.blockedUntil })
+      .from(authAttempts)
+      .where(and(inArray(authAttempts.keyHash, keyHashes), gt(authAttempts.blockedUntil, now)));
+
+    return rows.reduce<Date | null>(
+      (latest, { blockedUntil }) =>
+        blockedUntil && (!latest || blockedUntil > latest) ? blockedUntil : latest,
+      null,
+    );
+  }
+
+  /**
+   * Counts one attempt atomically. Reaching `max` blocks the key; a block ends the window, so the
+   * count starts over once it expires.
+   */
+  async updateAttempt(db: AppDatabase, input: UpdateAuthAttemptInput): Promise<void> {
+    const windowExpired = sql`${authAttempts.windowExpiresAt} <= ${input.now}::timestamptz`;
+    const nextCount = sql`case when ${windowExpired} then 1 else ${authAttempts.count} + 1 end`;
+    const reachedMax = sql`${nextCount} >= ${input.max}`;
+
+    await db
+      .insert(authAttempts)
+      .values({
+        keyHash: input.keyHash,
+        action: input.action,
+        count: 1,
+        windowExpiresAt: input.windowExpiresAt,
+      })
+      .onConflictDoUpdate({
+        target: authAttempts.keyHash,
+        set: {
+          count: nextCount,
+          blockedUntil: sql`case
+            when ${reachedMax} then ${input.blockedUntil}::timestamptz
+            when ${windowExpired} then null
+            else ${authAttempts.blockedUntil}
+          end`,
+          windowExpiresAt: sql`case
+            when ${reachedMax} then ${input.blockedUntil}::timestamptz
+            when ${windowExpired} then ${input.windowExpiresAt}::timestamptz
+            else ${authAttempts.windowExpiresAt}
+          end`,
+        },
+      });
+  }
+
+  async deleteAttempt(db: AppDatabase, keyHash: string): Promise<void> {
+    await db.delete(authAttempts).where(eq(authAttempts.keyHash, keyHash));
+  }
+
+  async deleteExpiredAttempts(db: AppDatabase, now: Date): Promise<void> {
+    await db.delete(authAttempts).where(lte(authAttempts.windowExpiresAt, now));
   }
 }

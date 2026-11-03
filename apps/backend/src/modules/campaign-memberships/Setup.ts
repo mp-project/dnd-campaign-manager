@@ -3,10 +3,17 @@ import type { FastifyInstance } from "fastify";
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
 import { CampaignMembershipsRepository } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
-import { registerCampaignMembershipRoutes } from "#src/modules/campaign-memberships/http/routes/v1/CampaignMembershipsRoutes";
-import { CampaignMembershipsController } from "#src/modules/campaign-memberships/http/controller/CampaignMembershipsController";
+import { registerCampaignMembershipsRoutes } from "#src/modules/campaign-memberships/http/routes/v1/CampaignMembershipsRoutes";
+import { ListCampaignMembersController } from "#src/modules/campaign-memberships/http/controller/ListCampaignMembersController";
+import { UpdateCampaignMemberController } from "#src/modules/campaign-memberships/http/controller/UpdateCampaignMemberController";
+import { DeleteCampaignMemberController } from "#src/modules/campaign-memberships/http/controller/DeleteCampaignMemberController";
+import { GetMyCampaignPermissionsController } from "#src/modules/campaign-memberships/http/controller/GetMyCampaignPermissionsController";
 import { campaignMembershipPermissionDefinitions } from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
 import { CampaignMembershipsService } from "#src/modules/campaign-memberships/service/CampaignMembershipsService";
+import { ListCampaignMembersUseCase } from "#src/modules/campaign-memberships/useCase/ListCampaignMembersUseCase";
+import { UpdateCampaignMemberUseCase } from "#src/modules/campaign-memberships/useCase/UpdateCampaignMemberUseCase";
+import { DeleteCampaignMemberUseCase } from "#src/modules/campaign-memberships/useCase/DeleteCampaignMemberUseCase";
+import { GetMyCampaignPermissionsUseCase } from "#src/modules/campaign-memberships/useCase/GetMyCampaignPermissionsUseCase";
 import {
   CAMPAIGNS_MODULE_DEPENDENCIES,
   type CampaignsModuleDependencies,
@@ -66,13 +73,22 @@ async function registerCampaignMembershipsModule(
     { repository, service },
   );
 
-  const controller = new CampaignMembershipsController(service);
-  app.register(
-    async (membershipApp) => {
-      registerCampaignMembershipRoutes(membershipApp, controller);
-    },
-    { prefix: "/campaigns" },
-  );
+  app.register(async (campaignMembershipsApp) => {
+    registerCampaignMembershipsRoutes(campaignMembershipsApp, {
+      listCampaignMembersController: new ListCampaignMembersController(
+        new ListCampaignMembersUseCase(service),
+      ),
+      updateCampaignMemberController: new UpdateCampaignMemberController(
+        new UpdateCampaignMemberUseCase(service),
+      ),
+      deleteCampaignMemberController: new DeleteCampaignMemberController(
+        new DeleteCampaignMemberUseCase(service),
+      ),
+      getMyCampaignPermissionsController: new GetMyCampaignPermissionsController(
+        new GetMyCampaignPermissionsUseCase(service),
+      ),
+    });
+  });
 }
 
 export const campaignMembershipsModule: AppModule = {

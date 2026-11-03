@@ -10,3 +10,4 @@ export * from "#core/error/http/ConflictError";
 export * from "#core/error/http/VersionConflictError";
 export * from "#core/error/http/RateLimitedError";
 export * from "#core/error/http/InternalError";
+export * from "#core/error/http/ServiceUnavailableError";

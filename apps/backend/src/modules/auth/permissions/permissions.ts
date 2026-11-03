@@ -21,6 +21,7 @@ import {
   ASSETS_USER_PERMISSION_KEYS,
 } from "#src/modules/assets/permissions/AssetsPermissions";
 import {
+  USERS_PERMISSIONS,
   USERS_PERMISSION_KEYS,
   USERS_SELF_SERVICE_PERMISSION_KEYS,
 } from "#src/modules/users/permissions/UsersPermissions";
@@ -37,7 +38,7 @@ export const CORE_PERMISSION_KEYS = [
 export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...AUTH_PERMISSION_KEYS,
   ...USERS_SELF_SERVICE_PERMISSION_KEYS,
-  USERS_PERMISSION_KEYS[2],
+  USERS_PERMISSIONS.read,
   ...RULESET_READ_PERMISSION_KEYS,
   ...CAMPAIGNS_USER_PERMISSION_KEYS,
   ...CAMPAIGN_MEMBERSHIP_USER_PERMISSION_KEYS,

@@ -4,6 +4,7 @@ import {
 } from "fastify-type-provider-zod";
 
 import { AppError } from "#core/error/AppError";
+import { isDatabaseBusyError } from "#core/error/databaseBusy";
 import {
   type DomainErrorCode,
 } from "#core/error/http/index";
@@ -111,6 +112,15 @@ export function mapErrorToHttp(error: unknown): MappedHttpError {
       code: error.code,
       message: error.message,
       details: error.details,
+    };
+  }
+
+  if (isDatabaseBusyError(error)) {
+    return {
+      statusCode: 503,
+      code: "SERVICE_UNAVAILABLE",
+      message: "Service temporarily unavailable",
+      details: null,
     };
   }
 

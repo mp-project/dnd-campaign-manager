@@ -6,6 +6,7 @@ import jsonwebtoken, { type JwtPayload } from "jsonwebtoken";
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
 import { uuidDto } from "#core/http/dto";
+import { ROUTE_RATE_LIMIT, buildRateLimitKey } from "#core/http/rateLimit";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
 import type {
   CampaignContext,
@@ -220,8 +221,10 @@ function extractCampaignId(request: FastifyRequest): string | null {
 export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void {
   app.register(rateLimit, {
     global: true,
-    max: 100,
-    timeWindow: "1 minute",
+    ...ROUTE_RATE_LIMIT,
+    keyGenerator: buildRateLimitKey,
+    // One entry per user and route; the default of 5000 would evict active counters.
+    cache: 50_000,
   });
 
   app.register(cors, {

@@ -1,35 +1,23 @@
 import { z } from "zod";
 
 import { expectedVersionDto } from "#core/http/dto";
-import {
-  BaseRulesetWriteSchema,
-  RulesetStatusSchema,
-} from "#src/modules/ruleset/domain/dto/BaseRulesetDto";
+import { RulesetBaseSchema } from "#src/modules/ruleset/domain/dto/BaseRulesetDto";
 
-const UpdateRulesetMutableFieldsSchema = BaseRulesetWriteSchema
-  .pick({
-    name: true,
-    description: true,
-    attribution: true,
-  })
-  .extend({
-    sourceReference: z.record(z.string(), z.unknown()).optional(),
-    status: RulesetStatusSchema.optional(),
-  })
-  .partial();
-
-export const UpdateRulesetSchema = UpdateRulesetMutableFieldsSchema
-  .merge(expectedVersionDto)
+export const UpdateRulesetSchema = RulesetBaseSchema.pick({
+  name: true,
+  description: true,
+  attribution: true,
+  sourceReference: true,
+  status: true,
+})
+  .partial()
+  .extend(expectedVersionDto.shape)
   .refine(
     (value) =>
-      value.name !== undefined ||
-      value.description !== undefined ||
-      value.status !== undefined ||
-      value.sourceReference !== undefined ||
-      value.attribution !== undefined,
-    {
-      message: "At least one field must be provided for patch updates",
-    },
+      Object.entries(value).some(
+        ([field, fieldValue]) => field !== "expectedVersion" && fieldValue !== undefined,
+      ),
+    { message: "At least one field must be provided for patch updates" },
   );
 
 export type UpdateRulesetDto = z.infer<typeof UpdateRulesetSchema>;

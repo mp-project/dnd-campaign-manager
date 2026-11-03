@@ -6,6 +6,11 @@ import type { AppDatabase } from "#core/db/pool";
 import { AuthError } from "#src/modules/auth/error/http/AuthError";
 import type { LoginDto } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import type { UserRow } from "#src/modules/auth/domain/repository/AuthRepository";
+import {
+  type AuthAttemptService,
+  loginAttemptKeys,
+  refreshAttemptKeys,
+} from "#src/modules/auth/service/AuthAttemptService";
 import type {
   AuthServiceDependencies,
   AuthSession,
@@ -17,16 +22,33 @@ export class AuthSessionService {
   constructor(
     private readonly deps: AuthServiceDependencies,
     private readonly verifyPassword: (passwordHash: string | null, password: string) => Promise<boolean>,
+    private readonly attempts: AuthAttemptService,
   ) {}
 
   async login(input: LoginDto, metadata: ClientMetadata): Promise<AuthSession> {
     const normalizedEmail = input.email.trim().toLowerCase();
+    const keys = loginAttemptKeys(normalizedEmail, metadata.ip);
+    const session = await this.attempts.trackFailures(
+      keys.all,
+      (error) => error instanceof AuthError && error.code === "INVALID_CREDENTIALS",
+      () => this.loginInTransaction(normalizedEmail, input.password, metadata),
+    );
 
+    await this.attempts.clear(keys.emailIp);
+
+    return session;
+  }
+
+  private loginInTransaction(
+    normalizedEmail: string,
+    password: string,
+    metadata: ClientMetadata,
+  ): Promise<AuthSession> {
     return this.deps.transactionManager.inTransaction(async (tx) => {
       const user = await this.deps.repository.findByEmail(tx, normalizedEmail);
       const passwordValid = await this.verifyPassword(
         user?.passwordHash ?? null,
-        input.password,
+        password,
       );
 
       if (!user || !passwordValid) {
@@ -54,6 +76,14 @@ export class AuthSessionService {
   async refresh(refreshToken: string, metadata: ClientMetadata): Promise<AuthSession> {
     const tokenHash = sha256(refreshToken);
 
+    return this.attempts.trackFailures(
+      refreshAttemptKeys(tokenHash, metadata.ip),
+      (error) => error instanceof AuthError && error.code === "SESSION_INVALID",
+      () => this.refreshInTransaction(tokenHash, metadata),
+    );
+  }
+
+  private refreshInTransaction(tokenHash: string, metadata: ClientMetadata): Promise<AuthSession> {
     return this.deps.transactionManager.inTransaction(async (tx) => {
       const currentToken = await this.deps.repository.findRefreshTokenByHash(tx, tokenHash);
 

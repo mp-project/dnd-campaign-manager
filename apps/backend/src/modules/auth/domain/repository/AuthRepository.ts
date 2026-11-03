@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import {
@@ -7,6 +7,7 @@ import {
 } from "#src/modules/users/domain/entities/UsersTable";
 import type { OAuthProvider } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import {
+  authAttempts,
   passwordResetTokens,
   refreshTokens,
 } from "#src/modules/auth/domain/entities/AuthTable";
@@ -16,6 +17,17 @@ export type UserRow = typeof users.$inferSelect;
 export type RefreshTokenRow = typeof refreshTokens.$inferSelect;
 export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type EmailVerificationRequestRow = typeof emailVerificationRequests.$inferSelect;
+
+export type AuthAttemptRow = typeof authAttempts.$inferSelect;
+
+export type UpdateAuthAttemptInput = {
+  keyHash: string;
+  action: AuthAttemptRow["action"];
+  max: number;
+  now: Date;
+  windowExpiresAt: Date;
+  blockedUntil: Date;
+};
 
 export type CreateUserInput = {
   email: string;
@@ -578,5 +590,68 @@ export class AuthRepository {
           isNull(passwordResetTokens.deletedAt),
         ),
       );
+  }
+
+  /**
+   * Returns the latest active block of the given keys.
+   */
+  async findAttemptBlockedUntil(
+    db: AppDatabase,
+    keyHashes: string[],
+    now: Date,
+  ): Promise<Date | null> {
+    const rows = await db
+      .select({ blockedUntil: authAttempts.blockedUntil })
+      .from(authAttempts)
+      .where(and(inArray(authAttempts.keyHash, keyHashes), gt(authAttempts.blockedUntil, now)));
+
+    return rows.reduce<Date | null>(
+      (latest, { blockedUntil }) =>
+        blockedUntil && (!latest || blockedUntil > latest) ? blockedUntil : latest,
+      null,
+    );
+  }
+
+  /**
+   * Counts one attempt atomically. Reaching `max` blocks the key; a block ends the window, so the
+   * count starts over once it expires.
+   */
+  async updateAttempt(db: AppDatabase, input: UpdateAuthAttemptInput): Promise<void> {
+    const windowExpired = sql`${authAttempts.windowExpiresAt} <= ${input.now}::timestamptz`;
+    const nextCount = sql`case when ${windowExpired} then 1 else ${authAttempts.count} + 1 end`;
+    const reachedMax = sql`${nextCount} >= ${input.max}`;
+
+    await db
+      .insert(authAttempts)
+      .values({
+        keyHash: input.keyHash,
+        action: input.action,
+        count: 1,
+        windowExpiresAt: input.windowExpiresAt,
+      })
+      .onConflictDoUpdate({
+        target: authAttempts.keyHash,
+        set: {
+          count: nextCount,
+          blockedUntil: sql`case
+            when ${reachedMax} then ${input.blockedUntil}::timestamptz
+            when ${windowExpired} then null
+            else ${authAttempts.blockedUntil}
+          end`,
+          windowExpiresAt: sql`case
+            when ${reachedMax} then ${input.blockedUntil}::timestamptz
+            when ${windowExpired} then ${input.windowExpiresAt}::timestamptz
+            else ${authAttempts.windowExpiresAt}
+          end`,
+        },
+      });
+  }
+
+  async deleteAttempt(db: AppDatabase, keyHash: string): Promise<void> {
+    await db.delete(authAttempts).where(eq(authAttempts.keyHash, keyHash));
+  }
+
+  async deleteExpiredAttempts(db: AppDatabase, now: Date): Promise<void> {
+    await db.delete(authAttempts).where(lte(authAttempts.windowExpiresAt, now));
   }
 }

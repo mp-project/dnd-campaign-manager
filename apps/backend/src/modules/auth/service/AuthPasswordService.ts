@@ -7,7 +7,14 @@ import type {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
-import type { AuthServiceDependencies } from "#src/modules/auth/service/AuthService.contracts";
+import {
+  type AuthAttemptService,
+  authEmailAttemptKeys,
+} from "#src/modules/auth/service/AuthAttemptService";
+import type {
+  AuthServiceDependencies,
+  ClientMetadata,
+} from "#src/modules/auth/service/AuthService.contracts";
 import { PASSWORD_RESET_TTL_MS } from "#src/modules/auth/service/AuthService.contracts";
 import { normalizeEmail } from "#src/modules/auth/service/AuthService.utils";
 import { AuthError } from "#src/modules/auth/error/http/AuthError";
@@ -28,6 +35,7 @@ export class AuthPasswordService {
     private readonly hashPassword: (password: string) => Promise<string>,
     private readonly verifyPassword: (passwordHash: string | null, password: string) => Promise<boolean>,
     private readonly consumeComparableDelay: (secret: string) => Promise<void>,
+    private readonly attempts: AuthAttemptService,
   ) {}
 
   async changePassword(context: RequestContext, input: ChangePasswordDto): Promise<void> {
@@ -63,8 +71,11 @@ export class AuthPasswordService {
     });
   }
 
-  async requestPasswordReset(input: ForgotPasswordDto): Promise<void> {
+  async requestPasswordReset(input: ForgotPasswordDto, metadata: ClientMetadata): Promise<void> {
     const normalizedEmail = normalizeEmail(input.email);
+
+    // Counted for unknown emails as well, so a block reveals nothing about existing accounts.
+    await this.attempts.consume(authEmailAttemptKeys(normalizedEmail, metadata.ip));
 
     await this.deps.transactionManager.inTransaction(async (tx) => {
       const user = await this.deps.repository.findByEmail(tx, normalizedEmail);

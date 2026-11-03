@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -14,6 +15,12 @@ import { baseColumns } from "../../../../core/db/schemaHelpers.js";
 import { users } from "../../../users/domain/entities/UsersTable.js";
 
 export const oauthProviderEnum = pgEnum("oauth_provider", ["GOOGLE", "DISCORD"]);
+export const authAttemptActionEnum = pgEnum("auth_attempt_action", [
+  "LOGIN",
+  "REFRESH",
+  "EMAIL_VERIFICATION",
+  "AUTH_EMAIL",
+]);
 
 export const refreshTokens = pgTable(
   "refresh_tokens",
@@ -63,4 +70,19 @@ export const passwordResetTokens = pgTable(
     index("password_reset_tokens_user_id_idx").on(table.userId),
     index("password_reset_tokens_expires_at_idx").on(table.expiresAt),
   ],
+);
+
+/**
+ * Counts auth attempts per hashed key (for example email + IP) outside the request transaction.
+ */
+export const authAttempts = pgTable(
+  "auth_attempts",
+  {
+    keyHash: text("key_hash").primaryKey(),
+    action: authAttemptActionEnum("action").notNull(),
+    count: integer("count").notNull(),
+    windowExpiresAt: timestamp("window_expires_at", { withTimezone: true }).notNull(),
+    blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+  },
+  (table) => [index("auth_attempts_window_expires_at_idx").on(table.windowExpiresAt)],
 );

@@ -82,6 +82,12 @@ Flow: route (Zod `schema` + `config.permission`) → controller (extends `Abstra
 
 Rate limiting is central (`src/core/http/rateLimit.ts`): every route gets `ROUTE_RATE_LIMIT` (`GET` higher than writes), counted per user (or client IP when anonymous) and route pattern, so routes don't share a budget. Don't add limits per module; only auth routes and routes that send email set `config.rateLimit: SENSITIVE_ROUTE_RATE_LIMIT`, with a higher budget per IP because several users of one session often share a network.
 
+Auth attempts are counted on top of that in `auth_attempts` (`AuthAttemptService`): failed logins, refreshes and verification codes, plus every auth email. Limits are per account or token and, much higher, per IP; blocked requests get 429 with `Retry-After`. Attempts must be recorded outside the request transaction, because the thrown error rolls it back.
+
+Busy database: the pool sets `connectionTimeoutMillis` and `lock_timeout` (5 s); both timeouts map to `ServiceUnavailableError` (503).
+
+Inside `inTransaction`, only run queries on the `tx` handle. Calling something that uses its own `db` (for example another module's service or use case) needs a second pool connection while the first is held; with a row lock this can block the whole API (`tests/integration/campaign-memberships.concurrency.test.ts`). Do those lookups before opening the transaction.
+
 ### Auth, permissions, campaign context
 
 - JWT access tokens carry `sub` (actor id) and `systemRole`; request context is on `request.requestContext`.

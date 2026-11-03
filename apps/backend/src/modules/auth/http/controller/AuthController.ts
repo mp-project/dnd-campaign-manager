@@ -53,7 +53,10 @@ export class AuthController extends AbstractController {
   ) =>
     this.execute(async () => {
       const body = RequestEmailVerificationSchema.parse(request.body);
-      const verification = await this.authService.requestRegistrationVerification(body.email);
+      const verification = await this.authService.requestRegistrationVerification(body.email, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
 
       return toEmailVerificationResponse(verification);
     });
@@ -73,7 +76,10 @@ export class AuthController extends AbstractController {
   register = async (request: FastifyRequest) =>
     this.execute(async () => {
       const body = RegisterSchema.parse(request.body);
-      const result = await this.authService.register(body);
+      const result = await this.authService.register(body, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
 
       return toRegisterUserResponseFromResult(result);
     });
@@ -81,7 +87,10 @@ export class AuthController extends AbstractController {
   verifyRegistrationEmail = async (request: FastifyRequest) =>
     this.execute(async () => {
       const body = VerifyEmailVerificationSchema.parse(request.body);
-      const user = await this.authService.verifyRegistrationEmail(body);
+      const user = await this.authService.verifyRegistrationEmail(body, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
 
       return toRegisterUserResponse({
         user,
@@ -163,7 +172,10 @@ export class AuthController extends AbstractController {
   forgotPassword = async (request: FastifyRequest) =>
     this.execute(async () => {
       const body = ForgotPasswordSchema.parse(request.body);
-      await this.authService.requestPasswordReset(body);
+      await this.authService.requestPasswordReset(body, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
 
       return {
         status: "accepted" as const,

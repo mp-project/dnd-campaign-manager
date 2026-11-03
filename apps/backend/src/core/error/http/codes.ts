@@ -7,6 +7,7 @@ export const domainErrorCodes = [
   "VERSION_CONFLICT",
   "RATE_LIMITED",
   "INTERNAL_ERROR",
+  "SERVICE_UNAVAILABLE",
 ] as const;
 
 export type DomainErrorCode = (typeof domainErrorCodes)[number];
@@ -20,6 +21,7 @@ const statusByCode: Record<DomainErrorCode, number> = {
   VERSION_CONFLICT: 412,
   RATE_LIMITED: 429,
   INTERNAL_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503,
 };
 
 /**

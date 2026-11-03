@@ -39,6 +39,9 @@ export function createPgPool(connectionString: string): Pool {
   return new PgPool({
     connectionString,
     max: 10,
+    // Fail instead of waiting forever when the pool is exhausted or a row stays locked.
+    connectionTimeoutMillis: 5_000,
+    lock_timeout: 5_000,
   });
 }
 

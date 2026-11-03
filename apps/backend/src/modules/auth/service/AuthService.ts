@@ -21,6 +21,7 @@ import type {
 import { AuthError } from "#src/modules/auth/error/http/AuthError";
 import { AuthOAuthService } from "#src/modules/auth/service/AuthOAuthService";
 import { AuthPasswordService } from "#src/modules/auth/service/AuthPasswordService";
+import { AuthAttemptService } from "#src/modules/auth/service/AuthAttemptService";
 import { AuthPasswordSupport } from "#src/modules/auth/service/AuthPasswordSupport";
 import { AuthRegistrationService } from "#src/modules/auth/service/AuthRegistrationService";
 import { AuthSessionService } from "#src/modules/auth/service/AuthSessionService";
@@ -79,14 +80,17 @@ export class AuthService {
       refreshTtlMs: durationToMilliseconds(config.jwtRefreshTtl),
     };
     const passwordSupport = new AuthPasswordSupport();
+    const attempts = new AuthAttemptService(db, repository);
 
     this.sessionService = new AuthSessionService(
       deps,
       passwordSupport.verifyPassword.bind(passwordSupport),
+      attempts,
     );
     this.registrationService = new AuthRegistrationService(
       deps,
       passwordSupport.hashPassword.bind(passwordSupport),
+      attempts,
     );
     this.passwordService = new AuthPasswordService(
       deps,
@@ -99,24 +103,28 @@ export class AuthService {
       passwordSupport.hashPassword.bind(passwordSupport),
       passwordSupport.verifyPassword.bind(passwordSupport),
       passwordSupport.consumeComparableDelay.bind(passwordSupport),
+      attempts,
     );
     this.oauthService = new AuthOAuthService(deps, this.sessionService);
   }
 
-  requestRegistrationVerification(email: string) {
-    return this.registrationService.requestRegistrationVerification(email);
+  requestRegistrationVerification(email: string, metadata: ClientMetadata) {
+    return this.registrationService.requestRegistrationVerification(email, metadata);
   }
 
   getRegistrationVerificationStatus(verificationId: string) {
     return this.registrationService.getRegistrationVerificationStatus(verificationId);
   }
 
-  register(input: RegisterDto): Promise<RegisterUserResult> {
-    return this.registrationService.register(input);
+  register(input: RegisterDto, metadata: ClientMetadata): Promise<RegisterUserResult> {
+    return this.registrationService.register(input, metadata);
   }
 
-  verifyRegistrationEmail(input: VerifyEmailVerificationDto): Promise<UserRow> {
-    return this.registrationService.verifyRegistrationEmail(input);
+  verifyRegistrationEmail(
+    input: VerifyEmailVerificationDto,
+    metadata: ClientMetadata,
+  ): Promise<UserRow> {
+    return this.registrationService.verifyRegistrationEmail(input, metadata);
   }
 
   verifyRegistrationEmailByToken(input: {
@@ -182,8 +190,8 @@ export class AuthService {
     return this.passwordService.changePassword(context, input);
   }
 
-  requestPasswordReset(input: ForgotPasswordDto): Promise<void> {
-    return this.passwordService.requestPasswordReset(input);
+  requestPasswordReset(input: ForgotPasswordDto, metadata: ClientMetadata): Promise<void> {
+    return this.passwordService.requestPasswordReset(input, metadata);
   }
 
   confirmPasswordReset(input: ResetPasswordDto): Promise<void> {

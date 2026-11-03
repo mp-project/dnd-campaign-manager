@@ -8,10 +8,17 @@ export class RegisterUserController extends AbstractController {
     super();
   }
 
-  handle = async (request: { body: unknown }) =>
+  handle = async (request: {
+    body: unknown;
+    ip: string;
+    headers: { "user-agent"?: string | undefined };
+  }) =>
     this.execute(async () => {
       const body = RegisterUserSchema.parse(request.body);
-      const result = await this.registerUserUseCase.execute(body);
+      const result = await this.registerUserUseCase.execute(body, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
 
       return toRegisterUserResponse({
         user: result.user,

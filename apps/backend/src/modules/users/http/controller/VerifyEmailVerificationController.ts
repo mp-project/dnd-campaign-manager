@@ -10,10 +10,17 @@ export class VerifyEmailVerificationController extends AbstractController {
     super();
   }
 
-  handle = async (request: { body: unknown }) =>
+  handle = async (request: {
+    body: unknown;
+    ip: string;
+    headers: { "user-agent"?: string | undefined };
+  }) =>
     this.execute(async () => {
       const body = VerifyEmailVerificationSchema.parse(request.body);
-      const user = await this.verifyEmailVerificationUseCase.execute(body);
+      const user = await this.verifyEmailVerificationUseCase.execute(body, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
 
       return toRegisterUserResponse({
         user,

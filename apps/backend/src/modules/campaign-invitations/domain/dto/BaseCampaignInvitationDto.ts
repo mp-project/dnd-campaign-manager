@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { isoDateTimeDto, uuidDto } from "#core/http/dto";
 import { campaignInvitationStatusEnum } from "#src/modules/campaign-invitations/domain/entities/CampaignInvitationsTable";
-import { CampaignMembershipRoleSchema } from "#src/modules/campaign-memberships/domain/dto/BaseCampaignMembershipDto";
+import { CampaignMembershipBaseSchema } from "#src/modules/campaign-memberships/domain/dto/BaseCampaignMembershipDto";
 import { UserEmailSchema, UserTagSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 /**
@@ -14,7 +14,7 @@ export const CampaignInvitationBaseSchema = z.strictObject({
   campaignId: uuidDto,
   email: UserEmailSchema,
   userTag: UserTagSchema,
-  role: CampaignMembershipRoleSchema,
+  role: CampaignMembershipBaseSchema.shape.role,
   status: z.enum(campaignInvitationStatusEnum.enumValues),
   expiresAt: isoDateTimeDto,
 });

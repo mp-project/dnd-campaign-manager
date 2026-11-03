@@ -13,22 +13,35 @@ import {
   CampaignMembershipParamsSchema,
 } from "#src/modules/campaign-memberships/domain/dto/RequestCampaignMembershipDto";
 import { UpdateCampaignMembershipRoleSchema } from "#src/modules/campaign-memberships/domain/dto/UpdateCampaignMembershipDto";
-import { CampaignMembershipsController } from "#src/modules/campaign-memberships/http/controller/CampaignMembershipsController";
+import { DeleteCampaignMemberController } from "#src/modules/campaign-memberships/http/controller/DeleteCampaignMemberController";
+import { GetMyCampaignPermissionsController } from "#src/modules/campaign-memberships/http/controller/GetMyCampaignPermissionsController";
+import { ListCampaignMembersController } from "#src/modules/campaign-memberships/http/controller/ListCampaignMembersController";
+import { UpdateCampaignMemberController } from "#src/modules/campaign-memberships/http/controller/UpdateCampaignMemberController";
 
-export function registerCampaignMembershipRoutes(
+export type CampaignMembershipsRouteControllers = {
+  listCampaignMembersController: ListCampaignMembersController;
+  updateCampaignMemberController: UpdateCampaignMemberController;
+  deleteCampaignMemberController: DeleteCampaignMemberController;
+  getMyCampaignPermissionsController: GetMyCampaignPermissionsController;
+};
+
+const tags = ["Campaign Memberships"];
+const security = [{ cookieAuth: [] }] as const;
+
+export function registerCampaignMembershipsRoutes(
   app: FastifyInstance,
-  controller: CampaignMembershipsController,
+  controllers: CampaignMembershipsRouteControllers,
 ): void {
   app.get(
-    "/:campaignId/members",
+    "/campaigns/:campaignId/members",
     {
       config: {
         permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Campaign Memberships"],
+        tags,
         operationId: "listCampaignMembers",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignMembershipParamsSchema,
         response: {
           200: CampaignMemberListResponseSchema,
@@ -38,19 +51,19 @@ export function registerCampaignMembershipRoutes(
         },
       },
     },
-    controller.list,
+    controllers.listCampaignMembersController.handle,
   );
 
   app.patch(
-    "/:campaignId/members/:memberId",
+    "/campaigns/:campaignId/members/:memberId",
     {
       config: {
         permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.updateRole },
       },
       schema: {
-        tags: ["Campaign Memberships"],
+        tags,
         operationId: "changeCampaignMemberRole",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignMembershipItemParamsSchema,
         body: UpdateCampaignMembershipRoleSchema,
         response: {
@@ -64,19 +77,19 @@ export function registerCampaignMembershipRoutes(
         },
       },
     },
-    controller.changeRole,
+    controllers.updateCampaignMemberController.handle,
   );
 
   app.delete(
-    "/:campaignId/members/:memberId",
+    "/campaigns/:campaignId/members/:memberId",
     {
       config: {
         permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.revoke },
       },
       schema: {
-        tags: ["Campaign Memberships"],
+        tags,
         operationId: "revokeCampaignMember",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignMembershipItemParamsSchema,
         response: {
           204: z.null(),
@@ -88,19 +101,22 @@ export function registerCampaignMembershipRoutes(
         },
       },
     },
-    controller.revoke,
+    async (request, reply) => {
+      await controllers.deleteCampaignMemberController.handle(request);
+      return reply.code(204).send();
+    },
   );
 
   app.get(
-    "/:campaignId/me/permissions",
+    "/campaigns/:campaignId/me/permissions",
     {
       config: {
         permission: { key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Campaign Memberships"],
+        tags,
         operationId: "getMyCampaignMemberPermissions",
-        security: [{ cookieAuth: [] }],
+        security,
         params: CampaignMembershipParamsSchema,
         response: {
           200: CampaignMembershipPermissionsResponseSchema,
@@ -110,6 +126,6 @@ export function registerCampaignMembershipRoutes(
         },
       },
     },
-    controller.myPermissions,
+    controllers.getMyCampaignPermissionsController.handle,
   );
 }

@@ -4,6 +4,7 @@ import { standardListResponseDto } from "#core/http/dto";
 import { createStandardListResponse } from "#core/http/listResponse";
 import { CampaignInvitationBaseSchema } from "#src/modules/campaign-invitations/domain/dto/BaseCampaignInvitationDto";
 import type { CampaignInvitationRow } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
+import { UserDisplayNameSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 export const CampaignInvitationResponseSchema = CampaignInvitationBaseSchema.pick({
   id: true,
@@ -32,10 +33,9 @@ export const AcceptCampaignInvitationResponseSchema = CampaignInvitationBaseSche
   role: true,
 }).extend({ membershipId: CampaignInvitationBaseSchema.shape.id });
 
-export const CampaignInvitationTargetResponseSchema = z.strictObject({
-  userTag: z.string().min(1).max(32),
-  displayName: z.string().min(1).max(120),
-});
+export const CampaignInvitationTargetResponseSchema = CampaignInvitationBaseSchema.pick({
+  userTag: true,
+}).extend({ displayName: UserDisplayNameSchema });
 
 export type CampaignInvitationResponseDto = z.infer<typeof CampaignInvitationResponseSchema>;
 export type CampaignInvitationListResponseDto = z.infer<typeof CampaignInvitationListResponseSchema>;

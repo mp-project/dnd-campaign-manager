@@ -25,11 +25,10 @@ export class CreateCampaignUseCase {
     }
 
     await this.assertUserExists(ownerUserId);
+    await this.assertRulesetExistsAndReadable(context, campaignInput.rulesetId);
 
     try {
       return await this.campaignsService.transactionManager.inTransaction(async (tx) => {
-        await this.assertRulesetExistsAndReadable(context, campaignInput.rulesetId);
-
         const slug = campaignInput.slug ?? this.campaignsService.slugify(campaignInput.name);
 
         if (!slug) {

@@ -2,7 +2,6 @@ import type { PermissionDefinition } from "#core/permissions/service";
 
 export const CAMPAIGN_MEMBERSHIP_PERMISSIONS = {
   read: "campaignMembers.read",
-  invite: "campaignMembers.invite",
   updateRole: "campaignMembers.updateRole",
   revoke: "campaignMembers.revoke",
 } as const;
@@ -17,10 +16,6 @@ export const campaignMembershipPermissionDefinitions: readonly PermissionDefinit
   {
     key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.read,
     description: "Read active members of an accessible campaign",
-  },
-  {
-    key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.invite,
-    description: "Invite users to a campaign",
   },
   {
     key: CAMPAIGN_MEMBERSHIP_PERMISSIONS.updateRole,

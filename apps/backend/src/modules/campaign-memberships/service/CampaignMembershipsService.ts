@@ -1,34 +1,37 @@
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-  UnauthenticatedError,
-  VersionConflictError,
-} from "#core/error/http/index";
+import { NotFoundError, UnauthenticatedError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import {
-  CAMPAIGN_MEMBERSHIP_PERMISSIONS,
-  CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
-} from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
-import type { CampaignMembershipsRepository } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
-import type { CreateCampaignMembershipDto } from "#src/modules/campaign-memberships/domain/dto/CreateCampaignMembershipDto";
-import type { UpdateCampaignMembershipRoleDto } from "#src/modules/campaign-memberships/domain/dto/UpdateCampaignMembershipDto";
+import type { CampaignMember } from "#src/modules/campaign-memberships/domain/dto/ResponseCampaignMembershipDto";
+import type {
+  CampaignMembershipsRepository,
+  CreateCampaignMembershipInput,
+} from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 import type { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
 
+/**
+ * Shared membership logic for the use cases (access checks, member lookups) and the port used by
+ * other modules (active membership lookup, membership creation, campaign context).
+ */
 export class CampaignMembershipsService {
   constructor(
-    private readonly db: AppDatabase,
-    private readonly transactionManager: TransactionManager,
-    private readonly repository: CampaignMembershipsRepository,
+    public readonly db: AppDatabase,
+    public readonly transactionManager: TransactionManager,
+    public readonly repository: CampaignMembershipsRepository,
     private readonly campaignsService: CampaignsService,
     private readonly usersDependencies: UsersModuleDependencies,
   ) {}
 
-  async listMembers(context: RequestContext, campaignId: string) {
-    const { campaign, membership, actorId } = await this.getAccess(context, campaignId);
+  /**
+   * Resolves the actor's access to a campaign; non-members get a 404 so the campaign stays hidden.
+   */
+  async resolveMemberAccess(
+    context: RequestContext,
+    campaignId: string,
+  ): Promise<{ actorId: string; canManage: boolean }> {
+    const actorId = await this.requireActorId(context);
+    const { campaign, membership } = await this.getAccess(actorId, campaignId);
 
     if (
       !isSysAdminRole(context.systemRole) &&
@@ -38,202 +41,84 @@ export class CampaignMembershipsService {
       throw new NotFoundError("Campaign not found");
     }
 
-    const canManage =
-      isSysAdminRole(context.systemRole) ||
-      campaign.ownerUserId === actorId ||
-      membership?.role === "EDITOR";
+    return {
+      actorId,
+      canManage:
+        isSysAdminRole(context.systemRole) ||
+        campaign.ownerUserId === actorId ||
+        membership?.role === "EDITOR",
+    };
+  }
 
+  /**
+   * Resolves the authenticated actor through the users module, which uses its own connection.
+   * Call this before opening a transaction: waiting for a second connection while holding the
+   * campaign lock can exhaust the pool and block every request.
+   */
+  async requireActorId(context: RequestContext): Promise<string> {
+    if (!context.actorId) {
+      throw new UnauthenticatedError("Authentication required");
+    }
+
+    const actor = await this.usersDependencies.useCases.getOneUserBy.execute({
+      userId: context.actorId,
+    });
+
+    if (!actor) {
+      throw new UnauthenticatedError("Authenticated user not found");
+    }
+
+    return actor.id;
+  }
+
+  /**
+   * Locks the campaign, checks management access and loads the active member and the campaign.
+   * Must run inside a transaction.
+   */
+  async loadManagedMember(
+    tx: AppDatabase,
+    context: RequestContext,
+    actorId: string,
+    campaignId: string,
+    memberId: string,
+  ) {
+    await this.campaignsService.lockCampaign(tx, campaignId);
+    await this.assertCanManage(context, actorId, campaignId, tx);
+    const member = await this.repository.findById(tx, campaignId, memberId);
+
+    if (!member || member.status !== "ACTIVE") {
+      throw new NotFoundError("Campaign member not found");
+    }
+
+    const campaign = await this.campaignsService.findMembershipCampaign(tx, campaignId);
+
+    if (!campaign) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    return { member, campaign };
+  }
+
+  async listMembers(campaignId: string): Promise<CampaignMember[]> {
     const memberships = await this.repository.listActiveByCampaign(this.db, campaignId);
     const summaries = await this.usersDependencies.service.listPublicSummaries(
       memberships.map((membership) => membership.userId),
     );
     const summaryByUserId = new Map(summaries.map((summary) => [summary.id, summary]));
 
-    return {
-      members: memberships.flatMap((membership) => {
-        const user = summaryByUserId.get(membership.userId);
+    return memberships.flatMap((membership) => {
+      const user = summaryByUserId.get(membership.userId);
 
-        return user
-          ? [{ membership, userId: user.id, userTag: user.userTag, displayName: user.displayName }]
-          : [];
-      }),
-      canManage,
-    };
-  }
-
-  async getMyPermissions(context: RequestContext, campaignId: string): Promise<string[]> {
-    const { campaign, membership, actorId } = await this.getAccess(context, campaignId);
-
-    if (
-      !isSysAdminRole(context.systemRole) &&
-      campaign.ownerUserId !== actorId &&
-      !membership
-    ) {
-      throw new NotFoundError("Campaign not found");
-    }
-
-    if (
-      isSysAdminRole(context.systemRole) ||
-      campaign.ownerUserId === actorId ||
-      membership?.role === "EDITOR"
-    ) {
-      return [...CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS];
-    }
-
-    return [CAMPAIGN_MEMBERSHIP_PERMISSIONS.read];
-  }
-
-  async createPendingMembership(
-    context: RequestContext,
-    input: { campaignId: string } & CreateCampaignMembershipDto,
-  ) {
-    const actorId = await this.assertCanManage(context, input.campaignId);
-    const target = await this.usersDependencies.useCases.getOneUserBy.execute({
-      userId: input.userId,
+      return user ? [{ membership, userTag: user.userTag, displayName: user.displayName }] : [];
     });
-
-    if (!target) {
-      throw new NotFoundError("User not found");
-    }
-
-    try {
-      return await this.repository.createPending(this.db, {
-        actorId,
-        ...input,
-      });
-    } catch (error) {
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictError("User already has an active or pending membership");
-      }
-
-      throw error;
-    }
-  }
-
-  async activateFromInvitation(input: {
-    campaignId: string;
-    userId: string;
-    actorId: string;
-  }) {
-    if (input.actorId !== input.userId) {
-      throw new ForbiddenError("Only the invited user can activate this membership");
-    }
-
-    const user = await this.usersDependencies.useCases.getOneUserBy.execute({
-      userId: input.userId,
-    });
-
-    if (!user) {
-      throw new NotFoundError("User not found");
-    }
-
-    const activated = await this.repository.activatePending(this.db, input);
-
-    if (!activated) {
-      throw new NotFoundError("Pending campaign membership not found");
-    }
-
-    return activated;
   }
 
   async getActiveByUser(campaignId: string, userId: string, db: AppDatabase = this.db) {
     return this.repository.findActiveByUser(db, campaignId, userId);
   }
 
-  createActiveFromInvitation(
-    db: AppDatabase,
-    input: { actorId: string; campaignId: string; userId: string; role: "EDITOR" | "PLAYER" },
-  ) {
-    return this.repository.createActiveFromInvitation(db, input);
-  }
-
-  async changeRole(
-    context: RequestContext,
-    campaignId: string,
-    memberId: string,
-    input: UpdateCampaignMembershipRoleDto,
-  ) {
-    return this.transactionManager.inTransaction(async (tx) => {
-      await this.campaignsService.lockCampaign(tx, campaignId);
-      const actorId = await this.assertCanManage(context, campaignId, tx);
-
-      const member = await this.repository.findById(tx, campaignId, memberId);
-
-      if (!member || member.status !== "ACTIVE") {
-        throw new NotFoundError("Campaign member not found");
-      }
-
-      const campaign = await this.campaignsService.findMembershipCampaign(tx, campaignId);
-
-      if (!campaign) {
-        throw new NotFoundError("Campaign not found");
-      }
-
-      if (member.userId === campaign.ownerUserId && input.role !== "EDITOR") {
-        throw new ConflictError("Campaign owner must remain an editor");
-      }
-
-      if (member.role === "EDITOR" && input.role !== "EDITOR") {
-        const editorCount = await this.repository.countActiveEditors(tx, campaignId);
-
-        if (editorCount <= 1) {
-          throw new ConflictError("Campaign must retain at least one active editor");
-        }
-      }
-
-      const updated = await this.repository.updateRole(tx, {
-        campaignId,
-        membershipId: memberId,
-        actorId,
-        expectedVersion: input.expectedVersion,
-        role: input.role,
-      });
-
-      if (!updated) {
-        throw new VersionConflictError("Campaign membership version mismatch");
-      }
-
-      return updated;
-    });
-  }
-
-  async revoke(context: RequestContext, campaignId: string, memberId: string) {
-    return this.transactionManager.inTransaction(async (tx) => {
-      await this.campaignsService.lockCampaign(tx, campaignId);
-      const actorId = await this.assertCanManage(context, campaignId, tx);
-
-      const member = await this.repository.findById(tx, campaignId, memberId);
-
-      if (!member || member.status !== "ACTIVE") {
-        throw new NotFoundError("Campaign member not found");
-      }
-
-      const campaign = await this.campaignsService.findMembershipCampaign(tx, campaignId);
-
-      if (!campaign) {
-        throw new NotFoundError("Campaign not found");
-      }
-
-      if (member.userId === campaign.ownerUserId) {
-        throw new ConflictError("Campaign owner cannot be removed");
-      }
-
-      if (member.role === "EDITOR" && (await this.repository.countActiveEditors(tx, campaignId)) <= 1) {
-        throw new ConflictError("Campaign must retain at least one active editor");
-      }
-
-      const revoked = await this.repository.revoke(tx, {
-        campaignId,
-        membershipId: memberId,
-        actorId,
-      });
-
-      if (!revoked) {
-        throw new VersionConflictError("Campaign membership changed concurrently");
-      }
-
-      return revoked;
-    });
+  createActiveFromInvitation(db: AppDatabase, input: CreateCampaignMembershipInput) {
+    return this.repository.create(db, input);
   }
 
   async buildCampaignContext(campaignId: string, actorId: string | null) {
@@ -257,10 +142,11 @@ export class CampaignMembershipsService {
 
   private async assertCanManage(
     context: RequestContext,
+    actorId: string,
     campaignId: string,
-    db: AppDatabase = this.db,
-  ): Promise<string> {
-    const { campaign, membership, actorId } = await this.getAccess(context, campaignId, db);
+    db: AppDatabase,
+  ): Promise<void> {
+    const { campaign, membership } = await this.getAccess(actorId, campaignId, db);
 
     if (
       !isSysAdminRole(context.systemRole) &&
@@ -269,39 +155,17 @@ export class CampaignMembershipsService {
     ) {
       throw new NotFoundError("Campaign not found");
     }
-
-    return actorId;
   }
 
-  private async getAccess(
-    context: RequestContext,
-    campaignId: string,
-    db: AppDatabase = this.db,
-  ) {
-    if (!context.actorId) {
-      throw new UnauthenticatedError("Authentication required");
-    }
-
-    const actor = await this.usersDependencies.useCases.getOneUserBy.execute({
-      userId: context.actorId,
-    });
-
-    if (!actor) {
-      throw new UnauthenticatedError("Authenticated user not found");
-    }
-
+  private async getAccess(actorId: string, campaignId: string, db: AppDatabase = this.db) {
     const campaign = await this.campaignsService.findMembershipCampaign(db, campaignId);
 
     if (!campaign) {
       throw new NotFoundError("Campaign not found");
     }
 
-    const membership = await this.repository.findActiveByUser(db, campaignId, context.actorId);
+    const membership = await this.repository.findActiveByUser(db, campaignId, actorId);
 
-    return { actorId: actor.id, campaign, membership };
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+    return { campaign, membership };
   }
 }

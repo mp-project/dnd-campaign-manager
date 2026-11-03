@@ -59,6 +59,43 @@ describe("ruleset HTTP routes", () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it("reads includeArchived by its value through the full request flow", async () => {
+    const admin = { actorId: "admin-archive", systemRole: "ADMIN" } as const;
+    const created = (
+      await injectAs(admin, {
+        method: "POST",
+        url: "/api/v1/ruleset",
+        payload: buildCreatePayload("DND_5E_ARCHIVE_FILTER"),
+      })
+    ).json();
+
+    const archived = await injectAs(admin, {
+      method: "PATCH",
+      url: `/api/v1/ruleset/${created.id}`,
+      payload: { expectedVersion: created.version, status: "ARCHIVED" },
+    });
+    expect(archived.statusCode).toBe(200);
+
+    const listIds = async (includeArchived: string) => {
+      const response = await injectAs(admin, {
+        method: "GET",
+        url: `/api/v1/ruleset?limit=20&includeArchived=${includeArchived}`,
+      });
+      expect(response.statusCode).toBe(200);
+
+      return response.json().data.map((item: { id: string }) => item.id);
+    };
+
+    expect(await listIds("true")).toContain(created.id);
+    expect(await listIds("false")).not.toContain(created.id);
+
+    const invalid = await injectAs(admin, {
+      method: "GET",
+      url: "/api/v1/ruleset?includeArchived=1",
+    });
+    expect(invalid.statusCode).toBe(400);
+  });
+
   it("creates, reads, updates and soft-deletes a ruleset", async () => {
     const createResponse = await injectAs(
       { actorId: "admin-1", systemRole: "ADMIN" },

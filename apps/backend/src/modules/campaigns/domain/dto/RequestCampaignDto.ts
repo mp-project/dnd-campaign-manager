@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { paginationDto, uuidDto } from "#core/http/dto";
+import { booleanQueryDto, paginationDto, uuidDto } from "#core/http/dto";
 import { CampaignBaseSchema } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
 
 const RequestCampaignListFilterSchema = z.strictObject({
-  includeArchived: z.coerce.boolean().default(false),
+  includeArchived: booleanQueryDto.default(false),
   status: CampaignBaseSchema.shape.status.optional(),
   search: z.string().trim().min(1).max(160).optional(),
   userId: uuidDto.optional(),

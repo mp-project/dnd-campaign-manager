@@ -9,7 +9,7 @@ import {
 import {
   DefaultStringWhereQueryParamSchema,
 } from "#core/domain/dto/DefaultStringWhereQueryParamSchema";
-import { paginationDto, uuidDto } from "#core/http/dto";
+import { booleanQueryDto, paginationDto, uuidDto } from "#core/http/dto";
 import { RulesetBaseSchema } from "#src/modules/ruleset/domain/dto/BaseRulesetDto";
 
 const RulesetStatusSchema = RulesetBaseSchema.shape.status;
@@ -42,7 +42,7 @@ const RequestRulesetListFilterSchema = z.strictObject({
   status: RulesetStatusSchema.optional(),
   editionYear: RulesetBaseSchema.shape.editionYear.optional(),
   search: z.string().trim().min(1).max(120).optional(),
-  includeArchived: z.coerce.boolean().default(false),
+  includeArchived: booleanQueryDto.default(false),
   where: DefaultRulesetWhereSchema,
 });
 

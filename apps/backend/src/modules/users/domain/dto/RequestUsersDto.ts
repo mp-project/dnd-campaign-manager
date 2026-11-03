@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-import { paginationDto, uuidDto } from "#core/http/dto";
+import { booleanQueryDto, paginationDto, uuidDto } from "#core/http/dto";
 import { UserBaseSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 const RequestUsersListFilterSchema = z.strictObject({
   search: z.string().trim().min(1).max(120).optional(),
   status: UserBaseSchema.shape.status.optional(),
   systemRole: UserBaseSchema.shape.systemRole.optional(),
-  includeDisabled: z.coerce.boolean().default(true),
+  includeDisabled: booleanQueryDto.default(true),
 });
 
 export const RequestUsersListQuerySchema = RequestUsersListFilterSchema.merge(paginationDto);

@@ -3,12 +3,11 @@ import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
 import {
-  AdminUpdateUserSchema,
-} from "#src/modules/users/domain/dto/AdminUpdateUserDto";
-import { RequestUserParamsSchema } from "#src/modules/users/domain/dto/RequestUsersDto";
-import { RequestAdminUsersListQuerySchema } from "#src/modules/users/domain/dto/RequestUsersDto";
+  RequestUserParamsSchema,
+  RequestUsersListQuerySchema,
+} from "#src/modules/users/domain/dto/RequestUsersDto";
 import {
-  ResponseAdminUserSchema,
+  ResponseUserSchema,
   ResponseReadableUserListSchema,
   ResponseReadableUserSchema,
   ResponseMeCampaignOverviewSchema,
@@ -16,47 +15,45 @@ import {
 } from "#src/modules/users/domain/dto/ResponseUsersDto";
 import { UpdateMeSchema } from "#src/modules/users/domain/dto/UpdateMeDto";
 import { UpdateSettingsSchema } from "#src/modules/users/domain/dto/UpdateSettingsDto";
-import {
-  USERS_HTTP_PATHS,
-  USERS_HTTP_PERMISSIONS,
-  USERS_HTTP_SECURITY,
-} from "#src/modules/users/config/UsersHttpConfig";
+import { UpdateUserSchema } from "#src/modules/users/domain/dto/UpdateUserDto";
+import { USERS_PERMISSIONS } from "#src/modules/users/permissions/UsersPermissions";
 import { GetMeController } from "#src/modules/users/http/controller/GetMeController";
 import { UpdateMeController } from "#src/modules/users/http/controller/UpdateMeController";
 import { UpdateSettingsController } from "#src/modules/users/http/controller/UpdateSettingsController";
 import { GetMyCampaignOverviewController } from "#src/modules/users/http/controller/GetMyCampaignOverviewController";
-import { GetMyInvitationsController } from "#src/modules/users/http/controller/GetMyInvitationsController";
-import { AdminListUsersController } from "#src/modules/users/http/controller/AdminListUsersController";
-import { AdminGetUserByIdController } from "#src/modules/users/http/controller/AdminGetUserByIdController";
-import { AdminUpdateUserController } from "#src/modules/users/http/controller/AdminUpdateUserController";
+import { ListUsersController } from "#src/modules/users/http/controller/ListUsersController";
+import { GetUserByIdController } from "#src/modules/users/http/controller/GetUserByIdController";
+import { UpdateUserController } from "#src/modules/users/http/controller/UpdateUserController";
+import { DeleteUserController } from "#src/modules/users/http/controller/DeleteUserController";
 
 export type UsersRouteControllers = {
   getMeController: GetMeController;
   updateMeController: UpdateMeController;
   updateSettingsController: UpdateSettingsController;
   getMyCampaignOverviewController: GetMyCampaignOverviewController;
-  getMyInvitationsController: GetMyInvitationsController;
-  adminListUsersController: AdminListUsersController;
-  adminGetUserByIdController: AdminGetUserByIdController;
-  adminUpdateUserController: AdminUpdateUserController;
+  listUsersController: ListUsersController;
+  getUserByIdController: GetUserByIdController;
+  updateUserController: UpdateUserController;
+  deleteUserController: DeleteUserController;
 };
+
+const tags = ["Users"];
+const security = [{ cookieAuth: [] }] as const;
 
 export function registerUsersRoutes(
   app: FastifyInstance,
   controllers: UsersRouteControllers,
 ): void {
   app.get(
-    USERS_HTTP_PATHS.me,
+    "/me",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.readSelf,
-        },
+        permission: { key: USERS_PERMISSIONS.readSelf },
       },
       schema: {
-        tags: ["Users"],
+        tags,
         operationId: "getMe",
-        security: USERS_HTTP_SECURITY,
+        security,
         response: {
           200: ResponseMeSchema,
           401: errorResponseDto,
@@ -67,17 +64,15 @@ export function registerUsersRoutes(
   );
 
   app.patch(
-    USERS_HTTP_PATHS.me,
+    "/me",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.updateSelf,
-        },
+        permission: { key: USERS_PERMISSIONS.updateSelf },
       },
       schema: {
-        tags: ["Users"],
+        tags,
         operationId: "updateMe",
-        security: USERS_HTTP_SECURITY,
+        security,
         body: UpdateMeSchema,
         response: {
           200: ResponseMeSchema,
@@ -91,17 +86,15 @@ export function registerUsersRoutes(
   );
 
   app.patch(
-    USERS_HTTP_PATHS.meSettings,
+    "/me/settings",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.updateSelf,
-        },
+        permission: { key: USERS_PERMISSIONS.updateSelf },
       },
       schema: {
-        tags: ["Users"],
+        tags,
         operationId: "updateMySettings",
-        security: USERS_HTTP_SECURITY,
+        security,
         body: UpdateSettingsSchema,
         response: {
           200: ResponseMeSchema,
@@ -114,17 +107,15 @@ export function registerUsersRoutes(
   );
 
   app.get(
-    USERS_HTTP_PATHS.meCampaigns,
+    "/me/campaigns",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.readSelf,
-        },
+        permission: { key: USERS_PERMISSIONS.readSelf },
       },
       schema: {
-        tags: ["Users"],
+        tags,
         operationId: "getMyCampaignOverview",
-        security: USERS_HTTP_SECURITY,
+        security,
         response: {
           200: ResponseMeCampaignOverviewSchema,
           401: errorResponseDto,
@@ -135,18 +126,16 @@ export function registerUsersRoutes(
   );
 
   app.get(
-    USERS_HTTP_PATHS.adminCollection,
+    "/users",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.readAdmin,
-        },
+        permission: { key: USERS_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Users"],
-        operationId: "adminListUsers",
-        security: USERS_HTTP_SECURITY,
-        querystring: RequestAdminUsersListQuerySchema,
+        tags,
+        operationId: "listUsers",
+        security,
+        querystring: RequestUsersListQuerySchema,
         response: {
           200: ResponseReadableUserListSchema,
           401: errorResponseDto,
@@ -154,21 +143,19 @@ export function registerUsersRoutes(
         },
       },
     },
-    controllers.adminListUsersController.handle,
+    controllers.listUsersController.handle,
   );
 
   app.get(
-    USERS_HTTP_PATHS.adminItem,
+    "/users/:userId",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.readAdmin,
-        },
+        permission: { key: USERS_PERMISSIONS.read },
       },
       schema: {
-        tags: ["Users"],
-        operationId: "adminGetUserById",
-        security: USERS_HTTP_SECURITY,
+        tags,
+        operationId: "getUserById",
+        security,
         params: RequestUserParamsSchema,
         response: {
           200: ResponseReadableUserSchema,
@@ -178,25 +165,23 @@ export function registerUsersRoutes(
         },
       },
     },
-    controllers.adminGetUserByIdController.handle,
+    controllers.getUserByIdController.handle,
   );
 
   app.patch(
-    USERS_HTTP_PATHS.adminItem,
+    "/users/:userId",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.updateAdmin,
-        },
+        permission: { key: USERS_PERMISSIONS.update },
       },
       schema: {
-        tags: ["Users"],
-        operationId: "adminUpdateUser",
-        security: USERS_HTTP_SECURITY,
+        tags,
+        operationId: "updateUser",
+        security,
         params: RequestUserParamsSchema,
-        body: AdminUpdateUserSchema,
+        body: UpdateUserSchema,
         response: {
-          200: ResponseAdminUserSchema,
+          200: ResponseUserSchema,
           400: errorResponseDto,
           401: errorResponseDto,
           403: errorResponseDto,
@@ -206,21 +191,19 @@ export function registerUsersRoutes(
         },
       },
     },
-    controllers.adminUpdateUserController.handle,
+    controllers.updateUserController.handle,
   );
 
   app.delete(
-    USERS_HTTP_PATHS.adminItem,
+    "/users/:userId",
     {
       config: {
-        permission: {
-          key: USERS_HTTP_PERMISSIONS.deleteAdmin,
-        },
+        permission: { key: USERS_PERMISSIONS.delete },
       },
       schema: {
-        tags: ["Users"],
-        operationId: "adminDeleteUser",
-        security: USERS_HTTP_SECURITY,
+        tags,
+        operationId: "deleteUser",
+        security,
         params: RequestUserParamsSchema,
         response: {
           204: z.null(),
@@ -232,7 +215,9 @@ export function registerUsersRoutes(
         },
       },
     },
-    controllers.adminUpdateUserController.handleDelete,
+    async (request, reply) => {
+      await controllers.deleteUserController.handle(request);
+      return reply.code(204).send();
+    },
   );
-
 }

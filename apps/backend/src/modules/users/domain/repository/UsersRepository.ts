@@ -9,7 +9,7 @@ import {
 } from "#src/modules/users/domain/entities/UsersTable";
 import type { UpdateMeDto } from "#src/modules/users/domain/dto/UpdateMeDto";
 import type { UpdateSettingsDto } from "#src/modules/users/domain/dto/UpdateSettingsDto";
-import type { AdminUpdateUserDto } from "#src/modules/users/domain/dto/AdminUpdateUserDto";
+import type { UpdateUserDto } from "#src/modules/users/domain/dto/UpdateUserDto";
 import type { RequestUsersDto } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { toAuditActorId } from "#src/modules/users/helpers/Audit";
 
@@ -22,24 +22,10 @@ export type UserAggregate = {
   settings: UserSettingsRow;
 };
 
-export type AdminUserListFilter = RequestUsersDto["adminListQuery"];
-export type UpdateMePatch = UpdateMeDto;
+export type UserListFilter = RequestUsersDto["listQuery"];
+export type UpdateProfilePatch = UpdateMeDto;
 export type UpdateSettingsPatch = UpdateSettingsDto;
-export type AdminUserPatch = Omit<AdminUpdateUserDto, "expectedVersion">;
-
-export type CreateUserInput = {
-  email: string;
-  passwordHash: string | null;
-  displayName: string;
-  username: string;
-  userTag: string;
-  systemRole: UserRow["systemRole"];
-  status: UserRow["status"];
-  emailVerifiedAt: Date | null;
-  googleSubject?: string;
-  discordUserId?: string;
-  actorId?: string;
-};
+export type UpdateUserPatch = Omit<UpdateUserDto, "expectedVersion">;
 
 export class UsersRepository {
   async findById(db: AppDatabase, userId: string): Promise<UserRow | null> {
@@ -86,189 +72,6 @@ export class UsersRepository {
       .where(and(inArray(users.id, userIds), isNull(users.deletedAt)));
   }
 
-  async createUser(db: AppDatabase, input: CreateUserInput): Promise<UserRow> {
-    const auditActorId = toAuditActorId(input.actorId);
-    const values: typeof users.$inferInsert = {
-      email: input.email,
-      passwordHash: input.passwordHash,
-      displayName: input.displayName,
-      username: input.username,
-      userTag: input.userTag,
-      systemRole: input.systemRole,
-      status: input.status,
-      emailVerifiedAt: input.emailVerifiedAt,
-      createdBy: auditActorId,
-      updatedBy: auditActorId,
-    };
-
-    if (input.googleSubject !== undefined) {
-      values.googleSubject = input.googleSubject;
-    }
-
-    if (input.discordUserId !== undefined) {
-      values.discordUserId = input.discordUserId;
-    }
-
-    const [created] = await db
-      .insert(users)
-      .values(values)
-      .returning();
-
-    if (!created) {
-      throw new Error("Failed to create user");
-    }
-
-    return created;
-  }
-
-  async createEmailVerificationRequest(
-    db: AppDatabase,
-    params: {
-      email: string;
-      codeHash: string;
-      expiresAt: Date;
-      actorId?: string;
-    },
-  ): Promise<EmailVerificationRequestRow> {
-    const auditActorId = toAuditActorId(params.actorId);
-
-    await db
-      .update(emailVerificationRequests)
-      .set({
-        status: "SUPERSEDED",
-        version: sql`${emailVerificationRequests.version} + 1`,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-      })
-      .where(
-        and(
-          eq(emailVerificationRequests.email, params.email),
-          eq(emailVerificationRequests.status, "PENDING"),
-          isNull(emailVerificationRequests.deletedAt),
-        ),
-      );
-
-    const [created] = await db
-      .insert(emailVerificationRequests)
-      .values({
-        email: params.email,
-        codeHash: params.codeHash,
-        status: "PENDING",
-        expiresAt: params.expiresAt,
-        createdBy: auditActorId,
-        updatedBy: auditActorId,
-      })
-      .returning();
-
-    if (!created) {
-      throw new Error("Failed to create email verification request");
-    }
-
-    return created;
-  }
-
-  async markEmailVerified(
-    db: AppDatabase,
-    params: {
-      userId: string;
-      verifiedAt: Date;
-      actorId?: string;
-    },
-  ): Promise<UserRow | null> {
-    const auditActorId = toAuditActorId(params.actorId);
-
-    const [updated] = await db
-      .update(users)
-      .set({
-        emailVerifiedAt: params.verifiedAt,
-        version: sql`${users.version} + 1`,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-      })
-      .where(and(eq(users.id, params.userId), isNull(users.deletedAt)))
-      .returning();
-
-    return updated ?? null;
-  }
-
-  async findEmailVerificationRequestById(
-    db: AppDatabase,
-    verificationId: string,
-  ): Promise<EmailVerificationRequestRow | null> {
-    const rows = await db
-      .select()
-      .from(emailVerificationRequests)
-      .where(
-        and(
-          eq(emailVerificationRequests.id, verificationId),
-          isNull(emailVerificationRequests.deletedAt),
-        ),
-      )
-      .limit(1);
-
-    return rows[0] ?? null;
-  }
-
-  async incrementEmailVerificationAttemptCount(
-    db: AppDatabase,
-    verificationId: string,
-    actorId?: string,
-  ): Promise<void> {
-    const auditActorId = toAuditActorId(actorId);
-
-    await db
-      .update(emailVerificationRequests)
-      .set({
-        attemptCount: sql`${emailVerificationRequests.attemptCount} + 1`,
-        version: sql`${emailVerificationRequests.version} + 1`,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-      })
-      .where(
-        and(
-          eq(emailVerificationRequests.id, verificationId),
-          isNull(emailVerificationRequests.deletedAt),
-        ),
-      );
-  }
-
-  async updateEmailVerificationRequestStatus(
-    db: AppDatabase,
-    params: {
-      verificationId: string;
-      status: EmailVerificationRequestRow["status"];
-      verifiedAt?: Date | null;
-      actorId?: string;
-    },
-  ): Promise<EmailVerificationRequestRow | null> {
-    const auditActorId = toAuditActorId(params.actorId);
-    const updateInput: Partial<typeof emailVerificationRequests.$inferInsert> = {
-      status: params.status,
-    };
-
-    if (params.verifiedAt !== undefined) {
-      updateInput.verifiedAt = params.verifiedAt;
-    }
-
-    const [updated] = await db
-      .update(emailVerificationRequests)
-      .set({
-        ...updateInput,
-        version: sql`${emailVerificationRequests.version} + 1`,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-      })
-      .where(
-        and(
-          eq(emailVerificationRequests.id, params.verificationId),
-          isNull(emailVerificationRequests.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
-  }
-
   async isActiveEmailTaken(
     db: AppDatabase,
     email: string,
@@ -289,23 +92,23 @@ export class UsersRepository {
     return rows.length > 0;
   }
 
-  async listAdminUsers(
+  async list(
     db: AppDatabase,
-    filter: AdminUserListFilter,
+    filter: UserListFilter,
   ): Promise<UserRow[]> {
     return db
       .select()
       .from(users)
-      .where(and(...this.buildAdminListWhere(filter)))
+      .where(and(...this.buildListWhere(filter)))
       .orderBy(asc(users.createdAt))
       .limit(filter.limit);
   }
 
-  async countAdminUsers(db: AppDatabase, filter: AdminUserListFilter): Promise<number> {
+  async count(db: AppDatabase, filter: UserListFilter): Promise<number> {
     const [row] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(users)
-      .where(and(...this.buildAdminListWhere(filter)));
+      .where(and(...this.buildListWhere(filter)));
 
     return row?.total ?? 0;
   }
@@ -338,7 +141,7 @@ export class UsersRepository {
     return rows[0] ?? null;
   }
 
-  async ensureSettings(
+  async findOrCreateSettings(
     db: AppDatabase,
     userId: string,
     actorId: string,
@@ -382,12 +185,12 @@ export class UsersRepository {
     return rowAfterCreate;
   }
 
-  async updateMe(
+  async updateProfile(
     db: AppDatabase,
     params: {
       userId: string;
       actorId: string;
-      patch: UpdateMePatch;
+      patch: UpdateProfilePatch;
     },
   ): Promise<UserRow | null> {
     const updateInput: Partial<typeof users.$inferInsert> = {};
@@ -425,7 +228,7 @@ export class UsersRepository {
       patch: UpdateSettingsPatch;
     },
   ): Promise<UserSettingsRow> {
-    const existing = await this.ensureSettings(db, params.userId, params.actorId);
+    const existing = await this.findOrCreateSettings(db, params.userId, params.actorId);
     const auditActorId = toAuditActorId(params.actorId);
 
     const updateInput: Partial<typeof userSettings.$inferInsert> = {};
@@ -480,13 +283,13 @@ export class UsersRepository {
     return fallback;
   }
 
-  async updateAdminWithVersion(
+  async update(
     db: AppDatabase,
     params: {
       userId: string;
       actorId: string;
       expectedVersion: number;
-      patch: AdminUserPatch;
+      patch: UpdateUserPatch;
     },
   ): Promise<UserRow | null> {
     const auditActorId = toAuditActorId(params.actorId);
@@ -525,37 +328,10 @@ export class UsersRepository {
     return updated ?? null;
   }
 
-  async softDisableWithVersion(
-    db: AppDatabase,
-    params: {
-      userId: string;
-      actorId: string;
-      expectedVersion: number;
-    },
-  ): Promise<boolean> {
-    const auditActorId = toAuditActorId(params.actorId);
-
-    const [updated] = await db
-      .update(users)
-      .set({
-        status: "DISABLED",
-        version: params.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-      })
-      .where(
-        and(
-          eq(users.id, params.userId),
-          eq(users.version, params.expectedVersion),
-          isNull(users.deletedAt),
-        ),
-      )
-      .returning({ id: users.id });
-
-    return Boolean(updated);
-  }
-
-  async loadUserAggregate(
+  /**
+   * Loads the user with their settings; missing settings are created with defaults.
+   */
+  async findAggregate(
     db: AppDatabase,
     userId: string,
     actorId: string,
@@ -566,12 +342,12 @@ export class UsersRepository {
       return null;
     }
 
-    const settings = await this.ensureSettings(db, userId, actorId);
+    const settings = await this.findOrCreateSettings(db, userId, actorId);
 
     return { user, settings };
   }
 
-  private buildAdminListWhere(filter: AdminUserListFilter) {
+  private buildListWhere(filter: UserListFilter) {
     const where = [isNull(users.deletedAt)];
 
     if (!filter.includeDisabled) {

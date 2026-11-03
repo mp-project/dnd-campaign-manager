@@ -5,7 +5,7 @@ import {
   campaignMemberRoleEnum,
   campaignMembershipStatusEnum,
 } from "#src/modules/campaigns/domain/entities/CampaignsTable";
-import { UserTagSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
+import { UserBaseSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 /**
  * All campaign membership fields with their validation rules.
@@ -14,7 +14,7 @@ import { UserTagSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 export const CampaignMembershipBaseSchema = z.strictObject({
   id: uuidDto,
   campaignId: uuidDto,
-  userTag: UserTagSchema,
+  userTag: UserBaseSchema.shape.userTag,
   displayName: z.string().min(1).max(120),
   role: z.enum(campaignMemberRoleEnum.enumValues),
   status: z.enum(campaignMembershipStatusEnum.enumValues),

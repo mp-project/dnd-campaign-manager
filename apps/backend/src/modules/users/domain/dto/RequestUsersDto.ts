@@ -1,26 +1,22 @@
 import { z } from "zod";
 
 import { paginationDto, uuidDto } from "#core/http/dto";
-import {
-  UserStatusSchema,
-  UserSystemRoleSchema,
-} from "#src/modules/users/domain/dto/BaseUsersDto";
+import { UserBaseSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 
-const RequestAdminUsersListFilterSchema = z.strictObject({
+const RequestUsersListFilterSchema = z.strictObject({
   search: z.string().trim().min(1).max(120).optional(),
-  status: UserStatusSchema.optional(),
-  systemRole: UserSystemRoleSchema.optional(),
+  status: UserBaseSchema.shape.status.optional(),
+  systemRole: UserBaseSchema.shape.systemRole.optional(),
   includeDisabled: z.coerce.boolean().default(true),
 });
 
-export const RequestAdminUsersListQuerySchema =
-  RequestAdminUsersListFilterSchema.merge(paginationDto);
+export const RequestUsersListQuerySchema = RequestUsersListFilterSchema.merge(paginationDto);
 
 export const RequestUserParamsSchema = z.strictObject({
   userId: uuidDto,
 });
 
 export type RequestUsersDto = {
-  adminListQuery: z.infer<typeof RequestAdminUsersListQuerySchema>;
+  listQuery: z.infer<typeof RequestUsersListQuerySchema>;
   params: z.infer<typeof RequestUserParamsSchema>;
 };

@@ -1,16 +1,19 @@
 import { z } from "zod";
 
-import { RequestEmailVerificationSchema } from "#src/modules/users/domain/dto/RequestEmailVerificationDto";
+import { UserBaseSchema } from "#src/modules/users/domain/dto/BaseUsersDto";
 import { RequestUserParamsSchema } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { UsersService } from "#src/modules/users/service/UsersService";
 
 const GetOneUserBySchema = z.union([
-  RequestUserParamsSchema.pick({ userId: true }),
-  RequestEmailVerificationSchema.pick({ email: true }),
+  RequestUserParamsSchema,
+  UserBaseSchema.pick({ email: true }),
 ]);
 
 export type GetOneUserByDto = z.input<typeof GetOneUserBySchema>;
 
+/**
+ * Internal lookup for other modules; returns the row, not a response DTO.
+ */
 export class GetOneUserByUseCase {
   constructor(private readonly usersService: UsersService) {}
 

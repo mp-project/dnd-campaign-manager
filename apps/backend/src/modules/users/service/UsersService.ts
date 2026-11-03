@@ -7,190 +7,21 @@ import {
 } from "#core/error/http/index";
 import type { CampaignContext, RequestContext, SystemRole } from "#core/http/requestContext";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
-import {
-  isAdminRole,
-  isSysAdminRole,
-  SYSTEM_ROLE,
-} from "#core/permissions/roles";
+import { isAdminRole, isSysAdminRole, SYSTEM_ROLE } from "#core/permissions/roles";
 import type { PermissionService } from "#core/permissions/service";
-import type { UpdateMeDto } from "#src/modules/users/domain/dto/UpdateMeDto";
-import type { UpdateSettingsDto } from "#src/modules/users/domain/dto/UpdateSettingsDto";
-import type { AdminUpdateUserDto } from "#src/modules/users/domain/dto/AdminUpdateUserDto";
 import type { AuthSessionDependencies } from "#src/modules/auth/index";
-import type {
-  AdminUserListFilter,
-  UserAggregate,
-  UserRow,
-} from "#src/modules/users/domain/repository/UsersRepository";
+import type { UpdateUserDto } from "#src/modules/users/domain/dto/UpdateUserDto";
+import type { UserRow } from "#src/modules/users/domain/repository/UsersRepository";
 import { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
-
-type CampaignOverviewItem = {
-  campaignId: string;
-  role: "OWNER" | CampaignMembershipRole;
-  source: "owned" | "managed" | "joined";
-};
-
-type UserInvitation = {
-  invitationId: string;
-  campaignId: string;
-  role: CampaignMembershipRole;
-  invitedAt: string;
-};
-
-type CampaignMembershipRole = "EDITOR" | "PLAYER";
 
 export class UsersService {
   constructor(
-    private readonly db: AppDatabase,
-    private readonly transactionManager: TransactionManager,
-    private readonly repository: UsersRepository,
+    public readonly db: AppDatabase,
+    public readonly transactionManager: TransactionManager,
+    public readonly repository: UsersRepository,
     private readonly permissionService?: PermissionService,
     private readonly authSessionDependencies?: AuthSessionDependencies,
   ) {}
-
-  async getMe(context: RequestContext): Promise<UserAggregate> {
-    const actorId = this.assertAuthenticated(context);
-    const aggregate = await this.repository.loadUserAggregate(this.db, actorId, actorId);
-
-    if (!aggregate) {
-      throw new NotFoundError("User not found");
-    }
-
-    return aggregate;
-  }
-
-  async updateMe(context: RequestContext, input: UpdateMeDto): Promise<UserAggregate> {
-    const actorId = this.assertAuthenticated(context);
-
-    return this.transactionManager.inTransaction(async (tx) => {
-      const current = await this.repository.findById(tx, actorId);
-
-      if (!current) {
-        throw new NotFoundError("User not found");
-      }
-
-      const patch = {
-        ...input,
-        email: input.email !== undefined ? normalizeEmail(input.email) : undefined,
-      };
-
-      if (patch.email && patch.email !== current.email) {
-        const taken = await this.repository.isActiveEmailTaken(tx, patch.email, actorId);
-
-        if (taken) {
-          throw new ConflictError("Email is already in use");
-        }
-      }
-
-      const updated = await this.repository.updateMe(tx, {
-        userId: actorId,
-        actorId,
-        patch,
-      });
-
-      if (!updated) {
-        throw new NotFoundError("User not found");
-      }
-
-      const aggregate = await this.repository.loadUserAggregate(tx, updated.id, actorId);
-
-      if (!aggregate) {
-        throw new NotFoundError("User not found");
-      }
-
-      return aggregate;
-    });
-  }
-
-  async updateSettings(
-    context: RequestContext,
-    input: UpdateSettingsDto,
-  ): Promise<UserAggregate> {
-    const actorId = this.assertAuthenticated(context);
-
-    return this.transactionManager.inTransaction(async (tx) => {
-      const current = await this.repository.findById(tx, actorId);
-
-      if (!current) {
-        throw new NotFoundError("User not found");
-      }
-
-      await this.repository.updateSettings(tx, {
-        userId: actorId,
-        actorId,
-        patch: input,
-      });
-
-      const aggregate = await this.repository.loadUserAggregate(tx, actorId, actorId);
-
-      if (!aggregate) {
-        throw new NotFoundError("User not found");
-      }
-
-      return aggregate;
-    });
-  }
-
-  async getCampaignOverview(
-    context: RequestContext,
-  ): Promise<{ ownedOrManaged: CampaignOverviewItem[]; joined: CampaignOverviewItem[] }> {
-    this.assertAuthenticated(context);
-
-    return {
-      ownedOrManaged: [],
-      joined: [],
-    };
-  }
-
-  async getInvitations(context: RequestContext): Promise<UserInvitation[]> {
-    this.assertAuthenticated(context);
-
-    return [];
-  }
-
-  async adminList(
-    context: RequestContext,
-    filter: AdminUserListFilter,
-  ): Promise<{ items: UserRow[]; total: number }> {
-    this.assertAuthenticated(context);
-
-    if (!isSysAdminRole(context.systemRole)) {
-      const userOnlyFilter: AdminUserListFilter = {
-        ...filter,
-        systemRole: SYSTEM_ROLE.USER,
-      };
-
-      const [items, total] = await Promise.all([
-        this.repository.listAdminUsers(this.db, userOnlyFilter),
-        this.repository.countAdminUsers(this.db, userOnlyFilter),
-      ]);
-
-      return { items, total };
-    }
-
-    const [items, total] = await Promise.all([
-      this.repository.listAdminUsers(this.db, filter),
-      this.repository.countAdminUsers(this.db, filter),
-    ]);
-
-    return { items, total };
-  }
-
-  async adminGetById(context: RequestContext, userId: string): Promise<UserRow> {
-    this.assertAuthenticated(context);
-
-    const user = await this.repository.findById(this.db, userId);
-
-    if (!user) {
-      throw new NotFoundError("User not found");
-    }
-
-    if (!isSysAdminRole(context.systemRole) && user.systemRole !== SYSTEM_ROLE.USER) {
-      throw new NotFoundError("User not found");
-    }
-
-    return user;
-  }
 
   async getOneBy(input: { userId: string } | { email: string }): Promise<UserRow | null> {
     if ("userId" in input) {
@@ -208,14 +39,19 @@ export class UsersService {
     return this.repository.listPublicSummaries(this.db, userIds);
   }
 
-  async adminUpdate(
+  /**
+   * Applies a managed change to a user, guarded against role escalation and losing the last admin.
+   * Refresh tokens are revoked after the commit: the auth module uses its own connection, which
+   * must not be requested while this transaction holds the user's row lock.
+   */
+  async applyUserUpdate(
     context: RequestContext,
     userId: string,
-    input: AdminUpdateUserDto,
+    input: UpdateUserDto,
   ): Promise<UserRow> {
-    const { actorId, actorRole } = this.assertSysAdmin(context);
+    const actorId = this.assertAuthenticated(context);
 
-    return this.transactionManager.inTransaction(async (tx) => {
+    const { updated, disabled } = await this.transactionManager.inTransaction(async (tx) => {
       const current = await this.repository.findById(tx, userId);
 
       if (!current) {
@@ -225,17 +61,12 @@ export class UsersService {
       const nextRole = input.systemRole ?? current.systemRole;
       const nextStatus = input.status ?? current.status;
 
-      this.assertCannotRemoveOwnElevatedRole(
-        actorId,
-        userId,
-        current.systemRole,
-        nextRole,
-      );
-      this.assertActorCanManageTarget(actorRole, current.systemRole, nextRole);
+      this.assertCannotRemoveOwnElevatedRole(actorId, userId, current.systemRole, nextRole);
+      this.assertActorCanManageTarget(context.systemRole, current.systemRole, nextRole);
 
       await this.assertLastActiveAdminNotRemoved(tx, current, nextRole, nextStatus);
 
-      const updated = await this.repository.updateAdminWithVersion(tx, {
+      const result = await this.repository.update(tx, {
         userId,
         actorId,
         expectedVersion: input.expectedVersion,
@@ -246,16 +77,32 @@ export class UsersService {
         },
       });
 
-      if (!updated) {
+      if (!result) {
         throw new VersionConflictError("User update version mismatch");
       }
 
-      if (nextStatus === "DISABLED" && current.status !== "DISABLED") {
-        await this.revokeRefreshTokensForUser(updated.id);
-      }
-
-      return updated;
+      return {
+        updated: result,
+        disabled: nextStatus === "DISABLED" && current.status !== "DISABLED",
+      };
     });
+
+    if (disabled) {
+      await this.authSessionDependencies?.revokeRefreshTokensForUser(updated.id);
+    }
+
+    return updated;
+  }
+
+  /**
+   * Only system admins see every user; everyone else sees users with the USER role.
+   */
+  canReadAllUsers(context: RequestContext): boolean {
+    return isSysAdminRole(context.systemRole);
+  }
+
+  isVisibleToActor(context: RequestContext, user: UserRow): boolean {
+    return this.canReadAllUsers(context) || user.systemRole === SYSTEM_ROLE.USER;
   }
 
   listEffectiveGlobalPermissions(context: RequestContext): string[] {
@@ -275,28 +122,16 @@ export class UsersService {
     return this.permissionService.listEffectivePermissions(globalContext);
   }
 
-  private assertAuthenticated(context: RequestContext): string {
+  normalizeEmail(email: string): string {
+    return normalizeEmail(email);
+  }
+
+  assertAuthenticated(context: RequestContext): string {
     if (!context.actorId) {
       throw new UnauthenticatedError("Authentication required");
     }
 
     return context.actorId;
-  }
-
-  private assertSysAdmin(context: RequestContext): {
-    actorId: string;
-    actorRole: SystemRole;
-  } {
-    const actorId = this.assertAuthenticated(context);
-
-    if (!isSysAdminRole(context.systemRole)) {
-      throw new ForbiddenError("Admin permissions required");
-    }
-
-    return {
-      actorId,
-      actorRole: context.systemRole,
-    };
   }
 
   private assertActorCanManageTarget(
@@ -319,9 +154,7 @@ export class UsersService {
       targetCurrentRole !== SYSTEM_ROLE.USER ||
       targetNextRole !== SYSTEM_ROLE.USER
     ) {
-      throw new ForbiddenError(
-        "Admins can only manage users with USER role",
-      );
+      throw new ForbiddenError("Admins can only manage users with USER role");
     }
   }
 
@@ -340,9 +173,7 @@ export class UsersService {
     }
 
     if (nextRole !== currentRole) {
-      throw new ConflictError(
-        "Cannot remove your own elevated role",
-      );
+      throw new ConflictError("Cannot remove your own elevated role");
     }
   }
 
@@ -366,14 +197,6 @@ export class UsersService {
     if (activeAdminCount <= 1) {
       throw new ConflictError("Cannot demote or disable the last active admin");
     }
-  }
-
-  private async revokeRefreshTokensForUser(userId: string): Promise<void> {
-    if (!this.authSessionDependencies) {
-      return;
-    }
-
-    await this.authSessionDependencies.revokeRefreshTokensForUser(userId);
   }
 }
 

@@ -139,7 +139,7 @@ describe("users HTTP routes", () => {
       { actorId: userId, systemRole: "USER" },
       {
         method: "GET",
-        url: "/api/v1/admin/users",
+        url: "/api/v1/users",
       },
     );
 
@@ -161,7 +161,7 @@ describe("users HTTP routes", () => {
       { actorId: userId, systemRole: "USER" },
       {
         method: "GET",
-        url: `/api/v1/admin/users/${userId}`,
+        url: `/api/v1/users/${userId}`,
       },
     );
 
@@ -179,7 +179,7 @@ describe("users HTTP routes", () => {
       { actorId: userId, systemRole: "USER" },
       {
         method: "GET",
-        url: `/api/v1/admin/users/${adminUserId}`,
+        url: `/api/v1/users/${adminUserId}`,
       },
     );
 
@@ -228,7 +228,7 @@ describe("users HTTP routes", () => {
       { actorId: adminA, systemRole: "ADMIN" },
       {
         method: "GET",
-        url: "/api/v1/admin/users?limit=20",
+        url: "/api/v1/users?limit=20",
       },
     );
 
@@ -245,7 +245,7 @@ describe("users HTTP routes", () => {
       { actorId: adminA, systemRole: "ADMIN" },
       {
         method: "PATCH",
-        url: `/api/v1/admin/users/${managedUser}`,
+        url: `/api/v1/users/${managedUser}`,
         payload: {
           expectedVersion: managedVersion,
           status: "LOCKED",
@@ -260,7 +260,7 @@ describe("users HTTP routes", () => {
       { actorId: adminA, systemRole: "ADMIN" },
       {
         method: "PATCH",
-        url: `/api/v1/admin/users/${managedUser}`,
+        url: `/api/v1/users/${managedUser}`,
         payload: {
           expectedVersion: updateResponse.json().version,
           systemRole: "ADMIN",
@@ -274,7 +274,7 @@ describe("users HTTP routes", () => {
       { actorId: adminA, systemRole: "ADMIN" },
       {
         method: "DELETE",
-        url: `/api/v1/admin/users/${adminB}`,
+        url: `/api/v1/users/${adminB}`,
       },
     );
 
@@ -284,7 +284,7 @@ describe("users HTTP routes", () => {
       { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "DELETE",
-        url: `/api/v1/admin/users/${adminB}`,
+        url: `/api/v1/users/${adminB}`,
       },
     );
 
@@ -294,7 +294,7 @@ describe("users HTTP routes", () => {
       { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "PATCH",
-        url: `/api/v1/admin/users/${superAdmin}`,
+        url: `/api/v1/users/${superAdmin}`,
         payload: {
           expectedVersion: 1,
           systemRole: "USER",
@@ -308,7 +308,7 @@ describe("users HTTP routes", () => {
       { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "PATCH",
-        url: `/api/v1/admin/users/${systemUser}`,
+        url: `/api/v1/users/${systemUser}`,
         payload: {
           expectedVersion: 1,
           status: "LOCKED",
@@ -322,7 +322,7 @@ describe("users HTTP routes", () => {
       { actorId: superAdmin, systemRole: "SYSTEM_MAINTAINER" },
       {
         method: "DELETE",
-        url: `/api/v1/admin/users/${systemUser}`,
+        url: `/api/v1/users/${systemUser}`,
       },
     );
 
@@ -332,7 +332,7 @@ describe("users HTTP routes", () => {
       { actorId: adminA, systemRole: "ADMIN" },
       {
         method: "PATCH",
-        url: `/api/v1/admin/users/${adminA}`,
+        url: `/api/v1/users/${adminA}`,
         payload: {
           expectedVersion: 1,
           systemRole: "USER",

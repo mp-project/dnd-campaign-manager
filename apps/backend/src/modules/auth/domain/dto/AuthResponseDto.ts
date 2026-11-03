@@ -1,23 +1,20 @@
 import { z } from "zod";
 
-import { isoDateTimeDto, uuidDto } from "#core/http/dto";
+import { isoDateTimeDto } from "#core/http/dto";
 import {
-  EmailVerificationStatusSchema,
-  UserStatusSchema,
-  UserSystemRoleSchema,
-  UserTagSchema,
-  UserUsernameSchema,
+  EmailVerificationBaseSchema,
+  UserBaseSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
-export const AuthUserProfileSchema = z.strictObject({
-  id: uuidDto,
-  email: z.string().email(),
-  displayName: z.string().min(1).max(120),
-  username: UserUsernameSchema,
-  userTag: UserTagSchema,
-  systemRole: UserSystemRoleSchema,
-  status: UserStatusSchema,
-  emailVerifiedAt: isoDateTimeDto.nullable(),
+export const AuthUserProfileSchema = UserBaseSchema.pick({
+  id: true,
+  email: true,
+  displayName: true,
+  username: true,
+  userTag: true,
+  systemRole: true,
+  status: true,
+  emailVerifiedAt: true,
 });
 
 export const AuthResponseSchema = z.strictObject({
@@ -26,27 +23,17 @@ export const AuthResponseSchema = z.strictObject({
   accessExpiresAt: isoDateTimeDto,
 });
 
-export const ResponseEmailVerificationSchema = z.strictObject({
-  verificationId: uuidDto,
-  status: EmailVerificationStatusSchema,
-  expiresAt: isoDateTimeDto,
-  verifiedAt: isoDateTimeDto.nullable(),
+export const ResponseEmailVerificationSchema = EmailVerificationBaseSchema.pick({
+  verificationId: true,
+  status: true,
+  expiresAt: true,
+  verifiedAt: true,
 });
 
-export const ResponseRegisterUserSchema = z.strictObject({
-  id: uuidDto,
-  email: z.string().email(),
-  displayName: z.string().min(1).max(120),
-  username: UserUsernameSchema,
-  userTag: UserTagSchema,
-  systemRole: UserSystemRoleSchema,
-  status: UserStatusSchema,
-  emailVerifiedAt: isoDateTimeDto.nullable(),
-  verificationId: uuidDto,
-  verificationCode: z.string().regex(/^\d{6}$/).nullable(),
-  emailVerificationRequiredCode: z
-    .enum(["EMAIL_NOT_VERIFIED"])
-    .nullable(),
+export const ResponseRegisterUserSchema = AuthUserProfileSchema.extend({
+  verificationId: EmailVerificationBaseSchema.shape.verificationId,
+  verificationCode: EmailVerificationBaseSchema.shape.verificationCode.nullable(),
+  emailVerificationRequiredCode: z.enum(["EMAIL_NOT_VERIFIED"]).nullable(),
 });
 
 export const AcceptedResponseSchema = z.strictObject({

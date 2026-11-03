@@ -10,6 +10,7 @@ import {
   authAttempts,
   passwordResetTokens,
   refreshTokens,
+  trustedDevices,
 } from "#src/modules/auth/domain/entities/AuthTable";
 import { toAuditActorId } from "#src/modules/users/helpers/Audit";
 
@@ -18,6 +19,7 @@ export type RefreshTokenRow = typeof refreshTokens.$inferSelect;
 export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type EmailVerificationRequestRow = typeof emailVerificationRequests.$inferSelect;
 
+export type TrustedDeviceRow = typeof trustedDevices.$inferSelect;
 export type AuthAttemptRow = typeof authAttempts.$inferSelect;
 
 export type UpdateAuthAttemptInput = {
@@ -415,6 +417,20 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
+  async findRefreshTokenByHashForUpdate(
+    db: AppDatabase,
+    tokenHash: string,
+  ): Promise<RefreshTokenRow | null> {
+    const rows = await db
+      .select()
+      .from(refreshTokens)
+      .where(and(eq(refreshTokens.tokenHash, tokenHash), isNull(refreshTokens.deletedAt)))
+      .for("update")
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
   async markRefreshTokenRotated(
     db: AppDatabase,
     params: {
@@ -590,6 +606,48 @@ export class AuthRepository {
           isNull(passwordResetTokens.deletedAt),
         ),
       );
+  }
+
+  async findTrustedDeviceByHash(
+    db: AppDatabase,
+    tokenHash: string,
+    now: Date,
+  ): Promise<{ device: TrustedDeviceRow; email: string } | null> {
+    const rows = await db
+      .select({ device: trustedDevices, email: users.email })
+      .from(trustedDevices)
+      .innerJoin(users, eq(users.id, trustedDevices.userId))
+      .where(and(eq(trustedDevices.tokenHash, tokenHash), gt(trustedDevices.expiresAt, now)))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  async createTrustedDevice(
+    db: AppDatabase,
+    input: Pick<TrustedDeviceRow, "userId" | "tokenHash" | "userAgent" | "expiresAt">,
+  ): Promise<void> {
+    await db.insert(trustedDevices).values(input);
+  }
+
+  async updateTrustedDeviceLastUsed(db: AppDatabase, deviceId: string, at: Date): Promise<void> {
+    await db.update(trustedDevices).set({ lastUsedAt: at }).where(eq(trustedDevices.id, deviceId));
+  }
+
+  async deleteTrustedDevice(db: AppDatabase, userId: string, tokenHash: string): Promise<void> {
+    await db
+      .delete(trustedDevices)
+      .where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.tokenHash, tokenHash)));
+  }
+
+  async deleteTrustedDevicesForUser(db: AppDatabase, userId: string): Promise<void> {
+    await db.delete(trustedDevices).where(eq(trustedDevices.userId, userId));
+  }
+
+  async deleteExpiredTrustedDevices(db: AppDatabase, userId: string, now: Date): Promise<void> {
+    await db
+      .delete(trustedDevices)
+      .where(and(eq(trustedDevices.userId, userId), lte(trustedDevices.expiresAt, now)));
   }
 
   /**

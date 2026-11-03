@@ -7,6 +7,7 @@ import {
   AUTH_HTTP_PATHS,
   AUTH_HTTP_SECURITY,
 } from "#src/modules/auth/config/AuthHttpConfig";
+import { AUTH_PERMISSIONS } from "#src/modules/auth/permissions/AuthPermissions";
 import {
   ChangePasswordSchema,
   ForgotPasswordSchema,
@@ -188,6 +189,7 @@ export function registerAuthRoutes(
           200: AuthResponseSchema,
           400: errorResponseDto,
           401: errorResponseDto,
+          409: errorResponseDto,
         },
       },
     },
@@ -313,6 +315,56 @@ export function registerAuthRoutes(
     },
     async (request, reply) => {
       await controllers.authController.changePassword(request, reply);
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    AUTH_HTTP_PATHS.trustedDevice,
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: {
+          key: AUTH_PERMISSIONS.trustDeviceSelf,
+        },
+      },
+      schema: {
+        tags: ["Auth"],
+        operationId: "trustCurrentDevice",
+        security: AUTH_HTTP_SECURITY,
+        response: {
+          204: z.null(),
+          401: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.authController.trustCurrentDevice(request, reply);
+      return reply.code(204).send();
+    },
+  );
+
+  app.delete(
+    AUTH_HTTP_PATHS.trustedDevice,
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: {
+          key: AUTH_PERMISSIONS.trustDeviceSelf,
+        },
+      },
+      schema: {
+        tags: ["Auth"],
+        operationId: "removeCurrentDevice",
+        security: AUTH_HTTP_SECURITY,
+        response: {
+          204: z.null(),
+          401: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.authController.removeCurrentDevice(request, reply);
       return reply.code(204).send();
     },
   );

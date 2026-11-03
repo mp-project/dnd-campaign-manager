@@ -4,6 +4,7 @@ export const AUTH_PERMISSIONS = {
   logoutSelf: "auth.logoutSelf",
   logoutAllSelf: "auth.logoutAllSelf",
   changePasswordSelf: "auth.changePasswordSelf",
+  trustDeviceSelf: "auth.trustDeviceSelf",
 } as const;
 
 export const AUTH_PERMISSION_KEYS = Object.values(AUTH_PERMISSIONS);
@@ -22,5 +23,9 @@ export const authPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: AUTH_PERMISSIONS.changePasswordSelf,
     description: "Change own password",
+  },
+  {
+    key: AUTH_PERMISSIONS.trustDeviceSelf,
+    description: "Link or unlink the current browser as a trusted device",
   },
 ];

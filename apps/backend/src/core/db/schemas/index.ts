@@ -30,6 +30,7 @@ export {
   oauthProviderEnum,
   passwordResetTokens,
   refreshTokens,
+  trustedDevices,
 } from "../../../modules/auth/domain/entities/AuthTable.js";
 
 export {

@@ -10,11 +10,14 @@ import {
   type AuthAttemptService,
   loginAttemptKeys,
   refreshAttemptKeys,
+  trustedDeviceAttemptKey,
 } from "#src/modules/auth/service/AuthAttemptService";
-import type {
-  AuthServiceDependencies,
-  AuthSession,
-  ClientMetadata,
+import type { AuthTrustedDeviceService } from "#src/modules/auth/service/AuthTrustedDeviceService";
+import {
+  type AuthServiceDependencies,
+  type AuthSession,
+  type ClientMetadata,
+  REFRESH_ROTATION_GRACE_MS,
 } from "#src/modules/auth/service/AuthService.contracts";
 import { sha256 } from "#src/modules/auth/utils/crypto";
 
@@ -23,18 +26,29 @@ export class AuthSessionService {
     private readonly deps: AuthServiceDependencies,
     private readonly verifyPassword: (passwordHash: string | null, password: string) => Promise<boolean>,
     private readonly attempts: AuthAttemptService,
+    private readonly devices: AuthTrustedDeviceService,
   ) {}
 
-  async login(input: LoginDto, metadata: ClientMetadata): Promise<AuthSession> {
+  async login(
+    input: LoginDto,
+    metadata: ClientMetadata,
+    deviceToken: string | null = null,
+  ): Promise<AuthSession> {
     const normalizedEmail = input.email.trim().toLowerCase();
+    const device = await this.devices.findForEmail(deviceToken, normalizedEmail);
     const keys = loginAttemptKeys(normalizedEmail, metadata.ip);
+    const deviceKey = device ? trustedDeviceAttemptKey(device.id) : null;
     const session = await this.attempts.trackFailures(
-      keys.all,
+      deviceKey ? [deviceKey] : keys.all,
       (error) => error instanceof AuthError && error.code === "INVALID_CREDENTIALS",
       () => this.loginInTransaction(normalizedEmail, input.password, metadata),
     );
 
-    await this.attempts.clear(keys.emailIp);
+    await this.attempts.clear(deviceKey ?? keys.emailIp);
+
+    if (device) {
+      await this.devices.markUsed(device.id);
+    }
 
     return session;
   }
@@ -83,12 +97,26 @@ export class AuthSessionService {
     );
   }
 
-  private refreshInTransaction(tokenHash: string, metadata: ClientMetadata): Promise<AuthSession> {
-    return this.deps.transactionManager.inTransaction(async (tx) => {
-      const currentToken = await this.deps.repository.findRefreshTokenByHash(tx, tokenHash);
+  private async refreshInTransaction(
+    tokenHash: string,
+    metadata: ClientMetadata,
+  ): Promise<AuthSession> {
+    // Failures are returned instead of thrown: throwing would roll back the revocations.
+    const outcome = await this.deps.transactionManager.inTransaction(async (tx) => {
+      // The row lock makes parallel requests with one token run in turn, so only one can rotate it.
+      const currentToken = await this.deps.repository.findRefreshTokenByHashForUpdate(tx, tokenHash);
 
       if (!currentToken) {
         throw new AuthError("SESSION_INVALID", "Session is invalid");
+      }
+
+      if (
+        !currentToken.revokedAt &&
+        currentToken.rotatedAt &&
+        Date.now() - currentToken.rotatedAt.getTime() < REFRESH_ROTATION_GRACE_MS
+      ) {
+        // Usually a second tab or a retry: it issues nothing and revokes nothing.
+        throw new AuthError("SESSION_ALREADY_ROTATED", "Session was just refreshed");
       }
 
       if (currentToken.revokedAt || currentToken.rotatedAt) {
@@ -98,7 +126,7 @@ export class AuthSessionService {
           actorId: currentToken.userId,
         });
 
-        throw new AuthError("SESSION_INVALID", "Session is invalid");
+        return { invalid: true as const };
       }
 
       if (currentToken.expiresAt.getTime() <= Date.now()) {
@@ -107,7 +135,7 @@ export class AuthSessionService {
           actorId: currentToken.userId,
         });
 
-        throw new AuthError("SESSION_INVALID", "Session is invalid");
+        return { invalid: true as const };
       }
 
       const user = await this.deps.repository.findById(tx, currentToken.userId);
@@ -126,8 +154,14 @@ export class AuthSessionService {
         actorId: user.id,
       });
 
-      return nextSession.session;
+      return { session: nextSession.session };
     });
+
+    if ("invalid" in outcome) {
+      throw new AuthError("SESSION_INVALID", "Session is invalid");
+    }
+
+    return outcome.session;
   }
 
   async logoutCurrent(refreshToken: string | null): Promise<void> {
@@ -153,6 +187,7 @@ export class AuthSessionService {
 
   async logoutAll(actorId: string): Promise<void> {
     await this.deps.transactionManager.inTransaction(async (tx) => {
+      await this.deps.repository.deleteTrustedDevicesForUser(tx, actorId);
       await this.deps.repository.revokeAllRefreshTokensForUser(tx, {
         userId: actorId,
         actorId,

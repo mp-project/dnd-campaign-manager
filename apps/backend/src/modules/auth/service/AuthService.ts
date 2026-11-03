@@ -22,6 +22,10 @@ import { AuthError } from "#src/modules/auth/error/http/AuthError";
 import { AuthOAuthService } from "#src/modules/auth/service/AuthOAuthService";
 import { AuthPasswordService } from "#src/modules/auth/service/AuthPasswordService";
 import { AuthAttemptService } from "#src/modules/auth/service/AuthAttemptService";
+import {
+  AuthTrustedDeviceService,
+  type TrustedDeviceToken,
+} from "#src/modules/auth/service/AuthTrustedDeviceService";
 import { AuthPasswordSupport } from "#src/modules/auth/service/AuthPasswordSupport";
 import { AuthRegistrationService } from "#src/modules/auth/service/AuthRegistrationService";
 import { AuthSessionService } from "#src/modules/auth/service/AuthSessionService";
@@ -58,6 +62,8 @@ export class AuthService {
 
   private readonly oauthService: AuthOAuthService;
 
+  private readonly deviceService: AuthTrustedDeviceService;
+
   constructor(
     db: AppDatabase,
     transactionManager: TransactionManager,
@@ -82,10 +88,13 @@ export class AuthService {
     const passwordSupport = new AuthPasswordSupport();
     const attempts = new AuthAttemptService(db, repository);
 
+    this.deviceService = new AuthTrustedDeviceService(db, repository);
+
     this.sessionService = new AuthSessionService(
       deps,
       passwordSupport.verifyPassword.bind(passwordSupport),
       attempts,
+      this.deviceService,
     );
     this.registrationService = new AuthRegistrationService(
       deps,
@@ -104,6 +113,7 @@ export class AuthService {
       passwordSupport.verifyPassword.bind(passwordSupport),
       passwordSupport.consumeComparableDelay.bind(passwordSupport),
       attempts,
+      this.deviceService,
     );
     this.oauthService = new AuthOAuthService(deps, this.sessionService);
   }
@@ -164,8 +174,32 @@ export class AuthService {
     });
   }
 
-  login(input: LoginDto, metadata: ClientMetadata): Promise<AuthSession> {
-    return this.sessionService.login(input, metadata);
+  login(
+    input: LoginDto,
+    metadata: ClientMetadata,
+    deviceToken: string | null = null,
+  ): Promise<AuthSession> {
+    return this.sessionService.login(input, metadata, deviceToken);
+  }
+
+  trustDevice(
+    userId: string,
+    metadata: ClientMetadata,
+    currentToken: string | null,
+  ): Promise<TrustedDeviceToken> {
+    return this.deviceService.trust(userId, metadata, currentToken);
+  }
+
+  trustCurrentDevice(
+    context: RequestContext,
+    metadata: ClientMetadata,
+    currentToken: string | null,
+  ): Promise<TrustedDeviceToken> {
+    return this.deviceService.trust(this.assertAuthenticated(context), metadata, currentToken);
+  }
+
+  removeCurrentDevice(context: RequestContext, token: string): Promise<void> {
+    return this.deviceService.remove(this.assertAuthenticated(context), token);
   }
 
   refresh(refreshToken: string, metadata: ClientMetadata): Promise<AuthSession> {
@@ -194,8 +228,11 @@ export class AuthService {
     return this.passwordService.requestPasswordReset(input, metadata);
   }
 
-  confirmPasswordReset(input: ResetPasswordDto): Promise<void> {
-    return this.passwordService.confirmPasswordReset(input);
+  confirmPasswordReset(
+    input: ResetPasswordDto,
+    metadata: ClientMetadata,
+  ): Promise<TrustedDeviceToken | null> {
+    return this.passwordService.confirmPasswordReset(input, metadata);
   }
 
   startOAuth(input: {

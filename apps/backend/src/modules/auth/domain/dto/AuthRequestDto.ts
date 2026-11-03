@@ -39,6 +39,7 @@ export const RegisterSchema = z.strictObject({
 export const LoginSchema = z.strictObject({
   email: UserEmailSchema,
   password: z.string().min(1).max(200),
+  trustDevice: z.boolean().optional(),
 });
 
 export const RefreshSchema = z.strictObject({

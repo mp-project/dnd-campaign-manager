@@ -39,6 +39,8 @@ const ACCESS_COOKIE_KEY = "access_token";
 const REFRESH_COOKIE_KEY = "refresh_token";
 const OAUTH_STATE_COOKIE_KEY = "oauth_state_ctx";
 const OAUTH_ONBOARDING_COOKIE_KEY = "oauth_onboarding_ctx";
+const TRUSTED_DEVICE_COOKIE_KEY = "trusted_device";
+const TRUSTED_DEVICE_COOKIE_PATH = "/api/v1";
 
 export class AuthController extends AbstractController {
   constructor(
@@ -118,12 +120,21 @@ export class AuthController extends AbstractController {
   login = async (request: FastifyRequest, reply: FastifyReply) =>
     this.execute(async () => {
       const body = LoginSchema.parse(request.body);
-      const session = await this.authService.login(body, {
+      const metadata = {
         userAgent: request.headers["user-agent"],
         ip: request.ip,
-      });
+      };
+      const deviceToken = this.readCookie(request, TRUSTED_DEVICE_COOKIE_KEY);
+      const session = await this.authService.login(body, metadata, deviceToken);
 
       this.setSessionCookies(reply, session);
+
+      if (body.trustDevice) {
+        this.setTrustedDeviceCookie(
+          reply,
+          await this.authService.trustDevice(session.user.id, metadata, deviceToken),
+        );
+      }
 
       return toAuthResponse(session);
     });
@@ -165,6 +176,7 @@ export class AuthController extends AbstractController {
       const requestContext = request.requestContext as RequestContext;
       await this.authService.logoutAll(requestContext);
       this.clearSessionCookies(reply);
+      this.clearTrustedDeviceCookie(reply);
 
       return null;
     });
@@ -185,8 +197,17 @@ export class AuthController extends AbstractController {
   resetPassword = async (request: FastifyRequest, reply: FastifyReply) =>
     this.execute(async () => {
       const body = ResetPasswordSchema.parse(request.body);
-      await this.authService.confirmPasswordReset(body);
+      const device = await this.authService.confirmPasswordReset(body, {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      });
       this.clearSessionCookies(reply);
+
+      if (device) {
+        this.setTrustedDeviceCookie(reply, device);
+      } else {
+        this.clearTrustedDeviceCookie(reply);
+      }
 
       return null;
     });
@@ -197,6 +218,36 @@ export class AuthController extends AbstractController {
       const requestContext = request.requestContext as RequestContext;
       await this.authService.changePassword(requestContext, body);
       this.clearSessionCookies(reply);
+      this.clearTrustedDeviceCookie(reply);
+
+      return null;
+    });
+
+  trustCurrentDevice = async (request: FastifyRequest, reply: FastifyReply) =>
+    this.execute(async () => {
+      const device = await this.authService.trustCurrentDevice(
+        request.requestContext as RequestContext,
+        {
+        userAgent: request.headers["user-agent"],
+        ip: request.ip,
+      },
+        this.readCookie(request, TRUSTED_DEVICE_COOKIE_KEY),
+      );
+
+      this.setTrustedDeviceCookie(reply, device);
+
+      return null;
+    });
+
+  removeCurrentDevice = async (request: FastifyRequest, reply: FastifyReply) =>
+    this.execute(async () => {
+      const token = this.readCookie(request, TRUSTED_DEVICE_COOKIE_KEY);
+
+      if (token) {
+        await this.authService.removeCurrentDevice(request.requestContext as RequestContext, token);
+      }
+
+      this.clearTrustedDeviceCookie(reply);
 
       return null;
     });
@@ -372,6 +423,35 @@ export class AuthController extends AbstractController {
       serializeCookie(REFRESH_COOKIE_KEY, session.refreshToken, {
         maxAgeSeconds: refreshMaxAgeSeconds,
         path: "/api/v1/auth",
+        httpOnly: true,
+        secure: this.options.secureCookies,
+        sameSite: "Lax",
+      }),
+    );
+  }
+
+  private setTrustedDeviceCookie(
+    reply: FastifyReply,
+    device: { token: string; expiresAt: Date },
+  ): void {
+    this.appendSetCookie(
+      reply,
+      serializeCookie(TRUSTED_DEVICE_COOKIE_KEY, device.token, {
+        maxAgeSeconds: (device.expiresAt.getTime() - Date.now()) / 1000,
+        path: TRUSTED_DEVICE_COOKIE_PATH,
+        httpOnly: true,
+        secure: this.options.secureCookies,
+        sameSite: "Lax",
+      }),
+    );
+  }
+
+  private clearTrustedDeviceCookie(reply: FastifyReply): void {
+    this.appendSetCookie(
+      reply,
+      serializeCookie(TRUSTED_DEVICE_COOKIE_KEY, "", {
+        maxAgeSeconds: 0,
+        path: TRUSTED_DEVICE_COOKIE_PATH,
         httpOnly: true,
         secure: this.options.secureCookies,
         sameSite: "Lax",

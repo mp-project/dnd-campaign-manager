@@ -84,6 +84,8 @@ Rate limiting is central (`src/core/http/rateLimit.ts`): every route gets `ROUTE
 
 Auth attempts are counted on top of that in `auth_attempts` (`AuthAttemptService`): failed logins, refreshes and verification codes, plus every auth email. Limits are per account or token and, much higher, per IP; blocked requests get 429 with `Retry-After`. Attempts must be recorded outside the request transaction, because the thrown error rolls it back.
 
+Trusted devices (`trusted_devices`, `AuthTrustedDeviceService`) are opt-in: a checkbox on login or password reset, or `POST /me/trusted-device` later. A device still needs the password but has its own attempt limit, so attacks on the account can't lock it out. A password reset during a block lifts the block and links the browser automatically. Password changes, resets and logout from all devices remove all devices.
+
 Busy database: the pool sets `connectionTimeoutMillis` and `lock_timeout` (5 s); both timeouts map to `ServiceUnavailableError` (503).
 
 Inside `inTransaction`, only run queries on the `tx` handle. Calling something that uses its own `db` (for example another module's service or use case) needs a second pool connection while the first is held; with a row lock this can block the whole API (`tests/integration/campaign-memberships.concurrency.test.ts`). Do those lookups before opening the transaction.

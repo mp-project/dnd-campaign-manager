@@ -26,6 +26,7 @@ describe("auth role permission assignments", () => {
         "auth.logoutSelf",
         "auth.logoutAllSelf",
         "auth.changePasswordSelf",
+        "auth.trustDeviceSelf",
         "users.readSelf",
         "users.updateSelf",
         "users.read",

@@ -73,6 +73,28 @@ export const passwordResetTokens = pgTable(
 );
 
 /**
+ * Browsers a user linked to their account; only the token hash is stored.
+ */
+export const trustedDevices = pgTable(
+  "trusted_devices",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    userAgent: varchar("user_agent", { length: 500 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("trusted_devices_token_hash_unique_idx").on(table.tokenHash),
+    index("trusted_devices_user_id_idx").on(table.userId),
+  ],
+);
+
+/**
  * Counts auth attempts per hashed key (for example email + IP) outside the request transaction.
  */
 export const authAttempts = pgTable(

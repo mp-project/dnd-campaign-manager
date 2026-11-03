@@ -10,7 +10,12 @@ import type {
 import {
   type AuthAttemptService,
   authEmailAttemptKeys,
+  loginAttemptKeys,
 } from "#src/modules/auth/service/AuthAttemptService";
+import type {
+  AuthTrustedDeviceService,
+  TrustedDeviceToken,
+} from "#src/modules/auth/service/AuthTrustedDeviceService";
 import type {
   AuthServiceDependencies,
   ClientMetadata,
@@ -36,6 +41,7 @@ export class AuthPasswordService {
     private readonly verifyPassword: (passwordHash: string | null, password: string) => Promise<boolean>,
     private readonly consumeComparableDelay: (secret: string) => Promise<void>,
     private readonly attempts: AuthAttemptService,
+    private readonly devices: AuthTrustedDeviceService,
   ) {}
 
   async changePassword(context: RequestContext, input: ChangePasswordDto): Promise<void> {
@@ -68,6 +74,7 @@ export class AuthPasswordService {
         userId: user.id,
         actorId: user.id,
       });
+      await this.deps.repository.deleteTrustedDevicesForUser(tx, user.id);
     });
   }
 
@@ -115,10 +122,17 @@ export class AuthPasswordService {
     });
   }
 
-  async confirmPasswordReset(input: ResetPasswordDto): Promise<void> {
+  /**
+   * The reset link proves ownership of the account. If the account was blocked, the block is lifted
+   * and the current browser gets linked without the checkbox, so further attacks cannot lock it out.
+   */
+  async confirmPasswordReset(
+    input: ResetPasswordDto,
+    metadata: ClientMetadata,
+  ): Promise<TrustedDeviceToken | null> {
     const tokenHash = sha256(input.token);
 
-    await this.deps.transactionManager.inTransaction(async (tx) => {
+    const user = await this.deps.transactionManager.inTransaction(async (tx) => {
       const resetToken = await this.deps.repository.findPasswordResetTokenByHash(tx, tokenHash);
 
       if (!resetToken) {
@@ -168,6 +182,17 @@ export class AuthPasswordService {
         userId: user.id,
         actorId: user.id,
       });
+      await this.deps.repository.deleteTrustedDevicesForUser(tx, user.id);
+
+      return user;
     });
+
+    const keys = loginAttemptKeys(user.email, metadata.ip);
+    const wasBlocked = await this.attempts.isBlocked(keys.all);
+
+    await this.attempts.clear(keys.emailIp);
+    await this.attempts.clear(keys.email);
+
+    return input.trustDevice || wasBlocked ? this.devices.trust(user.id, metadata) : null;
   }
 }

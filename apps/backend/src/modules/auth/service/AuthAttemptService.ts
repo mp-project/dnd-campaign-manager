@@ -30,6 +30,7 @@ const AUTH_ATTEMPT_POLICIES = {
   loginEmailIp: { action: "LOGIN", scope: "email-ip", max: 10, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
   loginEmail: { action: "LOGIN", scope: "email", max: 30, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
   loginIp: { action: "LOGIN", scope: "ip", max: 200, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
+  loginTrustedDevice: { action: "LOGIN", scope: "trusted-device", max: 10, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
   refreshToken: { action: "REFRESH", scope: "token", max: 10, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
   refreshIp: { action: "REFRESH", scope: "ip", max: 200, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
   verificationEmail: { action: "EMAIL_VERIFICATION", scope: "email", max: 10, windowMs: 15 * MINUTE_MS, blockMs: 15 * MINUTE_MS },
@@ -51,12 +52,17 @@ export function loginAttemptKeys(email: string, ip: string | undefined) {
 
   return {
     emailIp: buildKey(loginEmailIp, `${email}|${ipValue(ip)}`),
+    email: buildKey(loginEmail, email),
     all: [
       buildKey(loginEmailIp, `${email}|${ipValue(ip)}`),
       buildKey(loginEmail, email),
       buildKey(loginIp, ipValue(ip)),
     ],
   };
+}
+
+export function trustedDeviceAttemptKey(deviceId: string): AuthAttemptKey {
+  return buildKey(AUTH_ATTEMPT_POLICIES.loginTrustedDevice, deviceId);
 }
 
 export function refreshAttemptKeys(tokenHash: string, ip: string | undefined): AuthAttemptKey[] {
@@ -121,13 +127,21 @@ export class AuthAttemptService {
     return this.repository.deleteAttempt(this.db, key.hash);
   }
 
-  private async assertNotBlocked(keys: AuthAttemptKey[]): Promise<void> {
-    const now = new Date();
-    const blockedUntil = await this.repository.findAttemptBlockedUntil(
+  async isBlocked(keys: AuthAttemptKey[]): Promise<boolean> {
+    return (await this.findBlockedUntil(keys, new Date())) !== null;
+  }
+
+  private findBlockedUntil(keys: AuthAttemptKey[], now: Date): Promise<Date | null> {
+    return this.repository.findAttemptBlockedUntil(
       this.db,
       keys.map((key) => key.hash),
       now,
     );
+  }
+
+  private async assertNotBlocked(keys: AuthAttemptKey[]): Promise<void> {
+    const now = new Date();
+    const blockedUntil = await this.findBlockedUntil(keys, now);
 
     if (blockedUntil) {
       throw new RateLimitedError("Too many attempts, please try again later", {

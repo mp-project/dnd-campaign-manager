@@ -15,6 +15,8 @@ export const MAX_VERIFICATION_ATTEMPTS = 5;
 export const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 export const OAUTH_ONBOARDING_TTL_MS = 10 * 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+export const REFRESH_ROTATION_GRACE_MS = 10 * 1000;
+export const TRUSTED_DEVICE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 export type ClientMetadata = {
   userAgent: string | undefined;

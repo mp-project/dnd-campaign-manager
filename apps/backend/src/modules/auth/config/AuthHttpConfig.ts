@@ -18,6 +18,7 @@ export const AUTH_HTTP_PATHS = {
   forgotPassword: "/auth/forgot-password",
   resetPassword: "/auth/reset-password",
   changePassword: "/me/change-password",
+  trustedDevice: "/me/trusted-device",
   oauthStart: "/auth/oauth/:provider/start",
   oauthCallback: "/auth/oauth/:provider/callback",
   oauthCompleteRegistration: "/auth/oauth/complete-registration",

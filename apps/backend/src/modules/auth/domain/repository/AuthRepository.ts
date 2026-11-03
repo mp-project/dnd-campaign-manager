@@ -12,7 +12,7 @@ import {
   refreshTokens,
   trustedDevices,
 } from "#src/modules/auth/domain/entities/AuthTable";
-import { toAuditActorId } from "#src/modules/users/helpers/Audit";
+import { toAuditActorId } from "#core/db/auditActor";
 
 export type UserRow = typeof users.$inferSelect;
 export type RefreshTokenRow = typeof refreshTokens.$inferSelect;

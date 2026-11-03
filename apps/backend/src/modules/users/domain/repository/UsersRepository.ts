@@ -11,7 +11,7 @@ import type { UpdateMeDto } from "#src/modules/users/domain/dto/UpdateMeDto";
 import type { UpdateSettingsDto } from "#src/modules/users/domain/dto/UpdateSettingsDto";
 import type { UpdateUserDto } from "#src/modules/users/domain/dto/UpdateUserDto";
 import type { RequestUsersDto } from "#src/modules/users/domain/dto/RequestUsersDto";
-import { toAuditActorId } from "#src/modules/users/helpers/Audit";
+import { toAuditActorId } from "#core/db/auditActor";
 
 export type UserRow = typeof users.$inferSelect;
 export type UserSettingsRow = typeof userSettings.$inferSelect;

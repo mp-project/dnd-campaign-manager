@@ -9,7 +9,7 @@ import {
 import type { CreateRulesetDto } from "#src/modules/ruleset/domain/dto/CreateRulesetDto";
 import type { RequestRulesetDto } from "#src/modules/ruleset/domain/dto/RequestRulesetDto";
 import type { UpdateRulesetDto } from "#src/modules/ruleset/domain/dto/UpdateRulesetDto";
-import { toAuditActorId } from "#src/modules/ruleset/helpers/Audit";
+import { toAuditActorId } from "#core/db/auditActor";
 
 export type RulesetRow = typeof rulesets.$inferSelect;
 export type RulesetLevelProgressionRow = typeof rulesetLevelProgressions.$inferSelect;

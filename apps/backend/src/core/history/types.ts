@@ -273,6 +273,8 @@ export type GetEntityVersionParams = {
 /** Public port of the history module, available as `container.ports.history`. */
 export type HistoryPort = {
   register<T extends TrackedTable>(entity: TrackedEntity<T>): void;
+  /** Everything registered so far, so tests can check that nothing is forgotten. */
+  listEntities(): readonly TrackedEntity[];
   subscribe(pattern: string, handler: HistoryEventHandler): void;
   runAction<R>(meta: ActionMeta<R>, work: (scope: ActionScope) => Promise<R>): Promise<R>;
   /** For modules that already hold a transaction; call `publish` after their commit. */

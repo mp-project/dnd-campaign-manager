@@ -101,6 +101,17 @@ Inside `inTransaction`, only run queries on the `tx` handle. Calling something t
 - Linkable content (notes, spells, NPCs, locations, ...) shares its identity in `assets` (`src/modules/assets`). Domain modules don't write `assets` themselves. They call the `AssetsModuleDependencies.service` port (`createBase`, `updateMetadata`, `archiveBase`, `restoreBase`, `assertAvailable`, `resolveVariant`, ...) inside their own transaction and check their own domain permissions. Players only see campaign assets that a registered `AssetVisibilityProvider` (e.g. content shares) grants.
 - Campaign-scoped updates use optimistic locking (`src/core/db/optimisticLock.ts`, `version` column, `VersionConflictError` → HTTP 412).
 
+### History
+
+Changes to content are recorded per field in the `history` module (`#core/history`, `src/modules/history`). Tracked today: `asset`, `campaign`, `campaignMembership`, `ruleset`, `user`. Read through `GET /history/:entityType/:entityId`, undo through `POST /history/events/:eventId/revert`, restore through `POST /history/:entityType/:entityId/versions/:version/restore`.
+
+- **Writing:** use cases that change tracked rows extend `MutationUseCase` (`authorize` returns `authorized()` or `publicAction("reason")`, `perform` does the work; lookups in other modules go in `prepare`, before the transaction) and write only through `scope.create`, `scope.change` and `scope.softDelete`. Use `history.runAction` directly only if work has to follow the commit, such as an email. An ESLint rule forbids direct writes to tracked tables.
+- **New tables:** define `history/Tracked<Entity>.ts` with `defineTrackedEntity`, register it in `Setup.ts`, and add the table to `TRACKED_TABLES` in `eslint.config.js`. A table without history needs a reason in `UNTRACKED_TABLES` in `tests/unit/history.schema.test.ts`, and each tracked entity needs a fixture in `tests/integration/history.rights.http.test.ts`; both tests fail otherwise.
+- **Fields:** every column is classified: `value`, `counter`, `position`, `list`, `account` and `secret` (no value is ever stored), or `ignore`. Fields that grant rights use `field.value({ revertible: false })`. Set the limit in the definition, otherwise `standard` applies.
+- **Rights:** the history only exists for people who may change the content; seeing it is not enough. Everybody else gets 404. Use `campaignHistoryAccess` with `editRoles` for campaign content; players only get rows through `ownedByPlayer`. System admins pass every check, but technical limits apply to them too. Rights use the role at access time and the campaign from the row, never from the client.
+- **Behavior:** undoing and restoring are new entries, the history is never rewritten. Deleted rows stay deleted and their history is no longer readable. Archived content can be restored. Conflicts are detected per field through `baseVersion`, and `merged` reports values that were kept.
+- **Deliberately direct:** `campaign_invitations` (nothing to restore), the ruleset progression tables (never change), and for `users` the own profile and everything in `auth`, because that history only covers changes by administrators. For the same reason, `user.update` keeps a strict version check.
+
 ### Errors
 
 Throw subclasses of `AppError` / the HTTP errors in `src/core/error/http/` (`NotFoundError`, `ForbiddenError`, `ConflictError`, `ValidationError`, ...). `registerErrorHandler` plus `errorMapper` turn them into the standard error payload. Modules add their own under `error/http/` when needed.

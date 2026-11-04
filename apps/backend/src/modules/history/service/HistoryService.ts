@@ -88,6 +88,10 @@ export class HistoryService implements HistoryPort {
     this.entities.set(erased.type, erased);
   }
 
+  listEntities(): readonly TrackedEntity[] {
+    return [...this.entities.values()];
+  }
+
   subscribe(pattern: string, handler: HistoryEventHandler): void {
     this.subscribers.push({ pattern, handler });
   }

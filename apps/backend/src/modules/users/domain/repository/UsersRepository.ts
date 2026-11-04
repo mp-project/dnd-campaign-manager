@@ -9,7 +9,6 @@ import {
 } from "#src/modules/users/domain/entities/UsersTable";
 import type { UpdateMeDto } from "#src/modules/users/domain/dto/UpdateMeDto";
 import type { UpdateSettingsDto } from "#src/modules/users/domain/dto/UpdateSettingsDto";
-import type { UpdateUserDto } from "#src/modules/users/domain/dto/UpdateUserDto";
 import type { RequestUsersDto } from "#src/modules/users/domain/dto/RequestUsersDto";
 import { toAuditActorId } from "#core/db/auditActor";
 
@@ -25,7 +24,6 @@ export type UserAggregate = {
 export type UserListFilter = RequestUsersDto["listQuery"];
 export type UpdateProfilePatch = UpdateMeDto;
 export type UpdateSettingsPatch = UpdateSettingsDto;
-export type UpdateUserPatch = Omit<UpdateUserDto, "expectedVersion">;
 
 export class UsersRepository {
   async findById(db: AppDatabase, userId: string): Promise<UserRow | null> {
@@ -281,51 +279,6 @@ export class UsersRepository {
     }
 
     return fallback;
-  }
-
-  async update(
-    db: AppDatabase,
-    params: {
-      userId: string;
-      actorId: string;
-      expectedVersion: number;
-      patch: UpdateUserPatch;
-    },
-  ): Promise<UserRow | null> {
-    const auditActorId = toAuditActorId(params.actorId);
-
-    const updateInput: Partial<typeof users.$inferInsert> = {};
-
-    if (params.patch.displayName !== undefined) {
-      updateInput.displayName = params.patch.displayName;
-    }
-
-    if (params.patch.systemRole !== undefined) {
-      updateInput.systemRole = params.patch.systemRole;
-    }
-
-    if (params.patch.status !== undefined) {
-      updateInput.status = params.patch.status;
-    }
-
-    const [updated] = await db
-      .update(users)
-      .set({
-        ...updateInput,
-        version: params.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-      })
-      .where(
-        and(
-          eq(users.id, params.userId),
-          eq(users.version, params.expectedVersion),
-          isNull(users.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
   }
 
   /**

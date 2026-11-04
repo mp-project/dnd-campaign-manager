@@ -5,6 +5,8 @@ import {
   UnauthenticatedError,
   VersionConflictError,
 } from "#core/error/http/index";
+import { authorized } from "#core/history/authorization";
+import type { HistoryPort } from "#core/history/types";
 import type { CampaignContext, RequestContext, SystemRole } from "#core/http/requestContext";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { isAdminRole, isSysAdminRole, SYSTEM_ROLE } from "#core/permissions/roles";
@@ -13,12 +15,14 @@ import type { AuthSessionDependencies } from "#src/modules/auth/index";
 import type { UpdateUserDto } from "#src/modules/users/domain/dto/UpdateUserDto";
 import type { UserRow } from "#src/modules/users/domain/repository/UsersRepository";
 import { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
+import { trackedUser, USER_ACTIONS } from "#src/modules/users/history/TrackedUser";
 
 export class UsersService {
   constructor(
     public readonly db: AppDatabase,
     public readonly transactionManager: TransactionManager,
     public readonly repository: UsersRepository,
+    private readonly history: HistoryPort,
     private readonly permissionService?: PermissionService,
     private readonly authSessionDependencies?: AuthSessionDependencies,
   ) {}
@@ -48,44 +52,54 @@ export class UsersService {
     context: RequestContext,
     userId: string,
     input: UpdateUserDto,
+    action: string = USER_ACTIONS.update,
   ): Promise<UserRow> {
     const actorId = this.assertAuthenticated(context);
 
-    const { updated, disabled } = await this.transactionManager.inTransaction(async (tx) => {
-      const current = await this.repository.findById(tx, userId);
+    const { updated, disabled } = await this.history.runAction(
+      {
+        action,
+        context,
+        // The rules depend on the locked row, so they are checked in the action below.
+        authorize: async () => authorized(),
+      },
+      async (scope) => {
+        if (!(await this.repository.findById(scope.tx, userId))) {
+          throw new NotFoundError("User not found");
+        }
 
-      if (!current) {
-        throw new NotFoundError("User not found");
-      }
+        let wasDisabled = false;
 
-      const nextRole = input.systemRole ?? current.systemRole;
-      const nextStatus = input.status ?? current.status;
+        const { row } = await scope.change(trackedUser, userId, async (current) => {
+          const nextRole = input.systemRole ?? current.systemRole;
+          const nextStatus = input.status ?? current.status;
 
-      this.assertCannotRemoveOwnElevatedRole(actorId, userId, current.systemRole, nextRole);
-      this.assertActorCanManageTarget(context.systemRole, current.systemRole, nextRole);
+          this.assertCannotRemoveOwnElevatedRole(actorId, userId, current.systemRole, nextRole);
+          this.assertActorCanManageTarget(context.systemRole, current.systemRole, nextRole);
 
-      await this.assertLastActiveAdminNotRemoved(tx, current, nextRole, nextStatus);
+          await this.assertLastActiveAdminNotRemoved(scope.tx, current, nextRole, nextStatus);
 
-      const result = await this.repository.update(tx, {
-        userId,
-        actorId,
-        expectedVersion: input.expectedVersion,
-        patch: {
-          displayName: input.displayName,
-          systemRole: input.systemRole,
-          status: input.status,
-        },
-      });
+          // No comparison per field: the own profile changes without entries, so it would not show.
+          if (current.version !== input.expectedVersion) {
+            throw new VersionConflictError("User update version mismatch");
+          }
 
-      if (!result) {
-        throw new VersionConflictError("User update version mismatch");
-      }
+          wasDisabled = nextStatus === "DISABLED" && current.status !== "DISABLED";
 
-      return {
-        updated: result,
-        disabled: nextStatus === "DISABLED" && current.status !== "DISABLED",
-      };
-    });
+          return {
+            set: Object.fromEntries(
+              Object.entries({
+                displayName: input.displayName,
+                systemRole: input.systemRole,
+                status: input.status,
+              }).filter(([, value]) => value !== undefined),
+            ),
+          };
+        });
+
+        return { updated: row, disabled: wasDisabled };
+      },
+    );
 
     if (disabled) {
       await this.authSessionDependencies?.revokeRefreshTokensForUser(updated.id);

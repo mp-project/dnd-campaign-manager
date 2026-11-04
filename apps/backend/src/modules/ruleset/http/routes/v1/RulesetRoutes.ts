@@ -11,6 +11,7 @@ import { UpdateRulesetSchema } from "#src/modules/ruleset/domain/dto/UpdateRules
 import {
   ResponseRulesetListSchema,
   ResponseRulesetSchema,
+  ResponseUpdateRulesetSchema,
   ResponseValidateRulesetSchema,
 } from "#src/modules/ruleset/domain/dto/ResponseRulesetDto";
 import { RULESET_PERMISSIONS } from "#src/modules/ruleset/permissions/RulesetPermissions";
@@ -118,7 +119,7 @@ export function registerRulesetRoutes(
         params: RequestRulesetParamsSchema,
         body: UpdateRulesetSchema,
         response: {
-          200: ResponseRulesetSchema,
+          200: ResponseUpdateRulesetSchema,
           400: errorResponseDto,
           401: errorResponseDto,
           403: errorResponseDto,

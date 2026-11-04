@@ -32,6 +32,17 @@ export class RulesetService {
     return ruleset;
   }
 
+  /** Loads a ruleset with its progressions inside a transaction. */
+  async loadAggregate(db: AppDatabase, rulesetId: string): Promise<RulesetAggregate> {
+    const ruleset = await this.repository.findAggregateById(db, rulesetId);
+
+    if (!ruleset) {
+      throw new NotFoundError("Ruleset not found");
+    }
+
+    return ruleset;
+  }
+
   async assertRulesetChangeRequiresMigration(input: {
     currentRulesetId: string;
     nextRulesetId: string;

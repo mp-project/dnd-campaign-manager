@@ -1,55 +1,69 @@
-import {
-  ConflictError,
-  NotFoundError,
-  VersionConflictError,
-} from "#core/error/http/index";
+import { ConflictError } from "#core/error/http/index";
+import { authorized, type Authorization } from "#core/history/authorization";
+import { MutationUseCase } from "#core/history/MutationUseCase";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseRulesetDto,
-  toRulesetResponse,
+  type ResponseUpdateRulesetDto,
+  toUpdateRulesetResponse,
 } from "#src/modules/ruleset/domain/dto/ResponseRulesetDto";
 import type { UpdateRulesetDto } from "#src/modules/ruleset/domain/dto/UpdateRulesetDto";
+import { RULESET_ACTIONS, trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 
-export class UpdateRulesetUseCase {
-  constructor(private readonly rulesetService: RulesetService) {}
+export type UpdateRulesetInput = {
+  rulesetId: string;
+  command: UpdateRulesetDto;
+};
 
-  async execute(
-    context: RequestContext,
-    rulesetId: string,
-    input: UpdateRulesetDto,
-  ): Promise<ResponseRulesetDto> {
-    const { db, repository } = this.rulesetService;
-    const actorId = this.rulesetService.assertAuthenticated(context);
+export class UpdateRulesetUseCase extends MutationUseCase<
+  UpdateRulesetInput,
+  ResponseUpdateRulesetDto
+> {
+  protected readonly action = RULESET_ACTIONS.update;
 
-    const current = await repository.findById(db, rulesetId);
+  constructor(
+    history: HistoryPort,
+    private readonly rulesetService: RulesetService,
+  ) {
+    super(history);
+  }
 
-    if (!current) {
-      throw new NotFoundError("Ruleset not found");
-    }
+  /** Rulesets are global, so the permission on the route is the whole check. */
+  protected async authorize(context: RequestContext): Promise<Authorization> {
+    this.rulesetService.assertAuthenticated(context);
 
-    const nextStatus = input.status ?? current.status;
+    return authorized();
+  }
 
-    if (
-      nextStatus === "ACTIVE" &&
-      (await repository.isActiveCodeTaken(db, current.code, rulesetId))
-    ) {
-      throw new ConflictError(`Ruleset code '${current.code}' is already in use`);
-    }
+  protected async perform(
+    scope: ActionScope,
+    _context: RequestContext,
+    input: UpdateRulesetInput,
+  ): Promise<ResponseUpdateRulesetDto> {
+    const { repository } = this.rulesetService;
+    const { rulesetId, command } = input;
+    const { expectedVersion, ...fields } = command;
+    const set = Object.fromEntries(
+      Object.entries(fields).filter(([, value]) => value !== undefined),
+    );
 
-    const { expectedVersion, ...patch } = input;
+    await this.rulesetService.loadAggregate(scope.tx, rulesetId);
 
-    const updated = await repository.update(db, {
-      rulesetId,
-      actorId,
-      expectedVersion,
-      patch,
+    const { merged } = await scope.change(trackedRuleset, rulesetId, async (current) => {
+      if (
+        (command.status ?? current.status) === "ACTIVE" &&
+        (await repository.isActiveCodeTaken(scope.tx, current.code, rulesetId))
+      ) {
+        throw new ConflictError(`Ruleset code '${current.code}' is already in use`);
+      }
+
+      return { set, baseVersion: expectedVersion };
     });
 
-    if (!updated) {
-      throw new VersionConflictError("Ruleset update version mismatch");
-    }
-
-    return toRulesetResponse(updated);
+    return toUpdateRulesetResponse(
+      await this.rulesetService.loadAggregate(scope.tx, rulesetId),
+      merged,
+    );
   }
 }

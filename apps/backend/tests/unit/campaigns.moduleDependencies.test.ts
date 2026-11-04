@@ -46,8 +46,11 @@ describe("campaigns module dependency injection", () => {
 
     try {
       await authModule.register(app, container);
+      await historyModule.register(app, container);
       await usersModule.register(app, container);
       await rulesetModule.register(app, container);
+
+      delete container.ports.history;
 
       await expect(campaignsModule.register(app, container)).rejects.toThrow(
         "History port is missing",

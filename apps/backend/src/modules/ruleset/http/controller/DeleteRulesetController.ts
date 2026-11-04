@@ -12,6 +12,8 @@ export class DeleteRulesetController extends AbstractController {
     this.execute(async () => {
       const params = RequestRulesetParamsSchema.parse(request.params);
 
-      await this.deleteRulesetUseCase.execute(request.requestContext, params.rulesetId);
+      await this.deleteRulesetUseCase.execute(request.requestContext, {
+        rulesetId: params.rulesetId,
+      });
     });
 }

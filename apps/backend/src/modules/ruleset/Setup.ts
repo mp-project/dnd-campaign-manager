@@ -9,6 +9,7 @@ import { GetRulesetByIdController } from "#src/modules/ruleset/http/controller/G
 import { ListRulesetsController } from "#src/modules/ruleset/http/controller/ListRulesetsController";
 import { UpdateRulesetController } from "#src/modules/ruleset/http/controller/UpdateRulesetController";
 import { ValidateRulesetController } from "#src/modules/ruleset/http/controller/ValidateRulesetController";
+import { trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
 import { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";
 import { registerRulesetRoutes } from "#src/modules/ruleset/http/routes/v1/RulesetRoutes";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
@@ -35,6 +36,14 @@ async function registerRulesetModule(
     rulesetPermissionDefinitions,
   );
 
+  const history = container.ports.history;
+
+  if (!history) {
+    throw new Error("History port is missing");
+  }
+
+  history.register(trackedRuleset);
+
   const repository = new RulesetRepository();
   const service = new RulesetService(container.db, container.transactionManager, repository);
 
@@ -47,9 +56,9 @@ async function registerRulesetModule(
     registerRulesetRoutes(rulesetApp, {
       listRulesetsController: new ListRulesetsController(new ListRulesetsUseCase(service)),
       getRulesetByIdController: new GetRulesetByIdController(new GetRulesetByIdUseCase(service)),
-      createRulesetController: new CreateRulesetController(new CreateRulesetUseCase(service)),
-      updateRulesetController: new UpdateRulesetController(new UpdateRulesetUseCase(service)),
-      deleteRulesetController: new DeleteRulesetController(new DeleteRulesetUseCase(service)),
+      createRulesetController: new CreateRulesetController(new CreateRulesetUseCase(history, service)),
+      updateRulesetController: new UpdateRulesetController(new UpdateRulesetUseCase(history, service)),
+      deleteRulesetController: new DeleteRulesetController(new DeleteRulesetUseCase(history, service)),
       validateRulesetController: new ValidateRulesetController(new ValidateRulesetUseCase(service)),
     });
   });
@@ -57,6 +66,6 @@ async function registerRulesetModule(
 
 export const rulesetModule: AppModule = {
   name: "ruleset",
-  dependencies: ["system"],
+  dependencies: ["system", "history"],
   register: registerRulesetModule,
 };

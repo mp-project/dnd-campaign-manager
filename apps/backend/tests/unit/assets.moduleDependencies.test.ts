@@ -49,9 +49,12 @@ describe("assets module dependency injection", () => {
 
     try {
       await authModule.register(app, container);
+      await historyModule.register(app, container);
       await usersModule.register(app, container);
       await rulesetModule.register(app, container);
       await campaignsModule.register(app, container);
+
+      delete container.ports.history;
 
       await expect(assetsModule.register(app, container)).rejects.toThrow(
         "History port is missing",

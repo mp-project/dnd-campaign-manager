@@ -9,12 +9,11 @@ import { CorrectCampaignTimeSchema } from "#src/modules/campaigns/domain/dto/Cor
 import {
   RequestCampaignListQuerySchema,
   RequestCampaignParamsSchema,
-  RequestCampaignTimeHistoryQuerySchema,
 } from "#src/modules/campaigns/domain/dto/RequestCampaignDto";
 import {
   ResponseCampaignListSchema,
   ResponseCampaignSchema,
-  ResponseCampaignTimeHistorySchema,
+  ResponseUpdateCampaignSchema,
 } from "#src/modules/campaigns/domain/dto/ResponseCampaignDto";
 import { CAMPAIGNS_PERMISSIONS } from "#src/modules/campaigns/permissions/CampaignsPermissions";
 import { ListCampaignsController } from "#src/modules/campaigns/http/controller/ListCampaignsController";
@@ -24,7 +23,6 @@ import { UpdateCampaignController } from "#src/modules/campaigns/http/controller
 import { DeleteCampaignController } from "#src/modules/campaigns/http/controller/DeleteCampaignController";
 import { AdvanceCampaignTimeController } from "#src/modules/campaigns/http/controller/AdvanceCampaignTimeController";
 import { CorrectCampaignTimeController } from "#src/modules/campaigns/http/controller/CorrectCampaignTimeController";
-import { GetCampaignTimeHistoryController } from "#src/modules/campaigns/http/controller/GetCampaignTimeHistoryController";
 
 export type CampaignsRouteControllers = {
   listCampaignsController: ListCampaignsController;
@@ -34,7 +32,6 @@ export type CampaignsRouteControllers = {
   deleteCampaignController: DeleteCampaignController;
   advanceCampaignTimeController: AdvanceCampaignTimeController;
   correctCampaignTimeController: CorrectCampaignTimeController;
-  getCampaignTimeHistoryController: GetCampaignTimeHistoryController;
 };
 
 const tags = ["Campaigns"];
@@ -127,7 +124,7 @@ export function registerCampaignsRoutes(
         params: RequestCampaignParamsSchema,
         body: UpdateCampaignSchema,
         response: {
-          200: ResponseCampaignSchema,
+          200: ResponseUpdateCampaignSchema,
           400: errorResponseDto,
           401: errorResponseDto,
           403: errorResponseDto,
@@ -216,28 +213,5 @@ export function registerCampaignsRoutes(
       },
     },
     controllers.correctCampaignTimeController.handle,
-  );
-
-  app.get(
-    "/campaigns/:campaignId/time/history",
-    {
-      config: {
-        permission: { key: CAMPAIGNS_PERMISSIONS.read },
-      },
-      schema: {
-        tags,
-        operationId: "getCampaignTimeHistory",
-        security,
-        params: RequestCampaignParamsSchema,
-        querystring: RequestCampaignTimeHistoryQuerySchema,
-        response: {
-          200: ResponseCampaignTimeHistorySchema,
-          401: errorResponseDto,
-          403: errorResponseDto,
-          404: errorResponseDto,
-        },
-      },
-    },
-    controllers.getCampaignTimeHistoryController.handle,
   );
 }

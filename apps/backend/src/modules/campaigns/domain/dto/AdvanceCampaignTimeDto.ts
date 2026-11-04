@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { CampaignTimeEventBaseSchema } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
+import { campaignTimeReasonDto } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
 
-export const AdvanceCampaignTimeSchema = CampaignTimeEventBaseSchema.pick({ reason: true })
-  .partial()
-  .extend({
+export const AdvanceCampaignTimeSchema = z
+  .strictObject({
+    reason: campaignTimeReasonDto.nullable().optional(),
     days: z.coerce.number().int().min(0).max(10000).default(0),
     longRests: z.coerce.number().int().min(0).max(10000).default(0),
   })

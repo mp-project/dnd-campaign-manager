@@ -30,27 +30,18 @@ type TrackedAssetDeps = {
     actorId: string,
     db: AppDatabase,
   ): Promise<CampaignHistoryRole | null>;
-  isVisibleToPlayer(row: AssetRow, actorId: string, db: AppDatabase): Promise<boolean>;
 };
 
 /**
- * History rules of an asset. A right to undo must not go beyond the right to change directly: GMs
+ * History rules of an asset. Only people who may change an asset see its history: the GM of its
+ * campaign and administrators. A right to undo must not go beyond the right to change directly: GMs
  * may archive and restore assets of their campaign, everything else is left to administrators.
  */
 export function createTrackedAsset(deps: TrackedAssetDeps) {
   const campaignAccess = campaignHistoryAccess<AssetRow>({
     campaignId: (row) => row.campaignId as string,
     resolveRole: deps.resolveRole,
-    visibleToPlayer: deps.isVisibleToPlayer,
-    // Everything except what the player view of an asset shows.
-    hiddenFromPlayers: [
-      "slug",
-      "status",
-      "assetFamilyId",
-      "rulesetPolicy",
-      "rulesetIds",
-      "sourceReference",
-    ],
+    editRoles: ["GM"],
   });
 
   return defineTrackedEntity({

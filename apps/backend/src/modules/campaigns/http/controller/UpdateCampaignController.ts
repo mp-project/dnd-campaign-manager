@@ -18,10 +18,9 @@ export class UpdateCampaignController extends AbstractController {
       const params = RequestCampaignParamsSchema.parse(request.params);
       const body = UpdateCampaignSchema.parse(request.body);
 
-      return this.updateCampaignUseCase.execute(
-        request.requestContext,
-        params.campaignId,
-        body,
-      );
+      return this.updateCampaignUseCase.execute(request.requestContext, {
+        campaignId: params.campaignId,
+        command: body,
+      });
     });
 }

@@ -23,6 +23,12 @@ export abstract class MutationUseCase<Input, Output> {
   constructor(protected readonly history: HistoryPort) {}
 
   /**
+   * Runs before the transaction, for lookups in other modules: they use a connection of their own,
+   * which could block the API while the transaction holds one. Throw to deny.
+   */
+  protected prepare?(context: RequestContext, input: Input): Promise<void>;
+
+  /**
    * Runs first in the transaction, also for a repeated request. Only use `db` for queries, because
    * a second pool connection could block the API. Throw to deny.
    */
@@ -50,6 +56,8 @@ export abstract class MutationUseCase<Input, Output> {
     options: MutationOptions = {},
   ): Promise<Output> {
     const { idempotencyKey } = options;
+
+    await this.prepare?.(context, input);
 
     if (idempotencyKey !== undefined && !this.onReplay) {
       throw new Error(`Action '${this.action}' does not support idempotency keys`);

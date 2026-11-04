@@ -4,7 +4,6 @@ import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   campaigns,
   campaignMemberships,
-  campaignTimeEvents,
   rulesets,
   users,
 } from "#core/db/schema";
@@ -178,7 +177,7 @@ describe("campaigns HTTP routes", () => {
       { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" },
       {
         method: "GET",
-        url: `/api/v1/campaigns/${created.id}/time/history?limit=20`,
+        url: `/api/v1/history/campaign/${created.id}?field=currentGameDay&limit=20`,
       },
     );
 
@@ -192,7 +191,7 @@ describe("campaigns HTTP routes", () => {
         url: `/api/v1/campaigns/${created.id}`,
         payload: {
           expectedVersion: created.version,
-          description: "stale",
+          name: "stale",
         },
       },
     );
@@ -227,8 +226,6 @@ describe("campaigns HTTP routes", () => {
     expect(campaignRows).toHaveLength(1);
     expect(campaignRows[0]?.status).toBe("ARCHIVED");
 
-    const eventRows = await db.select().from(campaignTimeEvents);
-    expect(eventRows.length).toBeGreaterThanOrEqual(2);
   });
 
   it("rejects invalid DTOs and blocks foreign campaign reads", async () => {

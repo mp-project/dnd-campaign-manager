@@ -11,25 +11,29 @@ type CampaignHistoryAccessOptions<Row> = {
     actorId: string,
     db: AppDatabase,
   ): Promise<CampaignHistoryRole | null>;
-  /** Players only see rows this allows. Without it they see nothing. */
-  visibleToPlayer?(row: Row, actorId: string, db: AppDatabase): boolean | Promise<boolean>;
-  /** Players only undo their own actions on rows this allows. Without it they undo nothing. */
+  /** Roles that may change every row of this entity. Defaults to GM and editor. */
+  editRoles?: readonly Exclude<CampaignHistoryRole, "PLAYER">[];
+  /** Rows a player may change. Without it, players have no history of this entity. */
   ownedByPlayer?(row: Row, actorId: string): boolean;
   hiddenFromPlayers?: readonly string[];
 };
 
+const DEFAULT_EDIT_ROLES = ["GM", "EDITOR"] as const;
+
 /**
- * Standard rights for campaign content. They use the role at access time, so a removed member
- * loses access to old entries as well.
+ * Standard rights for campaign content. The history only exists for people who may change the
+ * content, so seeing a row is not enough to read its history. Rights use the role at access time,
+ * so a removed member loses access to old entries as well.
  *
- * - GM: read, undo everything, restore versions
- * - Editor: read, undo everything, no restore
- * - Player: visible rows without hidden fields, undo own actions on own rows
+ * - Roles in `editRoles`: read, undo everything
+ * - GM: also restore versions
+ * - Player: own rows without hidden fields, undo own actions on them
  */
 export function campaignHistoryAccess<Row>(
   options: CampaignHistoryAccessOptions<Row>,
 ): HistoryAccess<Row> {
   const hidden = new Set(options.hiddenFromPlayers ?? []);
+  const editRoles: readonly CampaignHistoryRole[] = options.editRoles ?? DEFAULT_EDIT_ROLES;
 
   const roleOf = async (actorId: string | null, row: Row, db: AppDatabase) =>
     actorId ? options.resolveRole(options.campaignId(row), actorId, db) : null;
@@ -42,11 +46,10 @@ export function campaignHistoryAccess<Row>(
         return false;
       }
 
-      if (role !== "PLAYER") {
-        return true;
-      }
-
-      return (await options.visibleToPlayer?.(row, context.actorId, db)) ?? false;
+      return (
+        editRoles.includes(role) ||
+        (role === "PLAYER" && (options.ownedByPlayer?.(row, context.actorId) ?? false))
+      );
     },
     readField: async (context, row, field, db) => {
       const role = await roleOf(context.actorId, row, db);
@@ -60,11 +63,12 @@ export function campaignHistoryAccess<Row>(
         return false;
       }
 
-      if (role !== "PLAYER") {
+      if (editRoles.includes(role)) {
         return true;
       }
 
       return (
+        role === "PLAYER" &&
         change.actorId === context.actorId &&
         change.fields.every((field) => !hidden.has(field)) &&
         (options.ownedByPlayer?.(row, context.actorId) ?? false)

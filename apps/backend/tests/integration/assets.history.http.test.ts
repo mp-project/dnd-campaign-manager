@@ -452,8 +452,7 @@ describe("assets history", () => {
 
       const eventId = await latestEventId(ID.sharedSpell);
 
-      expect((await history(ID.sharedSpell, EDITOR)).statusCode).toBe(200);
-      expect((await revert(eventId, EDITOR)).statusCode).toBe(403);
+      expect((await revert(eventId, EDITOR)).statusCode).toBe(404);
       expect((await revert(eventId, PLAYER)).statusCode).toBe(404);
       expect((await revert(eventId, OUTSIDER)).statusCode).toBe(404);
     });
@@ -468,44 +467,26 @@ describe("assets history", () => {
       expect((await restore(ID.sharedSpell, 1, GM)).statusCode).toBe(403);
     });
 
-    it("shows players only shared assets and only fields of the player view", async () => {
-      await patch(ID.sharedSpell, { expectedVersion: 1, title: "Ember II", slug: "ember-two" });
-      await patch(ID.unsharedSpell, { expectedVersion: 1, title: "Secret II" });
-
-      const entries = (await history(ID.sharedSpell, PLAYER)).json().data as HistoryItem[];
-      const fields = new Set(entries.map((item) => item.field));
-
-      expect(fields).toEqual(new Set(["title", "summary"]));
-      expect((await version(ID.sharedSpell, 1, PLAYER)).json().values).toEqual({
-        title: "Ember",
-        summary: null,
-      });
-      expect((await history(ID.unsharedSpell, PLAYER)).statusCode).toBe(404);
-    });
-
-    it("hides a shared asset from players once it is archived", async () => {
-      await injectAs(ADMIN, {
-        method: "DELETE",
-        url: `/api/v1/assets/${ID.sharedSpell}?expectedVersion=1`,
-      });
-
-      expect((await history(ID.sharedSpell, PLAYER)).statusCode).toBe(404);
-    });
-
-    it("answers with 404 for non-members, former members and system assets", async () => {
+    it("shows the history only to people who may change the asset", async () => {
       await patch(ID.sharedSpell, { expectedVersion: 1, title: "Ember II" });
+
+      for (const actor of [GM, ADMIN]) {
+        expect((await history(ID.sharedSpell, actor)).statusCode).toBe(200);
+        expect((await version(ID.sharedSpell, 1, actor)).statusCode).toBe(200);
+      }
+
+      // Also a player who sees the shared asset itself, and an editor of the campaign.
+      for (const actor of [EDITOR, PLAYER, OUTSIDER]) {
+        expect((await history(ID.sharedSpell, actor)).statusCode).toBe(404);
+        expect((await version(ID.sharedSpell, 1, actor)).statusCode).toBe(404);
+      }
+    });
+
+    it("answers with 404 for system assets unless an administrator asks", async () => {
       await patch(ID.systemSpell, { expectedVersion: 1, title: "Light II" });
 
-      expect((await history(ID.sharedSpell, OUTSIDER)).statusCode).toBe(404);
       expect((await history(ID.systemSpell, GM)).statusCode).toBe(404);
       expect((await history(ID.systemSpell, ADMIN)).statusCode).toBe(200);
-
-      await db
-        .update(campaignMemberships)
-        .set({ deletedAt: new Date() })
-        .where(eq(campaignMemberships.userId, ID.player));
-
-      expect((await history(ID.sharedSpell, PLAYER)).statusCode).toBe(404);
     });
 
     it("ignores a campaign header that points to another campaign", async () => {

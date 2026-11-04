@@ -46,8 +46,6 @@ export {
   campaignMemberRoleEnum,
   campaignMembershipStatusEnum,
   campaignStatusEnum,
-  campaignTimeEvents,
-  campaignTimeEventTypeEnum,
 } from "../../../modules/campaigns/domain/entities/CampaignsTable.js";
 
 export {

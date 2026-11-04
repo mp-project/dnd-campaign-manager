@@ -21,7 +21,6 @@ import { UpdateCampaignUseCase } from "#src/modules/campaigns/useCase/UpdateCamp
 import { DeleteCampaignUseCase } from "#src/modules/campaigns/useCase/DeleteCampaignUseCase";
 import { AdvanceCampaignTimeUseCase } from "#src/modules/campaigns/useCase/AdvanceCampaignTimeUseCase";
 import { CorrectCampaignTimeUseCase } from "#src/modules/campaigns/useCase/CorrectCampaignTimeUseCase";
-import { GetCampaignTimeHistoryUseCase } from "#src/modules/campaigns/useCase/GetCampaignTimeHistoryUseCase";
 import { ListCampaignsController } from "#src/modules/campaigns/http/controller/ListCampaignsController";
 import { GetCampaignByIdController } from "#src/modules/campaigns/http/controller/GetCampaignByIdController";
 import { CreateCampaignController } from "#src/modules/campaigns/http/controller/CreateCampaignController";
@@ -29,7 +28,6 @@ import { UpdateCampaignController } from "#src/modules/campaigns/http/controller
 import { DeleteCampaignController } from "#src/modules/campaigns/http/controller/DeleteCampaignController";
 import { AdvanceCampaignTimeController } from "#src/modules/campaigns/http/controller/AdvanceCampaignTimeController";
 import { CorrectCampaignTimeController } from "#src/modules/campaigns/http/controller/CorrectCampaignTimeController";
-import { GetCampaignTimeHistoryController } from "#src/modules/campaigns/http/controller/GetCampaignTimeHistoryController";
 
 export const CAMPAIGNS_MODULE_DEPENDENCIES = "campaigns.module.dependencies";
 
@@ -47,6 +45,12 @@ async function registerCampaignsModule(
     campaignsPermissionDefinitions,
   );
 
+  const history = container.ports.history;
+
+  if (!history) {
+    throw new Error("History port is missing");
+  }
+
   const repository = new CampaignsRepository();
   const service = new CampaignsService(
     container.db,
@@ -56,6 +60,8 @@ async function registerCampaignsModule(
     container.dependencies.require<RulesetModuleDependencies>(RULESET_MODULE_DEPENDENCIES),
     container.ports.permissionService,
   );
+
+  history.register(service.trackedCampaign);
 
   const currentCampaignFactPort = container.ports.campaignFactPort;
 
@@ -78,17 +84,20 @@ async function registerCampaignsModule(
       getCampaignByIdController: new GetCampaignByIdController(
         new GetCampaignByIdUseCase(service),
       ),
-      createCampaignController: new CreateCampaignController(new CreateCampaignUseCase(service)),
-      updateCampaignController: new UpdateCampaignController(new UpdateCampaignUseCase(service)),
-      deleteCampaignController: new DeleteCampaignController(new DeleteCampaignUseCase(service)),
+      createCampaignController: new CreateCampaignController(
+        new CreateCampaignUseCase(history, service),
+      ),
+      updateCampaignController: new UpdateCampaignController(
+        new UpdateCampaignUseCase(history, service),
+      ),
+      deleteCampaignController: new DeleteCampaignController(
+        new DeleteCampaignUseCase(history, service),
+      ),
       advanceCampaignTimeController: new AdvanceCampaignTimeController(
-        new AdvanceCampaignTimeUseCase(service),
+        new AdvanceCampaignTimeUseCase(history, service),
       ),
       correctCampaignTimeController: new CorrectCampaignTimeController(
-        new CorrectCampaignTimeUseCase(service),
-      ),
-      getCampaignTimeHistoryController: new GetCampaignTimeHistoryController(
-        new GetCampaignTimeHistoryUseCase(service),
+        new CorrectCampaignTimeUseCase(history, service),
       ),
     });
   });
@@ -96,6 +105,6 @@ async function registerCampaignsModule(
 
 export const campaignsModule: AppModule = {
   name: "campaigns",
-  dependencies: ["system", "auth", "users", "ruleset"],
+  dependencies: ["system", "auth", "history", "users", "ruleset"],
   register: registerCampaignsModule,
 };

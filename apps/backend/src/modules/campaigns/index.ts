@@ -10,8 +10,6 @@ export {
   campaignMemberRoleEnum,
   campaignMembershipStatusEnum,
   campaignStatusEnum,
-  campaignTimeEvents,
-  campaignTimeEventTypeEnum,
 } from "#src/modules/campaigns/domain/entities/CampaignsTable";
 export { CampaignsRepository } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
 export { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";

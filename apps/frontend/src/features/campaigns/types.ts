@@ -1,7 +1,5 @@
 export type CampaignStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type CampaignRole = "EDITOR" | "PLAYER";
-export type CampaignTimeEventType = "ADVANCE_DAYS" | "LONG_REST" | "CORRECTION";
-
 export type Campaign = {
   id: string;
   version: number;
@@ -24,21 +22,19 @@ export type Campaign = {
   effectivePermissions: string[];
 };
 
-export type CampaignTimeEvent = {
+export type CampaignCounterChange = {
+  previous: number;
+  next: number;
+};
+
+/** One change of the campaign time, built from the entries of the campaign history. */
+export type CampaignTimeEntry = {
   id: string;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-  createdBy: string;
-  updatedBy: string | null;
-  campaignId: string;
-  type: CampaignTimeEventType;
-  previousGameDay: number;
-  newGameDay: number;
-  previousLongRestCount: number;
-  newLongRestCount: number;
+  action: string;
+  gameDay: CampaignCounterChange | null;
+  longRests: CampaignCounterChange | null;
   reason: string | null;
+  createdAt: string;
 };
 
 export type ListResponse<T> = {

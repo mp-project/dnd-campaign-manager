@@ -1,22 +1,16 @@
-import { and, asc, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import {
   campaigns,
   campaignMemberships,
-  campaignTimeEvents,
 } from "#src/modules/campaigns/domain/entities/CampaignsTable";
-import type { CreateCampaignDto } from "#src/modules/campaigns/domain/dto/CreateCampaignDto";
 import type { RequestCampaignDto } from "#src/modules/campaigns/domain/dto/RequestCampaignDto";
-import type { UpdateCampaignDto } from "#src/modules/campaigns/domain/dto/UpdateCampaignDto";
 
 export type CampaignRow = typeof campaigns.$inferSelect;
 export type CampaignMembershipRow = typeof campaignMemberships.$inferSelect;
-export type CampaignTimeEventRow = typeof campaignTimeEvents.$inferSelect;
 
 export type CampaignListFilter = RequestCampaignDto["listQuery"];
-export type CreateCampaignInput = Omit<CreateCampaignDto, "ownerUserId">;
-export type UpdateCampaignPatch = Omit<UpdateCampaignDto, "expectedVersion">;
 
 export type CampaignAggregate = {
   campaign: CampaignRow;
@@ -49,44 +43,17 @@ export class CampaignsRepository {
       .for("update");
   }
 
-  async create(
+  async createOwnerMembership(
     db: AppDatabase,
-    params: {
-      actorId: string;
-      ownerUserId: string;
-      campaign: CreateCampaignInput & { slug: string };
-    },
-  ): Promise<CampaignRow> {
-    const [createdCampaign] = await db
-      .insert(campaigns)
-      .values({
-        ownerUserId: params.ownerUserId,
-        rulesetId: params.campaign.rulesetId,
-        name: params.campaign.name,
-        slug: params.campaign.slug,
-        description: params.campaign.description,
-        status: "DRAFT",
-        currentGameDay: 0,
-        longRestCount: 0,
-        settings: params.campaign.settings,
-        createdBy: params.actorId,
-        updatedBy: params.actorId,
-      })
-      .returning();
-
-    if (!createdCampaign) {
-      throw new Error("Failed to create campaign");
-    }
-
+    params: { actorId: string; campaignId: string; ownerUserId: string },
+  ): Promise<void> {
     await db.insert(campaignMemberships).values({
-      campaignId: createdCampaign.id,
+      campaignId: params.campaignId,
       userId: params.ownerUserId,
       role: "EDITOR",
       createdBy: params.actorId,
       updatedBy: params.actorId,
     });
-
-    return createdCampaign;
   }
 
   async findById(db: AppDatabase, campaignId: string): Promise<CampaignRow | null> {
@@ -186,172 +153,6 @@ export class CampaignsRepository {
       );
 
     return row?.total ?? 0;
-  }
-
-  async update(
-    db: AppDatabase,
-    params: {
-      campaignId: string;
-      actorId: string;
-      expectedVersion: number;
-      patch: UpdateCampaignPatch;
-    },
-  ): Promise<CampaignRow | null> {
-    const updateInput: Partial<typeof campaigns.$inferInsert> & {
-      version: number;
-      updatedAt: Date;
-      updatedBy: string | null;
-    } = {
-      version: params.expectedVersion + 1,
-      updatedAt: new Date(),
-      updatedBy: params.actorId,
-    };
-
-    if (params.patch.name !== undefined) {
-      updateInput.name = params.patch.name;
-    }
-
-    if (params.patch.slug !== undefined) {
-      updateInput.slug = params.patch.slug;
-    }
-
-    if (params.patch.description !== undefined) {
-      updateInput.description = params.patch.description;
-    }
-
-    if (params.patch.status !== undefined) {
-      updateInput.status = params.patch.status;
-    }
-
-    if (params.patch.settings !== undefined) {
-      updateInput.settings = params.patch.settings;
-    }
-
-    const [updated] = await db
-      .update(campaigns)
-      .set(updateInput)
-      .where(
-        and(
-          eq(campaigns.id, params.campaignId),
-          eq(campaigns.version, params.expectedVersion),
-          isNull(campaigns.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
-  }
-
-  async delete(
-    db: AppDatabase,
-    params: {
-      campaignId: string;
-      actorId: string;
-      expectedVersion: number;
-    },
-  ): Promise<CampaignRow | null> {
-    const [updated] = await db
-      .update(campaigns)
-      .set({
-        status: "ARCHIVED",
-        version: params.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: params.actorId,
-      })
-      .where(
-        and(
-          eq(campaigns.id, params.campaignId),
-          eq(campaigns.version, params.expectedVersion),
-          isNull(campaigns.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
-  }
-
-  async updateTime(
-    db: AppDatabase,
-    params: {
-      campaignId: string;
-      actorId: string;
-      expectedVersion: number;
-      newGameDay: number;
-      newLongRestCount: number;
-    },
-  ): Promise<CampaignRow | null> {
-    const [updated] = await db
-      .update(campaigns)
-      .set({
-        currentGameDay: params.newGameDay,
-        longRestCount: params.newLongRestCount,
-        version: params.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: params.actorId,
-      })
-      .where(
-        and(
-          eq(campaigns.id, params.campaignId),
-          eq(campaigns.version, params.expectedVersion),
-          isNull(campaigns.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
-  }
-
-  async createTimeEvent(
-    db: AppDatabase,
-    params: {
-      actorId: string;
-      campaignId: string;
-      type: CampaignTimeEventRow["type"];
-      previousGameDay: number;
-      newGameDay: number;
-      previousLongRestCount: number;
-      newLongRestCount: number;
-      reason: string | null;
-    },
-  ): Promise<CampaignTimeEventRow> {
-    const [created] = await db
-      .insert(campaignTimeEvents)
-      .values({
-        campaignId: params.campaignId,
-        type: params.type,
-        previousGameDay: params.previousGameDay,
-        newGameDay: params.newGameDay,
-        previousLongRestCount: params.previousLongRestCount,
-        newLongRestCount: params.newLongRestCount,
-        reason: params.reason,
-        createdBy: params.actorId,
-        updatedBy: params.actorId,
-      })
-      .returning();
-
-    if (!created) {
-      throw new Error("Failed to create campaign time event");
-    }
-
-    return created;
-  }
-
-  async listTimeEvents(
-    db: AppDatabase,
-    campaignId: string,
-    limit: number,
-  ): Promise<CampaignTimeEventRow[]> {
-    return db
-      .select()
-      .from(campaignTimeEvents)
-      .where(
-        and(
-          eq(campaignTimeEvents.campaignId, campaignId),
-          isNull(campaignTimeEvents.deletedAt),
-        ),
-      )
-      .orderBy(desc(campaignTimeEvents.createdAt), desc(campaignTimeEvents.id))
-      .limit(limit);
   }
 
   async resolveCampaignAccess(input: {

@@ -18,10 +18,9 @@ export class CorrectCampaignTimeController extends AbstractController {
       const params = RequestCampaignParamsSchema.parse(request.params);
       const body = CorrectCampaignTimeSchema.parse(request.body);
 
-      return this.correctCampaignTimeUseCase.execute(
-        request.requestContext,
-        params.campaignId,
-        body,
-      );
+      return this.correctCampaignTimeUseCase.execute(request.requestContext, {
+        campaignId: params.campaignId,
+        command: body,
+      });
     });
 }

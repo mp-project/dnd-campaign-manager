@@ -1,4 +1,7 @@
 import { ConflictError, UnauthenticatedError } from "#core/error/http/index";
+import { authorized, type Authorization } from "#core/history/authorization";
+import { MutationUseCase } from "#core/history/MutationUseCase";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import type { CreateCampaignDto } from "#src/modules/campaigns/domain/dto/CreateCampaignDto";
@@ -6,20 +9,26 @@ import {
   type ResponseCampaignDto,
   toCampaignResponse,
 } from "#src/modules/campaigns/domain/dto/ResponseCampaignDto";
+import { CAMPAIGN_ACTIONS } from "#src/modules/campaigns/history/TrackedCampaign";
 import { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 
-export class CreateCampaignUseCase {
-  constructor(private readonly campaignsService: CampaignsService) {}
+export class CreateCampaignUseCase extends MutationUseCase<CreateCampaignDto, ResponseCampaignDto> {
+  protected readonly action = CAMPAIGN_ACTIONS.create;
 
-  async execute(
+  constructor(
+    history: HistoryPort,
+    private readonly campaignsService: CampaignsService,
+  ) {
+    super(history);
+  }
+
+  protected override async prepare(
     context: RequestContext,
     input: CreateCampaignDto,
-  ): Promise<ResponseCampaignDto> {
-    const { repository, transactionManager, usersDependencies, rulesetDependencies } =
-      this.campaignsService;
-    const { ownerUserId: requestedOwnerUserId, ...campaignInput } = input;
+  ): Promise<void> {
+    const { usersDependencies, rulesetDependencies } = this.campaignsService;
     const actorId = await this.campaignsService.requireActorId(context);
-    const ownerUserId = requestedOwnerUserId ?? actorId;
+    const ownerUserId = input.ownerUserId ?? actorId;
 
     if (ownerUserId !== actorId && !isSysAdminRole(context.systemRole)) {
       throw new UnauthenticatedError("Valid actor identity required");
@@ -31,33 +40,47 @@ export class CreateCampaignUseCase {
       throw new UnauthenticatedError("Authenticated user not found");
     }
 
-    await rulesetDependencies.service.getById(context, campaignInput.rulesetId);
+    await rulesetDependencies.service.getById(context, input.rulesetId);
+  }
 
+  /** Everything is checked in `prepare`, because it needs the users and ruleset modules. */
+  protected async authorize(): Promise<Authorization> {
+    return authorized();
+  }
+
+  protected async perform(
+    scope: ActionScope,
+    context: RequestContext,
+    input: CreateCampaignDto,
+  ): Promise<ResponseCampaignDto> {
+    const { repository, trackedCampaign } = this.campaignsService;
+    const { ownerUserId: requestedOwnerUserId, ...campaignInput } = input;
+    const actorId = context.actorId as string;
+    const ownerUserId = requestedOwnerUserId ?? actorId;
     const slug = campaignInput.slug ?? this.campaignsService.slugify(campaignInput.name);
 
     if (!slug) {
       throw new ConflictError("Campaign slug cannot be derived from name");
     }
 
-    try {
-      const aggregate = await transactionManager.inTransaction(async (tx) => {
-        const campaign = await repository.create(tx, {
-          actorId,
-          ownerUserId,
-          campaign: { ...campaignInput, slug },
-        });
-        const membership = await repository.findMembership(tx, campaign.id, actorId);
+    const campaign = await this.campaignsService.withSlugConflict(() =>
+      scope.create(trackedCampaign, {
+        ownerUserId,
+        rulesetId: campaignInput.rulesetId,
+        name: campaignInput.name,
+        slug,
+        description: campaignInput.description,
+        status: "DRAFT",
+        currentGameDay: 0,
+        longRestCount: 0,
+        settings: campaignInput.settings,
+      }),
+    );
 
-        return this.campaignsService.buildAggregate(context, campaign, membership);
-      });
+    await repository.createOwnerMembership(scope.tx, { actorId, campaignId: campaign.id, ownerUserId });
 
-      return toCampaignResponse(aggregate);
-    } catch (error) {
-      if (this.campaignsService.isUniqueViolation(error)) {
-        throw new ConflictError("Campaign slug is already in use for this owner");
-      }
-
-      throw error;
-    }
+    return toCampaignResponse(
+      await this.campaignsService.toAggregate(scope.tx, context, campaign),
+    );
   }
 }

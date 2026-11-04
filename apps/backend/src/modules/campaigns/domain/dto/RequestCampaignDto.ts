@@ -17,12 +17,7 @@ export const RequestCampaignParamsSchema = z.strictObject({
   campaignId: uuidDto,
 });
 
-export const RequestCampaignTimeHistoryQuerySchema = z.strictObject({
-  limit: z.coerce.number().int().min(1).max(200).default(50),
-});
-
 export type RequestCampaignDto = {
   listQuery: z.infer<typeof RequestCampaignListQuerySchema>;
   params: z.infer<typeof RequestCampaignParamsSchema>;
-  timeHistoryQuery: z.infer<typeof RequestCampaignTimeHistoryQuerySchema>;
 };

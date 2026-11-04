@@ -106,7 +106,6 @@ async function resolveRole(
 const itemAccess = campaignHistoryAccess<typeof items.$inferSelect>({
   campaignId: (row) => row.campaignId,
   resolveRole,
-  visibleToPlayer: (row, actorId) => row.shared || row.ownerId === actorId,
   ownedByPlayer: (row, actorId) => row.ownerId === actorId,
   hiddenFromPlayers: ["gmNotes"],
 });
@@ -147,7 +146,7 @@ const trackedItem = defineTrackedEntity({
 const childAccess = campaignHistoryAccess<typeof children.$inferSelect>({
   campaignId: (row) => row.campaignId,
   resolveRole,
-  visibleToPlayer: (row) => row.shared,
+  ownedByPlayer: (row) => row.shared,
 });
 
 const trackedChild = defineTrackedEntity({
@@ -1285,11 +1284,11 @@ describe("history module", () => {
       ["GM", GM, 200],
       ["editor", EDITOR, 200],
       ["player", PLAYER, 200],
-      ["other player", OTHER_PLAYER, 200],
+      ["other player", OTHER_PLAYER, 404],
       ["admin", ADMIN, 200],
       ["outsider", OUTSIDER, 404],
       ["removed member", REMOVED, 404],
-    ])("reading a shared row as %s gives %i", async (_name, by, status) => {
+    ])("reading the row of a player as %s gives %i", async (_name, by, status) => {
       const { owned } = await seed();
 
       expect((await get(by, `/history/item/${owned.id}`)).statusCode).toBe(status);
@@ -1302,7 +1301,7 @@ describe("history module", () => {
       ["admin", ADMIN, 200],
       ["player", PLAYER, 404],
       ["outsider", OUTSIDER, 404],
-    ])("reading a hidden row as %s gives %i", async (_name, by, status) => {
+    ])("reading a row owned by nobody in the test as %s gives %i", async (_name, by, status) => {
       const { hidden } = await seed();
 
       expect((await get(by, `/history/item/${hidden.id}`)).statusCode).toBe(status);
@@ -1326,7 +1325,7 @@ describe("history module", () => {
 
     it.each<[string, TestActor, number]>([
       ["the acting player on an own row", PLAYER, 200],
-      ["another player", OTHER_PLAYER, 403],
+      ["another player", OTHER_PLAYER, 404],
       ["editor", EDITOR, 200],
       ["GM", GM, 200],
       ["admin", ADMIN, 200],
@@ -1358,7 +1357,7 @@ describe("history module", () => {
 
       const response = await post(PLAYER, `/history/events/${(await latestEvent(item.id)).id}/revert`);
 
-      expect(response.statusCode).toBe(403);
+      expect(response.statusCode).toBe(404);
     });
 
     it("rejects a mixed action as a whole", async () => {
@@ -1372,7 +1371,7 @@ describe("history module", () => {
         return scope.actionId;
       });
 
-      expect((await post(PLAYER, `/history/actions/${actionId}/revert`)).statusCode).toBe(403);
+      expect((await post(PLAYER, `/history/actions/${actionId}/revert`)).statusCode).toBe(404);
       expect((await currentItem(own.id)).name).toBe("A");
       expect((await currentItem(foreign.id)).name).toBe("B");
     });
@@ -1491,7 +1490,7 @@ describe("history module", () => {
     });
 
     it("checks rights for each child in the combined view", async () => {
-      const parent = await createItem();
+      const parent = await createItem({ ownerId: ID.player });
       const create = (title: string, shared: boolean) =>
         history.runAction({ action: "child.create", context: GM, authorize: allow }, (scope) =>
           scope.create(trackedChild, { campaignId: ID.campaignA, parentId: parent.id, title, shared }),

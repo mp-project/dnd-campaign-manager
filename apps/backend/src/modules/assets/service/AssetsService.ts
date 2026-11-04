@@ -115,12 +115,6 @@ export class AssetsService {
 
         return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
       },
-      isVisibleToPlayer: async (row, actorId, tx) =>
-        row.status === "ACTIVE" &&
-        row.campaignId !== null &&
-        (
-          await this.listVisibleAssetIds({ campaignId: row.campaignId, actorId }, tx)
-        ).includes(row.id),
     });
   }
 

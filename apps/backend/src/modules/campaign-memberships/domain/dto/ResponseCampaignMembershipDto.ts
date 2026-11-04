@@ -45,8 +45,16 @@ export const CampaignMembershipResponseSchema = CampaignMembershipBaseSchema.pic
   version: true,
 });
 
+export const UpdateCampaignMembershipResponseSchema = CampaignMembershipResponseSchema.extend({
+  merged: z.array(z.string().min(1)),
+});
+
 export type CampaignMemberListResponseDto = z.infer<typeof CampaignMemberListResponseSchema>;
 export type CampaignMembershipResponseDto = z.infer<typeof CampaignMembershipResponseSchema>;
+
+export type UpdateCampaignMembershipResponseDto = z.infer<
+  typeof UpdateCampaignMembershipResponseSchema
+>;
 
 export type CampaignMember = {
   membership: CampaignMembershipRow;
@@ -64,6 +72,13 @@ export function toCampaignMembershipResponse(
     joinedAt: membership.joinedAt?.toISOString() ?? null,
     version: membership.version,
   };
+}
+
+export function toUpdateCampaignMembershipResponse(
+  membership: CampaignMembershipRow,
+  merged: string[],
+): UpdateCampaignMembershipResponseDto {
+  return { ...toCampaignMembershipResponse(membership), merged };
 }
 
 export function toCampaignMemberListResponse(

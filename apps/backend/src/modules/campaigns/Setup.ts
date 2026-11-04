@@ -62,6 +62,7 @@ async function registerCampaignsModule(
   );
 
   history.register(service.trackedCampaign);
+  history.register(service.trackedMembership);
 
   const currentCampaignFactPort = container.ports.campaignFactPort;
 

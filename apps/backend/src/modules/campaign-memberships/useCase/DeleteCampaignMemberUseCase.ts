@@ -1,43 +1,70 @@
-import { ConflictError, VersionConflictError } from "#core/error/http/index";
+import type { AppDatabase } from "#core/db/pool";
+import { ConflictError } from "#core/error/http/index";
+import { authorized, type Authorization } from "#core/history/authorization";
+import { MutationUseCase } from "#core/history/MutationUseCase";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { CampaignMembershipsService } from "#src/modules/campaign-memberships/service/CampaignMembershipsService";
+import { CAMPAIGN_MEMBERSHIP_ACTIONS } from "#src/modules/campaigns/history/TrackedCampaignMembership";
+
+export type DeleteCampaignMemberInput = {
+  campaignId: string;
+  memberId: string;
+};
 
 /**
  * Revokes a membership (status `REVOKED`); the owner and the last editor cannot be removed.
  */
-export class DeleteCampaignMemberUseCase {
-  constructor(private readonly membershipsService: CampaignMembershipsService) {}
+export class DeleteCampaignMemberUseCase extends MutationUseCase<DeleteCampaignMemberInput, void> {
+  protected readonly action = CAMPAIGN_MEMBERSHIP_ACTIONS.revoke;
 
-  async execute(context: RequestContext, campaignId: string, memberId: string): Promise<void> {
-    const { repository, transactionManager } = this.membershipsService;
-    const actorId = await this.membershipsService.requireActorId(context);
+  constructor(
+    history: HistoryPort,
+    private readonly membershipsService: CampaignMembershipsService,
+  ) {
+    super(history);
+  }
 
-    await transactionManager.inTransaction(async (tx) => {
-      const { member, campaign } = await this.membershipsService.loadManagedMember(
-        tx,
-        context,
-        actorId,
-        campaignId,
-        memberId,
-      );
+  protected override async prepare(context: RequestContext): Promise<void> {
+    await this.membershipsService.requireActorId(context);
+  }
 
-      if (member.userId === campaign.ownerUserId) {
-        throw new ConflictError("Campaign owner cannot be removed");
-      }
+  protected async authorize(
+    context: RequestContext,
+    input: DeleteCampaignMemberInput,
+    db: AppDatabase,
+  ): Promise<Authorization> {
+    await this.membershipsService.lockForManagement(db, context, input.campaignId);
 
-      if (member.role === "EDITOR" && (await repository.countActiveEditors(tx, campaignId)) <= 1) {
-        throw new ConflictError("Campaign must retain at least one active editor");
-      }
+    return authorized();
+  }
 
-      const revoked = await repository.delete(tx, {
-        campaignId,
-        membershipId: memberId,
-        actorId,
-      });
+  protected async perform(
+    scope: ActionScope,
+    context: RequestContext,
+    input: DeleteCampaignMemberInput,
+  ): Promise<void> {
+    const { repository, trackedMembership } = this.membershipsService;
+    const { campaignId, memberId } = input;
+    const { member, campaign } = await this.membershipsService.loadManagedMember(
+      scope.tx,
+      campaignId,
+      memberId,
+    );
 
-      if (!revoked) {
-        throw new VersionConflictError("Campaign membership changed concurrently");
-      }
-    });
+    if (member.userId === campaign.ownerUserId) {
+      throw new ConflictError("Campaign owner cannot be removed");
+    }
+
+    if (
+      member.role === "EDITOR" &&
+      (await repository.countActiveEditors(scope.tx, campaignId)) <= 1
+    ) {
+      throw new ConflictError("Campaign must retain at least one active editor");
+    }
+
+    await scope.change(trackedMembership, memberId, () => ({
+      set: { status: "REVOKED", revokedAt: new Date(), revokedBy: context.actorId },
+    }));
   }
 }

@@ -6,29 +6,8 @@ import { campaignMemberships } from "#src/modules/campaigns/domain/entities/Camp
 export type CampaignMembershipRow = typeof campaignMemberships.$inferSelect;
 
 /**
- * Creates an active membership (e.g. when an invitation is accepted).
+ * Reads memberships. Writes go through the history, see `trackedMembership` in `CampaignsService`.
  */
-export type CreateCampaignMembershipInput = {
-  actorId: string;
-  campaignId: string;
-  userId: string;
-  role: CampaignMembershipRow["role"];
-};
-
-export type UpdateCampaignMembershipInput = {
-  campaignId: string;
-  membershipId: string;
-  actorId: string;
-  expectedVersion: number;
-  role: CampaignMembershipRow["role"];
-};
-
-export type DeleteCampaignMembershipInput = {
-  campaignId: string;
-  membershipId: string;
-  actorId: string;
-};
-
 export class CampaignMembershipsRepository {
   async findById(
     db: AppDatabase,
@@ -102,85 +81,5 @@ export class CampaignMembershipsRepository {
       );
 
     return result?.total ?? 0;
-  }
-
-  async create(
-    db: AppDatabase,
-    input: CreateCampaignMembershipInput,
-  ): Promise<CampaignMembershipRow> {
-    const [membership] = await db
-      .insert(campaignMemberships)
-      .values({
-        campaignId: input.campaignId,
-        userId: input.userId,
-        role: input.role,
-        status: "ACTIVE",
-        joinedAt: new Date(),
-        createdBy: input.actorId,
-        updatedBy: input.actorId,
-      })
-      .returning();
-
-    if (!membership) {
-      throw new Error("Failed to create campaign membership");
-    }
-
-    return membership;
-  }
-
-  async update(
-    db: AppDatabase,
-    input: UpdateCampaignMembershipInput,
-  ): Promise<CampaignMembershipRow | null> {
-    const [membership] = await db
-      .update(campaignMemberships)
-      .set({
-        role: input.role,
-        version: input.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: input.actorId,
-      })
-      .where(
-        and(
-          eq(campaignMemberships.id, input.membershipId),
-          eq(campaignMemberships.campaignId, input.campaignId),
-          eq(campaignMemberships.status, "ACTIVE"),
-          eq(campaignMemberships.version, input.expectedVersion),
-          isNull(campaignMemberships.deletedAt),
-        ),
-      )
-      .returning();
-
-    return membership ?? null;
-  }
-
-  /**
-   * Soft delete: sets the membership to `REVOKED`.
-   */
-  async delete(
-    db: AppDatabase,
-    input: DeleteCampaignMembershipInput,
-  ): Promise<CampaignMembershipRow | null> {
-    const [membership] = await db
-      .update(campaignMemberships)
-      .set({
-        status: "REVOKED",
-        revokedAt: new Date(),
-        revokedBy: input.actorId,
-        version: sql`${campaignMemberships.version} + 1`,
-        updatedAt: new Date(),
-        updatedBy: input.actorId,
-      })
-      .where(
-        and(
-          eq(campaignMemberships.id, input.membershipId),
-          eq(campaignMemberships.campaignId, input.campaignId),
-          eq(campaignMemberships.status, "ACTIVE"),
-          isNull(campaignMemberships.deletedAt),
-        ),
-      )
-      .returning();
-
-    return membership ?? null;
   }
 }

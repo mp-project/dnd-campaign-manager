@@ -43,19 +43,6 @@ export class CampaignsRepository {
       .for("update");
   }
 
-  async createOwnerMembership(
-    db: AppDatabase,
-    params: { actorId: string; campaignId: string; ownerUserId: string },
-  ): Promise<void> {
-    await db.insert(campaignMemberships).values({
-      campaignId: params.campaignId,
-      userId: params.ownerUserId,
-      role: "EDITOR",
-      createdBy: params.actorId,
-      updatedBy: params.actorId,
-    });
-  }
-
   async findById(db: AppDatabase, campaignId: string): Promise<CampaignRow | null> {
     const rows = await db
       .select()

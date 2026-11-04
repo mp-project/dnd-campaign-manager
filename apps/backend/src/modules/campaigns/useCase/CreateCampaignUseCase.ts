@@ -53,7 +53,7 @@ export class CreateCampaignUseCase extends MutationUseCase<CreateCampaignDto, Re
     context: RequestContext,
     input: CreateCampaignDto,
   ): Promise<ResponseCampaignDto> {
-    const { repository, trackedCampaign } = this.campaignsService;
+    const { trackedCampaign, trackedMembership } = this.campaignsService;
     const { ownerUserId: requestedOwnerUserId, ...campaignInput } = input;
     const actorId = context.actorId as string;
     const ownerUserId = requestedOwnerUserId ?? actorId;
@@ -77,7 +77,11 @@ export class CreateCampaignUseCase extends MutationUseCase<CreateCampaignDto, Re
       }),
     );
 
-    await repository.createOwnerMembership(scope.tx, { actorId, campaignId: campaign.id, ownerUserId });
+    await scope.create(trackedMembership, {
+      campaignId: campaign.id,
+      userId: ownerUserId,
+      role: "EDITOR",
+    });
 
     return toCampaignResponse(
       await this.campaignsService.toAggregate(scope.tx, context, campaign),

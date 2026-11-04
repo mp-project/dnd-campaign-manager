@@ -5,7 +5,7 @@ import { errorResponseDto } from "#core/http/dto";
 import { CAMPAIGN_MEMBERSHIP_PERMISSIONS } from "#src/modules/campaign-memberships/permissions/CampaignMembershipsPermissions";
 import {
   CampaignMemberListResponseSchema,
-  CampaignMembershipResponseSchema,
+  UpdateCampaignMembershipResponseSchema,
 } from "#src/modules/campaign-memberships/domain/dto/ResponseCampaignMembershipDto";
 import { CampaignMembershipPermissionsResponseSchema } from "#src/modules/campaign-memberships/domain/dto/ResponseCampaignMembershipPermissionsDto";
 import {
@@ -67,7 +67,7 @@ export function registerCampaignMembershipsRoutes(
         params: CampaignMembershipItemParamsSchema,
         body: UpdateCampaignMembershipRoleSchema,
         response: {
-          200: CampaignMembershipResponseSchema,
+          200: UpdateCampaignMembershipResponseSchema,
           400: errorResponseDto,
           401: errorResponseDto,
           403: errorResponseDto,

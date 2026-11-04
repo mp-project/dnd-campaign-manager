@@ -61,6 +61,12 @@ async function registerCampaignInvitationsModule(
     throw new Error("Campaign, membership or users module dependencies are missing");
   }
 
+  const history = container.ports.history;
+
+  if (!history) {
+    throw new Error("History port is missing");
+  }
+
   const repository = new CampaignInvitationsRepository();
   const service = new CampaignInvitationsService(
     container.db,
@@ -93,7 +99,7 @@ async function registerCampaignInvitationsModule(
         new DeleteCampaignInvitationUseCase(service),
       ),
       acceptCampaignInvitationController: new AcceptCampaignInvitationController(
-        new AcceptCampaignInvitationUseCase(service),
+        new AcceptCampaignInvitationUseCase(history, service),
       ),
       listMyCampaignInvitationsController: new ListMyCampaignInvitationsController(
         new ListMyCampaignInvitationsUseCase(service),
@@ -104,6 +110,6 @@ async function registerCampaignInvitationsModule(
 
 export const campaignInvitationsModule: AppModule = {
   name: "campaign-invitations",
-  dependencies: ["system", "auth", "users", "campaigns", "campaign-memberships"],
+  dependencies: ["system", "auth", "history", "users", "campaigns", "campaign-memberships"],
   register: registerCampaignInvitationsModule,
 };

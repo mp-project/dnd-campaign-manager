@@ -17,6 +17,10 @@ import {
   createTrackedCampaign,
   type TrackedCampaign,
 } from "#src/modules/campaigns/history/TrackedCampaign";
+import {
+  createTrackedCampaignMembership,
+  type TrackedCampaignMembership,
+} from "#src/modules/campaigns/history/TrackedCampaignMembership";
 import type { RulesetModuleDependencies } from "#src/modules/ruleset/index";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
 
@@ -50,6 +54,7 @@ function slugify(input: string): string {
 
 export class CampaignsService {
   public readonly trackedCampaign: TrackedCampaign;
+  public readonly trackedMembership: TrackedCampaignMembership;
 
   constructor(
     public readonly db: AppDatabase,
@@ -59,13 +64,16 @@ export class CampaignsService {
     public readonly rulesetDependencies: RulesetModuleDependencies,
     public readonly permissionService?: PermissionService,
   ) {
-    this.trackedCampaign = createTrackedCampaign({
-      resolveRole: async (campaignId, actorId, db) => {
+    const historyRights = {
+      resolveRole: async (campaignId: string, actorId: string, db: AppDatabase) => {
         const campaign = await this.findCampaignRole(campaignId, actorId, db);
 
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
+        return campaign?.isOwner ? ("GM" as const) : (campaign?.role ?? null);
       },
-    });
+    };
+
+    this.trackedCampaign = createTrackedCampaign(historyRights);
+    this.trackedMembership = createTrackedCampaignMembership(historyRights);
   }
 
   async resolveCampaignAccess(input: {

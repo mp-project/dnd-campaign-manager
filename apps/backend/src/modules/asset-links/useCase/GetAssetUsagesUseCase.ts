@@ -18,7 +18,7 @@ export class GetAssetUsagesUseCase {
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
 
-    await this.linksService.requireReadableAsset(context, viewer, input.assetId, visibleAssetIds);
+    await this.assetsService.requireReadableInCampaign(context, viewer, input.assetId, visibleAssetIds);
 
     return this.linksService.getUsages(viewer, input.assetId, visibleAssetIds);
   }

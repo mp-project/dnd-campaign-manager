@@ -1,15 +1,9 @@
 import type { FastifyBaseLogger } from "fastify";
 
+import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-  UnauthenticatedError,
-} from "#core/error/http/index";
+import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope, ChangeResult } from "#core/history/types";
-import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { CreateAssetLinkDto } from "#src/modules/asset-links/domain/dto/CreateAssetLinkDto";
 import type { UpdateAssetLinkDto } from "#src/modules/asset-links/domain/dto/UpdateAssetLinkDto";
 import {
@@ -76,20 +70,6 @@ export type AssetEditRouteBuilder = (input: { campaignId: string; assetId: strin
 type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
 
 type UsageViewer = Pick<CampaignAssetViewer, "actorId" | "campaignId" | "view">;
-
-function findErrorCode(error: unknown): string | null {
-  if (typeof error !== "object" || error === null) {
-    return null;
-  }
-
-  const maybeCode = (error as { code?: unknown }).code;
-
-  if (typeof maybeCode === "string") {
-    return maybeCode;
-  }
-
-  return findErrorCode((error as { cause?: unknown }).cause);
-}
 
 /**
  * Relations between assets and the view on where an asset is used.
@@ -288,61 +268,6 @@ export class AssetLinksService {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Access helpers for HTTP use cases
-  // ---------------------------------------------------------------------------
-
-  assertAuthenticated(context: RequestContext): string {
-    if (!context.actorId) {
-      throw new UnauthenticatedError("Authentication required");
-    }
-
-    return context.actorId;
-  }
-
-  /**
-   * Links are part of the content, so GMs, editors and administrators may change them. Non-members
-   * get 404 so the campaign is not leaked.
-   */
-  async assertCanEdit(context: RequestContext, campaignId: string, db: AppDatabase): Promise<void> {
-    const actorId = this.assertAuthenticated(context);
-    const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, db);
-    const isAdmin = isSysAdminRole(context.systemRole);
-
-    if (!campaign || (!campaign.role && !isAdmin)) {
-      throw new NotFoundError("Campaign not found");
-    }
-
-    if (campaign.role !== "EDITOR" && !isAdmin) {
-      throw new ForbiddenError("Insufficient permissions");
-    }
-  }
-
-  /**
-   * Loads the asset whose links or usages are requested; what the viewer may not see is reported
-   * as 404. Archived global assets stay readable for existing links, drafts only for administrators.
-   */
-  async requireReadableAsset(
-    context: RequestContext,
-    viewer: CampaignAssetViewer,
-    assetId: string,
-    visibleAssetIds: ReadonlySet<string>,
-  ): Promise<AssetRow> {
-    const asset = await this.assets.requireAsset(this.db, assetId);
-
-    this.assets.assertSameCampaign(asset, viewer.campaignId);
-
-    const hiddenDraft =
-      asset.scope === "SYSTEM" && asset.status === "DRAFT" && !isSysAdminRole(context.systemRole);
-    const hiddenFromPlayer = viewer.view === "PLAYER" && !isPlayerVisible(asset, visibleAssetIds);
-
-    if (hiddenDraft || hiddenFromPlayer) {
-      throw new NotFoundError("Asset not found");
-    }
-
-    return asset;
-  }
-
   /** Players see a link if the relation allows it and they may see the other end as well. */
   canPlayerSeeLink(
     link: AssetLinkRow,
@@ -352,7 +277,7 @@ export class AssetLinksService {
     return (
       other !== undefined &&
       (this.relations.find(link.relationType)?.playerVisible ?? false) &&
-      isPlayerVisible(other, visibleAssetIds)
+      this.assets.isVisibleToPlayer(other, visibleAssetIds)
     );
   }
 
@@ -403,7 +328,7 @@ export class AssetLinksService {
 
       if (isGm) {
         usages[group].push(item);
-      } else if (related && isPlayerVisible(related, visibleAssetIds)) {
+      } else if (related && this.assets.isVisibleToPlayer(related, visibleAssetIds)) {
         usages[group].push({ ...item, editRoute: null });
       }
     }
@@ -471,7 +396,7 @@ export class AssetLinksService {
     try {
       return await work();
     } catch (error) {
-      const code = findErrorCode(error);
+      const code = findPgErrorCode(error);
 
       if (code === "23505") {
         throw new ConflictError("This link already exists");
@@ -488,8 +413,4 @@ export class AssetLinksService {
 
 export function otherEndOf(link: AssetLinkRow, assetId: string): string {
   return link.sourceAssetId === assetId ? link.targetAssetId : link.sourceAssetId;
-}
-
-function isPlayerVisible(asset: AssetRow, visibleAssetIds: ReadonlySet<string>): boolean {
-  return asset.status === "ACTIVE" && (asset.scope === "SYSTEM" || visibleAssetIds.has(asset.id));
 }

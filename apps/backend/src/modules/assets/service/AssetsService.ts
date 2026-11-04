@@ -5,8 +5,9 @@ import {
   UnauthenticatedError,
   ValidationError,
 } from "#core/error/http/index";
+import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
-import type { ActionScope, ChangeResult } from "#core/history/types";
+import type { ActionScope, ChangeResult, ListFieldRule } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import {
@@ -23,6 +24,7 @@ import type {
 } from "#src/modules/assets/domain/repository/AssetsRepository";
 import {
   createTrackedAsset,
+  GM_REVERTIBLE_ASSET_ACTIONS,
   type TrackedAsset,
 } from "#src/modules/assets/history/TrackedAsset";
 
@@ -87,20 +89,6 @@ function slugify(input: string): string {
     .slice(0, 220);
 }
 
-function findErrorCode(error: unknown): string | null {
-  if (typeof error !== "object" || error === null) {
-    return null;
-  }
-
-  const maybeCode = (error as { code?: unknown }).code;
-
-  if (typeof maybeCode === "string") {
-    return maybeCode;
-  }
-
-  return findErrorCode((error as { cause?: unknown }).cause);
-}
-
 /**
  * Shared identity, lifecycle and catalog resolution for all linkable content.
  *
@@ -110,6 +98,7 @@ function findErrorCode(error: unknown): string | null {
 export class AssetsService {
   private readonly visibilityProviders: AssetVisibilityProvider[] = [];
   private readonly archiveGuards: AssetArchiveGuard[] = [];
+  private readonly gmRevertibleActions = new Set<string>(GM_REVERTIBLE_ASSET_ACTIONS);
   public readonly trackedAsset: TrackedAsset;
 
   constructor(
@@ -125,6 +114,7 @@ export class AssetsService {
 
         return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
       },
+      gmRevertibleActions: this.gmRevertibleActions,
       assertCanArchive: async (asset, db) => {
         for (const guard of this.archiveGuards) {
           await guard.assertCanArchive(asset, db);
@@ -149,9 +139,43 @@ export class AssetsService {
     this.archiveGuards.push(guard);
   }
 
+  /**
+   * Adds a list that another module stores for each asset, tracked as a field of the asset. GMs may
+   * undo `action`, next to what they may undo anyway.
+   */
+  registerTrackedList(field: string, rule: ListFieldRule, action: string): void {
+    const lists = this.trackedAsset.lists as Record<string, ListFieldRule>;
+
+    if (lists[field]) {
+      throw new Error(`Tracked asset list '${field}' is already registered`);
+    }
+
+    lists[field] = rule;
+    this.gmRevertibleActions.add(action);
+  }
+
   // ---------------------------------------------------------------------------
   // Port for domain modules
   // ---------------------------------------------------------------------------
+
+  /**
+   * Changes a list from `registerTrackedList`. `build` gets the list with the asset locked.
+   * Archived assets refuse it like every other change.
+   */
+  async updateTrackedList(
+    scope: ActionScope,
+    params: {
+      assetId: string;
+      field: string;
+      build(current: readonly string[]): readonly string[];
+      baseVersion?: number;
+    },
+  ): Promise<ChangeResult<AssetRow>> {
+    return scope.change(this.trackedAsset, params.assetId, (current) => ({
+      set: { [params.field]: params.build(current[params.field] as readonly string[]) },
+      ...(params.baseVersion !== undefined ? { baseVersion: params.baseVersion } : {}),
+    }));
+  }
 
   async createBase(
     scope: ActionScope,
@@ -395,6 +419,60 @@ export class AssetsService {
     return context.actorId;
   }
 
+  /**
+   * For content that belongs to a campaign without being the asset itself, like links and tags:
+   * GMs, editors and administrators may change it. Non-members get 404 so the campaign is not
+   * leaked.
+   */
+  async assertCanEditCampaignContent(
+    context: RequestContext,
+    campaignId: string,
+    db: AppDatabase,
+  ): Promise<void> {
+    const actorId = this.assertAuthenticated(context);
+    const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, db);
+    const isAdmin = isSysAdminRole(context.systemRole);
+
+    if (!campaign || (!campaign.role && !isAdmin)) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    if (campaign.role !== "EDITOR" && !isAdmin) {
+      throw new ForbiddenError("Insufficient permissions");
+    }
+  }
+
+  /**
+   * Loads an asset requested in a campaign; what the viewer may not see is reported as 404. Archived
+   * global assets stay readable for existing usages, drafts only for administrators.
+   */
+  async requireReadableInCampaign(
+    context: RequestContext,
+    viewer: CampaignAssetViewer,
+    assetId: string,
+    visibleAssetIds: ReadonlySet<string>,
+  ): Promise<AssetRow> {
+    const asset = await this.requireAsset(this.db, assetId);
+
+    this.assertSameCampaign(asset, viewer.campaignId);
+
+    const hiddenDraft =
+      asset.scope === "SYSTEM" && asset.status === "DRAFT" && !isSysAdminRole(context.systemRole);
+    const hiddenFromPlayer =
+      viewer.view === "PLAYER" && !this.isVisibleToPlayer(asset, visibleAssetIds);
+
+    if (hiddenDraft || hiddenFromPlayer) {
+      throw new NotFoundError("Asset not found");
+    }
+
+    return asset;
+  }
+
+  /** `visibleAssetIds` comes from `listVisibleAssetIds`; active global assets are always visible. */
+  isVisibleToPlayer(asset: AssetRow, visibleAssetIds: ReadonlySet<string>): boolean {
+    return asset.status === "ACTIVE" && (asset.scope === "SYSTEM" || visibleAssetIds.has(asset.id));
+  }
+
   /** Assets are changed directly through system administration only. */
   assertCanManage(context: RequestContext): void {
     this.assertAuthenticated(context);
@@ -569,7 +647,7 @@ export class AssetsService {
     try {
       return await work();
     } catch (error) {
-      const code = findErrorCode(error);
+      const code = findPgErrorCode(error);
 
       if (code === "23505") {
         throw new ConflictError("Asset slug is already in use");

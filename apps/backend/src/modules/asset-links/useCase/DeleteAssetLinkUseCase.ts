@@ -5,6 +5,7 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { ASSET_LINK_ACTIONS } from "#src/modules/asset-links/history/TrackedAssetLink";
 import { AssetLinksService } from "#src/modules/asset-links/service/AssetLinksService";
+import type { AssetsService } from "#src/modules/assets/index";
 
 export type DeleteAssetLinkInput = {
   campaignId: string;
@@ -19,6 +20,7 @@ export class DeleteAssetLinkUseCase extends MutationUseCase<DeleteAssetLinkInput
   constructor(
     history: HistoryPort,
     private readonly linksService: AssetLinksService,
+    private readonly assetsService: AssetsService,
   ) {
     super(history);
   }
@@ -28,7 +30,7 @@ export class DeleteAssetLinkUseCase extends MutationUseCase<DeleteAssetLinkInput
     input: DeleteAssetLinkInput,
     db: AppDatabase,
   ): Promise<Authorization> {
-    await this.linksService.assertCanEdit(context, input.campaignId, db);
+    await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, db);
 
     return authorized();
   }

@@ -38,7 +38,7 @@ export class UpdateAssetLinkUseCase extends MutationUseCase<
     input: UpdateAssetLinkInput,
     db: AppDatabase,
   ): Promise<Authorization> {
-    await this.linksService.assertCanEdit(context, input.campaignId, db);
+    await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, db);
 
     return authorized();
   }

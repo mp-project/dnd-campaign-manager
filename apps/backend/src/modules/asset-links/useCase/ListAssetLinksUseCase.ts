@@ -39,7 +39,7 @@ export class ListAssetLinksUseCase {
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
 
-    await this.linksService.requireReadableAsset(context, viewer, input.assetId, visibleAssetIds);
+    await this.assetsService.requireReadableInCampaign(context, viewer, input.assetId, visibleAssetIds);
 
     const page = await this.linksService.repository.listPage(this.linksService.db, {
       campaignId: viewer.campaignId,

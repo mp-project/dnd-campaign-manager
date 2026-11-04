@@ -101,9 +101,9 @@ async function registerAssetLinksModule(
   });
 
   const listAssetLinksUseCase = new ListAssetLinksUseCase(service, assetsService);
-  const createAssetLinkUseCase = new CreateAssetLinkUseCase(history, service);
+  const createAssetLinkUseCase = new CreateAssetLinkUseCase(history, service, assetsService);
   const updateAssetLinkUseCase = new UpdateAssetLinkUseCase(history, service, assetsService);
-  const deleteAssetLinkUseCase = new DeleteAssetLinkUseCase(history, service);
+  const deleteAssetLinkUseCase = new DeleteAssetLinkUseCase(history, service, assetsService);
   const getAssetUsagesUseCase = new GetAssetUsagesUseCase(service, assetsService);
 
   app.register(async (assetLinksApp) => {

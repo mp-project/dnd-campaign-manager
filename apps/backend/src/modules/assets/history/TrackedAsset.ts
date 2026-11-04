@@ -21,7 +21,10 @@ export const ASSET_ACTIONS = {
 } as const;
 
 /** The only changes a GM may make directly, so also the only ones a GM may undo. */
-const GM_REVERTIBLE_ACTIONS: readonly string[] = [ASSET_ACTIONS.archive, ASSET_ACTIONS.restore];
+export const GM_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
+  ASSET_ACTIONS.archive,
+  ASSET_ACTIONS.restore,
+];
 
 type TrackedAssetDeps = {
   repository: AssetsRepository;
@@ -31,6 +34,8 @@ type TrackedAssetDeps = {
     db: AppDatabase,
   ): Promise<CampaignHistoryRole | null>;
   assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
+  /** Grows when other modules add lists to the asset. */
+  gmRevertibleActions: ReadonlySet<string>;
 };
 
 /**
@@ -60,7 +65,7 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       revert: async (context, row, change, db) =>
         row.campaignId !== null &&
         context.actorId !== null &&
-        GM_REVERTIBLE_ACTIONS.includes(change.action) &&
+        deps.gmRevertibleActions.has(change.action) &&
         (await deps.resolveRole(row.campaignId, context.actorId, db)) === "GM",
     },
     fields: {

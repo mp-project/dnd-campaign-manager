@@ -10,6 +10,7 @@ import {
 } from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
 import { ASSET_LINK_ACTIONS } from "#src/modules/asset-links/history/TrackedAssetLink";
 import { AssetLinksService } from "#src/modules/asset-links/service/AssetLinksService";
+import type { AssetsService } from "#src/modules/assets/index";
 
 export type CreateAssetLinkInput = {
   campaignId: string;
@@ -26,6 +27,7 @@ export class CreateAssetLinkUseCase extends MutationUseCase<
   constructor(
     history: HistoryPort,
     private readonly linksService: AssetLinksService,
+    private readonly assetsService: AssetsService,
   ) {
     super(history);
   }
@@ -35,7 +37,7 @@ export class CreateAssetLinkUseCase extends MutationUseCase<
     input: CreateAssetLinkInput,
     db: AppDatabase,
   ): Promise<Authorization> {
-    await this.linksService.assertCanEdit(context, input.campaignId, db);
+    await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, db);
 
     return authorized();
   }
@@ -48,7 +50,7 @@ export class CreateAssetLinkUseCase extends MutationUseCase<
     const { link, target } = await this.linksService.createLink(
       scope,
       {
-        actorId: this.linksService.assertAuthenticated(context),
+        actorId: this.assetsService.assertAuthenticated(context),
         campaignId: input.campaignId,
         sourceAssetId: input.assetId,
       },

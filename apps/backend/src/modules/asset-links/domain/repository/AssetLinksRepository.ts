@@ -1,8 +1,7 @@
 import { and, asc, eq, gt, inArray, isNull, or, type SQL } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
-import { ValidationError } from "#core/error/http/index";
-import { decodePaginationCursor } from "#core/http/listResponse";
+import { decodeNumberCursor } from "#core/http/listResponse";
 import { assetLinks } from "#src/modules/asset-links/domain/entities/AssetLinksTable";
 import type { AssetLinkDirection } from "#src/modules/asset-links/domain/dto/RequestAssetLinkDto";
 
@@ -19,20 +18,6 @@ export type AssetLinkPage = {
   items: AssetLinkRow[];
   hasMore: boolean;
 };
-
-function readCursor(cursor: string): { sortOrder: number; id: string } {
-  try {
-    const { sortValue, id } = decodePaginationCursor(cursor);
-
-    if (typeof sortValue === "number") {
-      return { sortOrder: sortValue, id };
-    }
-  } catch {
-    // Reported below, like a cursor with the wrong content.
-  }
-
-  throw new ValidationError("Invalid pagination cursor");
-}
 
 /** Link rows only change through the history (`scope.create`, `scope.change`, `scope.softDelete`). */
 export class AssetLinksRepository {
@@ -112,11 +97,11 @@ export class AssetLinksRepository {
       return undefined;
     }
 
-    const { sortOrder, id } = readCursor(cursor);
+    const { value, id } = decodeNumberCursor(cursor);
 
     return or(
-      gt(assetLinks.sortOrder, sortOrder),
-      and(eq(assetLinks.sortOrder, sortOrder), gt(assetLinks.id, id)),
+      gt(assetLinks.sortOrder, value),
+      and(eq(assetLinks.sortOrder, value), gt(assetLinks.id, id)),
     );
   }
 }

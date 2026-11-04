@@ -27,6 +27,7 @@ const UNTRACKED_TABLES: Record<string, string> = {
   campaign_invitations: "Nothing to restore; an expired invitation is sent again",
   // Part of another entity or fixed after creation.
   asset_rulesets: "Tracked as the list field `rulesetIds` of an asset",
+  asset_tags: "Tracked as the list field `tagIds` of an asset",
   asset_families: "Read-only reference data",
   ruleset_level_progressions: "Only written together with a new ruleset, never changed",
   ruleset_spell_slot_progressions: "Only written together with a new ruleset, never changed",

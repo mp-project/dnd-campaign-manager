@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assets, campaignMemberships, campaigns, rulesets, users } from "#core/db/schema";
+import { assetLinks, assets, campaignMemberships, campaigns, rulesets, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -24,6 +24,7 @@ const ID = {
   asset: "d0000000-0000-4000-8000-00000000000a",
   linkedAsset: "d0000000-0000-4000-8000-00000000000b",
   assetLink: "f0000000-0000-4000-8000-00000000000a",
+  tag: "f0000000-0000-4000-8000-00000000000b",
   playerMembership: "e0000000-0000-4000-8000-00000000000a",
 } as const;
 
@@ -46,6 +47,7 @@ const HEADERS: Partial<Record<Role, Record<string, string>>> = {
   foreignGm: { "x-campaign-id": ID.foreignCampaign },
 };
 
+const tagUrl = `/api/v1/campaigns/${ID.campaign}/tags/${ID.tag}`;
 const assetLinkUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/links/${ID.assetLink}`;
 
 type Inject = ReturnType<typeof buildTestApp>["injectAs"];
@@ -79,7 +81,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -200,6 +202,26 @@ describe("history rights of every tracked entity", () => {
         patchAs(role, assetLinkUrl, {
           label: "Taken over",
           expectedVersion: await rowVersion(assetLinks, ID.assetLink),
+        }),
+    },
+    tag: {
+      id: ID.tag,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", tagUrl, {
+            name: unique(),
+            expectedVersion: await rowVersion(tags, ID.tag),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, tagUrl, {
+          name: "Taken over",
+          expectedVersion: await rowVersion(tags, ID.tag),
         }),
     },
     ruleset: {
@@ -327,6 +349,12 @@ describe("history rights of every tracked entity", () => {
         status: "ACTIVE" as const,
       })),
     );
+    await db.insert(tags).values({
+      id: ID.tag,
+      campaignId: ID.campaign,
+      name: "Start",
+      normalizedName: "start",
+    });
     await db.insert(assetLinks).values({
       id: ID.assetLink,
       campaignId: ID.campaign,

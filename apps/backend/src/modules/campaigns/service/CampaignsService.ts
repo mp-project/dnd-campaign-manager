@@ -1,3 +1,4 @@
+import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import {
   ConflictError,
   NotFoundError,
@@ -287,7 +288,7 @@ export class CampaignsService {
   }
 
   isUniqueViolation(error: unknown): boolean {
-    return findErrorCode(error) === "23505";
+    return findPgErrorCode(error) === "23505";
   }
 
   private async loadCampaign(actorId: string, campaignId: string): Promise<LoadedCampaign> {
@@ -309,18 +310,4 @@ export class CampaignsService {
   ): boolean {
     return campaign.ownerUserId === actorId || isSysAdminRole(context.systemRole);
   }
-}
-
-function findErrorCode(error: unknown): string | null {
-  if (typeof error !== "object" || error === null) {
-    return null;
-  }
-
-  const maybeCode = (error as { code?: unknown }).code;
-
-  if (typeof maybeCode === "string") {
-    return maybeCode;
-  }
-
-  return findErrorCode((error as { cause?: unknown }).cause);
 }

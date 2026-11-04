@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ValidationError } from "#core/error/http/index";
+
 type CursorPayload = {
   sortValue: string | number;
   id: string;
@@ -53,6 +55,26 @@ export function decodePaginationCursor(cursor: string): CursorPayload {
   const parsed = JSON.parse(decoded) as unknown;
 
   return cursorPayloadSchema.parse(parsed);
+}
+
+/**
+ * Decodes a cursor of a list sorted by a number; a cursor from a client can contain anything.
+ *
+ * @param cursor Base64url encoded cursor.
+ * @returns Sort value and id tie-breaker.
+ */
+export function decodeNumberCursor(cursor: string): { value: number; id: string } {
+  try {
+    const { sortValue, id } = decodePaginationCursor(cursor);
+
+    if (typeof sortValue === "number") {
+      return { value: sortValue, id };
+    }
+  } catch {
+    // Reported below, like a cursor with the wrong content.
+  }
+
+  throw new ValidationError("Invalid pagination cursor");
 }
 
 /**

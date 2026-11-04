@@ -30,6 +30,7 @@ type TrackedAssetDeps = {
     actorId: string,
     db: AppDatabase,
   ): Promise<CampaignHistoryRole | null>;
+  assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
 };
 
 /**
@@ -96,6 +97,12 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
 
       if (next.rulesetPolicy === "RESTRICTED" && rulesetIds.length === 0) {
         throw new ValidationError("Restricted assets require at least one ruleset");
+      }
+    },
+    // Here and not in `archiveBase`, because undoing a restore archives an asset as well.
+    guard: async (next, current, db) => {
+      if (next.status === "ARCHIVED" && current.status !== "ARCHIVED") {
+        await deps.assertCanArchive(next, db);
       }
     },
   });

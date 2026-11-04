@@ -76,6 +76,27 @@ export class AssetsRepository {
     return row ?? null;
   }
 
+  async findByIds(db: AppDatabase, assetIds: readonly string[]): Promise<AssetRow[]> {
+    if (assetIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select()
+      .from(assets)
+      .where(and(inArray(assets.id, [...assetIds]), isNull(assets.deletedAt)));
+  }
+
+  /** Sorted, so parallel callers lock rows in the same order. */
+  async lockShared(db: AppDatabase, assetIds: readonly string[]): Promise<void> {
+    await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(inArray(assets.id, [...assetIds]))
+      .orderBy(asc(assets.id))
+      .for("share");
+  }
+
   async findFamilyById(db: AppDatabase, familyId: string): Promise<AssetFamilyRow | null> {
     const [row] = await db
       .select()

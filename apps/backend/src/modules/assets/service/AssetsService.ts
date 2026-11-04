@@ -54,6 +54,15 @@ export type AssetVisibilityProvider = {
   ): Promise<string[]>;
 };
 
+/**
+ * Lets other modules forbid archiving, for example while an asset is still in use. Runs in the
+ * transaction with the asset locked, so it may only use `db`. Throws to reject.
+ */
+export type AssetArchiveGuard = {
+  name: string;
+  assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
+};
+
 export type CampaignAssetViewer = {
   actorId: string;
   campaignId: string;
@@ -100,6 +109,7 @@ function findErrorCode(error: unknown): string | null {
  */
 export class AssetsService {
   private readonly visibilityProviders: AssetVisibilityProvider[] = [];
+  private readonly archiveGuards: AssetArchiveGuard[] = [];
   public readonly trackedAsset: TrackedAsset;
 
   constructor(
@@ -115,6 +125,11 @@ export class AssetsService {
 
         return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
       },
+      assertCanArchive: async (asset, db) => {
+        for (const guard of this.archiveGuards) {
+          await guard.assertCanArchive(asset, db);
+        }
+      },
     });
   }
 
@@ -124,6 +139,14 @@ export class AssetsService {
     }
 
     this.visibilityProviders.push(provider);
+  }
+
+  registerArchiveGuard(guard: AssetArchiveGuard): void {
+    if (this.archiveGuards.some((existing) => existing.name === guard.name)) {
+      throw new Error(`Asset archive guard '${guard.name}' is already registered`);
+    }
+
+    this.archiveGuards.push(guard);
   }
 
   // ---------------------------------------------------------------------------
@@ -288,6 +311,24 @@ export class AssetsService {
     const asset = await this.repository.findById(db, assetId);
 
     return asset ? this.toRecord(db, asset) : null;
+  }
+
+  /** Loads assets regardless of status; ids without an asset are missing from the result. */
+  async findMany(
+    assetIds: readonly string[],
+    db: AppDatabase = this.db,
+  ): Promise<Map<string, AssetRow>> {
+    const rows = await this.repository.findByIds(db, [...new Set(assetIds)]);
+
+    return new Map(rows.map((asset) => [asset.id, asset]));
+  }
+
+  /**
+   * Keeps assets from being archived until the transaction ends, for callers that make them depend
+   * on each other. Does not block other callers of this method.
+   */
+  async lockForUse(assetIds: readonly string[], db: AppDatabase): Promise<void> {
+    await this.repository.lockShared(db, [...new Set(assetIds)]);
   }
 
   /**

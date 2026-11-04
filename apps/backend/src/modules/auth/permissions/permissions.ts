@@ -21,6 +21,10 @@ import {
   ASSETS_USER_PERMISSION_KEYS,
 } from "#src/modules/assets/permissions/AssetsPermissions";
 import {
+  HISTORY_PERMISSION_KEYS,
+  HISTORY_USER_PERMISSION_KEYS,
+} from "#src/modules/history/permissions/HistoryPermissions";
+import {
   USERS_PERMISSIONS,
   USERS_PERMISSION_KEYS,
   USERS_SELF_SERVICE_PERMISSION_KEYS,
@@ -44,6 +48,7 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...CAMPAIGN_MEMBERSHIP_USER_PERMISSION_KEYS,
   ...CAMPAIGN_INVITATION_PERMISSION_KEYS,
   ...ASSETS_USER_PERMISSION_KEYS,
+  ...HISTORY_USER_PERMISSION_KEYS,
 ];
 
 export const ALL_PERMISSIONS = [
@@ -55,6 +60,7 @@ export const ALL_PERMISSIONS = [
   ...USERS_PERMISSION_KEYS,
   ...RULESET_PERMISSION_KEYS,
   ...ASSETS_PERMISSION_KEYS,
+  ...HISTORY_PERMISSION_KEYS,
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];

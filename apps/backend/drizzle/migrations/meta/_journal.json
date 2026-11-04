@@ -134,6 +134,13 @@
       "when": 1793695059025,
       "tag": "0018_eminent_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793744004131,
+      "tag": "0019_loud_colonel_america",
+      "breakpoints": true
     }
   ]
 }

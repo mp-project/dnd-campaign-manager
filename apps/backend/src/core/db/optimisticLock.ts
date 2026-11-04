@@ -2,7 +2,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 
 import type { AppDatabase } from "#core/db/pool";
-import { AppError } from "#core/error/AppError";
+import { VersionConflictError } from "#core/error/http/index";
 
 type CampaignScopedVersionedTable = AnyPgTable & {
   id: AnyPgColumn;
@@ -12,15 +12,7 @@ type CampaignScopedVersionedTable = AnyPgTable & {
   updatedAt: AnyPgColumn;
 };
 
-/**
- * Raised when a versioned update cannot be applied due to concurrent modifications.
- */
-export class VersionConflictError extends AppError<"VERSION_CONFLICT"> {
-  constructor(message: string) {
-    super("VERSION_CONFLICT", message, { statusCode: 412 });
-    this.name = "VersionConflictError";
-  }
-}
+export { VersionConflictError };
 
 type UpdateCampaignScopedRowParams = {
   id: string;

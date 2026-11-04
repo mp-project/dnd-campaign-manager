@@ -1,0 +1,15 @@
+export {
+  ASSET_LINKS_MODULE_DEPENDENCIES,
+  assetLinksModule,
+  type AssetLinksModuleDependencies,
+} from "#src/modules/asset-links/Setup";
+export { assetLinksPermissionDefinitions } from "#src/modules/asset-links/permissions/AssetLinksPermissions";
+export { assetLinks } from "#src/modules/asset-links/domain/entities/AssetLinksTable";
+export type { AssetLinkRow } from "#src/modules/asset-links/domain/repository/AssetLinksRepository";
+export type { CreateAssetLinkDto } from "#src/modules/asset-links/domain/dto/CreateAssetLinkDto";
+export {
+  AssetLinksService,
+  type AssetEditRouteBuilder,
+  type AssetUsageProvider,
+} from "#src/modules/asset-links/service/AssetLinksService";
+export type { AssetRelationDefinition } from "#src/modules/asset-links/service/AssetRelationRegistry";

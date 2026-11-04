@@ -1,0 +1,495 @@
+import type { FastifyBaseLogger } from "fastify";
+
+import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthenticatedError,
+} from "#core/error/http/index";
+import type { ActionScope, ChangeResult } from "#core/history/types";
+import type { RequestContext } from "#core/http/requestContext";
+import { isSysAdminRole } from "#core/permissions/roles";
+import type { CreateAssetLinkDto } from "#src/modules/asset-links/domain/dto/CreateAssetLinkDto";
+import type { UpdateAssetLinkDto } from "#src/modules/asset-links/domain/dto/UpdateAssetLinkDto";
+import {
+  type AssetUsageItemDto,
+  type ResponseAssetUsagesDto,
+  toAssetLinkDirection,
+} from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
+import type {
+  AssetLinkRow,
+  AssetLinksRepository,
+} from "#src/modules/asset-links/domain/repository/AssetLinksRepository";
+import {
+  createTrackedAssetLink,
+  type TrackedAssetLink,
+} from "#src/modules/asset-links/history/TrackedAssetLink";
+import type { AssetRelationRegistry } from "#src/modules/asset-links/service/AssetRelationRegistry";
+import type {
+  AssetRow,
+  AssetsService,
+  AssetType,
+  CampaignAssetViewer,
+} from "#src/modules/assets/index";
+
+/** Campaign facts the module needs; provided by the campaigns module. */
+export type AssetLinkCampaignAccessPort = {
+  findCampaignRole(
+    campaignId: string,
+    actorId: string,
+    db: AppDatabase,
+  ): Promise<{
+    campaignId: string;
+    rulesetId: string;
+    role: "EDITOR" | "PLAYER" | null;
+    isOwner: boolean;
+  } | null>;
+};
+
+export const ASSET_USAGE_GROUPS = ["outlinePlacements", "shares", "typedUsages"] as const;
+
+export type AssetUsageGroup = (typeof ASSET_USAGE_GROUPS)[number];
+
+/** Reports where other modules use an asset, such as outline entries or shares. */
+export type AssetUsageProvider = {
+  name: string;
+  group: AssetUsageGroup;
+  /** Every usage in the campaign. Players only get items whose `assetId` they may see. */
+  listUsages(
+    input: { assetId: string; campaignId: string },
+    db: AppDatabase,
+  ): Promise<AssetUsageItemDto[]>;
+  /**
+   * Usages that forbid archiving. Runs in the transaction of the archiving, so it may only use
+   * `db`. `campaignId` is null for global assets, which can be used in every campaign.
+   */
+  listBlockingUsages?(
+    input: { assetId: string; campaignId: string | null },
+    db: AppDatabase,
+  ): Promise<AssetUsageItemDto[]>;
+};
+
+/** Builds the route of the module that edits assets of a type. */
+export type AssetEditRouteBuilder = (input: { campaignId: string; assetId: string }) => string;
+
+type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
+
+type UsageViewer = Pick<CampaignAssetViewer, "actorId" | "campaignId" | "view">;
+
+function findErrorCode(error: unknown): string | null {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  const maybeCode = (error as { code?: unknown }).code;
+
+  if (typeof maybeCode === "string") {
+    return maybeCode;
+  }
+
+  return findErrorCode((error as { cause?: unknown }).cause);
+}
+
+/**
+ * Relations between assets and the view on where an asset is used.
+ *
+ * Methods taking an action scope are meant to be called by use cases inside their own action, also
+ * those of domain modules; they do not check rights, which remain the caller's responsibility.
+ */
+export class AssetLinksService {
+  private readonly usageProviders: AssetUsageProvider[] = [];
+  private readonly editRoutes = new Map<AssetType, AssetEditRouteBuilder>();
+  public readonly trackedLink: TrackedAssetLink;
+
+  constructor(
+    public readonly db: AppDatabase,
+    public readonly transactionManager: TransactionManager,
+    public readonly repository: AssetLinksRepository,
+    public readonly relations: AssetRelationRegistry,
+    private readonly assets: AssetsService,
+    private readonly campaignAccess: AssetLinkCampaignAccessPort,
+    private readonly logger: Pick<FastifyBaseLogger, "error">,
+  ) {
+    this.trackedLink = createTrackedAssetLink({
+      resolveRole: async (campaignId, actorId, tx) => {
+        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
+
+        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
+      },
+      parseMetadata: (relationType, metadata) =>
+        relations.parseMetadata(relationType, metadata),
+      assertSourceChangeable: async (sourceAssetId, tx) => {
+        const source = await assets.requireAsset(tx, sourceAssetId);
+
+        if (source.status === "ARCHIVED") {
+          throw new ConflictError("Links of archived assets cannot be modified", {
+            assetId: source.id,
+          });
+        }
+      },
+    });
+  }
+
+  registerUsageProvider(provider: AssetUsageProvider): void {
+    if (this.usageProviders.some((existing) => existing.name === provider.name)) {
+      throw new Error(`Asset usage provider '${provider.name}' is already registered`);
+    }
+
+    this.usageProviders.push(provider);
+  }
+
+  registerEditRoute(assetType: AssetType, build: AssetEditRouteBuilder): void {
+    if (this.editRoutes.has(assetType)) {
+      throw new Error(`Edit route for asset type '${assetType}' is already registered`);
+    }
+
+    this.editRoutes.set(assetType, build);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Port for domain modules
+  // ---------------------------------------------------------------------------
+
+  async createLink(
+    scope: ActionScope,
+    params: { actorId: string; campaignId: string; sourceAssetId: string },
+    input: CreateAssetLinkDto,
+  ): Promise<{ link: AssetLinkRow; target: AssetRow }> {
+    const db = scope.tx;
+    const relation = this.relations.require(input.relationType);
+    const metadata = this.relations.parseMetadata(input.relationType, input.metadata ?? {});
+    const campaign = await this.campaignAccess.findCampaignRole(
+      params.campaignId,
+      params.actorId,
+      db,
+    );
+
+    if (!campaign) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    // Archiving takes a stronger lock on the row, so it either sees this link or the link sees the
+    // archived asset.
+    await this.assets.lockForUse([params.sourceAssetId, input.targetAssetId], db);
+
+    const source = await this.assets.requireAsset(db, params.sourceAssetId);
+
+    this.assets.assertSameCampaign(source, params.campaignId);
+
+    if (source.scope !== "CAMPAIGN") {
+      throw new ConflictError("Links can only start at assets of a campaign", {
+        assetId: source.id,
+      });
+    }
+
+    if (source.status === "ARCHIVED") {
+      throw new ConflictError("Links of archived assets cannot be modified", {
+        assetId: source.id,
+      });
+    }
+
+    const { asset: target } = await this.assets.assertAvailable(
+      { assetId: input.targetAssetId, campaignId: params.campaignId, rulesetId: campaign.rulesetId },
+      db,
+    );
+
+    this.relations.assertEndpoints(input.relationType, source, target);
+
+    const link = await this.withConstraintErrors(() =>
+      scope.create(this.trackedLink, {
+        campaignId: params.campaignId,
+        sourceAssetId: source.id,
+        targetAssetId: target.id,
+        relationType: input.relationType,
+        label: input.label ?? null,
+        sortOrder: input.sortOrder ?? 0,
+        metadata,
+        allowMultiple: relation.allowMultiple ?? false,
+      }),
+    );
+
+    return { link, target };
+  }
+
+  /**
+   * Fields the client sent unchanged while somebody else changed them keep the newer value; they
+   * are listed in `merged`.
+   */
+  async updateLink(
+    scope: ActionScope,
+    params: LinkPath & { command: UpdateAssetLinkDto },
+  ): Promise<ChangeResult<AssetLinkRow>> {
+    const { expectedVersion, ...patch } = params.command;
+
+    return scope.change(this.trackedLink, params.linkId, (current) => {
+      this.assertLinkOfPath(current, params);
+
+      const set: Record<string, unknown> = Object.fromEntries(
+        Object.entries(patch).filter(([, value]) => value !== undefined),
+      );
+
+      if (patch.metadata !== undefined) {
+        set.metadata = this.relations.parseMetadata(current.relationType, patch.metadata);
+      }
+
+      return { set, baseVersion: expectedVersion };
+    });
+  }
+
+  /** Works for archived sources too, because that is how a blocking link gets resolved. */
+  async removeLink(scope: ActionScope, params: LinkPath): Promise<void> {
+    const link = await this.repository.findById(scope.tx, params.linkId);
+
+    if (!link) {
+      throw new NotFoundError("Asset link not found");
+    }
+
+    this.assertLinkOfPath(link, params);
+
+    await scope.softDelete(this.trackedLink, link.id);
+  }
+
+  /**
+   * Rejects archiving with 409 and the list of what stands in the way. Providers run one after the
+   * other because they share the transaction, and a failing provider rejects the archiving.
+   */
+  async assertNoBlockingUsages(asset: AssetRow, db: AppDatabase): Promise<void> {
+    const links = await this.repository.listIncomingOfTypes(
+      db,
+      asset.id,
+      this.relations.listBlockingTypes(),
+    );
+    const sources = await this.assets.findMany(
+      links.map((link) => link.sourceAssetId),
+      db,
+    );
+    const blocking: AssetUsageItemDto[] = links.map((link) =>
+      this.toLinkUsageItem(link, sources.get(link.sourceAssetId), link.sourceAssetId, {
+        campaignId: link.campaignId,
+        withEditRoute: true,
+      }),
+    );
+
+    for (const provider of this.usageProviders) {
+      blocking.push(
+        ...((await provider.listBlockingUsages?.(
+          { assetId: asset.id, campaignId: asset.campaignId },
+          db,
+        )) ?? []),
+      );
+    }
+
+    if (blocking.length > 0) {
+      throw new ConflictError("The asset is still in use", {
+        assetId: asset.id,
+        blockingUsages: blocking,
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Access helpers for HTTP use cases
+  // ---------------------------------------------------------------------------
+
+  assertAuthenticated(context: RequestContext): string {
+    if (!context.actorId) {
+      throw new UnauthenticatedError("Authentication required");
+    }
+
+    return context.actorId;
+  }
+
+  /**
+   * Links are part of the content, so GMs, editors and administrators may change them. Non-members
+   * get 404 so the campaign is not leaked.
+   */
+  async assertCanEdit(context: RequestContext, campaignId: string, db: AppDatabase): Promise<void> {
+    const actorId = this.assertAuthenticated(context);
+    const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, db);
+    const isAdmin = isSysAdminRole(context.systemRole);
+
+    if (!campaign || (!campaign.role && !isAdmin)) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    if (campaign.role !== "EDITOR" && !isAdmin) {
+      throw new ForbiddenError("Insufficient permissions");
+    }
+  }
+
+  /**
+   * Loads the asset whose links or usages are requested; what the viewer may not see is reported
+   * as 404. Archived global assets stay readable for existing links, drafts only for administrators.
+   */
+  async requireReadableAsset(
+    context: RequestContext,
+    viewer: CampaignAssetViewer,
+    assetId: string,
+    visibleAssetIds: ReadonlySet<string>,
+  ): Promise<AssetRow> {
+    const asset = await this.assets.requireAsset(this.db, assetId);
+
+    this.assets.assertSameCampaign(asset, viewer.campaignId);
+
+    const hiddenDraft =
+      asset.scope === "SYSTEM" && asset.status === "DRAFT" && !isSysAdminRole(context.systemRole);
+    const hiddenFromPlayer = viewer.view === "PLAYER" && !isPlayerVisible(asset, visibleAssetIds);
+
+    if (hiddenDraft || hiddenFromPlayer) {
+      throw new NotFoundError("Asset not found");
+    }
+
+    return asset;
+  }
+
+  /** Players see a link if the relation allows it and they may see the other end as well. */
+  canPlayerSeeLink(
+    link: AssetLinkRow,
+    other: AssetRow | undefined,
+    visibleAssetIds: ReadonlySet<string>,
+  ): other is AssetRow {
+    return (
+      other !== undefined &&
+      (this.relations.find(link.relationType)?.playerVisible ?? false) &&
+      isPlayerVisible(other, visibleAssetIds)
+    );
+  }
+
+  async getUsages(
+    viewer: UsageViewer,
+    assetId: string,
+    visibleAssetIds: ReadonlySet<string>,
+  ): Promise<ResponseAssetUsagesDto> {
+    const [links, provided] = await Promise.all([
+      this.repository.listForAsset(this.db, { campaignId: viewer.campaignId, assetId }),
+      this.collectProvidedUsages(viewer.campaignId, assetId),
+    ]);
+    const relatedAssets = await this.assets.findMany(
+      [
+        ...links.map((link) => otherEndOf(link, assetId)),
+        ...provided.items.flatMap(({ item }) => (item.assetId ? [item.assetId] : [])),
+      ],
+      this.db,
+    );
+    const usages: ResponseAssetUsagesDto = {
+      assetId,
+      view: viewer.view,
+      incoming: [],
+      outgoing: [],
+      outlinePlacements: [],
+      shares: [],
+      typedUsages: [],
+      unavailableProviders: provided.failed,
+    };
+    const isGm = viewer.view === "GM";
+
+    for (const link of links) {
+      const otherId = otherEndOf(link, assetId);
+      const other = relatedAssets.get(otherId);
+
+      if (isGm || this.canPlayerSeeLink(link, other, visibleAssetIds)) {
+        usages[toAssetLinkDirection(link, assetId)].push(
+          this.toLinkUsageItem(link, other, otherId, {
+            campaignId: viewer.campaignId,
+            withEditRoute: isGm,
+          }),
+        );
+      }
+    }
+
+    for (const { group, item } of provided.items) {
+      const related = item.assetId ? relatedAssets.get(item.assetId) : undefined;
+
+      if (isGm) {
+        usages[group].push(item);
+      } else if (related && isPlayerVisible(related, visibleAssetIds)) {
+        usages[group].push({ ...item, editRoute: null });
+      }
+    }
+
+    return usages;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internals
+  // ---------------------------------------------------------------------------
+
+  /** One failing provider leaves its group incomplete; the answer says which one it was. */
+  private async collectProvidedUsages(campaignId: string, assetId: string) {
+    const results = await Promise.allSettled(
+      this.usageProviders.map((provider) =>
+        provider.listUsages({ assetId, campaignId }, this.db),
+      ),
+    );
+    const items: { group: AssetUsageProvider["group"]; item: AssetUsageItemDto }[] = [];
+    const failed: string[] = [];
+
+    results.forEach((result, index) => {
+      const provider = this.usageProviders[index] as AssetUsageProvider;
+
+      if (result.status === "fulfilled") {
+        items.push(...result.value.map((item) => ({ group: provider.group, item })));
+      } else {
+        this.logger.error(
+          { error: result.reason, provider: provider.name },
+          "Asset usage provider failed",
+        );
+        failed.push(provider.name);
+      }
+    });
+
+    return { items, failed };
+  }
+
+  private toLinkUsageItem(
+    link: AssetLinkRow,
+    other: AssetRow | undefined,
+    otherId: string,
+    options: { campaignId: string; withEditRoute: boolean },
+  ): AssetUsageItemDto {
+    const build = other && options.withEditRoute ? this.editRoutes.get(other.assetType) : undefined;
+
+    return {
+      id: link.id,
+      type: link.relationType,
+      label: link.label ?? other?.title ?? null,
+      assetId: otherId,
+      assetType: other?.assetType ?? null,
+      editRoute: build?.({ campaignId: options.campaignId, assetId: otherId }) ?? null,
+    };
+  }
+
+  /** Links are changed through their source, inside the campaign in the path. */
+  private assertLinkOfPath(link: AssetLinkRow, path: LinkPath): void {
+    if (link.campaignId !== path.campaignId || link.sourceAssetId !== path.sourceAssetId) {
+      throw new NotFoundError("Asset link not found");
+    }
+  }
+
+  private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      const code = findErrorCode(error);
+
+      if (code === "23505") {
+        throw new ConflictError("This link already exists");
+      }
+
+      if (code === "23503") {
+        throw new NotFoundError("Referenced asset or campaign not found");
+      }
+
+      throw error;
+    }
+  }
+}
+
+export function otherEndOf(link: AssetLinkRow, assetId: string): string {
+  return link.sourceAssetId === assetId ? link.targetAssetId : link.sourceAssetId;
+}
+
+function isPlayerVisible(asset: AssetRow, visibleAssetIds: ReadonlySet<string>): boolean {
+  return asset.status === "ACTIVE" && (asset.scope === "SYSTEM" || visibleAssetIds.has(asset.id));
+}

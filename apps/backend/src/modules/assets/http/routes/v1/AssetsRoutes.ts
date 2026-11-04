@@ -12,6 +12,7 @@ import {
 } from "#src/modules/assets/domain/dto/RequestAssetDto";
 import {
   ResponseAssetGmSchema,
+  ResponseUpdateAssetSchema,
   ResponseAssetListSchema,
   ResponseAssetSchema,
 } from "#src/modules/assets/domain/dto/ResponseAssetDto";
@@ -170,7 +171,7 @@ export function registerAssetsRoutes(
         params: RequestAssetParamsSchema,
         body: UpdateAssetMetadataSchema,
         response: {
-          200: ResponseAssetGmSchema,
+          200: ResponseUpdateAssetSchema,
           ...writeErrorResponses,
         },
       },

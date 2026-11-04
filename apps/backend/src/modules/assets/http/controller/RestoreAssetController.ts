@@ -18,10 +18,9 @@ export class RestoreAssetController extends AbstractController {
       const params = RequestAssetParamsSchema.parse(request.params);
       const body = AssetLifecycleCommandSchema.parse(request.body);
 
-      return this.restoreAssetUseCase.execute(
-        request.requestContext,
-        params.assetId,
-        body,
-      );
+      return this.restoreAssetUseCase.execute(request.requestContext, {
+        assetId: params.assetId,
+        command: body,
+      });
     });
 }

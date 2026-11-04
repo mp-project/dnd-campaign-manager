@@ -16,6 +16,7 @@ import {
   type EntityChangeInput,
   type FieldRule,
   type HistoryEvent,
+  type StoredFieldValue,
   type TrackedEntity,
   type TrackedRow,
   type TrackedTable,
@@ -34,19 +35,29 @@ import {
   type MergeDecision,
 } from "#src/modules/history/service/HistoryMerge";
 
-/** Marks the soft-delete entry; it is not a column rule and never comes from a client. */
+/** Marks the soft-delete entry. It stays on record, but a deleted row stays deleted. */
 export const LIFECYCLE_FIELD = "deletedAt";
+
+const BASELINE_ACTION = "history.baseline";
 
 /** Internal options of `change`, used by revert and restore. */
 export type ChangeOptions = {
-  includeDeleted?: boolean;
   revertsEventId?: string;
   restoredFromVersion?: number;
   lifecycle?: boolean;
 };
 
 export function fieldRuleOf(entity: TrackedEntity, field: string): FieldRule | undefined {
-  return (entity.fields as Record<string, FieldRule>)[field];
+  return (entity.fields as Record<string, FieldRule>)[field] ?? entity.lists?.[field];
+}
+
+/** Rules of all fields of an entity, columns and lists. */
+export function allFieldRules(entity: TrackedEntity): [string, FieldRule][] {
+  return [...Object.entries(entity.fields), ...Object.entries(entity.lists ?? {})];
+}
+
+function normalizeList(values: unknown): string[] {
+  return [...new Set(values as readonly string[])].sort();
 }
 
 function limitOf(entity: TrackedEntity, rule: FieldRule): number {
@@ -82,34 +93,111 @@ export class HistoryActionScope implements ActionScope {
     return this.meta.context.actorId;
   }
 
+  async valueAt<T extends TrackedTable>(
+    entity: TrackedEntity<T>,
+    id: string,
+    field: string,
+    version: number,
+  ): Promise<StoredFieldValue> {
+    return this.repository.findValueAt(
+      this.tx,
+      { entityType: entity.type, entityId: id },
+      field,
+      version,
+    );
+  }
+
   async create<T extends TrackedTable>(
     entity: TrackedEntity<T>,
     values: Record<string, unknown>,
   ): Promise<T["$inferSelect"]> {
     const erased = entity as unknown as TrackedEntity;
     const auditId = toAuditActorId(this.actorId);
+    const columnValues = { ...values };
+    const listValues: Record<string, string[]> = {};
+
+    for (const field of Object.keys(erased.lists ?? {})) {
+      listValues[field] = normalizeList(values[field] ?? []);
+      delete columnValues[field];
+    }
+
     const row = await this.repository.insertRow(this.tx, erased.table, {
-      ...values,
+      ...columnValues,
       createdBy: auditId,
       updatedBy: auditId,
     });
 
-    const fields: PendingField[] = [];
-
-    for (const [field, rule] of Object.entries(erased.fields as Record<string, FieldRule>)) {
-      if (VALUE_KINDS.includes(rule.kind)) {
-        fields.push({
-          field,
-          kind: rule.kind,
-          newValue: toStoredValue(row[field]),
-          isBaseline: true,
-        });
-      }
-    }
-
-    await this.writeEvent(erased, row, row.version, fields, {});
+    await this.saveLists(erased, row.id, listValues);
+    await this.writeEvent(
+      erased,
+      row,
+      row.version,
+      baselineFields(erased, { ...row, ...listValues }),
+      {},
+    );
 
     return row as T["$inferSelect"];
+  }
+
+  /**
+   * Rows from before the history have no entries yet. Their current state becomes the first
+   * version, otherwise the first change could never be undone or compared.
+   */
+  private async ensureBaseline(entity: TrackedEntity, state: TrackedRow): Promise<void> {
+    const ref: EntityRef = { entityType: entity.type, entityId: state.id };
+
+    if (await this.repository.hasEvents(this.tx, ref)) {
+      return;
+    }
+
+    const root = entity.root?.(state) ?? null;
+
+    await this.repository.createEvent(
+      this.tx,
+      {
+        actionId: this.actionId,
+        action: BASELINE_ACTION,
+        entityType: entity.type,
+        entityId: state.id,
+        entityVersion: state.version,
+        campaignId: entity.campaignId?.(state) ?? null,
+        rootType: root?.type ?? null,
+        rootId: root?.id ?? null,
+        actorId: null,
+        reason: null,
+        revertible: false,
+        revertsEventId: null,
+        restoredFromVersion: null,
+      },
+      baselineFields(entity, state),
+    );
+  }
+
+  private async withLists(entity: TrackedEntity, row: TrackedRow): Promise<TrackedRow> {
+    const state: TrackedRow = { ...row };
+
+    for (const [field, rule] of Object.entries(entity.lists ?? {})) {
+      state[field] = normalizeList(await rule.load(this.tx, row.id));
+    }
+
+    return state;
+  }
+
+  private async saveLists(
+    entity: TrackedEntity,
+    id: string,
+    values: Record<string, unknown>,
+  ): Promise<void> {
+    for (const [field, rule] of Object.entries(entity.lists ?? {})) {
+      if (field in values) {
+        await rule.save(
+          this.tx,
+          id,
+          values[field] as readonly string[],
+          toAuditActorId(this.actorId),
+        );
+      }
+    }
   }
 
   async change<T extends TrackedTable>(
@@ -141,11 +229,15 @@ export class HistoryActionScope implements ActionScope {
     options: ChangeOptions,
   ): Promise<ChangeResult<T["$inferSelect"]>> {
     const erased = entity as unknown as TrackedEntity;
-    const current = await this.repository.lockRow(this.tx, erased.table, id);
+    const locked = await this.repository.lockRow(this.tx, erased.table, id);
 
-    if (!current || (current.deletedAt && !options.includeDeleted)) {
+    if (!locked || locked.deletedAt) {
       throw new NotFoundError("Resource not found");
     }
+
+    const current = await this.withLists(erased, locked);
+
+    await this.ensureBaseline(erased, current);
 
     const input = await build(current);
     const ref: EntityRef = { entityType: erased.type, entityId: id };
@@ -184,16 +276,20 @@ export class HistoryActionScope implements ActionScope {
     }
 
     if (Object.keys(update).length === 0) {
-      return { row: current, changed: false, merged };
+      return { row: locked, changed: false, merged };
     }
 
     const next = { ...current, ...update } as TrackedRow;
 
     erased.validate?.(next, current);
 
+    const columnUpdate = Object.fromEntries(
+      Object.entries(update).filter(([field]) => !erased.lists?.[field]),
+    );
+
     if (fields.length === 0) {
       const row = await this.repository.updateRow(this.tx, erased.table, id, {
-        ...update,
+        ...columnUpdate,
         updatedAt: new Date(),
       });
 
@@ -202,13 +298,14 @@ export class HistoryActionScope implements ActionScope {
 
     const version = current.version + 1;
     const row = await this.repository.updateRow(this.tx, erased.table, id, {
-      ...update,
+      ...columnUpdate,
       version,
       updatedAt: new Date(),
       updatedBy: toAuditActorId(this.actorId),
     });
 
-    await this.writeEvent(erased, row, version, fields, options);
+    await this.saveLists(erased, id, update);
+    await this.writeEvent(erased, { ...row, ...update }, version, fields, options);
 
     return { row, changed: true, merged };
   }
@@ -272,7 +369,12 @@ export class HistoryActionScope implements ActionScope {
     merged: string[],
     options: ChangeOptions,
   ): Promise<Record<string, unknown>> {
-    const set = input.set ?? {};
+    const set = Object.fromEntries(
+      Object.entries(input.set ?? {}).map(([field, value]) => [
+        field,
+        entity.lists?.[field] ? normalizeList(value) : value,
+      ]),
+    );
     const baseVersion = input.baseVersion;
     const accepted: Record<string, unknown> = {};
 
@@ -457,6 +559,17 @@ export class HistoryActionScope implements ActionScope {
       fields: fields.map((item) => item.field),
     });
   }
+}
+
+function baselineFields(entity: TrackedEntity, state: TrackedRow): PendingField[] {
+  return allFieldRules(entity)
+    .filter(([, rule]) => VALUE_KINDS.includes(rule.kind))
+    .map(([field, rule]) => ({
+      field,
+      kind: rule.kind,
+      newValue: toStoredValue(state[field]),
+      isBaseline: true,
+    }));
 }
 
 function clampCounter(value: number, rule: CounterFieldRule, row: TrackedRow): number {

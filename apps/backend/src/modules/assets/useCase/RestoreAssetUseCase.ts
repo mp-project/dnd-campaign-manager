@@ -1,29 +1,51 @@
+import type { AppDatabase } from "#core/db/pool";
+import { authorized, type Authorization } from "#core/history/authorization";
+import { MutationUseCase } from "#core/history/MutationUseCase";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AssetLifecycleCommandDto } from "#src/modules/assets/domain/dto/UpdateAssetDto";
 import {
   type ResponseAssetGmDto,
   toAssetGmResponse,
 } from "#src/modules/assets/domain/dto/ResponseAssetDto";
+import { ASSET_ACTIONS } from "#src/modules/assets/history/TrackedAsset";
 import { AssetsService } from "#src/modules/assets/service/AssetsService";
 
-export class RestoreAssetUseCase {
-  constructor(private readonly assetsService: AssetsService) {}
+export type RestoreAssetInput = {
+  assetId: string;
+  command: AssetLifecycleCommandDto;
+};
 
-  async execute(
+export class RestoreAssetUseCase extends MutationUseCase<RestoreAssetInput, ResponseAssetGmDto> {
+  protected readonly action = ASSET_ACTIONS.restore;
+
+  constructor(
+    history: HistoryPort,
+    private readonly assetsService: AssetsService,
+  ) {
+    super(history);
+  }
+
+  protected async authorize(
     context: RequestContext,
-    assetId: string,
-    input: AssetLifecycleCommandDto,
-  ): Promise<ResponseAssetGmDto> {
-    const actorId = this.assetsService.assertAuthenticated(context);
+    input: RestoreAssetInput,
+    db: AppDatabase,
+  ): Promise<Authorization> {
+    await this.assetsService.assertCanChangeLifecycle(context, input.assetId, db);
 
-    const record = await this.assetsService.transactionManager.inTransaction((tx) =>
-      this.assetsService.restoreBase(tx, {
-        actorId,
-        assetId,
-        expectedVersion: input.expectedVersion,
+    return authorized();
+  }
+
+  protected async perform(
+    scope: ActionScope,
+    _context: RequestContext,
+    input: RestoreAssetInput,
+  ): Promise<ResponseAssetGmDto> {
+    return toAssetGmResponse(
+      await this.assetsService.restoreBase(scope, {
+        assetId: input.assetId,
+        expectedVersion: input.command.expectedVersion,
       }),
     );
-
-    return toAssetGmResponse(record);
   }
 }

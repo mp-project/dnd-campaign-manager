@@ -1,4 +1,17 @@
-import { and, desc, eq, getTableColumns, gt, inArray, lt, lte, notExists, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  notExists,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import type { TrackedRow, TrackedTable } from "#core/history/types";
@@ -27,11 +40,12 @@ export const TRIM_BUFFER = 20;
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 
 export class HistoryRepository {
+  /** Only finds rows that still exist; the history of deleted rows is not available. */
   async findRow(db: AppDatabase, table: TrackedTable, id: string): Promise<TrackedRow | null> {
     const rows = await db
       .select()
       .from(table as never)
-      .where(eq(table.id as never, id));
+      .where(and(eq(table.id as never, id), isNull(table.deletedAt as never)));
 
     return (rows[0] as TrackedRow | undefined) ?? null;
   }
@@ -99,6 +113,21 @@ export class HistoryRepository {
     }
 
     return row;
+  }
+
+  async hasEvents(db: AppDatabase, ref: EntityRef): Promise<boolean> {
+    const rows = await db
+      .select({ id: entityChangeEvents.id })
+      .from(entityChangeEvents)
+      .where(
+        and(
+          eq(entityChangeEvents.entityType, ref.entityType),
+          eq(entityChangeEvents.entityId, ref.entityId),
+        ),
+      )
+      .limit(1);
+
+    return rows.length > 0;
   }
 
   async findEvent(db: AppDatabase, eventId: string): Promise<ChangeEventRow | null> {

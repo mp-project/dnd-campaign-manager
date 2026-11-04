@@ -748,19 +748,36 @@ describe("history module", () => {
         });
       });
 
-      it("restores a soft-deleted row", async () => {
+      it("does not bring back a deleted row", async () => {
         const item = await createItem();
 
         await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
           scope.softDelete(trackedItem, item.id),
         );
 
+        const response = await post(ADMIN, `/history/events/${(await latestEvent(item.id)).id}/revert`);
+
+        expect(response.statusCode).toBe(404);
         expect((await currentItem(item.id)).deletedAt).not.toBeNull();
+      });
 
-        const response = await post(GM, `/history/events/${(await latestEvent(item.id)).id}/revert`);
+      it("undoes nothing when a row of the action was deleted by now", async () => {
+        const first = await createItem({ name: "First" });
+        const second = await createItem({ name: "Second" });
 
-        expect(response.statusCode).toBe(200);
-        expect((await currentItem(item.id)).deletedAt).toBeNull();
+        const actionId = await history.runAction({ action: "item.rename", context: GM, authorize: allow }, async (scope) => {
+          await scope.change(trackedItem, first.id, () => ({ set: { name: "A" } }));
+          await scope.change(trackedItem, second.id, () => ({ set: { name: "B" } }));
+
+          return scope.actionId;
+        });
+
+        await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
+          scope.softDelete(trackedItem, second.id),
+        );
+
+        expect((await post(GM, `/history/actions/${actionId}/revert`)).statusCode).toBe(404);
+        expect((await currentItem(first.id)).name).toBe("A");
       });
 
       it("undoes a whole action over several rows", async () => {
@@ -1234,6 +1251,24 @@ describe("history module", () => {
 
       await expect(updateItem(item.id, { set: { name: "Boss" } })).rejects.toBeInstanceOf(NotFoundError);
     });
+
+    it("offers no history for a deleted row, also not to admins", async () => {
+      const item = await createItem();
+
+      await updateItem(item.id, { set: { name: "Boss" } });
+      await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
+        scope.softDelete(trackedItem, item.id),
+      );
+
+      for (const actor of [GM, ADMIN]) {
+        expect((await get(actor, `/history/item/${item.id}`)).statusCode).toBe(404);
+        expect((await get(actor, `/history/item/${item.id}/versions/1`)).statusCode).toBe(404);
+        expect((await post(actor, `/history/item/${item.id}/versions/1/restore`)).statusCode).toBe(404);
+      }
+
+      expect((await currentItem(item.id)).deletedAt).not.toBeNull();
+      expect((await fieldRows(item.id)).length).toBeGreaterThan(0);
+    });
   });
 
   describe("permissions", () => {
@@ -1473,6 +1508,22 @@ describe("history module", () => {
       expect(asPlayer.body).not.toContain("Hidden child");
       expect(asGm.body).toContain("Hidden child");
       expect(withoutChildren.body).not.toContain("Visible child");
+    });
+
+    it("leaves deleted children out of the combined view", async () => {
+      const parent = await createItem();
+      const child = await history.runAction({ action: "child.create", context: GM, authorize: allow }, (scope) =>
+        scope.create(trackedChild, { campaignId: ID.campaignA, parentId: parent.id, title: "Gone child", shared: true }),
+      );
+
+      await history.runAction({ action: "child.delete", context: GM, authorize: allow }, (scope) =>
+        scope.softDelete(trackedChild, child.id),
+      );
+
+      const response = await get(ADMIN, `/history/item/${parent.id}?includeChildren=true`);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toContain("Gone child");
     });
 
     it("denies undoing when an entity defines no rule for it, except for admins", async () => {

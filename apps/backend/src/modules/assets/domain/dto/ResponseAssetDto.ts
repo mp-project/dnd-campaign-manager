@@ -16,6 +16,13 @@ export const ResponseAssetGmSchema = baseEntityResponseDto
   .extend({ view: z.literal("GM") });
 
 /**
+ * `merged` lists fields whose newer value from somebody else was kept instead of the sent one.
+ */
+export const ResponseUpdateAssetSchema = ResponseAssetGmSchema.extend({
+  merged: z.array(z.string()),
+});
+
+/**
  * Reduced view for players; contains no lifecycle, audit or GM-only metadata.
  */
 export const ResponseAssetPlayerSchema = AssetBaseSchema.pick({
@@ -34,6 +41,7 @@ export const ResponseAssetSchema = z.discriminatedUnion("view", [
 export const ResponseAssetListSchema = standardListResponseDto(ResponseAssetSchema);
 
 export type ResponseAssetGmDto = z.infer<typeof ResponseAssetGmSchema>;
+export type ResponseUpdateAssetDto = z.infer<typeof ResponseUpdateAssetSchema>;
 export type ResponseAssetPlayerDto = z.infer<typeof ResponseAssetPlayerSchema>;
 export type ResponseAssetDto = z.infer<typeof ResponseAssetSchema>;
 export type ResponseAssetListDto = z.infer<typeof ResponseAssetListSchema>;
@@ -62,6 +70,12 @@ export function toAssetGmResponse({ asset, rulesetIds }: AssetRecord): ResponseA
     rulesetIds,
     sourceReference: (asset.sourceReference ?? null) as Record<string, unknown> | null,
   };
+}
+
+export function toUpdateAssetResponse(
+  record: AssetRecord & { merged: string[] },
+): ResponseUpdateAssetDto {
+  return { ...toAssetGmResponse(record), merged: record.merged };
 }
 
 export function toAssetPlayerResponse({ asset }: AssetRecord): ResponseAssetPlayerDto {

@@ -61,35 +61,6 @@ export type AssetCatalogFilter = PageInput & {
   } | null;
 };
 
-export type CreateAssetInput = Pick<
-  typeof assets.$inferInsert,
-  | "assetType"
-  | "title"
-  | "slug"
-  | "summary"
-  | "status"
-  | "scope"
-  | "origin"
-  | "campaignId"
-  | "assetFamilyId"
-  | "rulesetPolicy"
-  | "sourceReference"
->;
-
-type AssetInsert = typeof assets.$inferInsert;
-type UpdatableAssetField =
-  | "title"
-  | "slug"
-  | "summary"
-  | "status"
-  | "assetFamilyId"
-  | "rulesetPolicy"
-  | "sourceReference";
-
-export type UpdateAssetPatch = {
-  [Key in UpdatableAssetField]?: AssetInsert[Key] | undefined;
-};
-
 function containsPattern(search: string): string {
   return `%${search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 }
@@ -140,26 +111,6 @@ export class AssetsRepository {
     return result;
   }
 
-  async create(
-    db: AppDatabase,
-    params: { actorId: string; values: CreateAssetInput },
-  ): Promise<AssetRow> {
-    const [created] = await db
-      .insert(assets)
-      .values({
-        ...params.values,
-        createdBy: params.actorId,
-        updatedBy: params.actorId,
-      })
-      .returning();
-
-    if (!created) {
-      throw new Error("Failed to create asset");
-    }
-
-    return created;
-  }
-
   /**
    * Makes the active ruleset links of an asset match `rulesetIds`
    * (soft-deletes removed links, inserts missing ones).
@@ -205,44 +156,6 @@ export class AssetsRepository {
         updatedBy: params.actorId,
       })),
     );
-  }
-
-  async countActiveRulesets(db: AppDatabase, assetId: string): Promise<number> {
-    const [row] = await db
-      .select({ total: sql<number>`count(*)::int` })
-      .from(assetRulesets)
-      .where(and(eq(assetRulesets.assetId, assetId), isNull(assetRulesets.deletedAt)));
-
-    return row?.total ?? 0;
-  }
-
-  async update(
-    db: AppDatabase,
-    params: {
-      assetId: string;
-      actorId: string;
-      expectedVersion: number;
-      patch: UpdateAssetPatch;
-    },
-  ): Promise<AssetRow | null> {
-    const [updated] = await db
-      .update(assets)
-      .set({
-        ...params.patch,
-        version: params.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: params.actorId,
-      })
-      .where(
-        and(
-          eq(assets.id, params.assetId),
-          eq(assets.version, params.expectedVersion),
-          isNull(assets.deletedAt),
-        ),
-      )
-      .returning();
-
-    return updated ?? null;
   }
 
   async listCampaignAssets(

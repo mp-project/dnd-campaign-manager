@@ -35,7 +35,7 @@ import type {
 } from "#src/modules/history/domain/repository/HistoryRepository";
 import {
   HistoryActionScope,
-  LIFECYCLE_FIELD,
+  allFieldRules,
   domainColumnsOf,
   fieldRuleOf,
   fromStoredValue,
@@ -73,6 +73,15 @@ export class HistoryService implements HistoryPort {
       throw new Error(
         `History entity '${erased.type}' has unclassified columns [${missing.join(", ")}] ` +
           `or unknown fields [${unknown.join(", ")}]`,
+      );
+    }
+
+    const allColumns = this.repository.columnsOf(erased.table);
+    const clashing = Object.keys(erased.lists ?? {}).filter((field) => allColumns.includes(field));
+
+    if (clashing.length > 0) {
+      throw new Error(
+        `History entity '${erased.type}' has lists named like columns [${clashing.join(", ")}]`,
       );
     }
 
@@ -156,7 +165,7 @@ export class HistoryService implements HistoryPort {
     }
   }
 
-  /** Unknown types and rows the actor may not see give the same answer. */
+  /** Unknown types, deleted rows and rows the actor may not see give the same answer. */
   private async loadReadable(
     context: RequestContext,
     entityType: string,
@@ -204,7 +213,7 @@ export class HistoryService implements HistoryPort {
   ): Promise<FieldChangePage> {
     const { entity } = await this.loadReadable(context, params.entityType, params.entityId);
 
-    if (params.field && !fieldRuleOf(entity, params.field) && params.field !== LIFECYCLE_FIELD) {
+    if (params.field && !fieldRuleOf(entity, params.field)) {
       throw new NotFoundError(NOT_FOUND_MESSAGE);
     }
 
@@ -273,7 +282,7 @@ export class HistoryService implements HistoryPort {
     const values: Record<string, unknown> = {};
     const incomplete: string[] = [];
 
-    for (const [field, rule] of Object.entries(entity.fields)) {
+    for (const [field, rule] of allFieldRules(entity)) {
       if (
         !VALUE_KINDS.includes(rule.kind) ||
         !(await this.canReadField(context, entity, row, field))
@@ -356,12 +365,18 @@ export class HistoryService implements HistoryPort {
     reason: string | null,
     work: (scope: HistoryActionScope) => Promise<void>,
   ): Promise<{ actionId: string }> {
-    const { result, events } = await this.transactionManager.inTransaction((tx) =>
-      this.runInScope(tx, { action: "history.revert", context, reason, authorize: checkedPerRow }, async (scope) => {
-        await work(scope);
+    const { result, events } = await withOldValueConflicts(() =>
+      this.transactionManager.inTransaction((tx) =>
+        this.runInScope(
+          tx,
+          { action: "history.revert", context, reason, authorize: checkedPerRow },
+          async (scope) => {
+            await work(scope);
 
-        return { actionId: scope.actionId };
-      }),
+            return { actionId: scope.actionId };
+          },
+        ),
+      ),
     );
 
     await this.publish(events);
@@ -395,11 +410,7 @@ export class HistoryService implements HistoryPort {
 
         return this.buildRevert(entity, row, event, fields, tx);
       },
-      {
-        includeDeleted: true,
-        revertsEventId: event.id,
-        lifecycle: true,
-      },
+      { revertsEventId: event.id },
     );
   }
 
@@ -464,11 +475,6 @@ export class HistoryService implements HistoryPort {
         continue;
       }
 
-      if (item.kind === "lifecycle") {
-        set[item.field] = item.newValue === null ? new Date() : null;
-        continue;
-      }
-
       if (item.kind !== "position" && !sameValue(row[item.field], item.newValue)) {
         throw new VersionConflictError("The content was changed by someone else", {
           currentVersion: row.version,
@@ -504,44 +510,46 @@ export class HistoryService implements HistoryPort {
   ): Promise<{ actionId: string }> {
     const { entity } = await this.loadReadable(context, params.entityType, params.entityId);
 
-    const { result, events } = await this.transactionManager.inTransaction((tx) =>
-      this.runInScope(
-        tx,
-        {
-          action: "history.restore",
-          context,
-          reason: params.reason ?? null,
-          authorize: checkedPerRow,
-        },
-        async (scope) => {
-          await scope.changeInternal(
-            entity,
-            params.entityId,
-            async (current) => {
-              const row = current as TrackedRow;
-              const allowed =
-                isSysAdminRole(context.systemRole) ||
-                ((await entity.access.restore?.(context, row, tx)) ?? false);
+    const { result, events } = await withOldValueConflicts(() =>
+      this.transactionManager.inTransaction((tx) =>
+        this.runInScope(
+          tx,
+          {
+            action: "history.restore",
+            context,
+            reason: params.reason ?? null,
+            authorize: checkedPerRow,
+          },
+          async (scope) => {
+            await scope.changeInternal(
+              entity,
+              params.entityId,
+              async (current) => {
+                const row = current as TrackedRow;
+                const allowed =
+                  isSysAdminRole(context.systemRole) ||
+                  ((await entity.access.restore?.(context, row, tx)) ?? false);
 
-              if (!allowed) {
-                throw new ForbiddenError("Insufficient permissions");
-              }
+                if (!allowed) {
+                  throw new ForbiddenError("Insufficient permissions");
+                }
 
-              if (params.version < 1 || params.version > row.version) {
-                throw new NotFoundError(NOT_FOUND_MESSAGE);
-              }
+                if (params.version < 1 || params.version > row.version) {
+                  throw new NotFoundError(NOT_FOUND_MESSAGE);
+                }
 
-              const set = await this.loadRestoreValues(entity, params, tx);
+                const set = await this.loadRestoreValues(entity, params, tx);
 
-              assertBaseSchema(entity, set);
+                assertBaseSchema(entity, set);
 
-              return { set };
-            },
-            { restoredFromVersion: params.version },
-          );
+                return { set };
+              },
+              { restoredFromVersion: params.version },
+            );
 
-          return { actionId: scope.actionId };
-        },
+            return { actionId: scope.actionId };
+          },
+        ),
       ),
     );
 
@@ -558,7 +566,7 @@ export class HistoryService implements HistoryPort {
     const set: Record<string, unknown> = {};
     const incomplete: string[] = [];
 
-    for (const field of Object.keys(entity.fields)) {
+    for (const [field] of allFieldRules(entity)) {
       if (!isRevertibleField(entity, field)) {
         continue;
       }
@@ -588,6 +596,37 @@ export class HistoryService implements HistoryPort {
 /** Revert and restore check `access` on the locked row, because the rows are only known there. */
 const checkedPerRow = async () => authorized();
 
+const CONSTRAINT_VIOLATION_CODES: readonly unknown[] = ["23505", "23503", "23514"];
+
+function isConstraintViolation(error: unknown): boolean {
+  let current = error;
+
+  while (typeof current === "object" && current !== null) {
+    const { code, cause } = current as { code?: unknown; cause?: unknown };
+
+    if (CONSTRAINT_VIOLATION_CODES.includes(code)) {
+      return true;
+    }
+
+    current = cause;
+  }
+
+  return false;
+}
+
+/** An old value can clash with today's data, such as a slug that is taken by now. */
+async function withOldValueConflicts<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (isConstraintViolation(error)) {
+      throw new ConflictError("The old value is no longer valid");
+    }
+
+    throw error;
+  }
+}
+
 function selectFields(
   stored: readonly ChangeFieldRow[],
   onlyFields: readonly string[] | undefined,
@@ -606,10 +645,6 @@ function selectFields(
 }
 
 function isRevertibleField(entity: TrackedEntity, field: string): boolean {
-  if (field === LIFECYCLE_FIELD) {
-    return true;
-  }
-
   const rule = fieldRuleOf(entity, field);
 
   if (!rule || !VALUE_KINDS.includes(rule.kind)) {

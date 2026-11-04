@@ -44,6 +44,17 @@ describe("history configuration", () => {
     expect(DEFAULT_HISTORY_LIMIT).toBe("standard");
   });
 
+  it("rejects a list named like a column", () => {
+    const clashing = {
+      ...buildEntity(),
+      lists: {
+        name: field.list({ load: async () => [], save: async () => undefined }),
+      },
+    } as unknown as TrackedEntity;
+
+    expect(() => buildService().service.register(clashing)).toThrow(/lists named like columns \[name\]/);
+  });
+
   it("registers a complete entity", () => {
     expect(() => buildService().service.register(buildEntity())).not.toThrow();
   });

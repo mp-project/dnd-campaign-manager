@@ -86,6 +86,7 @@ export class CampaignsService {
     campaignId: string;
     rulesetId: string;
     role: "EDITOR" | "PLAYER" | null;
+    isOwner: boolean;
   } | null> {
     const campaign = await this.repository.findMembershipCampaign(db, campaignId);
 
@@ -94,7 +95,12 @@ export class CampaignsService {
     }
 
     if (campaign.ownerUserId === actorId) {
-      return { campaignId: campaign.id, rulesetId: campaign.rulesetId, role: "EDITOR" };
+      return {
+        campaignId: campaign.id,
+        rulesetId: campaign.rulesetId,
+        role: "EDITOR",
+        isOwner: true,
+      };
     }
 
     const membership = await this.repository.findMembership(db, campaignId, actorId);
@@ -103,6 +109,7 @@ export class CampaignsService {
       campaignId: campaign.id,
       rulesetId: campaign.rulesetId,
       role: membership?.role ?? null,
+      isOwner: false,
     };
   }
 

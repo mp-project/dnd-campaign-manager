@@ -30,7 +30,7 @@ export const ASSETS_MODULE_DEPENDENCIES = "assets.module.dependencies";
 /**
  * Public port of the assets module. Domain modules use `service` (createBase, updateMetadata,
  * archiveBase, restoreBase, get, assertAvailable, assertSameCampaign, resolveVariant) inside
- * their own transactions and may register visibility providers.
+ * their own actions and may register visibility providers.
  */
 export type AssetsModuleDependencies = {
   service: AssetsService;
@@ -59,6 +59,12 @@ async function registerAssetsModule(
     throw new Error("Campaigns module dependencies are missing");
   }
 
+  const history = container.ports.history;
+
+  if (!history) {
+    throw new Error("History port is missing");
+  }
+
   const repository = new AssetsRepository();
   const service = new AssetsService(
     container.db,
@@ -70,13 +76,15 @@ async function registerAssetsModule(
     },
   );
 
+  history.register(service.trackedAsset);
+
   const listCampaignAssetsUseCase = new ListCampaignAssetsUseCase(service);
   const getAssetByIdUseCase = new GetAssetByIdUseCase(service);
   const listCampaignCatalogUseCase = new ListCampaignCatalogUseCase(service);
   const listCatalogUseCase = new ListCatalogUseCase(service);
-  const updateAssetUseCase = new UpdateAssetUseCase(service);
-  const deleteAssetUseCase = new DeleteAssetUseCase(service);
-  const restoreAssetUseCase = new RestoreAssetUseCase(service);
+  const updateAssetUseCase = new UpdateAssetUseCase(history, service);
+  const deleteAssetUseCase = new DeleteAssetUseCase(history, service);
+  const restoreAssetUseCase = new RestoreAssetUseCase(history, service);
 
   container.dependencies.set<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES, {
     service,
@@ -107,6 +115,6 @@ async function registerAssetsModule(
 
 export const assetsModule: AppModule = {
   name: "assets",
-  dependencies: ["system", "auth", "ruleset", "campaigns"],
+  dependencies: ["system", "auth", "history", "ruleset", "campaigns"],
   register: registerAssetsModule,
 };

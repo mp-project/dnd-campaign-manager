@@ -18,10 +18,9 @@ export class UpdateAssetController extends AbstractController {
       const params = RequestAssetParamsSchema.parse(request.params);
       const body = UpdateAssetMetadataSchema.parse(request.body);
 
-      return this.updateAssetUseCase.execute(
-        request.requestContext,
-        params.assetId,
-        body,
-      );
+      return this.updateAssetUseCase.execute(request.requestContext, {
+        assetId: params.assetId,
+        command: body,
+      });
     });
 }

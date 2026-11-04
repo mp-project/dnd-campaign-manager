@@ -62,7 +62,18 @@ export type AccountFieldRule = { kind: "account" };
 export type SecretFieldRule = RuleOptions & { kind: "secret" };
 export type IgnoreFieldRule = { kind: "ignore" };
 
-export type FieldRule =
+/**
+ * A list stored in a link table, tracked as one field of the entity. The history keeps the whole
+ * sorted list, so comparing, undoing and restoring work as for a single value.
+ */
+export type ListFieldRule = RuleOptions & {
+  kind: "list";
+  revertible?: boolean;
+  load(db: AppDatabase, id: string): Promise<string[]>;
+  save(db: AppDatabase, id: string, values: readonly string[], actorId: string): Promise<void>;
+};
+
+export type ColumnFieldRule =
   | ValueFieldRule
   | CounterFieldRule
   | PositionFieldRule
@@ -70,10 +81,12 @@ export type FieldRule =
   | SecretFieldRule
   | IgnoreFieldRule;
 
+export type FieldRule = ColumnFieldRule | ListFieldRule;
+
 export type FieldKind = FieldRule["kind"];
 
 /** Kinds that keep a readable value in the history. */
-export const VALUE_KINDS: readonly FieldKind[] = ["value", "counter", "position"];
+export const VALUE_KINDS: readonly FieldKind[] = ["value", "counter", "position", "list"];
 
 /** Change data handed to `access.revert`. */
 export type RevertRequestInfo = {
@@ -108,7 +121,9 @@ export type TrackedEntity<T extends TrackedTable = TrackedTable> = {
   type: string;
   table: T;
   /** Every non-base column must be classified, so a new column cannot be stored by accident. */
-  fields: Record<Exclude<keyof T["$inferSelect"] & string, BaseColumnKey>, FieldRule>;
+  fields: Record<Exclude<keyof T["$inferSelect"] & string, BaseColumnKey>, ColumnFieldRule>;
+  /** Fields without a column of their own. Their values are passed to `build` and `validate`. */
+  lists?: Record<string, ListFieldRule>;
   access: HistoryAccess<T["$inferSelect"]>;
   history?: { limit?: HistoryLimit };
   /** Fields that only make sense together count as one unit in conflict checks. */
@@ -116,7 +131,10 @@ export type TrackedEntity<T extends TrackedTable = TrackedTable> = {
   campaignId?(row: T["$inferSelect"]): string | null;
   root?(row: T["$inferSelect"]): { type: string; id: string } | null;
   /** Rules across fields; throws an AppError when the merged state is invalid. */
-  validate?(next: T["$inferSelect"], current: T["$inferSelect"]): void;
+  validate?(
+    next: T["$inferSelect"] & Record<string, unknown>,
+    current: T["$inferSelect"] & Record<string, unknown>,
+  ): void;
   /** Base DTO used to check old values again before they are written back. */
   baseSchema?: {
     shape: Record<string, unknown>;
@@ -139,8 +157,19 @@ export type ChangeResult<Row> = {
   merged: string[];
 };
 
+/** A value at an old version; unknown when the history does not reach back that far. */
+export type StoredFieldValue = { known: true; value: unknown } | { known: false };
+
 export type ActionScope = {
   readonly actionId: string;
+  /** Transaction of this action, for reads and link tables. Tracked rows only change through the scope. */
+  readonly tx: AppDatabase;
+  valueAt<T extends TrackedTable>(
+    entity: TrackedEntity<T>,
+    id: string,
+    field: string,
+    version: number,
+  ): Promise<StoredFieldValue>;
   create<T extends TrackedTable>(
     entity: TrackedEntity<T>,
     values: Record<string, unknown>,
@@ -148,7 +177,9 @@ export type ActionScope = {
   change<T extends TrackedTable>(
     entity: TrackedEntity<T>,
     id: string,
-    build: (current: T["$inferSelect"]) => EntityChangeInput | Promise<EntityChangeInput>,
+    build: (
+      current: T["$inferSelect"] & Record<string, unknown>,
+    ) => EntityChangeInput | Promise<EntityChangeInput>,
   ): Promise<ChangeResult<T["$inferSelect"]>>;
   softDelete<T extends TrackedTable>(
     entity: TrackedEntity<T>,

@@ -14,13 +14,19 @@ describe("assets permission definitions", () => {
     ]);
   });
 
-  it("grants users read access only and keeps lifecycle actions for admins", () => {
+  it("lets users reach reading and lifecycle routes and keeps metadata changes for admins", () => {
+    // Whether a user may archive this asset is decided per asset in the use case.
     expect(ROLE_PERMISSIONS.USER).toEqual(
-      expect.arrayContaining(["assets.read", "assets.readCatalog"]),
+      expect.arrayContaining([
+        "assets.read",
+        "assets.readCatalog",
+        "assets.archive",
+        "assets.restore",
+      ]),
     );
+    expect(ROLE_PERMISSIONS.USER).not.toContain("assets.updateMetadata");
 
     for (const key of ["assets.updateMetadata", "assets.archive", "assets.restore"]) {
-      expect(ROLE_PERMISSIONS.USER).not.toContain(key);
       expect(ROLE_PERMISSIONS.ADMIN).toContain(key);
     }
   });

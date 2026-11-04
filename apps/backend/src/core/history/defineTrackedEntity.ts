@@ -2,6 +2,7 @@ import type {
   AccountFieldRule,
   CounterFieldRule,
   IgnoreFieldRule,
+  ListFieldRule,
   PositionFieldRule,
   SecretFieldRule,
   TrackedEntity,
@@ -30,6 +31,7 @@ export const field = {
     ...options,
   }),
   ignore: (): IgnoreFieldRule => ({ kind: "ignore" }),
+  list: (options: Omit<ListFieldRule, "kind">): ListFieldRule => ({ kind: "list", ...options }),
 };
 
 /**

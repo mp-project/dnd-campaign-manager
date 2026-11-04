@@ -415,7 +415,7 @@ describe("assets HTTP routes", () => {
       expect(titles(player.json())).toEqual([]);
     });
 
-    it("forbids GMs and players from changing, archiving or restoring definitions", async () => {
+    it("forbids GMs and players from changing metadata", async () => {
       for (const actor of [GM, PLAYER]) {
         const update = await injectAs(actor, {
           method: "PATCH",
@@ -423,20 +423,39 @@ describe("assets HTTP routes", () => {
           payload: { expectedVersion: 1, title: "Hijacked" },
         });
         expect(update.statusCode).toBe(403);
-
-        const archive = await injectAs(actor, {
-          method: "DELETE",
-          url: `/api/v1/assets/${ID.campaignSpell}?expectedVersion=1`,
-        });
-        expect(archive.statusCode).toBe(403);
-
-        const restore = await injectAs(actor, {
-          method: "POST",
-          url: `/api/v1/assets/${ID.campaignSpell}/restore`,
-          payload: { expectedVersion: 1 },
-        });
-        expect(restore.statusCode).toBe(403);
       }
+    });
+
+    it("lets the GM archive and restore own campaign assets, but not system assets", async () => {
+      const archive = (id: string, actor: TestActor, version = 1) =>
+        injectAs(actor, {
+          method: "DELETE",
+          url: `/api/v1/assets/${id}?expectedVersion=${version}`,
+        });
+      const restore = (id: string, actor: TestActor, version: number) =>
+        injectAs(actor, {
+          method: "POST",
+          url: `/api/v1/assets/${id}/restore`,
+          payload: { expectedVersion: version },
+        });
+
+      expect((await archive(ID.campaignSpell, PLAYER)).statusCode).toBe(403);
+      expect((await archive(ID.campaignSpell, OUTSIDER)).statusCode).toBe(404);
+      expect((await archive(ID.foreignSpell, GM)).statusCode).toBe(404);
+      expect((await archive(ID.systemLight, GM)).statusCode).toBe(403);
+
+      const archived = await archive(ID.campaignSpell, GM);
+
+      expect(archived.statusCode).toBe(200);
+      expect(archived.json()).toMatchObject({ status: "ARCHIVED", version: 2, updatedBy: ID.gm });
+
+      expect((await restore(ID.campaignSpell, PLAYER, 2)).statusCode).toBe(403);
+      expect((await restore(ID.systemArchived, GM, 1)).statusCode).toBe(403);
+
+      const restored = await restore(ID.campaignSpell, GM, 2);
+
+      expect(restored.statusCode).toBe(200);
+      expect(restored.json()).toMatchObject({ status: "ACTIVE", version: 3 });
     });
   });
 
@@ -464,9 +483,9 @@ describe("assets HTTP routes", () => {
       expect(anonymousInvalidParam.statusCode).toBe(401);
 
       const withoutPermission = await injectAs(PLAYER, {
-        method: "POST",
-        url: `/api/v1/assets/${ID.campaignSpell}/restore`,
-        payload: {},
+        method: "PATCH",
+        url: `/api/v1/assets/${ID.campaignSpell}`,
+        payload: { title: "" },
       });
       expect(withoutPermission.statusCode).toBe(403);
 
@@ -510,6 +529,11 @@ describe("assets HTTP routes", () => {
         payload: { expectedVersion: 1, title: "Stale" },
       });
       expect(stale.statusCode).toBe(412);
+      expect(stale.json().error.details.conflicts[0]).toMatchObject({
+        field: "title",
+        yours: "Stale",
+        current: "Light (revised)",
+      });
 
       const empty = await injectAs(ADMIN, {
         method: "PATCH",

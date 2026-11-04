@@ -25,6 +25,10 @@ import {
   ASSET_LINKS_USER_PERMISSION_KEYS,
 } from "#src/modules/asset-links/permissions/AssetLinksPermissions";
 import {
+  TAGS_PERMISSION_KEYS,
+  TAGS_USER_PERMISSION_KEYS,
+} from "#src/modules/tags/permissions/TagsPermissions";
+import {
   HISTORY_PERMISSION_KEYS,
   HISTORY_USER_PERMISSION_KEYS,
 } from "#src/modules/history/permissions/HistoryPermissions";
@@ -53,6 +57,7 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...CAMPAIGN_INVITATION_PERMISSION_KEYS,
   ...ASSETS_USER_PERMISSION_KEYS,
   ...ASSET_LINKS_USER_PERMISSION_KEYS,
+  ...TAGS_USER_PERMISSION_KEYS,
   ...HISTORY_USER_PERMISSION_KEYS,
 ];
 
@@ -66,6 +71,7 @@ export const ALL_PERMISSIONS = [
   ...RULESET_PERMISSION_KEYS,
   ...ASSETS_PERMISSION_KEYS,
   ...ASSET_LINKS_PERMISSION_KEYS,
+  ...TAGS_PERMISSION_KEYS,
   ...HISTORY_PERMISSION_KEYS,
 ] as const;
 

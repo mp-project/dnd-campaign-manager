@@ -18,10 +18,9 @@ export class DeleteAssetController extends AbstractController {
       const params = RequestAssetParamsSchema.parse(request.params);
       const query = AssetLifecycleCommandSchema.parse(request.query);
 
-      return this.deleteAssetUseCase.execute(
-        request.requestContext,
-        params.assetId,
-        query,
-      );
+      return this.deleteAssetUseCase.execute(request.requestContext, {
+        assetId: params.assetId,
+        command: query,
+      });
     });
 }

@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 
 import {
+  ApiError,
   advanceCampaignTime,
   archiveCampaign,
   correctCampaignTime,
@@ -14,7 +15,7 @@ import {
 import type {
   AdvanceCampaignTimeInput,
   Campaign,
-  CampaignTimeEvent,
+  CampaignTimeEntry,
   CorrectCampaignTimeInput,
   CreateCampaignInput,
   UpdateCampaignInput,
@@ -26,7 +27,8 @@ export function useCampaigns() {
   const error = ref("");
   const campaigns = ref<Campaign[]>([]);
   const selectedCampaignId = ref<string | null>(null);
-  const timeHistory = ref<CampaignTimeEvent[]>([]);
+  const timeHistory = ref<CampaignTimeEntry[]>([]);
+  const canReadTimeHistory = ref(false);
   const globalPermissions = ref<string[]>([]);
 
   const selectedCampaign = computed(() =>
@@ -119,10 +121,16 @@ export function useCampaigns() {
     }
 
     try {
-      const response = await getCampaignTimeHistory(selectedCampaignId.value, 50);
-      timeHistory.value = response.data;
+      timeHistory.value = await getCampaignTimeHistory(selectedCampaignId.value, 50);
+      canReadTimeHistory.value = true;
     } catch (caughtError) {
-      error.value = toErrorMessage(caughtError);
+      timeHistory.value = [];
+      canReadTimeHistory.value = false;
+
+      // The history only exists for people who may change the campaign.
+      if (!(caughtError instanceof ApiError && caughtError.statusCode === 404)) {
+        error.value = toErrorMessage(caughtError);
+      }
     }
   }
 
@@ -234,6 +242,7 @@ export function useCampaigns() {
     selectedCampaign,
     selectedCampaignId,
     timeHistory,
+    canReadTimeHistory,
     canCreate,
     canRead,
     canUpdate,

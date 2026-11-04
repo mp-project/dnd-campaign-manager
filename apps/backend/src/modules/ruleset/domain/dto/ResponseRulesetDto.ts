@@ -14,6 +14,10 @@ export const ResponseRulesetSchema = RulesetBaseSchema.extend({
   spellSlotProgressions: z.array(RulesetSpellSlotProgressionBaseSchema),
 });
 
+export const ResponseUpdateRulesetSchema = ResponseRulesetSchema.extend({
+  merged: z.array(z.string().min(1)),
+});
+
 export const ResponseRulesetListSchema = standardListResponseDto(ResponseRulesetSchema);
 
 export const ResponseValidateRulesetSchema = z.strictObject({
@@ -23,6 +27,7 @@ export const ResponseValidateRulesetSchema = z.strictObject({
 });
 
 export type ResponseRulesetDto = z.infer<typeof ResponseRulesetSchema>;
+export type ResponseUpdateRulesetDto = z.infer<typeof ResponseUpdateRulesetSchema>;
 export type ResponseRulesetListDto = z.infer<typeof ResponseRulesetListSchema>;
 export type ResponseValidateRulesetDto = z.infer<typeof ResponseValidateRulesetSchema>;
 
@@ -56,6 +61,13 @@ export function toRulesetResponse(aggregate: RulesetAggregate): ResponseRulesetD
       slotCount: item.slotCount,
     })),
   };
+}
+
+export function toUpdateRulesetResponse(
+  aggregate: RulesetAggregate,
+  merged: string[],
+): ResponseUpdateRulesetDto {
+  return { ...toRulesetResponse(aggregate), merged };
 }
 
 export function toRulesetListResponse(

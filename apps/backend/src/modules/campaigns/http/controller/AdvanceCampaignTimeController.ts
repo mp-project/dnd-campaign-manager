@@ -18,10 +18,9 @@ export class AdvanceCampaignTimeController extends AbstractController {
       const params = RequestCampaignParamsSchema.parse(request.params);
       const body = AdvanceCampaignTimeSchema.parse(request.body);
 
-      return this.advanceCampaignTimeUseCase.execute(
-        request.requestContext,
-        params.campaignId,
-        body,
-      );
+      return this.advanceCampaignTimeUseCase.execute(request.requestContext, {
+        campaignId: params.campaignId,
+        command: body,
+      });
     });
 }

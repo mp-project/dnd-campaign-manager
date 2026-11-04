@@ -5,7 +5,10 @@ import {
   createPgPool,
   createTransactionManager,
 } from "#core/db/pool";
-import { rulesets } from "#core/db/schema";
+import { entityChangeEvents, rulesets } from "#core/db/schema";
+import { HistoryRepository } from "#src/modules/history/domain/repository/HistoryRepository";
+import { HistoryService } from "#src/modules/history/service/HistoryService";
+import { trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
 import { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 import { CreateRulesetUseCase } from "#src/modules/ruleset/useCase/CreateRulesetUseCase";
@@ -27,7 +30,14 @@ describe("ruleset service transactions", () => {
   const db = createDrizzleDb(pool);
   const transactionManager = createTransactionManager(db);
   const repository = new RulesetRepository();
+  const history = new HistoryService(db, transactionManager, new HistoryRepository(), {
+    error: () => undefined,
+  });
+
+  history.register(trackedRuleset);
+
   const useCase = new CreateRulesetUseCase(
+    history,
     new RulesetService(db, transactionManager, repository),
   );
 
@@ -35,11 +45,11 @@ describe("ruleset service transactions", () => {
     await pool.end();
   });
 
-  it("rolls back ruleset insert when progression insert fails", async () => {
+  it("rolls back the ruleset and its history when a progression insert fails", async () => {
     await expect(
       useCase.execute(
         {
-          actorId: "admin-rollback",
+          actorId: "a0000000-0000-4000-8000-000000000001",
           systemRole: "ADMIN",
         },
         {
@@ -70,5 +80,6 @@ describe("ruleset service transactions", () => {
       );
 
     expect(rows).toHaveLength(0);
+    expect(await db.select().from(entityChangeEvents)).toHaveLength(0);
   });
 });

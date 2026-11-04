@@ -310,7 +310,10 @@
           </form>
         </div>
 
-        <div class="mt-4">
+        <div
+          v-if="canReadTimeHistory"
+          class="mt-4"
+        >
           <h4 class="text-sm font-semibold uppercase tracking-[0.08em] text-ink/60">
             Zeit-Historie
           </h4>
@@ -321,10 +324,16 @@
               class="rounded-lg border border-black/10 bg-white px-3 py-2"
             >
               <p class="text-sm font-semibold text-ink">
-                {{ event.type }} · Tag {{ event.previousGameDay }} → {{ event.newGameDay }}
+                {{ event.action }}
+                <template v-if="event.gameDay">
+                  · Tag {{ event.gameDay.previous }} → {{ event.gameDay.next }}
+                </template>
               </p>
               <p class="text-xs text-ink/65">
-                Long Rests {{ event.previousLongRestCount }} → {{ event.newLongRestCount }} · {{ formatDate(event.createdAt) }}
+                <template v-if="event.longRests">
+                  Long Rests {{ event.longRests.previous }} → {{ event.longRests.next }} ·
+                </template>
+                {{ formatDate(event.createdAt) }}
               </p>
               <p
                 v-if="event.reason"
@@ -358,6 +367,7 @@ const {
   campaigns,
   selectedCampaign,
   timeHistory,
+  canReadTimeHistory,
   canCreate,
   canUpdate,
   canArchive,

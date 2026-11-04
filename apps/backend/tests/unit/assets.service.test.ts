@@ -1,4 +1,5 @@
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionScope } from "#core/history/types";
 import {
   ConflictError,
   NotFoundError,
@@ -8,7 +9,6 @@ import {
 import type {
   AssetRow,
   AssetsRepository,
-  CreateAssetInput,
 } from "#src/modules/assets/domain/repository/AssetsRepository";
 import {
   type AssetCampaignAccessPort,
@@ -51,36 +51,30 @@ function createAssetRow(overrides: Partial<AssetRow> = {}): AssetRow {
 }
 
 function createFakeRepository() {
-  const created: CreateAssetInput[] = [];
-  const synced: string[][] = [];
-
   const repository = {
-    create: jest.fn(async (_db: AppDatabase, params: { values: CreateAssetInput }) => {
-      created.push(params.values);
-
-      return createAssetRow({
-        ...params.values,
-        summary: params.values.summary ?? null,
-        status: params.values.status ?? "DRAFT",
-        campaignId: params.values.campaignId ?? null,
-        assetFamilyId: params.values.assetFamilyId ?? null,
-        rulesetPolicy: params.values.rulesetPolicy ?? "NEUTRAL",
-        sourceReference: params.values.sourceReference ?? null,
-      });
-    }),
-    updateRulesets: jest.fn(async (_db: AppDatabase, params: { rulesetIds: readonly string[] }) => {
-      synced.push([...params.rulesetIds]);
-    }),
-    countActiveRulesets: jest.fn(async () => synced.at(-1)?.length ?? 0),
     findFamilyById: jest.fn(async () => ({ id: FAMILY_ID, assetType: "SPELL" })),
   };
 
   return {
     repository: repository as unknown as AssetsRepository,
     mocks: repository,
-    created,
-    synced,
   };
+}
+
+/** Action scope that records created values instead of writing them. */
+function createFakeScope() {
+  const created: Record<string, unknown>[] = [];
+  const scope = {
+    actionId: "action",
+    tx: db,
+    create: jest.fn(async (_entity: unknown, values: Record<string, unknown>) => {
+      created.push(values);
+
+      return createAssetRow(values as Partial<AssetRow>);
+    }),
+  } as unknown as ActionScope;
+
+  return { scope, created };
 }
 
 function createCampaignAccess(
@@ -88,7 +82,9 @@ function createCampaignAccess(
 ): AssetCampaignAccessPort {
   return {
     findCampaignRole: async (campaignId) =>
-      campaignId === CAMPAIGN_ID ? { campaignId, rulesetId: RULESET_ID, role } : null,
+      campaignId === CAMPAIGN_ID
+        ? { campaignId, rulesetId: RULESET_ID, role, isOwner: false }
+        : null,
   };
 }
 
@@ -96,15 +92,16 @@ describe("AssetsService", () => {
   describe("createBase", () => {
     it("derives campaign scope, origin and campaign ruleset for restricted homebrew", async () => {
       const fake = createFakeRepository();
+      const { scope, created } = createFakeScope();
       const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"));
 
       const result = await service.createBase(
-        db,
+        scope,
         { actorId: ACTOR_ID, campaignId: CAMPAIGN_ID },
         { assetType: "SPELL", title: "Ember Lance!", rulesetPolicy: "RESTRICTED" },
       );
 
-      expect(fake.created[0]).toMatchObject({
+      expect(created[0]).toMatchObject({
         scope: "CAMPAIGN",
         origin: "CUSTOM",
         campaignId: CAMPAIGN_ID,
@@ -115,10 +112,11 @@ describe("AssetsService", () => {
 
     it("creates system defaults with explicit rulesets", async () => {
       const fake = createFakeRepository();
+      const { scope, created } = createFakeScope();
       const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess(null));
 
       await service.createBase(
-        db,
+        scope,
         { actorId: ACTOR_ID, campaignId: null },
         {
           assetType: "SPELL",
@@ -128,31 +126,33 @@ describe("AssetsService", () => {
         },
       );
 
-      expect(fake.created[0]).toMatchObject({ scope: "SYSTEM", origin: "DEFAULT", campaignId: null });
-      expect(fake.synced[0]).toEqual([RULESET_ID]);
+      expect(created[0]).toMatchObject({ scope: "SYSTEM", origin: "DEFAULT", campaignId: null });
+      expect(created[0]?.rulesetIds).toEqual([RULESET_ID]);
     });
 
     it("rejects free ruleset ids on campaign assets", async () => {
       const fake = createFakeRepository();
+      const { scope, created } = createFakeScope();
       const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"));
 
       await expect(
         service.createBase(
-          db,
+          scope,
           { actorId: ACTOR_ID, campaignId: CAMPAIGN_ID },
           { assetType: "SPELL", title: "X", rulesetPolicy: "RESTRICTED", rulesetIds: [RULESET_ID] },
         ),
       ).rejects.toBeInstanceOf(ValidationError);
-      expect(fake.created).toHaveLength(0);
+      expect(created).toHaveLength(0);
     });
 
     it("rejects neutral assets with rulesets and restricted system assets without rulesets", async () => {
       const fake = createFakeRepository();
+      const { scope } = createFakeScope();
       const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess(null));
 
       await expect(
         service.createBase(
-          db,
+          scope,
           { actorId: ACTOR_ID, campaignId: null },
           { assetType: "SPELL", title: "X", rulesetIds: [RULESET_ID] },
         ),
@@ -160,7 +160,7 @@ describe("AssetsService", () => {
 
       await expect(
         service.createBase(
-          db,
+          scope,
           { actorId: ACTOR_ID, campaignId: null },
           { assetType: "SPELL", title: "X", rulesetPolicy: "RESTRICTED" },
         ),
@@ -169,11 +169,12 @@ describe("AssetsService", () => {
 
     it("rejects families of another asset type and unknown campaigns", async () => {
       const fake = createFakeRepository();
+      const { scope } = createFakeScope();
       const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"));
 
       await expect(
         service.createBase(
-          db,
+          scope,
           { actorId: ACTOR_ID, campaignId: null },
           { assetType: "ITEM", title: "Rope", assetFamilyId: FAMILY_ID },
         ),
@@ -181,7 +182,7 @@ describe("AssetsService", () => {
 
       await expect(
         service.createBase(
-          db,
+          scope,
           { actorId: ACTOR_ID, campaignId: OTHER_CAMPAIGN_ID },
           { assetType: "NOTE", title: "Note" },
         ),

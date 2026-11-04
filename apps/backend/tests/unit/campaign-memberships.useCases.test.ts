@@ -1,5 +1,6 @@
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionMeta, ActionScope, HistoryPort } from "#core/history/types";
 import type { CampaignMembershipsRepository } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 import { CampaignMembershipsService } from "#src/modules/campaign-memberships/service/CampaignMembershipsService";
 import { DeleteCampaignMemberUseCase } from "#src/modules/campaign-memberships/useCase/DeleteCampaignMemberUseCase";
@@ -23,8 +24,6 @@ function createUseCases(
     findById: jest.fn(),
     countActiveEditors: jest.fn(),
     listActiveByCampaign: jest.fn().mockResolvedValue([]),
-    update: jest.fn(),
-    delete: jest.fn(),
     ...repositoryOverrides,
   } as unknown as CampaignMembershipsRepository;
   const transactionManager = {
@@ -39,6 +38,7 @@ function createUseCases(
       rulesetId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     }),
     lockCampaign: jest.fn(),
+    trackedMembership: {},
     ...campaignServiceOverrides,
   } as unknown as CampaignsService;
   const usersDependencies = {
@@ -54,6 +54,23 @@ function createUseCases(
     },
   } as unknown as UsersModuleDependencies;
 
+  const scope = {
+    tx: {} as AppDatabase,
+    change: jest.fn(async (_entity, _id, build: () => { set: Record<string, unknown> }) => ({
+      row: activeMember({ ...build().set, version: 2 }),
+      changed: true,
+      merged: [],
+    })),
+  } as unknown as ActionScope;
+  const runAction = jest.fn(
+    async (meta: ActionMeta<unknown>, work: (actionScope: ActionScope) => Promise<unknown>) => {
+      await meta.authorize(scope.tx);
+
+      return work(scope);
+    },
+  );
+  const history = { runAction } as unknown as HistoryPort;
+
   const service = new CampaignMembershipsService(
     {} as AppDatabase,
     transactionManager,
@@ -64,12 +81,13 @@ function createUseCases(
 
   return {
     listUseCase: new ListCampaignMembersUseCase(service),
-    updateUseCase: new UpdateCampaignMemberUseCase(service),
-    deleteUseCase: new DeleteCampaignMemberUseCase(service),
+    updateUseCase: new UpdateCampaignMemberUseCase(history, service),
+    deleteUseCase: new DeleteCampaignMemberUseCase(history, service),
     permissionsUseCase: new GetMyCampaignPermissionsUseCase(service),
     repository,
     campaignsService,
-    transactionManager,
+    runAction,
+    scope,
     usersDependencies,
   };
 }
@@ -146,20 +164,20 @@ describe("campaign membership use cases", () => {
   });
 
   it("resolves the actor before opening the transaction", async () => {
-    const { updateUseCase, transactionManager, usersDependencies } = createUseCases({
+    const { updateUseCase, runAction, usersDependencies } = createUseCases({
       findActiveByUser: jest.fn().mockResolvedValue(activeMember()),
       findById: jest.fn().mockResolvedValue(activeMember({ role: "PLAYER" })),
-      update: jest.fn().mockResolvedValue(activeMember({ version: 2 })),
     });
 
-    await updateUseCase.execute(memberContext, CAMPAIGN_ID, MEMBERSHIP_ID, {
-      role: "EDITOR",
-      expectedVersion: 1,
+    await updateUseCase.execute(memberContext, {
+      campaignId: CAMPAIGN_ID,
+      memberId: MEMBERSHIP_ID,
+      command: { role: "EDITOR", expectedVersion: 1 },
     });
 
     expect(
       (usersDependencies.useCases.getOneUserBy.execute as jest.Mock).mock.invocationCallOrder[0],
-    ).toBeLessThan((transactionManager.inTransaction as jest.Mock).mock.invocationCallOrder[0]!);
+    ).toBeLessThan(runAction.mock.invocationCallOrder[0]!);
   });
 
   it("hides a campaign from non-members", async () => {
@@ -172,18 +190,19 @@ describe("campaign membership use cases", () => {
 
   it("prevents demoting the campaign owner", async () => {
     const ownerMembership = activeMember({ userId: OWNER_ID });
-    const { updateUseCase, repository } = createUseCases({
+    const { updateUseCase, scope } = createUseCases({
       findActiveByUser: jest.fn().mockResolvedValue(ownerMembership),
       findById: jest.fn().mockResolvedValue(ownerMembership),
     });
 
     await expect(
-      updateUseCase.execute(ownerContext, CAMPAIGN_ID, MEMBERSHIP_ID, {
-        role: "PLAYER",
-        expectedVersion: 1,
+      updateUseCase.execute(ownerContext, {
+        campaignId: CAMPAIGN_ID,
+        memberId: MEMBERSHIP_ID,
+        command: { role: "PLAYER", expectedVersion: 1 },
       }),
     ).rejects.toBeInstanceOf(ConflictError);
-    expect(repository.update).not.toHaveBeenCalled();
+    expect(scope.change).not.toHaveBeenCalled();
   });
 
   it("locks the campaign before checking management access", async () => {
@@ -193,37 +212,36 @@ describe("campaign membership use cases", () => {
       ownerUserId: OWNER_ID,
       rulesetId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     });
-    const update = jest.fn().mockResolvedValue(activeMember({ role: "EDITOR", version: 2 }));
-    const { updateUseCase } = createUseCases({
+    const { updateUseCase, scope } = createUseCases({
       findActiveByUser: jest.fn().mockResolvedValue(null),
       findById: jest.fn().mockResolvedValue(activeMember({ role: "PLAYER" })),
-      update,
     }, {
       lockCampaign,
       findMembershipCampaign: findCampaign,
     });
 
-    await updateUseCase.execute(ownerContext, CAMPAIGN_ID, MEMBERSHIP_ID, {
-      role: "EDITOR",
-      expectedVersion: 1,
+    await updateUseCase.execute(ownerContext, {
+      campaignId: CAMPAIGN_ID,
+      memberId: MEMBERSHIP_ID,
+      command: { role: "EDITOR", expectedVersion: 1 },
     });
 
     expect(lockCampaign.mock.invocationCallOrder[0]).toBeLessThan(
       findCampaign.mock.invocationCallOrder[0]!,
     );
-    expect(update).toHaveBeenCalled();
+    expect(scope.change).toHaveBeenCalled();
   });
 
   it("prevents revoking the last active editor", async () => {
-    const { deleteUseCase, repository } = createUseCases({
+    const { deleteUseCase, scope } = createUseCases({
       findActiveByUser: jest.fn().mockResolvedValue(activeMember()),
       findById: jest.fn().mockResolvedValue(activeMember()),
       countActiveEditors: jest.fn().mockResolvedValue(1),
     });
 
     await expect(
-      deleteUseCase.execute(memberContext, CAMPAIGN_ID, MEMBERSHIP_ID),
+      deleteUseCase.execute(memberContext, { campaignId: CAMPAIGN_ID, memberId: MEMBERSHIP_ID }),
     ).rejects.toBeInstanceOf(ConflictError);
-    expect(repository.delete).not.toHaveBeenCalled();
+    expect(scope.change).not.toHaveBeenCalled();
   });
 });

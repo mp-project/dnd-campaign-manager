@@ -1,14 +1,21 @@
 import { NotFoundError, UnauthenticatedError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import type { CampaignMember } from "#src/modules/campaign-memberships/domain/dto/ResponseCampaignMembershipDto";
 import type {
+  CampaignMembershipRow,
   CampaignMembershipsRepository,
-  CreateCampaignMembershipInput,
 } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 import type { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
+
+export type CreateCampaignMembershipInput = {
+  campaignId: string;
+  userId: string;
+  role: CampaignMembershipRow["role"];
+};
 
 /**
  * Shared membership logic for the use cases (access checks, member lookups) and the port used by
@@ -22,6 +29,10 @@ export class CampaignMembershipsService {
     private readonly campaignsService: CampaignsService,
     private readonly usersDependencies: UsersModuleDependencies,
   ) {}
+
+  get trackedMembership() {
+    return this.campaignsService.trackedMembership;
+  }
 
   /**
    * Resolves the actor's access to a campaign; non-members get a 404 so the campaign stays hidden.
@@ -72,18 +83,22 @@ export class CampaignMembershipsService {
   }
 
   /**
-   * Locks the campaign, checks management access and loads the active member and the campaign.
-   * Must run inside a transaction.
+   * Locks the campaign and checks management access, so the checks on its members stay valid until
+   * the commit. Must run inside a transaction, after `requireActorId`.
    */
-  async loadManagedMember(
+  async lockForManagement(
     tx: AppDatabase,
     context: RequestContext,
-    actorId: string,
     campaignId: string,
-    memberId: string,
-  ) {
+  ): Promise<void> {
     await this.campaignsService.lockCampaign(tx, campaignId);
-    await this.assertCanManage(context, actorId, campaignId, tx);
+    await this.assertCanManage(context, context.actorId as string, campaignId, tx);
+  }
+
+  /**
+   * Loads the active member and the campaign. Must run after `lockForManagement`.
+   */
+  async loadManagedMember(tx: AppDatabase, campaignId: string, memberId: string) {
     const member = await this.repository.findById(tx, campaignId, memberId);
 
     if (!member || member.status !== "ACTIVE") {
@@ -117,8 +132,8 @@ export class CampaignMembershipsService {
     return this.repository.findActiveByUser(db, campaignId, userId);
   }
 
-  createActiveFromInvitation(db: AppDatabase, input: CreateCampaignMembershipInput) {
-    return this.repository.create(db, input);
+  createActiveFromInvitation(scope: ActionScope, input: CreateCampaignMembershipInput) {
+    return scope.create(this.trackedMembership, input);
   }
 
   async buildCampaignContext(campaignId: string, actorId: string | null) {

@@ -1,9 +1,33 @@
 import { ConflictError, ForbiddenError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionMeta, ActionScope, HistoryPort } from "#core/history/types";
 import type { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
 import { UsersService } from "#src/modules/users/service/UsersService";
 import { UpdateMeUseCase } from "#src/modules/users/useCase/UpdateMeUseCase";
 import { UpdateUserUseCase } from "#src/modules/users/useCase/UpdateUserUseCase";
+
+function buildHistory(repository: Partial<UsersRepository>, tx: TransactionManager) {
+  return {
+    runAction: (meta: ActionMeta<unknown>, work: (scope: ActionScope) => Promise<unknown>) =>
+      tx.inTransaction(async (db) => {
+        await meta.authorize(db);
+
+        return work({
+          tx: db,
+          change: async (
+            _entity: unknown,
+            id: string,
+            build: (current: unknown) => Promise<{ set?: Record<string, unknown> }>,
+          ) => {
+            const current = await repository.findById?.(db, id);
+            const input = await build(current);
+
+            return { row: { ...current, ...input.set }, changed: true, merged: [] };
+          },
+        } as unknown as ActionScope);
+      }),
+  } as unknown as HistoryPort;
+}
 
 function buildServiceWithRepository(repository: Partial<UsersRepository>) {
   const tx: TransactionManager = {
@@ -14,6 +38,7 @@ function buildServiceWithRepository(repository: Partial<UsersRepository>) {
     {} as AppDatabase,
     tx,
     repository as UsersRepository,
+    buildHistory(repository, tx),
   );
 }
 
@@ -37,7 +62,6 @@ describe("users use cases", () => {
         lastLoginAt: null,
       }),
       countActiveAdmins: jest.fn().mockResolvedValue(1),
-      update: jest.fn(),
     };
 
     const service = buildServiceWithRepository(repository);
@@ -241,7 +265,6 @@ describe("users use cases", () => {
     };
     const repository: Partial<UsersRepository> = {
       findById: jest.fn().mockResolvedValue({ ...row, version: 1, status: "ACTIVE" }),
-      update: jest.fn().mockResolvedValue(row),
     };
     const tx: TransactionManager = {
       inTransaction: async (work) => {
@@ -254,6 +277,7 @@ describe("users use cases", () => {
       {} as AppDatabase,
       tx,
       repository as UsersRepository,
+      buildHistory(repository, tx),
       undefined,
       {
         revokeRefreshTokensForUser: async () => {

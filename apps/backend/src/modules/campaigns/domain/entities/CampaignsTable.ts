@@ -32,12 +32,6 @@ export const campaignMembershipStatusEnum = pgEnum("campaign_membership_status",
   "REVOKED",
 ]);
 
-export const campaignTimeEventTypeEnum = pgEnum("campaign_time_event_type", [
-  "ADVANCE_DAYS",
-  "LONG_REST",
-  "CORRECTION",
-]);
-
 export const campaigns = pgTable(
   "campaigns",
   {
@@ -98,43 +92,6 @@ export const campaignMemberships = pgTable(
       sql`(${table.status} = 'PENDING' and ${table.joinedAt} is null and ${table.revokedAt} is null and ${table.revokedBy} is null)
         or (${table.status} = 'ACTIVE' and ${table.joinedAt} is not null and ${table.revokedAt} is null and ${table.revokedBy} is null)
         or (${table.status} = 'REVOKED' and ${table.revokedAt} is not null and ${table.revokedBy} is not null)`,
-    ),
-  ],
-);
-
-export const campaignTimeEvents = pgTable(
-  "campaign_time_events",
-  {
-    ...baseColumns(),
-    createdBy: uuid("created_by").notNull(),
-    campaignId: uuid("campaign_id")
-      .notNull()
-      .references(() => campaigns.id, { onDelete: "restrict" }),
-    type: campaignTimeEventTypeEnum("type").notNull(),
-    previousGameDay: integer("previous_game_day").notNull(),
-    newGameDay: integer("new_game_day").notNull(),
-    previousLongRestCount: integer("previous_long_rest_count").notNull(),
-    newLongRestCount: integer("new_long_rest_count").notNull(),
-    reason: text("reason"),
-  },
-  (table) => [
-    index("campaign_time_events_campaign_id_idx").on(table.campaignId),
-    index("campaign_time_events_campaign_created_at_idx").on(
-      table.campaignId,
-      table.createdAt,
-    ),
-    check(
-      "campaign_time_events_previous_game_day_check",
-      sql`${table.previousGameDay} >= 0`,
-    ),
-    check("campaign_time_events_new_game_day_check", sql`${table.newGameDay} >= 0`),
-    check(
-      "campaign_time_events_previous_long_rest_count_check",
-      sql`${table.previousLongRestCount} >= 0`,
-    ),
-    check(
-      "campaign_time_events_new_long_rest_count_check",
-      sql`${table.newLongRestCount} >= 0`,
     ),
   ],
 );

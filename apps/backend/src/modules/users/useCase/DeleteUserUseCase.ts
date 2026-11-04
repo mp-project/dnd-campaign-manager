@@ -1,5 +1,6 @@
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { USER_ACTIONS } from "#src/modules/users/history/TrackedUser";
 import { UsersService } from "#src/modules/users/service/UsersService";
 
 /**
@@ -18,9 +19,11 @@ export class DeleteUserUseCase {
       throw new NotFoundError("User not found");
     }
 
-    await this.usersService.applyUserUpdate(context, userId, {
-      expectedVersion: current.version,
-      status: "DISABLED",
-    });
+    await this.usersService.applyUserUpdate(
+      context,
+      userId,
+      { expectedVersion: current.version, status: "DISABLED" },
+      USER_ACTIONS.disable,
+    );
   }
 }

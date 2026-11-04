@@ -21,7 +21,10 @@ import {
   type AssetsModuleDependencies,
   assetsModule,
 } from "#src/modules/assets/index";
+import { authorized } from "#core/history/authorization";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import { authModule } from "#src/modules/auth/index";
+import { historyModule } from "#src/modules/history/index";
 import { campaignsModule } from "#src/modules/campaigns/index";
 import { rulesetModule } from "#src/modules/ruleset/index";
 import { systemModule } from "#src/modules/index";
@@ -73,10 +76,22 @@ describe("assets service port and persistence", () => {
   const app = Fastify();
   let deps: AssetsModuleDependencies;
 
+  function runAction<R>(work: (scope: ActionScope) => Promise<R>): Promise<R> {
+    return (container.ports.history as HistoryPort).runAction(
+      {
+        action: "test.asset",
+        context: { actorId: ACTOR, systemRole: "USER" },
+        authorize: async () => authorized(),
+      },
+      work,
+    );
+  }
+
   beforeAll(async () => {
     await registerModules(app, container, [
       systemModule,
       authModule,
+      historyModule,
       usersModule,
       rulesetModule,
       campaignsModule,
@@ -140,9 +155,9 @@ describe("assets service port and persistence", () => {
   }
 
   it("creates restricted homebrew bound to the campaign ruleset", async () => {
-    const record = await container.transactionManager.inTransaction((tx) =>
+    const record = await runAction((scope) =>
       deps.service.createBase(
-        tx,
+        scope,
         { actorId: ACTOR, campaignId: CAMPAIGN_A },
         { assetType: "SPELL", title: "Ember Lance", rulesetPolicy: "RESTRICTED", status: "ACTIVE" },
       ),
@@ -156,13 +171,23 @@ describe("assets service port and persistence", () => {
       createdBy: ACTOR,
     });
     expect(record.rulesetIds).toEqual([RULESET_2024]);
+
+    const firstVersion = await (container.ports.history as HistoryPort).getVersion(
+      { actorId: ACTOR, systemRole: "ADMIN" },
+      { entityType: "asset", entityId: record.asset.id, version: 1 },
+    );
+
+    expect(firstVersion.values).toMatchObject({
+      title: "Ember Lance",
+      rulesetIds: [RULESET_2024],
+    });
   });
 
   it("rolls back the base asset when the domain transaction fails", async () => {
     await expect(
-      container.transactionManager.inTransaction(async (tx) => {
+      runAction(async (scope) => {
         await deps.service.createBase(
-          tx,
+          scope,
           { actorId: ACTOR, campaignId: CAMPAIGN_A },
           { assetType: "NPC", title: "Mira" },
         );
@@ -176,9 +201,9 @@ describe("assets service port and persistence", () => {
 
   it("rolls back restricted system assets without rulesets", async () => {
     await expect(
-      container.transactionManager.inTransaction((tx) =>
+      runAction((scope) =>
         deps.service.createBase(
-          tx,
+          scope,
           { actorId: ACTOR, campaignId: null },
           { assetType: "SPELL", title: "Fireball", rulesetPolicy: "RESTRICTED", rulesetIds: [] },
         ),
@@ -190,8 +215,8 @@ describe("assets service port and persistence", () => {
 
   it("enforces active slug uniqueness per campaign and type, released by soft delete", async () => {
     const create = (campaignId: string, assetType: "NPC" | "LOCATION" = "NPC") =>
-      container.transactionManager.inTransaction((tx) =>
-        deps.service.createBase(tx, { actorId: ACTOR, campaignId }, { assetType, title: "Mira" }),
+      runAction((scope) =>
+        deps.service.createBase(scope, { actorId: ACTOR, campaignId }, { assetType, title: "Mira" }),
       );
 
     const first = await create(CAMPAIGN_A);
@@ -233,9 +258,9 @@ describe("assets service port and persistence", () => {
 
   it("resolves family variants per ruleset and checks availability", async () => {
     const createVariant = (title: string, rulesetId: string) =>
-      container.transactionManager.inTransaction((tx) =>
+      runAction((scope) =>
         deps.service.createBase(
-          tx,
+          scope,
           { actorId: ACTOR, campaignId: null },
           {
             assetType: "SPELL",
@@ -273,9 +298,9 @@ describe("assets service port and persistence", () => {
   });
 
   it("rejects archived and cross-campaign assets for new selections but keeps them resolvable", async () => {
-    const homebrew = await container.transactionManager.inTransaction((tx) =>
+    const homebrew = await runAction((scope) =>
       deps.service.createBase(
-        tx,
+        scope,
         { actorId: ACTOR, campaignId: CAMPAIGN_A },
         { assetType: "ITEM", title: "Lantern", status: "ACTIVE" },
       ),
@@ -289,9 +314,8 @@ describe("assets service port and persistence", () => {
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
 
-    await container.transactionManager.inTransaction((tx) =>
-      deps.service.archiveBase(tx, {
-        actorId: ACTOR,
+    await runAction((scope) =>
+      deps.service.archiveBase(scope, {
         assetId: homebrew.asset.id,
         expectedVersion: 1,
       }),
@@ -308,16 +332,16 @@ describe("assets service port and persistence", () => {
   });
 
   it("syncs ruleset links when the ruleset policy changes", async () => {
-    const homebrew = await container.transactionManager.inTransaction((tx) =>
+    const homebrew = await runAction((scope) =>
       deps.service.createBase(
-        tx,
+        scope,
         { actorId: ACTOR, campaignId: CAMPAIGN_A },
         { assetType: "FEAT", title: "Lucky" },
       ),
     );
 
-    const restricted = await container.transactionManager.inTransaction((tx) =>
-      deps.service.updateMetadata(tx, {
+    const restricted = await runAction((scope) =>
+      deps.service.updateMetadata(scope, {
         actorId: ACTOR,
         assetId: homebrew.asset.id,
         expectedVersion: 1,
@@ -326,8 +350,8 @@ describe("assets service port and persistence", () => {
     );
     expect(restricted.rulesetIds).toEqual([RULESET_2024]);
 
-    const neutral = await container.transactionManager.inTransaction((tx) =>
-      deps.service.updateMetadata(tx, {
+    const neutral = await runAction((scope) =>
+      deps.service.updateMetadata(scope, {
         actorId: ACTOR,
         assetId: homebrew.asset.id,
         expectedVersion: 2,

@@ -13,6 +13,8 @@ export const ASSETS_PERMISSION_KEYS = Object.values(ASSETS_PERMISSIONS);
 export const ASSETS_USER_PERMISSION_KEYS = [
   ASSETS_PERMISSIONS.read,
   ASSETS_PERMISSIONS.readCatalog,
+  ASSETS_PERMISSIONS.archive,
+  ASSETS_PERMISSIONS.restore,
 ] as const;
 
 export const assetsPermissionDefinitions: readonly PermissionDefinition[] = [
@@ -26,11 +28,11 @@ export const assetsPermissionDefinitions: readonly PermissionDefinition[] = [
   },
   {
     key: ASSETS_PERMISSIONS.archive,
-    description: "Archive asset definitions via system administration",
+    description: "Archive assets; users only in campaigns they run as GM, checked per asset",
   },
   {
     key: ASSETS_PERMISSIONS.restore,
-    description: "Restore archived asset definitions via system administration",
+    description: "Restore archived assets; users only in campaigns they run as GM, checked per asset",
   },
   {
     key: ASSETS_PERMISSIONS.readCatalog,

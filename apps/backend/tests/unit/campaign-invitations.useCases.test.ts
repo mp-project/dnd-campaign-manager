@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionMeta, ActionScope, HistoryPort } from "#core/history/types";
 import type { CampaignInvitationsRepository } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
 import type { CampaignInvitationRow } from "#src/modules/campaign-invitations/domain/repository/CampaignInvitationsRepository";
 import { CampaignInvitationsService } from "#src/modules/campaign-invitations/service/CampaignInvitationsService";
@@ -112,6 +113,13 @@ function createHarness(input: {
       void message.text;
     }),
   };
+  const history = {
+    runAction: async (meta: ActionMeta<unknown>, work: (scope: ActionScope) => Promise<unknown>) => {
+      await meta.authorize(db);
+
+      return work({ tx: db } as ActionScope);
+    },
+  } as unknown as HistoryPort;
   const service = new CampaignInvitationsService(
     db,
     transactionManager,
@@ -131,7 +139,7 @@ function createHarness(input: {
     emailPort,
     createUseCase: new CreateCampaignInvitationUseCase(service),
     lookupUseCase: new LookupCampaignInvitationTargetUseCase(service),
-    acceptUseCase: new AcceptCampaignInvitationUseCase(service),
+    acceptUseCase: new AcceptCampaignInvitationUseCase(history, service),
   };
 }
 

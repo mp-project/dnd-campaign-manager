@@ -18,11 +18,10 @@ export class UpdateCampaignMemberController extends AbstractController {
       const params = CampaignMembershipItemParamsSchema.parse(request.params);
       const body = UpdateCampaignMembershipRoleSchema.parse(request.body);
 
-      return this.updateCampaignMemberUseCase.execute(
-        request.requestContext,
-        params.campaignId,
-        params.memberId,
-        body,
-      );
+      return this.updateCampaignMemberUseCase.execute(request.requestContext, {
+        campaignId: params.campaignId,
+        memberId: params.memberId,
+        command: body,
+      });
     });
 }

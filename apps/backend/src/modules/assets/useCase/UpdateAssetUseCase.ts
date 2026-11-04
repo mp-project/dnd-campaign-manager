@@ -1,26 +1,50 @@
+import { authorized, type Authorization } from "#core/history/authorization";
+import { MutationUseCase } from "#core/history/MutationUseCase";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { UpdateAssetMetadataDto } from "#src/modules/assets/domain/dto/UpdateAssetDto";
 import {
-  type ResponseAssetGmDto,
-  toAssetGmResponse,
+  type ResponseUpdateAssetDto,
+  toUpdateAssetResponse,
 } from "#src/modules/assets/domain/dto/ResponseAssetDto";
+import { ASSET_ACTIONS } from "#src/modules/assets/history/TrackedAsset";
 import { AssetsService } from "#src/modules/assets/service/AssetsService";
 
-export class UpdateAssetUseCase {
-  constructor(private readonly assetsService: AssetsService) {}
+export type UpdateAssetInput = {
+  assetId: string;
+  command: UpdateAssetMetadataDto;
+};
 
-  async execute(
+export class UpdateAssetUseCase extends MutationUseCase<UpdateAssetInput, ResponseUpdateAssetDto> {
+  protected readonly action = ASSET_ACTIONS.update;
+
+  constructor(
+    history: HistoryPort,
+    private readonly assetsService: AssetsService,
+  ) {
+    super(history);
+  }
+
+  protected async authorize(context: RequestContext): Promise<Authorization> {
+    this.assetsService.assertCanManage(context);
+
+    return authorized();
+  }
+
+  protected async perform(
+    scope: ActionScope,
     context: RequestContext,
-    assetId: string,
-    input: UpdateAssetMetadataDto,
-  ): Promise<ResponseAssetGmDto> {
-    const actorId = this.assetsService.assertAuthenticated(context);
-    const { expectedVersion, ...patch } = input;
+    input: UpdateAssetInput,
+  ): Promise<ResponseUpdateAssetDto> {
+    const { expectedVersion, ...patch } = input.command;
 
-    const record = await this.assetsService.transactionManager.inTransaction((tx) =>
-      this.assetsService.updateMetadata(tx, { actorId, assetId, expectedVersion, patch }),
+    return toUpdateAssetResponse(
+      await this.assetsService.updateMetadata(scope, {
+        actorId: this.assetsService.assertAuthenticated(context),
+        assetId: input.assetId,
+        expectedVersion,
+        patch,
+      }),
     );
-
-    return toAssetGmResponse(record);
   }
 }

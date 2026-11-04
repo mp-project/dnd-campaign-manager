@@ -6,6 +6,7 @@ import {
   AUTH_SESSION_DEPENDENCIES,
   type AuthSessionDependencies,
 } from "#src/modules/auth/index";
+import { trackedUser } from "#src/modules/users/history/TrackedUser";
 import { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
 import { DeleteUserController } from "#src/modules/users/http/controller/DeleteUserController";
 import { GetMeController } from "#src/modules/users/http/controller/GetMeController";
@@ -47,11 +48,20 @@ async function registerUsersModule(
     usersPermissionDefinitions,
   );
 
+  const history = container.ports.history;
+
+  if (!history) {
+    throw new Error("History port is missing");
+  }
+
+  history.register(trackedUser);
+
   const repository = new UsersRepository();
   const service = new UsersService(
     container.db,
     container.transactionManager,
     repository,
+    history,
     container.ports.permissionService,
     container.dependencies.get<AuthSessionDependencies>(AUTH_SESSION_DEPENDENCIES),
   );
@@ -82,6 +92,6 @@ async function registerUsersModule(
 
 export const usersModule: AppModule = {
   name: "users",
-  dependencies: ["system", "auth"],
+  dependencies: ["system", "auth", "history"],
   register: registerUsersModule,
 };

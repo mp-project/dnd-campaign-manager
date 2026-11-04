@@ -8,7 +8,6 @@ import {
 } from "#src/modules/ruleset/domain/entities/RulesetTable";
 import type { CreateRulesetDto } from "#src/modules/ruleset/domain/dto/CreateRulesetDto";
 import type { RequestRulesetDto } from "#src/modules/ruleset/domain/dto/RequestRulesetDto";
-import type { UpdateRulesetDto } from "#src/modules/ruleset/domain/dto/UpdateRulesetDto";
 import { toAuditActorId } from "#core/db/auditActor";
 
 export type RulesetRow = typeof rulesets.$inferSelect;
@@ -25,8 +24,6 @@ export type RulesetAggregate = {
 };
 
 export type RulesetListFilter = RequestRulesetDto["query"];
-export type CreateRulesetInput = CreateRulesetDto;
-export type UpdateRulesetPatch = Omit<UpdateRulesetDto, "expectedVersion">;
 type RulesetWhereClause = NonNullable<Parameters<typeof and>[number]>;
 
 export class RulesetRepository {
@@ -102,35 +99,22 @@ export class RulesetRepository {
     return rows.length > 0;
   }
 
-  async create(
+  /**
+   * Writes the progression tables of a new ruleset. They never change afterwards, so they have no
+   * history of their own.
+   */
+  async createProgressions(
     db: AppDatabase,
-    input: CreateRulesetInput & { actorId: string },
-  ): Promise<RulesetAggregate> {
+    input: Pick<CreateRulesetDto, "levelProgressions" | "spellSlotProgressions"> & {
+      rulesetId: string;
+      actorId: string;
+    },
+  ): Promise<void> {
     const auditActorId = toAuditActorId(input.actorId);
-
-    const [rulesetRow] = await db
-      .insert(rulesets)
-      .values({
-        code: input.code,
-        name: input.name,
-        description: input.description,
-        status: "ACTIVE",
-        editionYear: input.editionYear,
-        sourceReference: input.sourceReference,
-        licenseCode: input.licenseCode,
-        attribution: input.attribution,
-        createdBy: auditActorId,
-        updatedBy: auditActorId,
-      })
-      .returning();
-
-    if (!rulesetRow) {
-      throw new Error("Failed to create ruleset");
-    }
 
     await db.insert(rulesetLevelProgressions).values(
       input.levelProgressions.map((item) => ({
-        rulesetId: rulesetRow.id,
+        rulesetId: input.rulesetId,
         characterLevel: item.characterLevel,
         proficiencyBonus: item.proficiencyBonus,
         experienceThreshold: item.experienceThreshold,
@@ -141,7 +125,7 @@ export class RulesetRepository {
 
     await db.insert(rulesetSpellSlotProgressions).values(
       input.spellSlotProgressions.map((item) => ({
-        rulesetId: rulesetRow.id,
+        rulesetId: input.rulesetId,
         casterLevel: item.casterLevel,
         slotLevel: item.slotLevel,
         slotCount: item.slotCount,
@@ -149,98 +133,6 @@ export class RulesetRepository {
         updatedBy: auditActorId,
       })),
     );
-
-    return this.loadAggregate(db, rulesetRow.id);
-  }
-
-  async update(
-    db: AppDatabase,
-    params: {
-      rulesetId: string;
-      actorId: string;
-      expectedVersion: number;
-      patch: UpdateRulesetPatch;
-    },
-  ): Promise<RulesetAggregate | null> {
-    const auditActorId = toAuditActorId(params.actorId);
-
-    const updateInput: Partial<typeof rulesets.$inferInsert> & {
-      version: number;
-      updatedAt: Date;
-      updatedBy: string | null;
-    } = {
-      version: params.expectedVersion + 1,
-      updatedAt: new Date(),
-      updatedBy: auditActorId,
-    };
-
-    if (params.patch.name !== undefined) {
-      updateInput.name = params.patch.name;
-    }
-
-    if (params.patch.description !== undefined) {
-      updateInput.description = params.patch.description;
-    }
-
-    if (params.patch.status !== undefined) {
-      updateInput.status = params.patch.status;
-    }
-
-    if (params.patch.sourceReference !== undefined) {
-      updateInput.sourceReference = params.patch.sourceReference;
-    }
-
-    if (params.patch.attribution !== undefined) {
-      updateInput.attribution = params.patch.attribution;
-    }
-
-    const [updated] = await db
-      .update(rulesets)
-      .set(updateInput)
-      .where(
-        and(
-          eq(rulesets.id, params.rulesetId),
-          eq(rulesets.version, params.expectedVersion),
-          isNull(rulesets.deletedAt),
-        ),
-      )
-      .returning({ id: rulesets.id });
-
-    if (!updated) {
-      return null;
-    }
-
-    return this.loadAggregate(db, updated.id);
-  }
-
-  async delete(
-    db: AppDatabase,
-    params: {
-      rulesetId: string;
-      actorId: string;
-      expectedVersion: number;
-    },
-  ): Promise<boolean> {
-    const auditActorId = toAuditActorId(params.actorId);
-
-    const [deleted] = await db
-      .update(rulesets)
-      .set({
-        version: params.expectedVersion + 1,
-        updatedAt: new Date(),
-        updatedBy: auditActorId,
-        deletedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(rulesets.id, params.rulesetId),
-          eq(rulesets.version, params.expectedVersion),
-          isNull(rulesets.deletedAt),
-        ),
-      )
-      .returning({ id: rulesets.id });
-
-    return Boolean(deleted);
   }
 
   async listLevelProgressions(

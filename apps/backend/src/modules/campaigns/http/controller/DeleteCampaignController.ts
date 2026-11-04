@@ -12,6 +12,6 @@ export class DeleteCampaignController extends AbstractController {
     this.execute(async () => {
       const params = RequestCampaignParamsSchema.parse(request.params);
 
-      await this.deleteCampaignUseCase.execute(request.requestContext, params.campaignId);
+      await this.deleteCampaignUseCase.execute(request.requestContext, { campaignId: params.campaignId });
     });
 }

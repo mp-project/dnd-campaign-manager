@@ -49,6 +49,12 @@ async function registerCampaignMembershipsModule(
     throw new Error("Campaign or users module dependencies are missing");
   }
 
+  const history = container.ports.history;
+
+  if (!history) {
+    throw new Error("History port is missing");
+  }
+
   const repository = new CampaignMembershipsRepository();
   const service = new CampaignMembershipsService(
     container.db,
@@ -79,10 +85,10 @@ async function registerCampaignMembershipsModule(
         new ListCampaignMembersUseCase(service),
       ),
       updateCampaignMemberController: new UpdateCampaignMemberController(
-        new UpdateCampaignMemberUseCase(service),
+        new UpdateCampaignMemberUseCase(history, service),
       ),
       deleteCampaignMemberController: new DeleteCampaignMemberController(
-        new DeleteCampaignMemberUseCase(service),
+        new DeleteCampaignMemberUseCase(history, service),
       ),
       getMyCampaignPermissionsController: new GetMyCampaignPermissionsController(
         new GetMyCampaignPermissionsUseCase(service),
@@ -93,6 +99,6 @@ async function registerCampaignMembershipsModule(
 
 export const campaignMembershipsModule: AppModule = {
   name: "campaign-memberships",
-  dependencies: ["system", "auth", "users", "campaigns"],
+  dependencies: ["system", "auth", "history", "users", "campaigns"],
   register: registerCampaignMembershipsModule,
 };

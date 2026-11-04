@@ -13,6 +13,14 @@ import {
   type CampaignRow,
   CampaignsRepository,
 } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
+import {
+  createTrackedCampaign,
+  type TrackedCampaign,
+} from "#src/modules/campaigns/history/TrackedCampaign";
+import {
+  createTrackedCampaignMembership,
+  type TrackedCampaignMembership,
+} from "#src/modules/campaigns/history/TrackedCampaignMembership";
 import type { RulesetModuleDependencies } from "#src/modules/ruleset/index";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
 
@@ -45,6 +53,9 @@ function slugify(input: string): string {
 }
 
 export class CampaignsService {
+  public readonly trackedCampaign: TrackedCampaign;
+  public readonly trackedMembership: TrackedCampaignMembership;
+
   constructor(
     public readonly db: AppDatabase,
     public readonly transactionManager: TransactionManager,
@@ -52,7 +63,18 @@ export class CampaignsService {
     public readonly usersDependencies: UsersModuleDependencies,
     public readonly rulesetDependencies: RulesetModuleDependencies,
     public readonly permissionService?: PermissionService,
-  ) {}
+  ) {
+    const historyRights = {
+      resolveRole: async (campaignId: string, actorId: string, db: AppDatabase) => {
+        const campaign = await this.findCampaignRole(campaignId, actorId, db);
+
+        return campaign?.isOwner ? ("GM" as const) : (campaign?.role ?? null);
+      },
+    };
+
+    this.trackedCampaign = createTrackedCampaign(historyRights);
+    this.trackedMembership = createTrackedCampaignMembership(historyRights);
+  }
 
   async resolveCampaignAccess(input: {
     campaignId: string;
@@ -86,6 +108,7 @@ export class CampaignsService {
     campaignId: string;
     rulesetId: string;
     role: "EDITOR" | "PLAYER" | null;
+    isOwner: boolean;
   } | null> {
     const campaign = await this.repository.findMembershipCampaign(db, campaignId);
 
@@ -94,7 +117,12 @@ export class CampaignsService {
     }
 
     if (campaign.ownerUserId === actorId) {
-      return { campaignId: campaign.id, rulesetId: campaign.rulesetId, role: "EDITOR" };
+      return {
+        campaignId: campaign.id,
+        rulesetId: campaign.rulesetId,
+        role: "EDITOR",
+        isOwner: true,
+      };
     }
 
     const membership = await this.repository.findMembership(db, campaignId, actorId);
@@ -103,6 +131,7 @@ export class CampaignsService {
       campaignId: campaign.id,
       rulesetId: campaign.rulesetId,
       role: membership?.role ?? null,
+      isOwner: false,
     };
   }
 
@@ -170,7 +199,49 @@ export class CampaignsService {
     return loaded;
   }
 
-  assertNotArchived(campaign: CampaignRow): void {
+  /**
+   * Rights check inside an action: owner or system admin, using the action's transaction.
+   * Anyone else gets a 404 so the campaign stays hidden.
+   */
+  async assertCanManage(
+    context: RequestContext,
+    campaignId: string,
+    db: AppDatabase,
+  ): Promise<void> {
+    const campaign = await this.repository.findById(db, campaignId);
+
+    if (!campaign || !this.isOwnerOrAdmin(context, context.actorId as string, campaign)) {
+      throw new NotFoundError("Campaign not found");
+    }
+  }
+
+  async toAggregate(
+    db: AppDatabase,
+    context: RequestContext,
+    campaign: CampaignRow,
+  ): Promise<CampaignAggregate> {
+    const membership = await this.repository.findMembership(
+      db,
+      campaign.id,
+      context.actorId as string,
+    );
+
+    return this.buildAggregate(context, campaign, membership);
+  }
+
+  async withSlugConflict<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictError("Campaign slug is already in use for this owner");
+      }
+
+      throw error;
+    }
+  }
+
+  assertNotArchived(campaign: Pick<CampaignRow, "status">): void {
     if (campaign.status === "ARCHIVED") {
       throw new ConflictError("Archived campaigns cannot be modified");
     }

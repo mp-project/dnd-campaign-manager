@@ -1,7 +1,7 @@
 import type {
   AdvanceCampaignTimeInput,
   Campaign,
-  CampaignTimeEvent,
+  CampaignTimeEntry,
   CorrectCampaignTimeInput,
   CreateCampaignInput,
   ListResponse,
@@ -132,14 +132,57 @@ export async function correctCampaignTime(
   });
 }
 
-export async function getCampaignTimeHistory(
+type HistoryFieldChange = {
+  seq: number;
+  eventId: string;
+  action: string;
+  value: number;
+  delta: number | null;
+  isBaseline: boolean;
+  reason: string | null;
+  createdAt: string;
+};
+
+async function listCounterChanges(
   campaignId: string,
-  limit = 50,
-): Promise<ListResponse<CampaignTimeEvent>> {
-  return request<ListResponse<CampaignTimeEvent>>(
-    `/campaigns/${campaignId}/time/history?limit=${limit}`,
+  field: "currentGameDay" | "longRestCount",
+  limit: number,
+): Promise<HistoryFieldChange[]> {
+  const response = await request<{ data: HistoryFieldChange[] }>(
+    `/history/campaign/${campaignId}?field=${field}&limit=${limit}`,
     {
       method: "GET",
     },
   );
+
+  return response.data.filter((change) => !change.isBaseline && change.delta !== null);
+}
+
+function toCounterChange(change: HistoryFieldChange | undefined) {
+  return change
+    ? { previous: change.value - (change.delta ?? 0), next: change.value }
+    : null;
+}
+
+export async function getCampaignTimeHistory(
+  campaignId: string,
+  limit = 50,
+): Promise<CampaignTimeEntry[]> {
+  const [gameDays, longRests] = await Promise.all([
+    listCounterChanges(campaignId, "currentGameDay", limit),
+    listCounterChanges(campaignId, "longRestCount", limit),
+  ]);
+  const events = new Map([...gameDays, ...longRests].map((change) => [change.eventId, change]));
+
+  return [...events.values()]
+    .sort((left, right) => right.seq - left.seq)
+    .slice(0, limit)
+    .map((event) => ({
+      id: event.eventId,
+      action: event.action,
+      gameDay: toCounterChange(gameDays.find((change) => change.eventId === event.eventId)),
+      longRests: toCounterChange(longRests.find((change) => change.eventId === event.eventId)),
+      reason: event.reason,
+      createdAt: event.createdAt,
+    }));
 }

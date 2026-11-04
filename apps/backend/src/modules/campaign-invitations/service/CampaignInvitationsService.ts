@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionScope } from "#core/history/types";
 import type { EmailPort } from "#core/email/index";
 import {
   ConflictError,
@@ -133,10 +134,10 @@ export class CampaignInvitationsService {
   }
 
   createMembershipFromInvitation(
-    tx: AppDatabase,
-    input: { actorId: string; campaignId: string; userId: string; role: CampaignInvitationRole },
+    scope: ActionScope,
+    input: { campaignId: string; userId: string; role: CampaignInvitationRole },
   ) {
-    return this.membershipsService.createActiveFromInvitation(tx, input);
+    return this.membershipsService.createActiveFromInvitation(scope, input);
   }
 
   findCampaign(db: AppDatabase, campaignId: string) {

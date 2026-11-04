@@ -18,10 +18,9 @@ export class UpdateRulesetController extends AbstractController {
       const params = RequestRulesetParamsSchema.parse(request.params);
       const body = UpdateRulesetSchema.parse(request.body);
 
-      return this.updateRulesetUseCase.execute(
-        request.requestContext,
-        params.rulesetId,
-        body,
-      );
+      return this.updateRulesetUseCase.execute(request.requestContext, {
+        rulesetId: params.rulesetId,
+        command: body,
+      });
     });
 }

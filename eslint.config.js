@@ -4,6 +4,25 @@ import tseslint from "typescript-eslint";
 import vue from "eslint-plugin-vue";
 import vueParser from "vue-eslint-parser";
 
+/**
+ * Tracked tables are only written through the history, so no change can skip its entry.
+ * `tests/unit/history.schema.test.ts` checks that this list matches what is registered.
+ */
+const TRACKED_TABLES = ["assets", "campaignMemberships", "campaigns", "rulesets", "users"];
+
+function trackedWritesRule(tables) {
+  return [
+    "error",
+    {
+      selector: `CallExpression[callee.property.name=/^(insert|update|delete)$/][arguments.0.name=/^(${tables.join("|")})$/]`,
+      message:
+        "Tracked tables are written through the history: use `scope.create`, `scope.change` or `scope.softDelete`.",
+    },
+  ];
+}
+
+const tablesWithout = (table) => TRACKED_TABLES.filter((name) => name !== table);
+
 export default [
   {
     ignores: [
@@ -31,6 +50,30 @@ export default [
     },
     rules: {
       "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
+    files: ["apps/backend/src/**/*.ts", "apps/backend/scripts/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": trackedWritesRule(TRACKED_TABLES),
+    },
+  },
+  {
+    // Decided on purpose: the history of users only covers changes by administrators. `history`
+    // depends on `auth`, and the own profile and login data have nothing worth restoring.
+    files: [
+      "apps/backend/src/modules/auth/domain/repository/AuthRepository.ts",
+      "apps/backend/src/modules/users/domain/repository/UsersRepository.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": trackedWritesRule(tablesWithout("users")),
+    },
+  },
+  {
+    // Seed rows have no actor; they get their first version with the first change.
+    files: ["apps/backend/scripts/seed/ruleset.seed.ts"],
+    rules: {
+      "no-restricted-syntax": trackedWritesRule(tablesWithout("rulesets")),
     },
   },
   ...vue.configs["flat/recommended"],

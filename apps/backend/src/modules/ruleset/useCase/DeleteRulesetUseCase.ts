@@ -1,28 +1,37 @@
-import { NotFoundError, VersionConflictError } from "#core/error/http/index";
+import { authorized, type Authorization } from "#core/history/authorization";
+import { MutationUseCase } from "#core/history/MutationUseCase";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
+import { RULESET_ACTIONS, trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 
-export class DeleteRulesetUseCase {
-  constructor(private readonly rulesetService: RulesetService) {}
+export type DeleteRulesetInput = {
+  rulesetId: string;
+};
 
-  async execute(context: RequestContext, rulesetId: string): Promise<void> {
-    const { db, repository } = this.rulesetService;
-    const actorId = this.rulesetService.assertAuthenticated(context);
+export class DeleteRulesetUseCase extends MutationUseCase<DeleteRulesetInput, void> {
+  protected readonly action = RULESET_ACTIONS.delete;
 
-    const current = await repository.findById(db, rulesetId);
+  constructor(
+    history: HistoryPort,
+    private readonly rulesetService: RulesetService,
+  ) {
+    super(history);
+  }
 
-    if (!current) {
-      throw new NotFoundError("Ruleset not found");
-    }
+  /** Rulesets are global, so the permission on the route is the whole check. */
+  protected async authorize(context: RequestContext): Promise<Authorization> {
+    this.rulesetService.assertAuthenticated(context);
 
-    const deleted = await repository.delete(db, {
-      rulesetId,
-      actorId,
-      expectedVersion: current.version,
-    });
+    return authorized();
+  }
 
-    if (!deleted) {
-      throw new VersionConflictError("Ruleset delete version mismatch");
-    }
+  protected async perform(
+    scope: ActionScope,
+    _context: RequestContext,
+    input: DeleteRulesetInput,
+  ): Promise<void> {
+    await this.rulesetService.loadAggregate(scope.tx, input.rulesetId);
+    await scope.softDelete(trackedRuleset, input.rulesetId);
   }
 }

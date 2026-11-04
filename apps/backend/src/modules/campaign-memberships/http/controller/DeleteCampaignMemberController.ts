@@ -12,10 +12,9 @@ export class DeleteCampaignMemberController extends AbstractController {
     this.execute(async () => {
       const params = CampaignMembershipItemParamsSchema.parse(request.params);
 
-      return this.deleteCampaignMemberUseCase.execute(
-        request.requestContext,
-        params.campaignId,
-        params.memberId,
-      );
+      return this.deleteCampaignMemberUseCase.execute(request.requestContext, {
+        campaignId: params.campaignId,
+        memberId: params.memberId,
+      });
     });
 }

@@ -8,6 +8,13 @@ export type {
 } from "./runtimeState.table.js";
 
 export {
+  entityChangeEvents,
+  entityChangeFields,
+  entityHistoryHorizons,
+  historyIdempotencyKeys,
+} from "../../../modules/history/domain/entities/HistoryTable.js";
+
+export {
   rulesetLevelProgressions,
   rulesets,
   rulesetSpellSlotProgressions,
@@ -39,8 +46,6 @@ export {
   campaignMemberRoleEnum,
   campaignMembershipStatusEnum,
   campaignStatusEnum,
-  campaignTimeEvents,
-  campaignTimeEventTypeEnum,
 } from "../../../modules/campaigns/domain/entities/CampaignsTable.js";
 
 export {

@@ -1,11 +1,12 @@
 import {
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   UnauthenticatedError,
   ValidationError,
-  VersionConflictError,
 } from "#core/error/http/index";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { ActionScope, ChangeResult } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import {
@@ -19,8 +20,11 @@ import type {
   AssetRecord,
   AssetRow,
   AssetsRepository,
-  UpdateAssetPatch,
 } from "#src/modules/assets/domain/repository/AssetsRepository";
+import {
+  createTrackedAsset,
+  type TrackedAsset,
+} from "#src/modules/assets/history/TrackedAsset";
 
 /**
  * Campaign facts the asset module needs; provided by the campaigns module.
@@ -34,6 +38,7 @@ export type AssetCampaignAccessPort = {
     campaignId: string;
     rulesetId: string;
     role: "EDITOR" | "PLAYER" | null;
+    isOwner: boolean;
   } | null>;
 };
 
@@ -57,7 +62,6 @@ export type CampaignAssetViewer = {
 };
 
 type AssetCommandInput = {
-  actorId: string;
   assetId: string;
   expectedVersion: number;
 };
@@ -91,18 +95,28 @@ function findErrorCode(error: unknown): string | null {
 /**
  * Shared identity, lifecycle and catalog resolution for all linkable content.
  *
- * Port methods taking a `db` handle are meant to be called by domain services inside their own
- * transaction; they do not check domain permissions, which remain the caller's responsibility.
+ * Port methods taking an action scope are meant to be called by domain use cases inside their own
+ * action; they do not check domain permissions, which remain the caller's responsibility.
  */
 export class AssetsService {
   private readonly visibilityProviders: AssetVisibilityProvider[] = [];
+  public readonly trackedAsset: TrackedAsset;
 
   constructor(
     public readonly db: AppDatabase,
     public readonly transactionManager: TransactionManager,
     public readonly repository: AssetsRepository,
     private readonly campaignAccess: AssetCampaignAccessPort,
-  ) {}
+  ) {
+    this.trackedAsset = createTrackedAsset({
+      repository,
+      resolveRole: async (campaignId, actorId, tx) => {
+        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
+
+        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
+      },
+    });
+  }
 
   registerVisibilityProvider(provider: AssetVisibilityProvider): void {
     if (this.visibilityProviders.some((existing) => existing.name === provider.name)) {
@@ -117,10 +131,11 @@ export class AssetsService {
   // ---------------------------------------------------------------------------
 
   async createBase(
-    db: AppDatabase,
+    scope: ActionScope,
     params: { actorId: string; campaignId: string | null },
     input: CreateAssetBaseDto,
   ): Promise<AssetRecord> {
+    const db = scope.tx;
     const data = CreateAssetBaseSchema.parse(input);
     const isSystem = params.campaignId === null;
     let rulesetIds: string[] = [];
@@ -140,6 +155,10 @@ export class AssetsService {
       rulesetIds = data.rulesetPolicy === "RESTRICTED" ? [campaign.rulesetId] : [];
     }
 
+    if (data.rulesetPolicy === "RESTRICTED" && rulesetIds.length === 0) {
+      throw new ValidationError("Restricted assets require at least one ruleset");
+    }
+
     if (data.assetFamilyId) {
       await this.assertFamilyMatches(db, data.assetFamilyId, data.assetType);
     }
@@ -151,115 +170,115 @@ export class AssetsService {
     }
 
     const asset = await this.withConstraintErrors(() =>
-      this.repository.create(db, {
-        actorId: params.actorId,
-        values: {
-          assetType: data.assetType,
-          title: data.title,
-          slug,
-          summary: data.summary ?? null,
-          status: data.status,
-          scope: isSystem ? "SYSTEM" : "CAMPAIGN",
-          origin: isSystem ? "DEFAULT" : "CUSTOM",
-          campaignId: params.campaignId,
-          assetFamilyId: data.assetFamilyId ?? null,
-          rulesetPolicy: data.rulesetPolicy,
-          sourceReference: data.sourceReference ?? null,
-        },
-      }),
-    );
-
-    await this.withConstraintErrors(() =>
-      this.repository.updateRulesets(db, {
-        assetId: asset.id,
-        actorId: params.actorId,
+      scope.create(this.trackedAsset, {
+        assetType: data.assetType,
+        title: data.title,
+        slug,
+        summary: data.summary ?? null,
+        status: data.status,
+        scope: isSystem ? "SYSTEM" : "CAMPAIGN",
+        origin: isSystem ? "DEFAULT" : "CUSTOM",
+        campaignId: params.campaignId,
+        assetFamilyId: data.assetFamilyId ?? null,
+        rulesetPolicy: data.rulesetPolicy,
+        sourceReference: data.sourceReference ?? null,
         rulesetIds,
       }),
     );
-    await this.assertRestrictedHasRuleset(db, asset);
 
     return { asset, rulesetIds };
   }
 
+  /**
+   * Fields the client sent unchanged while somebody else changed them keep the newer value; they
+   * are listed in `merged`.
+   */
   async updateMetadata(
-    db: AppDatabase,
-    params: AssetCommandInput & { patch: Omit<UpdateAssetMetadataDto, "expectedVersion"> },
-  ): Promise<AssetRecord> {
-    const current = await this.requireAsset(db, params.assetId);
+    scope: ActionScope,
+    params: AssetCommandInput & {
+      actorId: string;
+      patch: Omit<UpdateAssetMetadataDto, "expectedVersion">;
+    },
+  ): Promise<AssetRecord & Pick<ChangeResult<AssetRow>, "merged">> {
+    const db = scope.tx;
     const { rulesetIds, ...fields } = params.patch;
 
-    if (current.status === "ARCHIVED") {
-      throw new ConflictError("Archived assets cannot be modified");
-    }
+    const { row, merged } = await this.withConstraintErrors(() =>
+      scope.change(this.trackedAsset, params.assetId, async (current) => {
+        if (current.status === "ARCHIVED") {
+          throw new ConflictError("Archived assets cannot be modified");
+        }
 
-    if (fields.assetFamilyId) {
-      await this.assertFamilyMatches(db, fields.assetFamilyId, current.assetType);
-    }
+        if (fields.assetFamilyId) {
+          await this.assertFamilyMatches(db, fields.assetFamilyId, current.assetType);
+        }
 
-    if (current.scope === "CAMPAIGN" && rulesetIds !== undefined) {
-      throw new ValidationError("Campaign assets always use the campaign ruleset");
-    }
+        if (current.scope === "CAMPAIGN" && rulesetIds !== undefined) {
+          throw new ValidationError("Campaign assets always use the campaign ruleset");
+        }
 
-    const nextPolicy = fields.rulesetPolicy ?? current.rulesetPolicy;
+        const nextPolicy = fields.rulesetPolicy ?? current.rulesetPolicy;
 
-    if (nextPolicy === "NEUTRAL" && rulesetIds?.length) {
-      throw new ValidationError("Neutral assets cannot be restricted to rulesets");
-    }
+        if (nextPolicy === "NEUTRAL" && rulesetIds?.length) {
+          throw new ValidationError("Neutral assets cannot be restricted to rulesets");
+        }
 
-    const patch: UpdateAssetPatch = { ...fields };
-    const updated = await this.withConstraintErrors(() =>
-      this.repository.update(db, {
-        assetId: params.assetId,
-        actorId: params.actorId,
-        expectedVersion: params.expectedVersion,
-        patch,
+        const nextRulesetIds = await this.resolveRulesetIdsForUpdate(db, {
+          current,
+          nextPolicy,
+          rulesetIds,
+          actorId: params.actorId,
+        });
+        const set: Record<string, unknown> = Object.fromEntries(
+          Object.entries(fields).filter(([, value]) => value !== undefined),
+        );
+
+        if (nextRulesetIds) {
+          set.rulesetIds = nextRulesetIds;
+        }
+
+        return { set, baseVersion: params.expectedVersion };
       }),
     );
 
-    if (!updated) {
-      throw new VersionConflictError("Asset update version mismatch");
-    }
+    return { ...(await this.toRecord(db, row)), merged };
+  }
 
-    const nextRulesetIds = await this.resolveRulesetIdsForUpdate(db, {
-      current,
-      nextPolicy,
-      rulesetIds,
-      actorId: params.actorId,
+  async archiveBase(scope: ActionScope, params: AssetCommandInput): Promise<AssetRecord> {
+    const { row } = await scope.change(this.trackedAsset, params.assetId, (current) => {
+      if (current.status === "ARCHIVED") {
+        throw new ConflictError("Asset is already archived");
+      }
+
+      return { set: { status: "ARCHIVED" }, baseVersion: params.expectedVersion };
     });
 
-    if (nextRulesetIds) {
-      await this.withConstraintErrors(() =>
-        this.repository.updateRulesets(db, {
-          assetId: updated.id,
-          actorId: params.actorId,
-          rulesetIds: nextRulesetIds,
-        }),
+    return this.toRecord(scope.tx, row);
+  }
+
+  /**
+   * Brings back the status from before archiving, so a draft stays a draft. Assets archived before
+   * the history have no earlier status on record and become active.
+   */
+  async restoreBase(scope: ActionScope, params: AssetCommandInput): Promise<AssetRecord> {
+    const { row } = await scope.change(this.trackedAsset, params.assetId, async (current) => {
+      if (current.status !== "ARCHIVED") {
+        throw new ConflictError("Only archived assets can be restored");
+      }
+
+      // Archived assets cannot change, so archiving is always the newest version.
+      const before = await scope.valueAt(
+        this.trackedAsset,
+        params.assetId,
+        "status",
+        current.version - 1,
       );
-    }
+      const status = before.known && before.value !== "ARCHIVED" ? before.value : "ACTIVE";
 
-    await this.assertRestrictedHasRuleset(db, updated);
+      return { set: { status }, baseVersion: params.expectedVersion };
+    });
 
-    return this.toRecord(db, updated);
-  }
-
-  async archiveBase(db: AppDatabase, params: AssetCommandInput): Promise<AssetRecord> {
-    const current = await this.requireAsset(db, params.assetId);
-
-    if (current.status === "ARCHIVED") {
-      throw new ConflictError("Asset is already archived");
-    }
-
-    return this.changeStatus(db, params, "ARCHIVED");
-  }
-
-  async restoreBase(db: AppDatabase, params: AssetCommandInput): Promise<AssetRecord> {
-    const current = await this.requireAsset(db, params.assetId);
-
-    if (current.status !== "ARCHIVED") {
-      throw new ConflictError("Only archived assets can be restored");
-    }
-
-    return this.changeStatus(db, params, "ACTIVE");
+    return this.toRecord(scope.tx, row);
   }
 
   /**
@@ -335,6 +354,47 @@ export class AssetsService {
     return context.actorId;
   }
 
+  /** Assets are changed directly through system administration only. */
+  assertCanManage(context: RequestContext): void {
+    this.assertAuthenticated(context);
+
+    if (!isSysAdminRole(context.systemRole)) {
+      throw new ForbiddenError("Insufficient permissions");
+    }
+  }
+
+  /**
+   * Administrators may archive and restore every asset, a GM only those of the own campaign.
+   * Non-members get 404 so the asset is not leaked.
+   */
+  async assertCanChangeLifecycle(
+    context: RequestContext,
+    assetId: string,
+    db: AppDatabase,
+  ): Promise<void> {
+    const actorId = this.assertAuthenticated(context);
+
+    if (isSysAdminRole(context.systemRole)) {
+      return;
+    }
+
+    const asset = await this.requireAsset(db, assetId);
+
+    if (asset.campaignId === null) {
+      throw new ForbiddenError("Insufficient permissions");
+    }
+
+    const campaign = await this.campaignAccess.findCampaignRole(asset.campaignId, actorId, db);
+
+    if (!campaign?.role) {
+      throw new NotFoundError("Asset not found");
+    }
+
+    if (!campaign.isOwner) {
+      throw new ForbiddenError("Insufficient permissions");
+    }
+  }
+
   /**
    * Resolves whether the actor sees a campaign as GM (admin, owner, editor) or player.
    * Non-members get 404 so campaign existence is not leaked.
@@ -359,12 +419,15 @@ export class AssetsService {
     };
   }
 
-  async listVisibleAssetIds(viewer: CampaignAssetViewer): Promise<string[]> {
+  async listVisibleAssetIds(
+    viewer: Pick<CampaignAssetViewer, "campaignId" | "actorId">,
+    db: AppDatabase = this.db,
+  ): Promise<string[]> {
     const results = await Promise.all(
       this.visibilityProviders.map((provider) =>
         provider.listVisibleAssetIds(
           { campaignId: viewer.campaignId, actorId: viewer.actorId },
-          this.db,
+          db,
         ),
       ),
     );
@@ -395,25 +458,6 @@ export class AssetsService {
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
-
-  private async changeStatus(
-    db: AppDatabase,
-    params: AssetCommandInput,
-    status: AssetStatus,
-  ): Promise<AssetRecord> {
-    const updated = await this.repository.update(db, {
-      assetId: params.assetId,
-      actorId: params.actorId,
-      expectedVersion: params.expectedVersion,
-      patch: { status },
-    });
-
-    if (!updated) {
-      throw new VersionConflictError("Asset update version mismatch");
-    }
-
-    return this.toRecord(db, updated);
-  }
 
   private async requireCampaign(db: AppDatabase, campaignId: string, actorId: string) {
     const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, db);
@@ -446,7 +490,7 @@ export class AssetsService {
   }
 
   /**
-   * Returns the ruleset ids to sync after a metadata update, or null when links stay unchanged.
+   * Returns the ruleset ids after a metadata update, or null when links stay unchanged.
    */
   private async resolveRulesetIdsForUpdate(
     db: AppDatabase,
@@ -478,16 +522,6 @@ export class AssetsService {
     );
 
     return [campaign.rulesetId];
-  }
-
-  private async assertRestrictedHasRuleset(db: AppDatabase, asset: AssetRow): Promise<void> {
-    if (asset.rulesetPolicy !== "RESTRICTED") {
-      return;
-    }
-
-    if ((await this.repository.countActiveRulesets(db, asset.id)) === 0) {
-      throw new ValidationError("Restricted assets require at least one ruleset");
-    }
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

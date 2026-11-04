@@ -2,14 +2,8 @@ import { z } from "zod";
 
 import { standardListResponseDto } from "#core/http/dto";
 import { createStandardListResponse } from "#core/http/listResponse";
-import {
-  CampaignBaseSchema,
-  CampaignTimeEventBaseSchema,
-} from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
-import type {
-  CampaignAggregate,
-  CampaignTimeEventRow,
-} from "#src/modules/campaigns/domain/repository/CampaignsRepository";
+import { CampaignBaseSchema } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
+import type { CampaignAggregate } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
 
 export const ResponseCampaignSchema = CampaignBaseSchema.extend({
   isOwner: z.boolean(),
@@ -18,16 +12,14 @@ export const ResponseCampaignSchema = CampaignBaseSchema.extend({
 
 export const ResponseCampaignListSchema = standardListResponseDto(ResponseCampaignSchema);
 
-export const ResponseCampaignTimeEventSchema = CampaignTimeEventBaseSchema;
-
-export const ResponseCampaignTimeHistorySchema = standardListResponseDto(
-  ResponseCampaignTimeEventSchema,
-);
+/** `merged` lists fields that kept a newer value because somebody else changed them. */
+export const ResponseUpdateCampaignSchema = ResponseCampaignSchema.extend({
+  merged: z.array(z.string().min(1)),
+});
 
 export type ResponseCampaignDto = z.infer<typeof ResponseCampaignSchema>;
 export type ResponseCampaignListDto = z.infer<typeof ResponseCampaignListSchema>;
-export type ResponseCampaignTimeEventDto = z.infer<typeof ResponseCampaignTimeEventSchema>;
-export type ResponseCampaignTimeHistoryDto = z.infer<typeof ResponseCampaignTimeHistorySchema>;
+export type ResponseUpdateCampaignDto = z.infer<typeof ResponseUpdateCampaignSchema>;
 
 export function toCampaignResponse(aggregate: CampaignAggregate): ResponseCampaignDto {
   const { campaign, isOwner, effectivePermissions } = aggregate;
@@ -67,34 +59,9 @@ export function toCampaignListResponse(
   });
 }
 
-export function toCampaignTimeEventResponse(
-  event: CampaignTimeEventRow,
-): ResponseCampaignTimeEventDto {
-  return {
-    id: event.id,
-    version: event.version,
-    createdAt: event.createdAt.toISOString(),
-    updatedAt: event.updatedAt.toISOString(),
-    deletedAt: event.deletedAt?.toISOString() ?? null,
-    createdBy: event.createdBy,
-    updatedBy: event.updatedBy,
-    campaignId: event.campaignId,
-    type: event.type,
-    previousGameDay: event.previousGameDay,
-    newGameDay: event.newGameDay,
-    previousLongRestCount: event.previousLongRestCount,
-    newLongRestCount: event.newLongRestCount,
-    reason: event.reason,
-  };
-}
-
-export function toCampaignTimeHistoryResponse(
-  events: CampaignTimeEventRow[],
-  limit: number,
-): ResponseCampaignTimeHistoryDto {
-  return createStandardListResponse({
-    data: events.map(toCampaignTimeEventResponse),
-    limit,
-    nextCursor: null,
-  });
+export function toUpdateCampaignResponse(
+  aggregate: CampaignAggregate,
+  merged: string[],
+): ResponseUpdateCampaignDto {
+  return { ...toCampaignResponse(aggregate), merged };
 }

@@ -60,7 +60,7 @@ describe("ruleset HTTP routes", () => {
   });
 
   it("reads includeArchived by its value through the full request flow", async () => {
-    const admin = { actorId: "admin-archive", systemRole: "ADMIN" } as const;
+    const admin = { actorId: "a0000000-0000-4000-8000-000000000004", systemRole: "ADMIN" } as const;
     const created = (
       await injectAs(admin, {
         method: "POST",
@@ -98,7 +98,7 @@ describe("ruleset HTTP routes", () => {
 
   it("creates, reads, updates and soft-deletes a ruleset", async () => {
     const createResponse = await injectAs(
-      { actorId: "admin-1", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000001", systemRole: "ADMIN" },
       {
         method: "POST",
         url: "/api/v1/ruleset",
@@ -125,7 +125,7 @@ describe("ruleset HTTP routes", () => {
     });
 
     const updateResponse = await injectAs(
-      { actorId: "admin-1", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000001", systemRole: "ADMIN" },
       {
         method: "PATCH",
         url: `/api/v1/ruleset/${created.id}`,
@@ -143,13 +143,13 @@ describe("ruleset HTTP routes", () => {
     });
 
     const staleVersionResponse = await injectAs(
-      { actorId: "admin-1", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000001", systemRole: "ADMIN" },
       {
         method: "PATCH",
         url: `/api/v1/ruleset/${created.id}`,
         payload: {
           expectedVersion: created.version,
-          description: "stale update",
+          name: "stale update",
         },
       },
     );
@@ -157,7 +157,7 @@ describe("ruleset HTTP routes", () => {
     expect(staleVersionResponse.statusCode).toBe(412);
 
     const deleteResponse = await injectAs(
-      { actorId: "admin-1", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000001", systemRole: "ADMIN" },
       {
         method: "DELETE",
         url: `/api/v1/ruleset/${created.id}`,
@@ -197,7 +197,7 @@ describe("ruleset HTTP routes", () => {
     ).toBe(false);
 
     const validationResponse = await injectAs(
-      { actorId: "admin-1", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000001", systemRole: "ADMIN" },
       {
         method: "POST",
         url: `/api/v1/ruleset/${created.id}/validate`,
@@ -220,7 +220,7 @@ describe("ruleset HTTP routes", () => {
     invalidPayload.levelProgressions = invalidPayload.levelProgressions.slice(0, 19);
 
     const badDtoResponse = await injectAs(
-      { actorId: "admin-2", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000002", systemRole: "ADMIN" },
       {
         method: "POST",
         url: "/api/v1/ruleset",
@@ -246,7 +246,7 @@ describe("ruleset HTTP routes", () => {
     const payload = buildCreatePayload("DND_5E_IT_UNIQUE");
 
     const first = await injectAs(
-      { actorId: "admin-3", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000003", systemRole: "ADMIN" },
       {
         method: "POST",
         url: "/api/v1/ruleset",
@@ -257,7 +257,7 @@ describe("ruleset HTTP routes", () => {
     expect(first.statusCode).toBe(201);
 
     const second = await injectAs(
-      { actorId: "admin-3", systemRole: "ADMIN" },
+      { actorId: "a0000000-0000-4000-8000-000000000003", systemRole: "ADMIN" },
       {
         method: "POST",
         url: "/api/v1/ruleset",

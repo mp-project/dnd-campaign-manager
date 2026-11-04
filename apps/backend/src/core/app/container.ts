@@ -1,3 +1,4 @@
+import type { HistoryPort } from "#core/history/types";
 import type { Pool } from "pg";
 
 import {
@@ -44,6 +45,8 @@ export type AppPublicPorts = {
   campaignFactPort?: CampaignFactPort;
   storagePort?: StoragePort;
   emailPort?: EmailPort;
+  /** Set by the history module during registration. */
+  history?: HistoryPort;
 };
 
 export type DependencyRegistry = {

@@ -135,6 +135,15 @@ export type TrackedEntity<T extends TrackedTable = TrackedTable> = {
     next: T["$inferSelect"] & Record<string, unknown>,
     current: T["$inferSelect"] & Record<string, unknown>,
   ): void;
+  /**
+   * Rules that need the database. Runs for every change, also when undoing and restoring, with the
+   * row locked. Only use `db`; throws an AppError to reject the change.
+   */
+  guard?(
+    next: T["$inferSelect"] & Record<string, unknown>,
+    current: T["$inferSelect"] & Record<string, unknown>,
+    db: AppDatabase,
+  ): Promise<void>;
   /** Base DTO used to check old values again before they are written back. */
   baseSchema?: {
     shape: Record<string, unknown>;

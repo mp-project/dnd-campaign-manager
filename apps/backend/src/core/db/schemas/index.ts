@@ -63,3 +63,5 @@ export {
   assets,
   assetTypeEnum,
 } from "../../../modules/assets/domain/entities/AssetsTable.js";
+
+export { assetLinks } from "../../../modules/asset-links/domain/entities/AssetLinksTable.js";

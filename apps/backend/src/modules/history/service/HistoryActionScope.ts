@@ -282,6 +282,7 @@ export class HistoryActionScope implements ActionScope {
     const next = { ...current, ...update } as TrackedRow;
 
     erased.validate?.(next, current);
+    await erased.guard?.(next, current, this.tx);
 
     const columnUpdate = Object.fromEntries(
       Object.entries(update).filter(([field]) => !erased.lists?.[field]),

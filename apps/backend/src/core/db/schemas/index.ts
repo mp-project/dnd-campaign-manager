@@ -69,6 +69,12 @@ export { assetLinks } from "../../../modules/asset-links/domain/entities/AssetLi
 export { assetTags, tags } from "../../../modules/tags/domain/entities/TagsTable.js";
 
 export {
+  contentShareAudienceEnum,
+  contentShareRecipients,
+  contentShares,
+} from "../../../modules/content-shares/domain/entities/ContentSharesTable.js";
+
+export {
   assetMedia,
   assetMediaRoleEnum,
   assetMediaVisibilityEnum,

@@ -4,6 +4,7 @@ import {
   NotFoundError,
   UnauthenticatedError,
   ValidationError,
+  VersionConflictError,
 } from "#core/error/http/index";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
@@ -311,6 +312,15 @@ export class AssetsService {
     const { row } = await scope.change(this.trackedAsset, params.assetId, async (current) => {
       if (current.status !== "ARCHIVED") {
         throw new ConflictError("Only archived assets can be restored");
+      }
+
+      // From a version before the archiving, the merge would keep the old status and answer as if
+      // the asset had been restored.
+      if (params.expectedVersion < current.version) {
+        throw new VersionConflictError("The asset was changed by someone else", {
+          currentVersion: current.version,
+          conflicts: [],
+        });
       }
 
       // Archived assets cannot change, so archiving is always the newest version.

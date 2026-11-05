@@ -20,11 +20,18 @@ export type {
   AssetRow,
 } from "#src/modules/assets/domain/repository/AssetsRepository";
 export type { CreateAssetBaseDto } from "#src/modules/assets/domain/dto/CreateAssetDto";
-export { AssetBaseSchema, type AssetType } from "#src/modules/assets/domain/dto/BaseAssetDto";
+export {
+  AssetBaseSchema,
+  AssetEditableStatusSchema,
+  type AssetStatus,
+  type AssetType,
+} from "#src/modules/assets/domain/dto/BaseAssetDto";
 export {
   AssetsService,
   type AssetArchiveGuard,
+  type AssetDeactivateHook,
   type AssetVisibilityProvider,
   type CampaignAssetViewer,
 } from "#src/modules/assets/service/AssetsService";
 export { ASSET_ENTITY_TYPE } from "#src/modules/assets/history/TrackedAsset";
+export { slugify } from "#src/modules/assets/domain/slugify";

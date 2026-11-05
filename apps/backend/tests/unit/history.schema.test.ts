@@ -24,6 +24,9 @@ const UNTRACKED_TABLES: Record<string, string> = {
   campaign_runtime_state: "Technical runtime state, unused so far",
   system_runtime_state: "Technical runtime state",
   // Decided against: nothing worth restoring, and the row records its own course.
+  media_files: "Nobody can edit a file; the status only records the course of the upload",
+  media_uploads: "A running upload; nothing to restore",
+  media_variants: "Generated from the file and can be generated again",
   campaign_invitations: "Nothing to restore; an expired invitation is sent again",
   // Part of another entity or fixed after creation.
   asset_rulesets: "Tracked as the list field `rulesetIds` of an asset",

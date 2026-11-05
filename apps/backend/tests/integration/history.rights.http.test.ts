@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assets, campaignMemberships, campaigns, rulesets, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, mediaFiles, rulesets, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -25,6 +25,8 @@ const ID = {
   linkedAsset: "d0000000-0000-4000-8000-00000000000b",
   assetLink: "f0000000-0000-4000-8000-00000000000a",
   tag: "f0000000-0000-4000-8000-00000000000b",
+  media: "f0000000-0000-4000-8000-00000000000c",
+  assetMedia: "f0000000-0000-4000-8000-00000000000d",
   playerMembership: "e0000000-0000-4000-8000-00000000000a",
 } as const;
 
@@ -47,6 +49,7 @@ const HEADERS: Partial<Record<Role, Record<string, string>>> = {
   foreignGm: { "x-campaign-id": ID.foreignCampaign },
 };
 
+const assetMediaUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/media/${ID.assetMedia}`;
 const tagUrl = `/api/v1/campaigns/${ID.campaign}/tags/${ID.tag}`;
 const assetLinkUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/links/${ID.assetLink}`;
 
@@ -81,7 +84,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -202,6 +205,26 @@ describe("history rights of every tracked entity", () => {
         patchAs(role, assetLinkUrl, {
           label: "Taken over",
           expectedVersion: await rowVersion(assetLinks, ID.assetLink),
+        }),
+    },
+    assetMedia: {
+      id: ID.assetMedia,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", assetMediaUrl, {
+            title: unique(),
+            expectedVersion: await rowVersion(assetMedia, ID.assetMedia),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, assetMediaUrl, {
+          title: "Taken over",
+          expectedVersion: await rowVersion(assetMedia, ID.assetMedia),
         }),
     },
     tag: {
@@ -349,6 +372,25 @@ describe("history rights of every tracked entity", () => {
         status: "ACTIVE" as const,
       })),
     );
+    await db.insert(mediaFiles).values({
+      id: ID.media,
+      campaignId: ID.campaign,
+      scope: "CAMPAIGN",
+      storageKey: `media/${ID.campaign}/${ID.media}.pdf`,
+      originalName: "map.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 4,
+      sha256: "a".repeat(64),
+      status: "READY",
+      uploadedBy: ID.gm,
+    });
+    await db.insert(assetMedia).values({
+      id: ID.assetMedia,
+      campaignId: ID.campaign,
+      assetId: ID.asset,
+      mediaId: ID.media,
+      role: "DOCUMENT",
+    });
     await db.insert(tags).values({
       id: ID.tag,
       campaignId: ID.campaign,

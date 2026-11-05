@@ -57,17 +57,15 @@ export function decodePaginationCursor(cursor: string): CursorPayload {
   return cursorPayloadSchema.parse(parsed);
 }
 
-/**
- * Decodes a cursor of a list sorted by a number; a cursor from a client can contain anything.
- *
- * @param cursor Base64url encoded cursor.
- * @returns Sort value and id tie-breaker.
- */
-export function decodeNumberCursor(cursor: string): { value: number; id: string } {
+/** A cursor from a client can contain anything, so everything wrong with it is a 400. */
+function decodeCursorOfType<T extends string | number>(
+  cursor: string,
+  isExpected: (value: string | number) => value is T,
+): { value: T; id: string } {
   try {
     const { sortValue, id } = decodePaginationCursor(cursor);
 
-    if (typeof sortValue === "number") {
+    if (isExpected(sortValue)) {
       return { value: sortValue, id };
     }
   } catch {
@@ -75,6 +73,26 @@ export function decodeNumberCursor(cursor: string): { value: number; id: string 
   }
 
   throw new ValidationError("Invalid pagination cursor");
+}
+
+/**
+ * Decodes a cursor of a list sorted by a number.
+ *
+ * @param cursor Base64url encoded cursor.
+ * @returns Sort value and id tie-breaker.
+ */
+export function decodeNumberCursor(cursor: string): { value: number; id: string } {
+  return decodeCursorOfType(cursor, (value): value is number => typeof value === "number");
+}
+
+/**
+ * Decodes a cursor of a list sorted by a string.
+ *
+ * @param cursor Base64url encoded cursor.
+ * @returns Sort value and id tie-breaker.
+ */
+export function decodeStringCursor(cursor: string): { value: string; id: string } {
+  return decodeCursorOfType(cursor, (value): value is string => typeof value === "string");
 }
 
 /**

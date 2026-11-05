@@ -67,3 +67,17 @@ export {
 export { assetLinks } from "../../../modules/asset-links/domain/entities/AssetLinksTable.js";
 
 export { assetTags, tags } from "../../../modules/tags/domain/entities/TagsTable.js";
+
+export {
+  assetMedia,
+  assetMediaRoleEnum,
+  assetMediaVisibilityEnum,
+  mediaFiles,
+  mediaScopeEnum,
+  mediaStatusEnum,
+  mediaUploadStatusEnum,
+  mediaUploads,
+  mediaVariantKindEnum,
+  mediaVariantStatusEnum,
+  mediaVariants,
+} from "../../../modules/media/domain/entities/MediaTable.js";

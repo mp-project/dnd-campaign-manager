@@ -162,6 +162,20 @@
       "when": 1793833305511,
       "tag": "0022_mighty_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793835046104,
+      "tag": "0023_cool_meggan",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793893917607,
+      "tag": "0024_confused_thena",
+      "breakpoints": true
     }
   ]
 }

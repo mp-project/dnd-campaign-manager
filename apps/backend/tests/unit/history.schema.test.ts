@@ -28,6 +28,8 @@ const UNTRACKED_TABLES: Record<string, string> = {
   media_uploads: "A running upload; nothing to restore",
   media_variants: "Generated from the file and can be generated again",
   campaign_invitations: "Nothing to restore; an expired invitation is sent again",
+  content_shares: "A reveal, no content; an ended share is deleted",
+  content_share_recipients: "Part of a share; deleted with it",
   // Part of another entity or fixed after creation.
   asset_rulesets: "Tracked as the list field `rulesetIds` of an asset",
   asset_tags: "Tracked as the list field `tagIds` of an asset",

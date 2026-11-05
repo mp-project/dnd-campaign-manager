@@ -55,6 +55,14 @@ export type AssetUsageProvider = {
     db: AppDatabase,
   ): Promise<AssetUsageItemDto[]>;
   /**
+   * Replaces `listUsages` for players, for usages that reveal more than the asset itself, like
+   * who else something was shared with.
+   */
+  listUsagesForPlayer?(
+    input: { assetId: string; campaignId: string; actorId: string },
+    db: AppDatabase,
+  ): Promise<AssetUsageItemDto[]>;
+  /**
    * Usages that forbid archiving. Runs in the transaction of the archiving, so it may only use
    * `db`. `campaignId` is null for global assets, which can be used in every campaign.
    */
@@ -288,7 +296,7 @@ export class AssetLinksService {
   ): Promise<ResponseAssetUsagesDto> {
     const [links, provided] = await Promise.all([
       this.repository.listForAsset(this.db, { campaignId: viewer.campaignId, assetId }),
-      this.collectProvidedUsages(viewer.campaignId, assetId),
+      this.collectProvidedUsages(viewer, assetId),
     ]);
     const relatedAssets = await this.assets.findMany(
       [
@@ -341,10 +349,13 @@ export class AssetLinksService {
   // ---------------------------------------------------------------------------
 
   /** One failing provider leaves its group incomplete; the answer says which one it was. */
-  private async collectProvidedUsages(campaignId: string, assetId: string) {
+  private async collectProvidedUsages(viewer: UsageViewer, assetId: string) {
+    const { campaignId, actorId } = viewer;
     const results = await Promise.allSettled(
       this.usageProviders.map((provider) =>
-        provider.listUsages({ assetId, campaignId }, this.db),
+        viewer.view === "PLAYER" && provider.listUsagesForPlayer
+          ? provider.listUsagesForPlayer({ assetId, campaignId, actorId }, this.db)
+          : provider.listUsages({ assetId, campaignId }, this.db),
       ),
     );
     const items: { group: AssetUsageProvider["group"]; item: AssetUsageItemDto }[] = [];

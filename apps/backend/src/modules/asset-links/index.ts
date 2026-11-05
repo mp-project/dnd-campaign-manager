@@ -7,6 +7,7 @@ export { assetLinksPermissionDefinitions } from "#src/modules/asset-links/permis
 export { assetLinks } from "#src/modules/asset-links/domain/entities/AssetLinksTable";
 export type { AssetLinkRow } from "#src/modules/asset-links/domain/repository/AssetLinksRepository";
 export type { CreateAssetLinkDto } from "#src/modules/asset-links/domain/dto/CreateAssetLinkDto";
+export type { AssetUsageItemDto } from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
 export {
   AssetLinksService,
   type AssetEditRouteBuilder,

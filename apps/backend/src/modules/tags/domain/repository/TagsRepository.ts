@@ -116,6 +116,28 @@ export class TagsRepository {
     return rows.map((row) => row.tagId);
   }
 
+  async listIdsForAssets(
+    db: AppDatabase,
+    assetIds: readonly string[],
+  ): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>(assetIds.map((assetId) => [assetId, []]));
+
+    if (assetIds.length === 0) {
+      return result;
+    }
+
+    const rows = await db
+      .select({ assetId: assetTags.assetId, tagId: assetTags.tagId })
+      .from(assetTags)
+      .where(and(inArray(assetTags.assetId, [...assetIds]), isNull(assetTags.deletedAt)));
+
+    for (const row of rows) {
+      result.get(row.assetId)?.push(row.tagId);
+    }
+
+    return result;
+  }
+
   /** Sorted, so parallel callers lock the assets in the same order. */
   async listAssetIdsOfTag(db: AppDatabase, tagId: string): Promise<string[]> {
     const rows = await db

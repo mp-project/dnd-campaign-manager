@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
@@ -7,6 +8,8 @@ import type { Readable } from "node:stream";
 import { StorageError } from "#core/storage/errors";
 import {
   type StorageObjectMetadata,
+  type StoragePart,
+  type StoragePartInput,
   type StoragePort,
   type StoragePutInput,
 } from "#core/storage/port";
@@ -30,6 +33,8 @@ function normalizeStorageKey(key: string): string {
  * Filesystem-backed StoragePort implementation for local development.
  */
 export class LocalStorage implements StoragePort {
+  public readonly driver = "local";
+  public readonly supportsDirectDownload = false;
   private readonly rootDirectory: string;
   private readonly rootDirectoryWithSep: string;
   private readonly downloadBaseUrl: string;
@@ -98,6 +103,71 @@ export class LocalStorage implements StoragePort {
         statusCode: 404,
       });
     }
+  }
+
+  private partsDirectory(uploadId: string): string {
+    return this.resolveKeyPath(`_multipart/${uploadId}`);
+  }
+
+  async createMultipartUpload(): Promise<string> {
+    const uploadId = randomUUID();
+
+    await mkdir(this.partsDirectory(uploadId), { recursive: true });
+
+    return uploadId;
+  }
+
+  async uploadPart(input: StoragePartInput): Promise<StoragePart> {
+    const directory = this.partsDirectory(input.uploadId);
+
+    await pipeline(input.stream, createWriteStream(path.join(directory, String(input.partNumber))));
+
+    const { size } = await stat(path.join(directory, String(input.partNumber)));
+
+    return { partNumber: input.partNumber, sizeBytes: size, etag: String(input.partNumber) };
+  }
+
+  async listParts(_key: string, uploadId: string): Promise<StoragePart[]> {
+    const directory = this.partsDirectory(uploadId);
+    const names = await readdir(directory);
+    const parts = await Promise.all(
+      names.map(async (name) => ({
+        partNumber: Number(name),
+        sizeBytes: (await stat(path.join(directory, name))).size,
+        etag: name,
+      })),
+    );
+
+    return parts.sort((a, b) => a.partNumber - b.partNumber);
+  }
+
+  async completeMultipartUpload(
+    key: string,
+    uploadId: string,
+    parts: StoragePart[],
+  ): Promise<void> {
+    const directory = this.partsDirectory(uploadId);
+    const target = this.resolveKeyPath(key);
+
+    await mkdir(path.dirname(target), { recursive: true });
+
+    const output = createWriteStream(target);
+
+    for (const part of parts) {
+      await pipeline(createReadStream(path.join(directory, String(part.partNumber))), output, {
+        end: false,
+      });
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      output.once("error", reject);
+      output.end(resolve);
+    });
+    await rm(directory, { recursive: true, force: true });
+  }
+
+  async abortMultipartUpload(_key: string, uploadId: string): Promise<void> {
+    await rm(this.partsDirectory(uploadId), { recursive: true, force: true });
   }
 
   async put(input: StoragePutInput): Promise<StorageObjectMetadata> {

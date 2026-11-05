@@ -52,6 +52,8 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
       level: env.LOG_LEVEL,
     },
     requestIdHeader: "x-request-id",
+    // A client that stops sending must not hold a connection and its upload part forever.
+    requestTimeout: 5 * 60 * 1000,
     // Behind Caddy `request.ip` would be the proxy; only private proxy addresses are trusted, so
     // X-Forwarded-For cannot be spoofed from outside.
     trustProxy: "loopback,uniquelocal",

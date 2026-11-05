@@ -51,6 +51,7 @@ export function createStoragePortFromEnv(env: AppEnv): StoragePort {
       accessKeyId: string;
       secretAccessKey: string;
       endpoint?: string;
+      publicEndpoint?: string;
       forcePathStyle?: boolean;
     } = {
       bucket: required(env.STORAGE_S3_BUCKET, "STORAGE_S3_BUCKET"),
@@ -64,6 +65,10 @@ export function createStoragePortFromEnv(env: AppEnv): StoragePort {
 
     if (env.STORAGE_S3_ENDPOINT) {
       options.endpoint = env.STORAGE_S3_ENDPOINT;
+    }
+
+    if (env.STORAGE_S3_PUBLIC_ENDPOINT) {
+      options.publicEndpoint = env.STORAGE_S3_PUBLIC_ENDPOINT;
     }
 
     if (env.STORAGE_S3_FORCE_PATH_STYLE) {

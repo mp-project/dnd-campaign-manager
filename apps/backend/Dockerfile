@@ -25,7 +25,8 @@ COPY package.json package-lock.json* ./
 COPY apps/backend/package.json apps/backend/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/test-utils/package.json packages/test-utils/package.json
-RUN npm ci --omit=dev --omit=optional --workspace @dnd/backend --include-workspace-root=false \
+# Optional dependencies stay: they hold the prebuilt binaries of sharp.
+RUN npm ci --omit=dev --workspace @dnd/backend --include-workspace-root=false \
   && npm cache clean --force
 
 FROM gcr.io/distroless/nodejs24-debian12:nonroot AS production

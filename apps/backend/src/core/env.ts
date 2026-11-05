@@ -110,8 +110,9 @@ const envSchema = z
       .default(
         "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,audio/mpeg,audio/wav,audio/ogg,video/mp4,video/webm",
       ),
-    STORAGE_DOWNLOAD_URL_TTL_SECONDS: positiveInt.default(900),
+    STORAGE_DOWNLOAD_URL_TTL_SECONDS: positiveInt.default(300),
     STORAGE_S3_ENDPOINT: z.string().url().optional(),
+    STORAGE_S3_PUBLIC_ENDPOINT: z.string().url().optional(),
     STORAGE_S3_DASHBOARD_URL: z.string().url().optional(),
     STORAGE_S3_REGION: z.string().min(1).default("us-east-1"),
     STORAGE_S3_BUCKET: z.string().min(1).optional(),
@@ -120,8 +121,6 @@ const envSchema = z
     STORAGE_S3_FORCE_PATH_STYLE: booleanFromEnv.default(false),
     STORAGE_S3_AUTO_BOOTSTRAP: booleanFromEnv.default(false),
     STORAGE_S3_BOOTSTRAP_CORS_ORIGINS: z.string().optional(),
-    STORAGE_MAX_UPLOAD_BYTES: positiveInt,
-    STORAGE_MAX_TOTAL_BYTES: positiveInt,
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_DRIVER === "smtp") {

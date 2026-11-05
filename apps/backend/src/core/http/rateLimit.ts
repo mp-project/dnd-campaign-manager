@@ -4,6 +4,8 @@ import type { FastifyRequest } from "fastify";
 
 export const RATE_LIMIT_MAX = {
   read: 60,
+  // A gallery asks for one thumbnail per file, all at once.
+  mediaRead: 300,
   write: 20,
   sensitiveUser: 20,
   // Anonymous requests count per IP, which several users of one session often share.
@@ -19,6 +21,12 @@ export const ROUTE_RATE_LIMIT = {
     request.method === "GET" || request.method === "HEAD"
       ? RATE_LIMIT_MAX.read
       : RATE_LIMIT_MAX.write,
+  timeWindow: "10 seconds",
+};
+
+/** For the routes that read media. Set it on a route with `config.rateLimit`. */
+export const MEDIA_READ_ROUTE_RATE_LIMIT = {
+  max: RATE_LIMIT_MAX.mediaRead,
   timeWindow: "10 seconds",
 };
 

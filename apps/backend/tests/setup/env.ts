@@ -21,8 +21,6 @@ const defaults: Record<string, string> = {
     process.env.COMPOSE_BACKEND_PUBLIC_API_URL ??
     "http://localhost:3100/api/v1",
   OAUTH_STATE_SECRET: "test-oauth-state-secret-1234",
-  STORAGE_MAX_UPLOAD_BYTES: "5242880",
-  STORAGE_MAX_TOTAL_BYTES: "104857600",
 };
 
 for (const [key, value] of Object.entries(defaults)) {

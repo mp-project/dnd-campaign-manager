@@ -37,6 +37,10 @@ import {
   CONTENT_SHARES_USER_PERMISSION_KEYS,
 } from "#src/modules/content-shares/permissions/ContentSharesPermissions";
 import {
+  NOTES_PERMISSION_KEYS,
+  NOTES_USER_PERMISSION_KEYS,
+} from "#src/modules/notes/permissions/NotesPermissions";
+import {
   HISTORY_PERMISSION_KEYS,
   HISTORY_USER_PERMISSION_KEYS,
 } from "#src/modules/history/permissions/HistoryPermissions";
@@ -68,6 +72,7 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...TAGS_USER_PERMISSION_KEYS,
   ...MEDIA_USER_PERMISSION_KEYS,
   ...CONTENT_SHARES_USER_PERMISSION_KEYS,
+  ...NOTES_USER_PERMISSION_KEYS,
   ...HISTORY_USER_PERMISSION_KEYS,
 ];
 
@@ -84,6 +89,7 @@ export const ALL_PERMISSIONS = [
   ...TAGS_PERMISSION_KEYS,
   ...MEDIA_PERMISSION_KEYS,
   ...CONTENT_SHARES_PERMISSION_KEYS,
+  ...NOTES_PERMISSION_KEYS,
   ...HISTORY_PERMISSION_KEYS,
 ] as const;
 

@@ -83,6 +83,11 @@ export class ContentSharesRepository {
     return rows.length > 0;
   }
 
+  /** Every share of the asset, expired ones included; recipients go with them. */
+  async deleteByAsset(db: AppDatabase, assetId: string): Promise<void> {
+    await db.delete(contentShares).where(eq(contentShares.assetId, assetId));
+  }
+
   async listRecipientIds(
     db: AppDatabase,
     shareIds: readonly string[],

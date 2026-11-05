@@ -72,8 +72,17 @@ export type AssetUsageProvider = {
   ): Promise<AssetUsageItemDto[]>;
 };
 
-/** Builds the route of the module that edits assets of a type. */
-export type AssetEditRouteBuilder = (input: { campaignId: string; assetId: string }) => string;
+/**
+ * Builds the routes of the module that edits assets of a type, for all assets of one request at
+ * once, so the module can look up its own ids in one query. Assets without a route are left out.
+ */
+export type AssetEditRouteBuilder = (
+  input: { campaignId: string; assetIds: readonly string[] },
+  db: AppDatabase,
+) => ReadonlyMap<string, string> | Promise<ReadonlyMap<string, string>>;
+
+/** A link end that may get an edit route. */
+type EditTarget = { campaignId: string; assetId: string; asset: AssetRow | undefined };
 
 type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
 
@@ -252,10 +261,17 @@ export class AssetLinksService {
       links.map((link) => link.sourceAssetId),
       db,
     );
+    const editRoutes = await this.resolveEditRoutes(
+      links.map((link) => ({
+        campaignId: link.campaignId,
+        assetId: link.sourceAssetId,
+        asset: sources.get(link.sourceAssetId),
+      })),
+      db,
+    );
     const blocking: AssetUsageItemDto[] = links.map((link) =>
       this.toLinkUsageItem(link, sources.get(link.sourceAssetId), link.sourceAssetId, {
-        campaignId: link.campaignId,
-        withEditRoute: true,
+        editRoute: editRoutes.get(editRouteKey(link.campaignId, link.sourceAssetId)) ?? null,
       }),
     );
 
@@ -317,18 +333,28 @@ export class AssetLinksService {
     };
     const isGm = viewer.view === "GM";
 
-    for (const link of links) {
-      const otherId = otherEndOf(link, assetId);
-      const other = relatedAssets.get(otherId);
+    const visibleLinks = links.filter((link) =>
+      isGm || this.canPlayerSeeLink(link, relatedAssets.get(otherEndOf(link, assetId)), visibleAssetIds),
+    );
+    const editRoutes = isGm
+      ? await this.resolveEditRoutes(
+          visibleLinks.map((link) => {
+            const otherId = otherEndOf(link, assetId);
 
-      if (isGm || this.canPlayerSeeLink(link, other, visibleAssetIds)) {
-        usages[toAssetLinkDirection(link, assetId)].push(
-          this.toLinkUsageItem(link, other, otherId, {
-            campaignId: viewer.campaignId,
-            withEditRoute: isGm,
+            return { campaignId: viewer.campaignId, assetId: otherId, asset: relatedAssets.get(otherId) };
           }),
-        );
-      }
+          this.db,
+        )
+      : new Map<string, string>();
+
+    for (const link of visibleLinks) {
+      const otherId = otherEndOf(link, assetId);
+
+      usages[toAssetLinkDirection(link, assetId)].push(
+        this.toLinkUsageItem(link, relatedAssets.get(otherId), otherId, {
+          editRoute: editRoutes.get(editRouteKey(viewer.campaignId, otherId)) ?? null,
+        }),
+      );
     }
 
     for (const { group, item } of provided.items) {
@@ -378,21 +404,57 @@ export class AssetLinksService {
     return { items, failed };
   }
 
+  /**
+   * One call per campaign and asset type. Builders run one after the other, because inside an
+   * archiving they share its transaction.
+   */
+  private async resolveEditRoutes(
+    targets: readonly EditTarget[],
+    db: AppDatabase,
+  ): Promise<Map<string, string>> {
+    const groups = new Map<string, { campaignId: string; assetType: AssetType; assetIds: Set<string> }>();
+
+    for (const { campaignId, assetId, asset } of targets) {
+      if (!asset || !this.editRoutes.has(asset.assetType)) {
+        continue;
+      }
+
+      const key = `${campaignId}:${asset.assetType}`;
+      const group = groups.get(key) ?? { campaignId, assetType: asset.assetType, assetIds: new Set() };
+
+      group.assetIds.add(assetId);
+      groups.set(key, group);
+    }
+
+    const routes = new Map<string, string>();
+
+    for (const { campaignId, assetType, assetIds } of groups.values()) {
+      const build = this.editRoutes.get(assetType) as AssetEditRouteBuilder;
+      const built = await build({ campaignId, assetIds: [...assetIds] }, db);
+
+      for (const [assetId, route] of built) {
+        if (assetIds.has(assetId)) {
+          routes.set(editRouteKey(campaignId, assetId), route);
+        }
+      }
+    }
+
+    return routes;
+  }
+
   private toLinkUsageItem(
     link: AssetLinkRow,
     other: AssetRow | undefined,
     otherId: string,
-    options: { campaignId: string; withEditRoute: boolean },
+    options: { editRoute: string | null },
   ): AssetUsageItemDto {
-    const build = other && options.withEditRoute ? this.editRoutes.get(other.assetType) : undefined;
-
     return {
       id: link.id,
       type: link.relationType,
       label: link.label ?? other?.title ?? null,
       assetId: otherId,
       assetType: other?.assetType ?? null,
-      editRoute: build?.({ campaignId: options.campaignId, assetId: otherId }) ?? null,
+      editRoute: options.editRoute,
     };
   }
 
@@ -420,6 +482,10 @@ export class AssetLinksService {
       throw error;
     }
   }
+}
+
+function editRouteKey(campaignId: string, assetId: string): string {
+  return `${campaignId}:${assetId}`;
 }
 
 export function otherEndOf(link: AssetLinkRow, assetId: string): string {

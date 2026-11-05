@@ -34,6 +34,8 @@ type TrackedAssetDeps = {
     db: AppDatabase,
   ): Promise<CampaignHistoryRole | null>;
   assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
+  /** Runs when the asset leaves `ACTIVE`, after the archive check. */
+  onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
   gmRevertibleActions: ReadonlySet<string>;
 };
@@ -104,10 +106,15 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
         throw new ValidationError("Restricted assets require at least one ruleset");
       }
     },
-    // Here and not in `archiveBase`, because undoing a restore archives an asset as well.
+    // Here and not in `archiveBase`, because undoing a restore archives an asset as well, and undoing
+    // or restoring can turn an active asset into a draft.
     guard: async (next, current, db) => {
       if (next.status === "ARCHIVED" && current.status !== "ARCHIVED") {
         await deps.assertCanArchive(next, db);
+      }
+
+      if (current.status === "ACTIVE" && next.status !== "ACTIVE") {
+        await deps.onDeactivate(next, db);
       }
     },
   });

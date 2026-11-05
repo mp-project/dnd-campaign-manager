@@ -27,8 +27,8 @@ async function withContainer(
   }
 }
 
-const note = {
-  assetType: "NOTE" as const,
+const quest = {
+  assetType: "QUEST" as const,
   playerContentSchema: z.object({}),
   loadPlayerContent: async () => ({}),
 };
@@ -43,7 +43,7 @@ describe("content-shares module dependency injection", () => {
       )?.service;
 
       expect(service).toBeDefined();
-      expect(service?.isShareable("NOTE")).toBe(false);
+      expect(service?.isShareable("QUEST")).toBe(false);
       expect(contentSharesModule.dependencies).toEqual([
         "system",
         "auth",
@@ -53,10 +53,10 @@ describe("content-shares module dependency injection", () => {
         "asset-links",
       ]);
 
-      service?.registerShareableType(note);
+      service?.registerShareableType(quest);
 
-      expect(service?.isShareable("NOTE")).toBe(true);
-      expect(() => service?.registerShareableType(note)).toThrow(
+      expect(service?.isShareable("QUEST")).toBe(true);
+      expect(() => service?.registerShareableType(quest)).toThrow(
         "already shareable",
       );
     });

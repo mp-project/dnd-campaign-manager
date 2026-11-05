@@ -451,6 +451,8 @@ describe("assets HTTP routes", () => {
 
       expect((await restore(ID.campaignSpell, PLAYER, 2)).statusCode).toBe(403);
       expect((await restore(ID.systemArchived, GM, 1)).statusCode).toBe(403);
+      // From before the archiving: a merge would keep it archived, so it is a conflict.
+      expect((await restore(ID.campaignSpell, GM, 1)).statusCode).toBe(412);
 
       const restored = await restore(ID.campaignSpell, GM, 2);
 

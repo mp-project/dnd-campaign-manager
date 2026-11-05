@@ -4,6 +4,7 @@ import {
   NotFoundError,
   UnauthenticatedError,
   ValidationError,
+  VersionConflictError,
 } from "#core/error/http/index";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
@@ -16,6 +17,7 @@ import {
 } from "#src/modules/assets/domain/dto/CreateAssetDto";
 import type { UpdateAssetMetadataDto } from "#src/modules/assets/domain/dto/UpdateAssetDto";
 import type { AssetStatus } from "#src/modules/assets/domain/dto/BaseAssetDto";
+import { slugify } from "#src/modules/assets/domain/slugify";
 import type { AssetView } from "#src/modules/assets/domain/dto/ResponseAssetDto";
 import type {
   AssetRecord,
@@ -65,6 +67,17 @@ export type AssetArchiveGuard = {
   assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
 };
 
+/**
+ * Lets the module owning an asset type clean up when one of its assets stops being active, by draft
+ * or by archive, for example by ending what only makes sense for active content. Runs in the same
+ * transaction with the asset locked, after the archive guards, on every path: direct changes,
+ * undoing and restoring. May only use `db`.
+ */
+export type AssetDeactivateHook = {
+  name: string;
+  onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
+};
+
 export type CampaignAssetViewer = {
   actorId: string;
   campaignId: string;
@@ -80,15 +93,6 @@ type AssetCommandInput = {
 const GM_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
 const PLAYER_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["ACTIVE"];
 
-function slugify(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 220);
-}
-
 /**
  * Shared identity, lifecycle and catalog resolution for all linkable content.
  *
@@ -98,6 +102,7 @@ function slugify(input: string): string {
 export class AssetsService {
   private readonly visibilityProviders: AssetVisibilityProvider[] = [];
   private readonly archiveGuards: AssetArchiveGuard[] = [];
+  private readonly deactivateHooks: AssetDeactivateHook[] = [];
   private readonly gmRevertibleActions = new Set<string>(GM_REVERTIBLE_ASSET_ACTIONS);
   public readonly trackedAsset: TrackedAsset;
 
@@ -120,6 +125,11 @@ export class AssetsService {
           await guard.assertCanArchive(asset, db);
         }
       },
+      onDeactivate: async (asset, db) => {
+        for (const hook of this.deactivateHooks) {
+          await hook.onDeactivate(asset, db);
+        }
+      },
     });
   }
 
@@ -137,6 +147,24 @@ export class AssetsService {
     }
 
     this.archiveGuards.push(guard);
+  }
+
+  registerDeactivateHook(hook: AssetDeactivateHook): void {
+    if (this.deactivateHooks.some((existing) => existing.name === hook.name)) {
+      throw new Error(`Asset deactivate hook '${hook.name}' is already registered`);
+    }
+
+    this.deactivateHooks.push(hook);
+  }
+
+  /**
+   * For domain modules whose GMs and editors change assets through their own actions: GMs may undo
+   * these actions on the asset as well, next to what they may undo anyway.
+   */
+  allowGmRevert(actions: readonly string[]): void {
+    for (const action of actions) {
+      this.gmRevertibleActions.add(action);
+    }
   }
 
   /**
@@ -311,6 +339,15 @@ export class AssetsService {
     const { row } = await scope.change(this.trackedAsset, params.assetId, async (current) => {
       if (current.status !== "ARCHIVED") {
         throw new ConflictError("Only archived assets can be restored");
+      }
+
+      // From a version before the archiving, the merge would keep the old status and answer as if
+      // the asset had been restored.
+      if (params.expectedVersion < current.version) {
+        throw new VersionConflictError("The asset was changed by someone else", {
+          currentVersion: current.version,
+          conflicts: [],
+        });
       }
 
       // Archived assets cannot change, so archiving is always the newest version.

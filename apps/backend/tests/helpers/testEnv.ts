@@ -40,8 +40,6 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     STORAGE_S3_REGION: "us-east-1",
     STORAGE_S3_FORCE_PATH_STYLE: false,
     STORAGE_S3_AUTO_BOOTSTRAP: false,
-    STORAGE_MAX_UPLOAD_BYTES: 5_242_880,
-    STORAGE_MAX_TOTAL_BYTES: 104_857_600,
     ...overrides,
   };
 }

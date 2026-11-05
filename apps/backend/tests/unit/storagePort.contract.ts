@@ -71,6 +71,60 @@ export function runStoragePortContract(name: string, createStorage: StorageFacto
       expect(url.length).toBeGreaterThan(0);
     });
 
+    it("joins parts sent in any order, and only then shows the object", async () => {
+      const key = `contract/${randomUUID()}.bin`;
+      const first = Buffer.alloc(5 * 1024 * 1024, 1);
+      const second = Buffer.from("the end");
+      const uploadId = await storage.createMultipartUpload(key, "application/octet-stream");
+
+      await storage.uploadPart({
+        key,
+        uploadId,
+        partNumber: 2,
+        stream: Readable.from(second),
+        contentLength: second.length,
+      });
+      await storage.uploadPart({
+        key,
+        uploadId,
+        partNumber: 1,
+        stream: Readable.from(first),
+        contentLength: first.length,
+      });
+
+      await expect(storage.exists(key)).resolves.toBe(false);
+
+      const parts = await storage.listParts(key, uploadId);
+
+      expect(parts.map((part) => [part.partNumber, part.sizeBytes])).toEqual([
+        [1, first.length],
+        [2, second.length],
+      ]);
+
+      await storage.completeMultipartUpload(key, uploadId, parts);
+
+      await expect(readStream(await storage.getStream(key))).resolves.toEqual(
+        Buffer.concat([first, second]),
+      );
+      await storage.delete(key);
+    }, 30_000);
+
+    it("aborts an upload, also repeatedly", async () => {
+      const key = `contract/${randomUUID()}.bin`;
+      const uploadId = await storage.createMultipartUpload(key, "text/plain");
+
+      await storage.uploadPart({
+        key,
+        uploadId,
+        partNumber: 1,
+        stream: Readable.from(Buffer.from("x")),
+        contentLength: 1,
+      });
+      await storage.abortMultipartUpload(key, uploadId);
+      await expect(storage.abortMultipartUpload(key, uploadId)).resolves.toBeUndefined();
+      await expect(storage.exists(key)).resolves.toBe(false);
+    });
+
     it("moves objects when move is supported", async () => {
       if (!storage.move) {
         return;

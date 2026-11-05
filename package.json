@@ -11,7 +11,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -k --raw \"npm run -s dev --workspace @dnd/backend\" \"npm run -s dev --workspace @dnd/frontend\"",
+    "dev": "concurrently -k --raw \"npm run -s dev --workspace @dnd/backend\" \"npm run -s media:worker:dev --workspace @dnd/backend\" \"npm run -s dev --workspace @dnd/frontend\"",
     "start:dev": "npm run dev",
     "clean": "npm run clean --workspaces --if-present && rimraf coverage",
     "build": "npm run build --workspaces --if-present",

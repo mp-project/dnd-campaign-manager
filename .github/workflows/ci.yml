@@ -22,6 +22,21 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      rustfs:
+        image: rustfs/rustfs:1.0.4
+        env:
+          RUSTFS_VOLUMES: /data
+          RUSTFS_ADDRESS: 0.0.0.0:9000
+          RUSTFS_CONSOLE_ENABLE: "false"
+          RUSTFS_ACCESS_KEY: rustfs-test
+          RUSTFS_SECRET_KEY: rustfs-test-secret
+        ports:
+          - 59000:9000
+        options: >-
+          --health-cmd "curl -fsS http://127.0.0.1:9000/health"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
     env:
       NODE_ENV: test
       HOST: 127.0.0.1
@@ -35,8 +50,6 @@ jobs:
       LOG_LEVEL: warn
       CORS_ORIGIN: http://localhost:5173
       VITE_API_BASE_URL: http://localhost:3000/api/v1
-      STORAGE_MAX_UPLOAD_BYTES: 5242880
-      STORAGE_MAX_TOTAL_BYTES: 104857600
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

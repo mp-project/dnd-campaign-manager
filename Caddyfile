@@ -13,3 +13,10 @@
   encode zstd gzip
   reverse_proxy backend:{$BACKEND_PORT}
 }
+
+# Local object storage only: signed links are valid for this host, so the Host header must stay.
+# In production the links point to the external storage (STORAGE_S3_PUBLIC_ENDPOINT).
+{$S3_DOMAIN} {
+  tls internal
+  reverse_proxy rustfs:9000
+}

@@ -353,6 +353,14 @@ export class ContentSharesService {
     return updated;
   }
 
+  /**
+   * Ends every share of an asset, for modules whose content must not be shown again on its own,
+   * for example after archiving. Runs in the caller's transaction.
+   */
+  async endSharesOfAsset(tx: AppDatabase, assetId: string): Promise<void> {
+    await this.repository.deleteByAsset(tx, assetId);
+  }
+
   /** Ending a share deletes it; the content itself stays as it is. */
   async revokeShare(tx: AppDatabase, path: SharePath): Promise<void> {
     await this.requireShare(tx, path);

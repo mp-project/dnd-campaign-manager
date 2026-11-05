@@ -118,8 +118,8 @@ const testModule: AppModule = {
       allowMultiple: true,
       playerVisible: true,
     });
-    service.registerEditRoute("ITEM", ({ campaignId, assetId }) =>
-      `/campaigns/${campaignId}/items/${assetId}`,
+    service.registerEditRoute("ITEM", ({ campaignId, assetIds }) =>
+      new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/items/${assetId}`])),
     );
     service.registerUsageProvider({
       name: "test-outline",

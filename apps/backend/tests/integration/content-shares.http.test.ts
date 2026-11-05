@@ -66,7 +66,7 @@ const OUTSIDER = actor(ID.outsider);
 const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
 
-/** Stands in for the modules that own notes and locations; NPCs stay unshareable. */
+/** Stands in for the modules that own quests and locations; NPCs stay unshareable. */
 const shareableModule: AppModule = {
   name: "test-shareable-types",
   dependencies: ["content-shares"],
@@ -77,7 +77,7 @@ const shareableModule: AppModule = {
 
     // Loads more than players may see; the schema decides what leaves the server.
     service.registerShareableType({
-      assetType: "NOTE",
+      assetType: "QUEST",
       playerContentSchema: z.object({ title: z.string(), content: z.string() }),
       loadPlayerContent: async ({ assetId }) => ({
         title: assetId === ID.globalNote ? "Rules" : "Note",
@@ -241,9 +241,9 @@ describe("content shares", () => {
     const own = { scope: "CAMPAIGN", origin: "CUSTOM", campaignId: ID.campaign, status: "ACTIVE" } as const;
 
     await db.insert(assets).values([
-      { ...own, id: ID.note, assetType: "NOTE", title: "Letter", slug: "letter" },
-      { ...own, id: ID.secondNote, assetType: "NOTE", title: "Map", slug: "map" },
-      { ...own, id: ID.draftNote, assetType: "NOTE", title: "Draft", slug: "draft", status: "DRAFT" },
+      { ...own, id: ID.note, assetType: "QUEST", title: "Letter", slug: "letter" },
+      { ...own, id: ID.secondNote, assetType: "QUEST", title: "Map", slug: "map" },
+      { ...own, id: ID.draftNote, assetType: "QUEST", title: "Draft", slug: "draft", status: "DRAFT" },
       { ...own, id: ID.location, assetType: "LOCATION", title: "Inn", slug: "inn" },
       { ...own, id: ID.lockedLocation, assetType: "LOCATION", title: "Locked", slug: "locked" },
       { ...own, id: ID.npc, assetType: "NPC", title: "Spy", slug: "spy" },
@@ -253,7 +253,7 @@ describe("content shares", () => {
         campaignId: null,
         status: "ACTIVE",
         id: ID.globalNote,
-        assetType: "NOTE",
+        assetType: "QUEST",
         title: "Rules",
         slug: "rules",
       },
@@ -261,7 +261,7 @@ describe("content shares", () => {
         ...own,
         campaignId: ID.foreignCampaign,
         id: ID.foreignNote,
-        assetType: "NOTE",
+        assetType: "QUEST",
         title: "Foreign",
         slug: "foreign",
       },
@@ -626,7 +626,7 @@ describe("content shares", () => {
         assetId: expect.any(String),
         expiresAt: null,
         revealedAt: expect.any(String),
-        asset: { id: expect.any(String), assetType: "NOTE", title: expect.any(String) },
+        asset: { id: expect.any(String), assetType: "QUEST", title: expect.any(String) },
       });
       expect(JSON.stringify(own)).not.toContain(ID.otherPlayerMember);
 
@@ -756,7 +756,7 @@ describe("content shares", () => {
       expect(response.json()).toEqual({
         shareId: created.id,
         assetId: ID.note,
-        assetType: "NOTE",
+        assetType: "QUEST",
         title: "Letter",
         content: { title: "Note", content: `Content of ${ID.note}` },
       });
@@ -767,7 +767,7 @@ describe("content shares", () => {
       const created = await shareToAll(ID.globalNote);
 
       expect((await content(created.id, PLAYER)).json()).toMatchObject({
-        assetType: "NOTE",
+        assetType: "QUEST",
         content: { title: "Rules" },
       });
     });

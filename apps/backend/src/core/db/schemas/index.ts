@@ -87,3 +87,9 @@ export {
   mediaVariantStatusEnum,
   mediaVariants,
 } from "../../../modules/media/domain/entities/MediaTable.js";
+
+export {
+  noteContentFormatEnum,
+  notes,
+  noteTypeEnum,
+} from "../../../modules/notes/domain/entities/NotesTable.js";

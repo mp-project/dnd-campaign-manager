@@ -1,14 +1,25 @@
 import type { CampaignFactValue } from "#core/rules/campaignFacts";
-import type { PredicateExpression, ValueExpression } from "#core/rules/contracts";
+import type {
+  DiceFormula,
+  DieFaces,
+  EffectPayload,
+  PredicateExpression,
+  ValueExpression,
+} from "#core/rules/contracts";
 
 export type RuleEvaluationOptions = {
   maxDepth?: number;
   maxNodes?: number;
 };
 
+export const DEFAULT_RULE_MAX_DEPTH = 12;
+export const DEFAULT_RULE_MAX_NODES = 256;
+
 export type ValueEvaluationContext = {
   values: Record<string, number>;
   allowedValueKeys: ReadonlySet<string>;
+  /** Dice that payloads refer to by key, such as a die that grows with level. */
+  dice?: Record<string, { count: number; faces: DieFaces }>;
 };
 
 export type PredicateEvaluationContext = {
@@ -34,11 +45,15 @@ export type PredicateEvaluationResult = {
   reasons: string[];
 };
 
-function enforceNodeAndDepthLimits(input: {
-  root: PredicateExpression | ValueExpression;
-  maxDepth: number;
-  maxNodes: number;
-}): void {
+function enforceNodeAndDepthLimits(
+  input: (
+    | { kind: "value"; root: ValueExpression }
+    | { kind: "predicate"; root: PredicateExpression }
+  ) & {
+    maxDepth: number;
+    maxNodes: number;
+  },
+): void {
   let nodes = 0;
 
   const visitValue = (expression: ValueExpression, depth: number): void => {
@@ -90,27 +105,65 @@ function enforceNodeAndDepthLimits(input: {
     }
   };
 
-  if ((input.root as PredicateExpression).type) {
-    const rootType = (input.root as PredicateExpression).type;
-
-    if (
-      rootType === "ALL" ||
-      rootType === "ANY" ||
-      rootType === "NOT" ||
-      rootType === "COMPARE" ||
-      rootType === "ACTOR_LEVEL" ||
-      rootType === "ABILITY" ||
-      rootType === "PROFICIENCY" ||
-      rootType === "HAS_ASSET" ||
-      rootType === "HAS_TAG" ||
-      rootType === "FACT"
-    ) {
-      visitPredicate(input.root as PredicateExpression, 1);
-      return;
-    }
+  if (input.kind === "predicate") {
+    visitPredicate(input.root as PredicateExpression, 1);
+    return;
   }
 
   visitValue(input.root as ValueExpression, 1);
+}
+
+/**
+ * Rejects expressions that are too deep or too large, before they are stored or evaluated. Throws
+ * a plain Error; callers that validate input turn it into a validation error.
+ */
+export function assertExpressionLimits(
+  expression:
+    | { kind: "value"; root: ValueExpression }
+    | { kind: "predicate"; root: PredicateExpression },
+  options: RuleEvaluationOptions = {},
+): void {
+  enforceNodeAndDepthLimits({
+    ...expression,
+    maxDepth: options.maxDepth ?? DEFAULT_RULE_MAX_DEPTH,
+    maxNodes: options.maxNodes ?? DEFAULT_RULE_MAX_NODES,
+  });
+}
+
+/** Keys of all `VAR` nodes, so callers can check them against the keys they allow. */
+export function collectVariableKeys(
+  expression:
+    | { kind: "value"; root: ValueExpression }
+    | { kind: "predicate"; root: PredicateExpression },
+): Set<string> {
+  const keys = new Set<string>();
+
+  const visitValue = (node: ValueExpression): void => {
+    if (node.type === "VAR") {
+      keys.add(node.key);
+    } else if (node.type !== "CONST") {
+      node.args.forEach(visitValue);
+    }
+  };
+
+  const visitPredicate = (node: PredicateExpression): void => {
+    if (node.type === "ALL" || node.type === "ANY") {
+      node.conditions.forEach(visitPredicate);
+    } else if (node.type === "NOT") {
+      visitPredicate(node.condition);
+    } else if (node.type === "COMPARE") {
+      visitValue(node.left);
+      visitValue(node.right);
+    }
+  };
+
+  if (expression.kind === "predicate") {
+    visitPredicate(expression.root);
+  } else {
+    visitValue(expression.root);
+  }
+
+  return keys;
 }
 
 function compareNumbers(operator: "EQ" | "NEQ" | "GT" | "GTE" | "LT" | "LTE", left: number, right: number): boolean {
@@ -135,9 +188,7 @@ export function evaluateValueExpression(
   context: ValueEvaluationContext,
   options: RuleEvaluationOptions = {},
 ): ValueEvaluationResult {
-  const maxDepth = options.maxDepth ?? 12;
-  const maxNodes = options.maxNodes ?? 256;
-  enforceNodeAndDepthLimits({ root: expression, maxDepth, maxNodes });
+  assertExpressionLimits({ kind: "value", root: expression }, options);
 
   const trace: string[] = [];
   const reasons: string[] = [];
@@ -243,9 +294,7 @@ export function evaluatePredicateExpression(
   context: PredicateEvaluationContext,
   options: RuleEvaluationOptions = {},
 ): PredicateEvaluationResult {
-  const maxDepth = options.maxDepth ?? 12;
-  const maxNodes = options.maxNodes ?? 256;
-  enforceNodeAndDepthLimits({ root: expression, maxDepth, maxNodes });
+  assertExpressionLimits({ kind: "predicate", root: expression }, options);
 
   const trace: string[] = [];
   const reasons: string[] = [];
@@ -417,4 +466,94 @@ export function evaluatePredicateExpression(
     trace,
     reasons,
   };
+}
+
+/** A roll with its dice count resolved; null when a value it depends on is missing. */
+export type ResolvedDice = { count: number | null; faces: DieFaces };
+
+/**
+ * An effect payload with all expressions replaced by numbers. Values that cannot be computed are
+ * null and explained in `reasons`; nothing is rolled.
+ */
+export type ResolvedEffectPayload =
+  | { type: "MODIFIER"; stat: string; amount: number | null }
+  | { type: "BASE_VALUE"; stat: string; value: number | null }
+  | { type: "GRANT"; grantType: string; value: string }
+  | { type: "ADVANTAGE"; mode: "ADVANTAGE" | "DISADVANTAGE"; on: string }
+  | { type: "RESOURCE"; resourceKey: string; amount: number | null }
+  | {
+      type: "DAMAGE";
+      damageType: string;
+      dice: ResolvedDice | null;
+      amount: number | null;
+    }
+  | { type: "HEAL"; dice: ResolvedDice | null; amount: number | null }
+  | { type: "MOVEMENT"; mode: string; distance: number | null }
+  | { type: "INFORMATION"; message: string };
+
+export function resolveEffectPayload(
+  payload: EffectPayload,
+  context: ValueEvaluationContext,
+  options: RuleEvaluationOptions = {},
+): { payload: ResolvedEffectPayload; reasons: string[] } {
+  const reasons: string[] = [];
+  const value = (expression: ValueExpression): number | null => {
+    const result = evaluateValueExpression(expression, context, options);
+
+    reasons.push(...result.reasons);
+
+    return result.value;
+  };
+  const optional = (expression: ValueExpression | undefined): number | null =>
+    expression === undefined ? null : value(expression);
+  const dice = (formula: DiceFormula | undefined): ResolvedDice | null => {
+    if (!formula) {
+      return null;
+    }
+
+    if ("ref" in formula) {
+      const provided = context.dice?.[formula.ref];
+
+      if (!provided) {
+        reasons.push(`Missing dice '${formula.ref}'`);
+      }
+
+      return provided ? { ...provided } : null;
+    }
+
+    const count = value(formula.count);
+
+    // Dice can only be counted in whole, non-negative numbers.
+    return { count: count === null ? null : Math.max(0, Math.floor(count)), faces: formula.faces };
+  };
+
+  switch (payload.type) {
+    case "MODIFIER":
+      return { payload: { ...payload, amount: value(payload.amount) }, reasons };
+    case "BASE_VALUE":
+      return { payload: { ...payload, value: value(payload.value) }, reasons };
+    case "RESOURCE":
+      return { payload: { ...payload, amount: value(payload.amount) }, reasons };
+    case "DAMAGE":
+      return {
+        payload: {
+          type: "DAMAGE",
+          damageType: payload.damageType,
+          dice: dice(payload.dice),
+          amount: optional(payload.amount),
+        },
+        reasons,
+      };
+    case "HEAL":
+      return {
+        payload: { type: "HEAL", dice: dice(payload.dice), amount: optional(payload.amount) },
+        reasons,
+      };
+    case "MOVEMENT":
+      return { payload: { ...payload, distance: value(payload.distance) }, reasons };
+    case "GRANT":
+    case "ADVANTAGE":
+    case "INFORMATION":
+      return { payload, reasons };
+  }
 }

@@ -1,7 +1,7 @@
 import { CreateNoteSchema } from "#src/modules/notes/domain/dto/CreateNoteDto";
 import { UpdateNoteSchema } from "#src/modules/notes/domain/dto/UpdateNoteDto";
 import { NOTE_CONTENT_MAX_LENGTH } from "#src/modules/notes/domain/entities/NotesTable";
-import { renderSafeMarkdown } from "#src/modules/notes/domain/NoteContent";
+import { renderSafeMarkdown } from "#core/text/safeMarkdown";
 
 describe("note content", () => {
   it.each([

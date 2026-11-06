@@ -14,14 +14,6 @@ import {
   CAMPAIGNS_MODULE_DEPENDENCIES,
   type CampaignsModuleDependencies,
 } from "#src/modules/campaigns/index";
-import {
-  CONTENT_SHARES_MODULE_DEPENDENCIES,
-  type ContentSharesModuleDependencies,
-} from "#src/modules/content-shares/index";
-import {
-  ResponseFeaturePlayerSchema,
-  toFeaturePlayerResponse,
-} from "#src/modules/features/domain/dto/ResponseFeatureDto";
 import { FeaturesRepository } from "#src/modules/features/domain/repository/FeaturesRepository";
 import { FEATURE_ASSET_ACTIONS } from "#src/modules/features/history/TrackedFeature";
 import { CreateFeatureController } from "#src/modules/features/http/controller/CreateFeatureController";
@@ -94,14 +86,6 @@ async function registerFeaturesModule(
     throw new Error("Asset links module dependencies are missing");
   }
 
-  const contentShares = container.dependencies.get<ContentSharesModuleDependencies>(
-    CONTENT_SHARES_MODULE_DEPENDENCIES,
-  );
-
-  if (!contentShares) {
-    throw new Error("Content shares module dependencies are missing");
-  }
-
   const history = container.ports.history;
 
   if (!history) {
@@ -115,7 +99,6 @@ async function registerFeaturesModule(
     new FeaturesRepository(),
     assetsService,
     assetLinks.service,
-    contentShares.service,
     {
       findCampaignRole: (campaignId, actorId, db) =>
         campaigns.service.findCampaignRole(campaignId, actorId, db),
@@ -128,10 +111,8 @@ async function registerFeaturesModule(
   // Cached resolutions of a changed feature are no longer needed.
   history.subscribe("*", (event) => service.onHistoryEvent(event));
   assetsService.allowGmRevert(FEATURE_ASSET_ACTIONS);
-  assetsService.registerDeactivateHook({
-    name: "features",
-    onDeactivate: (asset, db) => service.endSharesOfHiddenFeature(asset, db),
-  });
+  // Custom features reach players through a release, not through content shares.
+  assetsService.registerReleasableType("FEATURE");
   assetLinks.service.registerEditRoute("FEATURE", (input, db) =>
     service.findEditRoutes(input, db),
   );
@@ -142,15 +123,6 @@ async function registerFeaturesModule(
     listUsages: (input, db) => service.listUsages({ ...input, includeArchived: true }, db),
     listBlockingUsages: (input, db) =>
       service.listUsages({ ...input, includeArchived: false }, db),
-  });
-  contentShares.service.registerShareableType({
-    assetType: "FEATURE",
-    playerContentSchema: ResponseFeaturePlayerSchema,
-    loadPlayerContent: async (input, db) => {
-      const { found, isVisible } = await service.loadPlayerContent(input, db);
-
-      return toFeaturePlayerResponse(found, isVisible);
-    },
   });
 
   container.dependencies.set<FeaturesModuleDependencies>(FEATURES_MODULE_DEPENDENCIES, {
@@ -213,7 +185,6 @@ export const featuresModule: AppModule = {
     "campaigns",
     "assets",
     "asset-links",
-    "content-shares",
   ],
   register: registerFeaturesModule,
 };

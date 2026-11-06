@@ -57,6 +57,7 @@ export const ResponseFeatureGmSchema = baseEntityResponseDto
       rulesetPolicy: true,
       rulesetIds: true,
       assetFamilyId: true,
+      releasedToPlayers: true,
     }).shape,
   )
   .extend(graphResponseShape)
@@ -72,7 +73,7 @@ export const ResponseUpdateFeatureSchema = ResponseFeatureGmSchema.extend({
 });
 
 /**
- * View for players, also the content of a share. Strict, so nothing else can leave the server: no
+ * View for players. Strict, so nothing else can leave the server: no
  * audit data or rulesets, and references to assets the player may not see are left out.
  */
 export const ResponseFeaturePlayerSchema = FeatureBaseSchema.pick({
@@ -120,6 +121,7 @@ export const ResponseFeatureListItemGmSchema = ResponseFeatureGmSchema.pick({
   rulesetPolicy: true,
   rulesetIds: true,
   assetFamilyId: true,
+  releasedToPlayers: true,
 });
 
 export const ResponseFeatureListItemPlayerSchema = ResponseFeaturePlayerSchema.pick({
@@ -298,6 +300,7 @@ export function toFeatureGmResponse({ feature, asset, rulesetIds }: FeatureRecor
     rulesetPolicy: asset.rulesetPolicy,
     rulesetIds: [...rulesetIds].sort(),
     assetFamilyId: asset.assetFamilyId,
+    releasedToPlayers: asset.releasedToPlayers,
     ...toGraphResponse(parseFeatureGraph(feature)),
   };
 }
@@ -373,6 +376,7 @@ export function toFeatureListItemGmResponse({
     rulesetPolicy: asset.rulesetPolicy,
     rulesetIds: [...rulesetIds].sort(),
     assetFamilyId: asset.assetFamilyId,
+    releasedToPlayers: asset.releasedToPlayers,
   };
 }
 

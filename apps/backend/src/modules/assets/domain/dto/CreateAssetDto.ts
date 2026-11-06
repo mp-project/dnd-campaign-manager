@@ -30,6 +30,7 @@ export const CreateAssetBaseSchema = AssetBaseSchema.pick({
   .extend({
     status: AssetEditableStatusSchema.default("DRAFT"),
     rulesetPolicy: AssetBaseSchema.shape.rulesetPolicy.default("NEUTRAL"),
+    releasedToPlayers: AssetBaseSchema.shape.releasedToPlayers.default(false),
   });
 
 export type CreateAssetBaseDto = z.input<typeof CreateAssetBaseSchema>;

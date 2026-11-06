@@ -1,0 +1,3 @@
+ALTER TABLE "assets" ADD COLUMN "released_to_players" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE INDEX "assets_campaign_released_idx" ON "assets" USING btree ("campaign_id") WHERE "assets"."released_to_players" and "assets"."deleted_at" is null;--> statement-breakpoint
+ALTER TABLE "assets" ADD CONSTRAINT "assets_release_scope_check" CHECK ("assets"."scope" = 'CAMPAIGN' or not "assets"."released_to_players");

@@ -32,6 +32,8 @@ export const AssetBaseSchema = z.strictObject({
   rulesetPolicy: z.enum(ASSET_RULESET_POLICIES),
   rulesetIds: z.array(uuidDto).max(20),
   sourceReference: z.record(z.string(), z.unknown()).nullable(),
+  /** Players of the campaign may see and use this custom content; only for releasable types. */
+  releasedToPlayers: z.boolean(),
 });
 
 /**

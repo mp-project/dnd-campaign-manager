@@ -27,7 +27,7 @@ export type FeatureListFilter = {
     | {
         campaignId: string;
         statuses: readonly AssetStatus[];
-        /** Only these assets, e.g. those shared with a player. */
+        /** Only these assets, e.g. those a player may see. */
         assetIds?: readonly string[] | undefined;
       }
     | undefined;

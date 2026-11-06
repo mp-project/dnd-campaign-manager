@@ -18,6 +18,7 @@ describe("assets DTOs", () => {
       title: "Fireball",
       status: "DRAFT",
       rulesetPolicy: "NEUTRAL",
+      releasedToPlayers: false,
     });
 
     for (const field of ["id", "scope", "origin", "campaignId", "createdBy"]) {

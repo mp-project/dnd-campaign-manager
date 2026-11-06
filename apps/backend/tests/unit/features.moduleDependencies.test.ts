@@ -3,6 +3,10 @@ import Fastify from "fastify";
 import { createAppContainer } from "#core/app/container";
 import { createPgPool } from "#core/db/pool";
 import {
+  ASSETS_MODULE_DEPENDENCIES,
+  type AssetsModuleDependencies,
+} from "#src/modules/assets/index";
+import {
   CONTENT_SHARES_MODULE_DEPENDENCIES,
   type ContentSharesModuleDependencies,
 } from "#src/modules/content-shares/index";
@@ -34,7 +38,7 @@ async function withContainer(
 }
 
 describe("features module dependency injection", () => {
-  it("publishes its port, tracks features as children of assets and makes features shareable", async () => {
+  it("publishes its port, tracks features as children of assets and makes them releasable, not shareable", async () => {
     await withContainer(async (app, container) => {
       await registerAppModules(app, container);
 
@@ -49,7 +53,6 @@ describe("features module dependency injection", () => {
         "campaigns",
         "assets",
         "asset-links",
-        "content-shares",
       ]);
 
       const feature = container.ports.history
@@ -60,9 +63,14 @@ describe("features module dependency injection", () => {
       expect(feature?.root?.({ assetId: "a" } as never)).toEqual({ type: "asset", id: "a" });
       expect(
         container.dependencies
+          .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
+          .service.isReleasable("FEATURE"),
+      ).toBe(true);
+      expect(
+        container.dependencies
           .require<ContentSharesModuleDependencies>(CONTENT_SHARES_MODULE_DEPENDENCIES)
           .service.isShareable("FEATURE"),
-      ).toBe(true);
+      ).toBe(false);
     });
   });
 

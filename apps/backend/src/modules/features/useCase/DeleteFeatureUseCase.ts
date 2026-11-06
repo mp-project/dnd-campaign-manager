@@ -17,7 +17,7 @@ export type DeleteFeatureInput = {
   command: FeatureLifecycleCommandDto;
 };
 
-/** Archives the feature; it can be restored. Fails while other definitions refer to it, and its shares end. */
+/** Archives the feature; it can be restored. Fails while other definitions refer to it. */
 export class DeleteFeatureUseCase extends MutationUseCase<DeleteFeatureInput, ResponseFeatureGmDto> {
   protected readonly action = FEATURE_ACTIONS.delete;
 

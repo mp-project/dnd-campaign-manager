@@ -10,7 +10,6 @@ import {
   type CampaignAssetViewer,
   slugify,
 } from "#src/modules/assets/index";
-import type { ContentSharesService } from "#src/modules/content-shares/index";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
 import type { FeatureGraph } from "#src/modules/features/domain/dto/FeatureDefinitionDto";
 import type { UpdateFeatureDto } from "#src/modules/features/domain/dto/UpdateFeatureDto";
@@ -54,6 +53,7 @@ export type FeatureCampaignAccessPort = {
 
 const ASSET_FIELD_NAMES: Record<string, string> = { title: "name" };
 const ASSET_FIELDS = [
+  "releasedToPlayers",
   "name",
   "summary",
   "status",
@@ -82,7 +82,6 @@ export class FeaturesService {
     public readonly repository: FeaturesRepository,
     private readonly assets: AssetsService,
     private readonly links: AssetLinksService,
-    private readonly shares: ContentSharesService,
     private readonly campaignAccess: FeatureCampaignAccessPort,
   ) {
     this.trackedFeature = createTrackedFeature({
@@ -213,27 +212,6 @@ export class FeaturesService {
     };
   }
 
-  /** Player view of a shared feature; content-shares checks the share before it calls this. */
-  async loadPlayerContent(
-    input: { campaignId: string; assetId: string; actorId: string },
-    db: AppDatabase,
-  ): Promise<{ found: FeatureWithAsset; isVisible: (assetId: string) => boolean }> {
-    const found = await this.repository.findByAssetId(db, input.assetId);
-
-    if (!found || (found.feature.campaignId ?? input.campaignId) !== input.campaignId) {
-      throw new NotFoundError("Feature not found");
-    }
-
-    const visibleAssetIds = new Set(
-      await this.assets.listVisibleAssetIds(
-        { campaignId: input.campaignId, actorId: input.actorId },
-        db,
-      ),
-    );
-
-    return { found, isVisible: await this.playerReferenceVisibility(db, [found], visibleAssetIds) };
-  }
-
   /** Edit routes for asset-links, for all custom features of one request in one query. */
   async findEditRoutes(
     input: { campaignId: string; assetIds: readonly string[] },
@@ -305,6 +283,7 @@ export class FeaturesService {
         slug: slugify(input.name, { unique: true, fallback: "feature" }),
         summary: input.summary ?? null,
         status: input.status,
+        releasedToPlayers: input.releasedToPlayers,
         rulesetPolicy: input.rulesetPolicy,
         ...(input.rulesetIds !== undefined ? { rulesetIds: input.rulesetIds } : {}),
         ...(input.assetFamilyId !== undefined ? { assetFamilyId: input.assetFamilyId } : {}),
@@ -460,16 +439,6 @@ export class FeaturesService {
     });
 
     return this.loadRecord(scope.tx, await this.requireFeature(scope.tx, params.found.feature.id));
-  }
-
-  /**
-   * Registered as deactivate hook: a custom feature that was hidden as draft or archived must not be
-   * revealed again when it becomes active, so the GM has to share it anew.
-   */
-  async endSharesOfHiddenFeature(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType === "FEATURE") {
-      await this.shares.endSharesOfAsset(db, asset.id);
-    }
   }
 
   // ---------------------------------------------------------------------------

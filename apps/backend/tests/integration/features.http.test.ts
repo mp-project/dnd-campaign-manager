@@ -6,7 +6,6 @@ import {
   assets,
   campaignMemberships,
   campaigns,
-  contentShares,
   features,
   rulesets,
   users,
@@ -172,16 +171,12 @@ describe("features", () => {
       payload,
     });
 
-  const share = async (assetId: string) => {
-    const response = await session.injectAs(GM, {
-      method: "POST",
-      url: `/api/v1/campaigns/${ID.campaign}/shares`,
-      payload: { assetId, audience: "ALL_PLAYERS" },
-    });
+  const release = async (feature: FeatureBody, releasedToPlayers = true) => {
+    const response = await update(feature, { releasedToPlayers });
 
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode).toBe(200);
 
-    return response.json() as { id: string };
+    return response.json() as FeatureBody;
   };
 
   const featureCount = async () => (await db.select().from(features)).length;
@@ -647,7 +642,7 @@ describe("features", () => {
   });
 
   describe("players", () => {
-    it("only see shared custom features, in the player view without hidden references", async () => {
+    it("only see released custom features, in the player view without hidden references", async () => {
       const feature = await createOk({
         choices: [
           {
@@ -666,15 +661,16 @@ describe("features", () => {
 
       expect((await get(`${campaignUrl()}/${feature.id}`, PLAYER)).statusCode).toBe(404);
       expect((await get(campaignUrl(), PLAYER)).json().data).toHaveLength(0);
-      expect((await get(`${campaignUrl()}?status=DRAFT`, PLAYER)).json().data).toHaveLength(0);
 
-      await share(feature.assetId);
+      const released = await release(feature);
+
+      expect(released).toMatchObject({ releasedToPlayers: true });
 
       const view = await get(`${campaignUrl()}/${feature.id}`, PLAYER);
 
       expect(view.statusCode).toBe(200);
       expect(view.json()).not.toHaveProperty("version");
-      expect(view.json()).not.toHaveProperty("rulesetIds");
+      expect(view.json()).not.toHaveProperty("releasedToPlayers");
       expect((view.json() as FeatureBody).choices[0]?.options).toEqual([
         expect.objectContaining({ code: "hidden", linkedAssetId: null }),
         expect.objectContaining({ code: "global", linkedAssetId: ID.systemFeat }),
@@ -683,23 +679,53 @@ describe("features", () => {
         expect.objectContaining({ id: feature.id, view: "PLAYER" }),
       ]);
       expect((await create({ name: "X", featureType: "RULE" }, PLAYER)).statusCode).toBe(403);
+      expect((await update(released, { description: "Mine" }, PLAYER)).statusCode).toBe(403);
       expect(
         (await session.injectAs(PLAYER, { method: "POST", url: `${campaignUrl()}/${feature.id}/validate` }))
           .statusCode,
       ).toBe(403);
+
+      // Withdrawing the release and drafts hide the feature again.
+      const withdrawn = await release(released, false);
+
+      expect((await get(`${campaignUrl()}/${feature.id}`, PLAYER)).statusCode).toBe(404);
+
+      const draft = await update(await release(withdrawn), { status: "DRAFT" });
+
+      expect(draft.statusCode).toBe(200);
+      expect((await get(`${campaignUrl()}/${feature.id}`, PLAYER)).statusCode).toBe(404);
     });
 
-    it("get the shared content and lose it for good when the feature is archived", async () => {
-      const feature = await createOk(KI);
-      const { id: shareId } = await share(feature.assetId);
-      const content = await get(`/api/v1/campaigns/${ID.campaign}/shares/${shareId}/content`, PLAYER);
+    it("see global features always and cannot get them released or shared", async () => {
+      const global = await createSystem();
 
-      expect(content.statusCode).toBe(200);
-      expect(content.json().content).toMatchObject({ view: "PLAYER", code: "ki" });
+      expect((await get(`${catalogUrl()}/${global.id}`, PLAYER)).json()).toMatchObject({
+        view: "PLAYER",
+        id: global.id,
+      });
+      expect((await update(global, { releasedToPlayers: true }, ADMIN)).statusCode).toBe(400);
+      expect(
+        (
+          await create(
+            { name: "X", featureType: "RULE", releasedToPlayers: true, rulesetPolicy: "NEUTRAL" },
+            ADMIN,
+            systemUrl,
+          )
+        ).statusCode,
+      ).toBe(400);
 
-      await remove(feature);
+      const custom = await createOk({ releasedToPlayers: true });
 
-      expect(await db.select().from(contentShares)).toHaveLength(0);
+      expect((await get(`${campaignUrl()}/${custom.id}`, PLAYER)).statusCode).toBe(200);
+      expect(
+        (
+          await session.injectAs(GM, {
+            method: "POST",
+            url: `/api/v1/campaigns/${ID.campaign}/shares`,
+            payload: { assetId: custom.assetId, audience: "ALL_PLAYERS" },
+          })
+        ).statusCode,
+      ).toBeGreaterThanOrEqual(400);
     });
   });
 
@@ -787,7 +813,9 @@ describe("features", () => {
 
       // Players may resolve what they see, but only choose what they see, even when the GM's
       // result for the same bindings is cached.
-      await share(feature.assetId);
+      await release(
+        (await get(`${campaignUrl()}/${feature.id}`)).json() as FeatureBody,
+      );
       expect(
         (
           await resolve(feature, {

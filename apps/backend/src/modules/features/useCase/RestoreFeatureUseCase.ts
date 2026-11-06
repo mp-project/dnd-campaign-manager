@@ -17,7 +17,7 @@ export type RestoreFeatureInput = {
   command: FeatureLifecycleCommandDto;
 };
 
-/** Restores an archived feature; shares ended by archiving stay ended. */
+/** Restores an archived feature, including a release it had. */
 export class RestoreFeatureUseCase extends MutationUseCase<RestoreFeatureInput, ResponseFeatureGmDto> {
   protected readonly action = FEATURE_ACTIONS.restore;
 

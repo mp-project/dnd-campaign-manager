@@ -36,6 +36,8 @@ export const FeatureBaseSchema = z
     rulesetPolicy: AssetBaseSchema.shape.rulesetPolicy,
     rulesetIds: AssetBaseSchema.shape.rulesetIds,
     assetFamilyId: AssetBaseSchema.shape.assetFamilyId,
+    /** Custom features only: players of the campaign may see and use the feature. */
+    releasedToPlayers: AssetBaseSchema.shape.releasedToPlayers,
   })
   .extend(FeatureGraphSchema.shape);
 

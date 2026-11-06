@@ -14,6 +14,7 @@ export const UpdateAssetMetadataSchema = AssetBaseSchema.pick({
   rulesetPolicy: true,
   rulesetIds: true,
   sourceReference: true,
+  releasedToPlayers: true,
 })
   .extend({ status: AssetEditableStatusSchema })
   .partial()

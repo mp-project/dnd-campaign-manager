@@ -30,6 +30,7 @@ export const CreateFeatureSchema = FeatureBaseSchema.pick({
     summary: FeatureBaseSchema.shape.summary.optional(),
     description: FeatureBaseSchema.shape.description.optional(),
     status: AssetEditableStatusSchema.default("ACTIVE"),
+    releasedToPlayers: FeatureBaseSchema.shape.releasedToPlayers.default(false),
     stackingMode: FeatureBaseSchema.shape.stackingMode.default("NONE"),
     sourceReference: FeatureBaseSchema.shape.sourceReference.optional(),
     rulesetPolicy: FeatureBaseSchema.shape.rulesetPolicy.default("NEUTRAL"),

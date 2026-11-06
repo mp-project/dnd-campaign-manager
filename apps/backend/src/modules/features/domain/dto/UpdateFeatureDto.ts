@@ -26,6 +26,7 @@ export const UpdateFeatureSchema = FeatureBaseSchema.pick({
   rulesetPolicy: true,
   rulesetIds: true,
   assetFamilyId: true,
+  releasedToPlayers: true,
   sections: true,
   parameters: true,
   choices: true,

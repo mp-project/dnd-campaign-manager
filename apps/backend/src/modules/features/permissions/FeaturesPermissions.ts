@@ -22,7 +22,7 @@ export const featuresPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: FEATURES_PERMISSIONS.read,
     description:
-      "Read and resolve features; players only active features they may see, in the player view",
+      "Read and resolve features; players only active global features and released custom ones, in the player view",
   },
   {
     key: FEATURES_PERMISSIONS.create,

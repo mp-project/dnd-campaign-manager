@@ -69,6 +69,7 @@ export function toAssetGmResponse({ asset, rulesetIds }: AssetRecord): ResponseA
     rulesetPolicy: asset.rulesetPolicy,
     rulesetIds,
     sourceReference: (asset.sourceReference ?? null) as Record<string, unknown> | null,
+    releasedToPlayers: asset.releasedToPlayers,
   };
 }
 

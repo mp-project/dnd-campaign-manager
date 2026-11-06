@@ -6,7 +6,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import { FeaturesService } from "#src/modules/features/service/FeaturesService";
 
 /**
- * Where a custom feature is used: links, shares and other definitions that refer to it. Players
+ * Where a custom feature is used: links and other definitions that refer to it. Players
  * only see usages whose other end they may see as well.
  */
 export class GetFeatureUsagesUseCase {

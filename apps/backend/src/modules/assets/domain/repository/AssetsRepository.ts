@@ -284,7 +284,8 @@ export class AssetsRepository {
     return Boolean(row);
   }
 
-  private compatibleWith(db: AppDatabase, rulesetId: string): SQL {
+  /** Condition on `assets`: neutral, or restricted to a set that contains the ruleset. */
+  compatibleWith(db: AppDatabase, rulesetId: string): SQL {
     return or(
       eq(assets.rulesetPolicy, "NEUTRAL"),
       exists(

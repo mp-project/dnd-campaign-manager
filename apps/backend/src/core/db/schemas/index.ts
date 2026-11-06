@@ -93,3 +93,9 @@ export {
   notes,
   noteTypeEnum,
 } from "../../../modules/notes/domain/entities/NotesTable.js";
+
+export {
+  features,
+  featureStackingModeEnum,
+  featureTypeEnum,
+} from "../../../modules/features/domain/entities/FeaturesTable.js";

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, mediaFiles, notes, rulesets, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, features, mediaFiles, notes, rulesets, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -30,6 +30,8 @@ const ID = {
   playerMembership: "e0000000-0000-4000-8000-00000000000a",
   noteAsset: "d0000000-0000-4000-8000-00000000000c",
   note: "f0000000-0000-4000-8000-00000000000e",
+  featureAsset: "d0000000-0000-4000-8000-00000000000d",
+  feature: "f0000000-0000-4000-8000-00000000000f",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -55,6 +57,7 @@ const assetMediaUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/media
 const tagUrl = `/api/v1/campaigns/${ID.campaign}/tags/${ID.tag}`;
 const assetLinkUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/links/${ID.assetLink}`;
 const noteUrl = `/api/v1/campaigns/${ID.campaign}/notes/${ID.note}`;
+const featureUrl = `/api/v1/campaigns/${ID.campaign}/features/${ID.feature}`;
 
 type Inject = ReturnType<typeof buildTestApp>["injectAs"];
 type Response = Awaited<ReturnType<Inject>>;
@@ -87,7 +90,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof features | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -252,6 +255,28 @@ describe("history rights of every tracked entity", () => {
           expectedAssetVersion: await rowVersion(assets, ID.noteAsset),
         }),
     },
+    feature: {
+      id: ID.feature,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", featureUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(features, ID.feature),
+            expectedAssetVersion: await rowVersion(assets, ID.featureAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, featureUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(features, ID.feature),
+          expectedAssetVersion: await rowVersion(assets, ID.featureAsset),
+        }),
+    },
     tag: {
       id: ID.tag,
       readers: ["editor", "gm", "admin"],
@@ -413,6 +438,23 @@ describe("history rights of every tracked entity", () => {
       assetId: ID.noteAsset,
       noteType: "LORE",
       content: "Start",
+    });
+    await db.insert(assets).values({
+      id: ID.featureAsset,
+      title: "Rage",
+      slug: "rage",
+      scope: "CAMPAIGN",
+      origin: "CUSTOM",
+      campaignId: ID.campaign,
+      assetType: "FEATURE",
+      status: "ACTIVE",
+    });
+    await db.insert(features).values({
+      id: ID.feature,
+      campaignId: ID.campaign,
+      assetId: ID.featureAsset,
+      code: "rage",
+      featureType: "ACTIVE",
     });
     await db.insert(mediaFiles).values({
       id: ID.media,

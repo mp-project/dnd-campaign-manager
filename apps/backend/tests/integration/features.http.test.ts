@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   assetRulesets,
@@ -10,7 +11,28 @@ import {
   rulesets,
   users,
 } from "#core/db/schema";
+import {
+  ASSETS_MODULE_DEPENDENCIES,
+  type AssetsModuleDependencies,
+} from "#src/modules/assets/index";
+import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+
+/** Stands in for the character modules: assets the campaign still uses. */
+const inUseAssetIds = new Set<string>();
+
+const inUseModule: AppModule = {
+  name: "test-features-in-use",
+  dependencies: ["assets"],
+  register: (_app, container) => {
+    container.dependencies
+      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
+      .service.registerInUseProvider({
+        name: "test-characters",
+        listInUseAssetIds: async () => [...inUseAssetIds],
+      });
+  },
+};
 
 const TEST_DB_URL =
   process.env.TEST_DATABASE_URL ??
@@ -184,7 +206,8 @@ describe("features", () => {
     (await db.select().from(assets).where(eq(assets.assetType, "FEATURE"))).length;
 
   beforeEach(async () => {
-    session = buildTestApp();
+    inUseAssetIds.clear();
+    session = buildTestApp({ modules: [...defaultAppModules, inUseModule] });
 
     await db.insert(rulesets).values(
       [
@@ -408,6 +431,41 @@ describe("features", () => {
       expect(restored.statusCode).toBe(200);
       expect(restored.json()).toMatchObject({ status: "ACTIVE" });
       expect(await featureCount()).toBe(1);
+    });
+    it("keeps archived features the campaign still uses in the catalog only", async () => {
+      const feature = await release(await createOk());
+
+      expect((await remove(feature)).statusCode).toBe(200);
+      expect((await get(`${catalogUrl()}/${feature.id}`)).statusCode).toBe(404);
+      expect((await get(`${campaignUrl()}/${feature.id}`)).statusCode).toBe(200);
+
+      inUseAssetIds.add(feature.assetId);
+
+      for (const as of [GM, PLAYER]) {
+        expect((await get(`${catalogUrl()}/${feature.id}`, as)).statusCode).toBe(200);
+        expect((await get(catalogUrl(), as)).json().data).toEqual([
+          expect.objectContaining({ id: feature.id }),
+        ]);
+      }
+    });
+
+    it("checks references again when an archived feature comes back", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+      const archived = (await remove(improved)).json() as FeatureBody;
+
+      expect((await remove(base)).statusCode).toBe(200);
+
+      const restored = await session.injectAs(GM, {
+        method: "POST",
+        url: `${itemUrl(improved)}/restore`,
+        payload: { expectedAssetVersion: archived.assetVersion },
+      });
+
+      expect(restored.statusCode).toBe(409);
     });
   });
 
@@ -671,8 +729,8 @@ describe("features", () => {
       expect(view.statusCode).toBe(200);
       expect(view.json()).not.toHaveProperty("version");
       expect(view.json()).not.toHaveProperty("releasedToPlayers");
+      // The hidden option is left out with its label, not only its link.
       expect((view.json() as FeatureBody).choices[0]?.options).toEqual([
-        expect.objectContaining({ code: "hidden", linkedAssetId: null }),
         expect.objectContaining({ code: "global", linkedAssetId: ID.systemFeat }),
       ]);
       expect((await get(catalogUrl(), PLAYER)).json().data).toEqual([

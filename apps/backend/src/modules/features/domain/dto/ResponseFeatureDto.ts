@@ -8,6 +8,7 @@ import { renderSafeMarkdown } from "#core/text/safeMarkdown";
 import { FeatureBaseSchema } from "#src/modules/features/domain/dto/BaseFeatureDto";
 import {
   type FeatureGraph,
+  FeatureChoiceViewSchema,
   FeatureSectionSchema,
 } from "#src/modules/features/domain/dto/FeatureDefinitionDto";
 import type { ResolvedFeatureGraph } from "#src/modules/features/domain/FeatureResolver";
@@ -74,7 +75,8 @@ export const ResponseUpdateFeatureSchema = ResponseFeatureGmSchema.extend({
 
 /**
  * View for players. Strict, so nothing else can leave the server: no
- * audit data or rulesets, and references to assets the player may not see are left out.
+ * audit data or rulesets, and references to assets the player may not see are left out. Choices
+ * may lose options there, so they follow the stored shape without its checks.
  */
 export const ResponseFeaturePlayerSchema = FeatureBaseSchema.pick({
   id: true,
@@ -88,6 +90,7 @@ export const ResponseFeaturePlayerSchema = FeatureBaseSchema.pick({
   stackingMode: true,
 })
   .extend(graphResponseShape)
+  .extend({ choices: z.array(FeatureChoiceViewSchema) })
   .extend({
     view: z.literal("PLAYER"),
     descriptionHtml: htmlDto.nullable(),
@@ -306,8 +309,8 @@ export function toFeatureGmResponse({ feature, asset, rulesetIds }: FeatureRecor
 }
 
 /**
- * `isVisible` tells whether the player may see a referenced asset. Hidden supersede targets are
- * left out; options and defaults keep their place without the hidden asset.
+ * `isVisible` tells whether the player may see a referenced asset. Hidden supersede targets and
+ * choice options are left out; defaults keep their place without the hidden asset.
  */
 export function toFeaturePlayerResponse(
   { feature, asset }: FeatureWithAsset,
@@ -338,10 +341,8 @@ export function toFeaturePlayerResponse(
       ),
       choices: graph.choices.map((choice) => ({
         ...choice,
-        options: choice.options.map((option) =>
-          option.linkedAssetId && !isVisible(option.linkedAssetId)
-            ? { ...option, linkedAssetId: null }
-            : option,
+        options: choice.options.filter(
+          (option) => !option.linkedAssetId || isVisible(option.linkedAssetId),
         ),
       })),
       supersedes: graph.supersedes.filter((item) => isVisible(item.targetAssetId)),

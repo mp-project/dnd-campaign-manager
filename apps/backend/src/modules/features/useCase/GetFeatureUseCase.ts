@@ -57,10 +57,16 @@ export class GetFeatureUseCase {
     const visibleAssetIds = new Set(
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
+    const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
     const found = await this.featuresService.requireCatalogFeature(
       { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
       input.featureId,
-      visibleAssetIds,
+      {
+        visibleAssetIds,
+        inUseAssetIds,
+        // GMs manage their own archived features; the catalog only keeps those still in use.
+        archived: this.mode === "campaign" ? "always" : "ifInUse",
+      },
     );
 
     if (this.mode === "campaign" && found.feature.campaignId !== viewer.campaignId) {
@@ -68,19 +74,24 @@ export class GetFeatureUseCase {
     }
 
     if (viewer.view === "PLAYER") {
-      return this.toPlayer(found, visibleAssetIds);
+      return this.toPlayer(found, visibleAssetIds, inUseAssetIds);
     }
 
     return toFeatureGmResponse(await this.featuresService.loadRecord(db, found));
   }
 
-  private async toPlayer(found: FeatureWithAsset, visibleAssetIds: ReadonlySet<string>) {
+  private async toPlayer(
+    found: FeatureWithAsset,
+    visibleAssetIds: ReadonlySet<string>,
+    inUseAssetIds: ReadonlySet<string> = new Set(),
+  ) {
     return toFeaturePlayerResponse(
       found,
       await this.featuresService.playerReferenceVisibility(
         this.featuresService.db,
         [found],
         visibleAssetIds,
+        inUseAssetIds,
       ),
     );
   }

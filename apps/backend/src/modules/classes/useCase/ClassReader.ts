@@ -20,9 +20,9 @@ export type ReadableClass = {
 
 /**
  * Finds a class for a read route and decides the view. GMs and editors get the full view of what
- * the campaign may use, players the player view of active classes they may see. Outside a
- * campaign, administrators get the full view of global classes and everybody else the player view
- * of active ones.
+ * the campaign may use, players the player view of active classes they may see. Archived classes
+ * stay in the catalog while the campaign still uses them. Outside a campaign, administrators get
+ * the full view of global classes and everybody else the player view of active ones.
  */
 export class ClassReader {
   constructor(
@@ -64,10 +64,16 @@ export class ClassReader {
     const visibleAssetIds = new Set(
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
+    const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
     const found = await this.classesService.requireCatalogClass(
       { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
       input.classId,
-      visibleAssetIds,
+      {
+        visibleAssetIds,
+        inUseAssetIds,
+        // GMs manage their own archived classes; the catalog only keeps those still in use.
+        archived: mode === "campaign" ? "always" : "ifInUse",
+      },
     );
 
     if (mode === "campaign" && found.characterClass.campaignId !== viewer.campaignId) {
@@ -81,7 +87,12 @@ export class ClassReader {
     return {
       found,
       view: "PLAYER",
-      isVisible: await this.classesService.playerReferenceVisibility(db, [found], visibleAssetIds),
+      isVisible: await this.classesService.playerReferenceVisibility(
+        db,
+        [found],
+        visibleAssetIds,
+        inUseAssetIds,
+      ),
     };
   }
 }

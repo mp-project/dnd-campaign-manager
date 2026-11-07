@@ -284,6 +284,24 @@ export class AssetsRepository {
     return Boolean(row);
   }
 
+  /** Those of the assets that fit the ruleset. */
+  async listCompatibleIds(
+    db: AppDatabase,
+    assetIds: readonly string[],
+    rulesetId: string,
+  ): Promise<Set<string>> {
+    if (assetIds.length === 0) {
+      return new Set();
+    }
+
+    const rows = await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(inArray(assets.id, [...new Set(assetIds)]), this.compatibleWith(db, rulesetId)));
+
+    return new Set(rows.map((row) => row.id));
+  }
+
   /** Active custom assets released to the players of the campaign. */
   async listReleasedIds(db: AppDatabase, campaignId: string): Promise<string[]> {
     const rows = await db

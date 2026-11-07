@@ -5,7 +5,7 @@ import { createStandardListResponse, encodePaginationCursor } from "#core/http/l
 import { renderSafeMarkdown } from "#core/text/safeMarkdown";
 import { ClassBaseSchema } from "#src/modules/classes/domain/dto/BaseClassDto";
 import {
-  ClassChoiceSchema,
+  ClassChoiceViewSchema,
   type ClassDefinition,
   FeatureGrantSchema,
   MulticlassRulesSchema,
@@ -35,6 +35,12 @@ import { parseClassDefinition } from "#src/modules/classes/history/TrackedClass"
 /** HTML rendered by the server from Markdown; raw HTML and script links never get through. */
 const htmlDto = z.string();
 
+/**
+ * Whether the class may be chosen anew: only active ones. Archived classes appear while the
+ * campaign still uses them, but cannot be chosen anymore.
+ */
+const selectableDto = z.boolean();
+
 const coreShape = ClassBaseSchema.pick({
   code: true,
   description: true,
@@ -60,13 +66,14 @@ const definitionShape = ClassBaseSchema.pick({
 
 /**
  * Definition parts for players: references to assets they may not see are left out (grants,
- * proficiency options) or emptied (options, items, spell list), so the parts may break rules that
- * only apply to stored definitions.
+ * proficiency and choice options, choices of left-out grants) or emptied (items, spell list), so
+ * the parts may break rules that only apply to stored definitions.
  */
 const playerDefinitionShape = {
   ...definitionShape,
   proficiencies: z.array(ProficiencyRuleViewSchema),
   startingEquipment: z.array(StartingEquipmentOptionViewSchema),
+  choices: z.array(ClassChoiceViewSchema),
 };
 
 /**
@@ -95,6 +102,7 @@ export const ResponseClassGmSchema = baseEntityResponseDto
     view: z.literal("GM"),
     assetVersion: z.number().int().positive(),
     descriptionHtml: htmlDto.nullable(),
+    selectable: selectableDto,
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
@@ -118,6 +126,7 @@ export const ResponseClassPlayerSchema = ClassBaseSchema.pick({
   .extend({
     view: z.literal("PLAYER"),
     descriptionHtml: htmlDto.nullable(),
+    selectable: selectableDto,
   });
 
 export const ResponseClassSchema = z.discriminatedUnion("view", [
@@ -152,6 +161,7 @@ export const ResponseClassListItemGmSchema = ResponseClassGmSchema.pick({
   rulesetIds: true,
   assetFamilyId: true,
   releasedToPlayers: true,
+  selectable: true,
 }).extend({ spellcastingType: castingTypeDto });
 
 export const ResponseClassListItemPlayerSchema = ResponseClassPlayerSchema.pick({
@@ -165,6 +175,7 @@ export const ResponseClassListItemPlayerSchema = ResponseClassPlayerSchema.pick(
   hitDie: true,
   displayOrder: true,
   primaryAbilities: true,
+  selectable: true,
 }).extend({ spellcastingType: castingTypeDto });
 
 export const ResponseClassListSchema = standardListResponseDto(
@@ -234,7 +245,7 @@ export const ResponseClassSectionSchemas = {
   choices: z.strictObject({
     ...sectionHeader,
     subclassSelectionLevel: ClassBaseSchema.shape.subclassSelectionLevel,
-    choices: z.array(ClassChoiceSchema),
+    choices: z.array(ClassChoiceViewSchema),
   }),
   spellcasting: z.strictObject({
     ...sectionHeader,
@@ -298,14 +309,44 @@ function coreOf(row: ClassRow) {
 
 /**
  * The definition as a player may see it. `isVisible` tells whether the player may see a referenced
- * asset: grants of hidden features and hidden proficiency options are left out, hidden options,
- * items and spell lists are emptied, bound values pointing to hidden assets are dropped.
+ * asset. Grants of hidden features and hidden proficiency and choice options are left out, and so
+ * is everything that depends on a left-out part: choices asked by a left-out grant, grants that
+ * only a left-out choice selects, bindings to a left-out choice. Hidden items and spell lists are
+ * emptied, bound values pointing to hidden assets are dropped.
  */
 export function toPlayerDefinition(
   definition: ClassDefinition,
   isVisible: (assetId: string) => boolean,
 ) {
   const hidden = (assetId: string | null) => assetId !== null && !isVisible(assetId);
+  const removedGrants = new Set<string>();
+  const removedChoices = new Set<string>();
+  const grants = definition.levels.flatMap((entry) => entry.featureGrants);
+
+  for (const grant of grants) {
+    if (hidden(grant.featureAssetId) || hidden(grant.targetFeatureAssetId)) {
+      removedGrants.add(grant.key);
+    }
+  }
+
+  // A left-out grant takes its choices along, a left-out choice the grants it selects.
+  for (let changed = true; changed; ) {
+    changed = false;
+
+    for (const choice of definition.choices) {
+      if (choice.grantKey !== null && removedGrants.has(choice.grantKey) && !removedChoices.has(choice.key)) {
+        removedChoices.add(choice.key);
+        changed = true;
+      }
+    }
+
+    for (const grant of grants) {
+      if (grant.choiceKey !== null && removedChoices.has(grant.choiceKey) && !removedGrants.has(grant.key)) {
+        removedGrants.add(grant.key);
+        changed = true;
+      }
+    }
+  }
 
   return {
     ...definition,
@@ -322,7 +363,7 @@ export function toPlayerDefinition(
     levels: definition.levels.map((entry) => ({
       ...entry,
       featureGrants: entry.featureGrants
-        .filter((grant) => !hidden(grant.featureAssetId) && !hidden(grant.targetFeatureAssetId))
+        .filter((grant) => !removedGrants.has(grant.key))
         .map((grant) => ({
           ...grant,
           bindings: grant.bindings.filter(
@@ -332,16 +373,17 @@ export function toPlayerDefinition(
                 typeof binding.staticValue === "string" &&
                 /^[0-9a-f-]{36}$/i.test(binding.staticValue) &&
                 hidden(binding.staticValue)
-              ),
+              ) &&
+              !(binding.bindingSource === "CLASS_CHOICE" && removedChoices.has(binding.choiceKey ?? "")),
           ),
         })),
     })),
-    choices: definition.choices.map((choice) => ({
-      ...choice,
-      options: choice.options.map((option) =>
-        hidden(option.linkedAssetId) ? { ...option, linkedAssetId: null } : option,
-      ),
-    })),
+    choices: definition.choices
+      .filter((choice) => !removedChoices.has(choice.key))
+      .map((choice) => ({
+        ...choice,
+        options: choice.options.filter((option) => !hidden(option.linkedAssetId)),
+      })),
     spellcasting:
       definition.spellcasting && hidden(definition.spellcasting.spellListAssetId)
         ? { ...definition.spellcasting, spellListAssetId: null }
@@ -371,6 +413,7 @@ export function toClassGmResponse({ characterClass, asset, rulesetIds }: ClassRe
     rulesetIds: [...rulesetIds].sort(),
     assetFamilyId: asset.assetFamilyId,
     releasedToPlayers: asset.releasedToPlayers,
+    selectable: asset.status === "ACTIVE",
     ...coreOf(characterClass),
     ...parseClassDefinition(characterClass),
   };
@@ -387,6 +430,7 @@ export function toClassPlayerResponse(
     scope: asset.scope,
     name: asset.title,
     summary: asset.summary,
+    selectable: asset.status === "ACTIVE",
     ...coreOf(characterClass),
     ...toPlayerDefinition(parseClassDefinition(characterClass), isVisible),
   };
@@ -416,12 +460,13 @@ export function toClassListItemGmResponse({
     code: characterClass.code,
     hitDie: characterClass.hitDie,
     displayOrder: characterClass.displayOrder,
-    primaryAbilities: parseClassDefinition(characterClass).primaryAbilities,
+    primaryAbilities: PrimaryAbilitiesSchema.parse(characterClass.primaryAbilities),
     spellcastingType: castingTypeOf(characterClass),
     rulesetPolicy: asset.rulesetPolicy,
     rulesetIds: [...rulesetIds].sort(),
     assetFamilyId: asset.assetFamilyId,
     releasedToPlayers: asset.releasedToPlayers,
+    selectable: asset.status === "ACTIVE",
   };
 }
 
@@ -441,6 +486,7 @@ export function toClassListItemPlayerResponse({
     displayOrder: characterClass.displayOrder,
     primaryAbilities: PrimaryAbilitiesSchema.parse(characterClass.primaryAbilities),
     spellcastingType: castingTypeOf(characterClass),
+    selectable: asset.status === "ACTIVE",
   };
 }
 

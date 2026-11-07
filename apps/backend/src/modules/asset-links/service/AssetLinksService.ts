@@ -86,7 +86,10 @@ type EditTarget = { campaignId: string; assetId: string; asset: AssetRow | undef
 
 type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
 
-type UsageViewer = Pick<CampaignAssetViewer, "actorId" | "campaignId" | "view">;
+/** Without `isAdmin`, the viewer is treated as no administrator. */
+type UsageViewer = Pick<CampaignAssetViewer, "actorId" | "campaignId" | "rulesetId" | "view"> & {
+  isAdmin?: boolean | undefined;
+};
 
 /**
  * Relations between assets and the view on where an asset is used.
@@ -357,11 +360,20 @@ export class AssetLinksService {
       );
     }
 
+    const offered = await this.listOfferedGlobalIds(viewer, [...relatedAssets.values()]);
+
     for (const { group, item } of provided.items) {
       const related = item.assetId ? relatedAssets.get(item.assetId) : undefined;
+      const isGlobal = related?.scope === "SYSTEM";
 
-      if (isGm) {
+      if (viewer.isAdmin) {
         usages[group].push(item);
+      } else if (isGlobal && !offered.has(related.id)) {
+        // Global drafts and content of other rulesets are not part of this campaign.
+        continue;
+      } else if (isGm) {
+        // Only administrators change global content.
+        usages[group].push(isGlobal ? { ...item, editRoute: null } : item);
       } else if (related && this.assets.isVisibleToPlayer(related, visibleAssetIds)) {
         usages[group].push({ ...item, editRoute: null });
       }
@@ -373,6 +385,25 @@ export class AssetLinksService {
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
+
+  /**
+   * Global assets among these that the campaign is offered: not drafts, and fitting its ruleset.
+   * Archived ones stay, because they may still be in use.
+   */
+  private async listOfferedGlobalIds(
+    viewer: UsageViewer,
+    related: readonly AssetRow[],
+  ): Promise<ReadonlySet<string>> {
+    const candidates = related.filter(
+      (asset) => asset.scope === "SYSTEM" && asset.status !== "DRAFT",
+    );
+
+    return this.assets.repository.listCompatibleIds(
+      this.db,
+      candidates.map((asset) => asset.id),
+      viewer.rulesetId,
+    );
+  }
 
   /** One failing provider leaves its group incomplete; the answer says which one it was. */
   private async collectProvidedUsages(viewer: UsageViewer, assetId: string) {

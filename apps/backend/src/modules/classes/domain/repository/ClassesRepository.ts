@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, ilike, inArray, isNull, ne, or, type SQL, sql } from "drizzle-orm";
+import { and, type AnyColumn, asc, eq, gt, ilike, inArray, isNull, ne, or, type SQL, sql } from "drizzle-orm";
 
 import { escapeLike } from "#core/db/escapeLike";
 import type { AppDatabase } from "#core/db/pool";
@@ -23,15 +23,27 @@ export type ClassListFilter = {
   hitDie?: ClassHitDie | undefined;
   spellcastingType?: CastingType | undefined;
   search?: string | undefined;
-  /** Global classes with these statuses; omitted means none. */
-  system?: { statuses: readonly AssetStatus[]; rulesetCondition?: SQL | undefined } | undefined;
-  /** Classes of this campaign with these statuses; omitted means none. */
+  /**
+   * Global classes with these statuses, plus the archived ones among `archivedAssetIds`; omitted
+   * means none.
+   */
+  system?:
+    | {
+        statuses: readonly AssetStatus[];
+        archivedAssetIds?: readonly string[] | undefined;
+        rulesetCondition?: SQL | undefined;
+      }
+    | undefined;
+  /**
+   * Classes of this campaign with these statuses (only `assetIds` if given, e.g. those a player
+   * may see), plus the archived ones among `archivedAssetIds`; omitted means none.
+   */
   campaign?:
     | {
         campaignId: string;
         statuses: readonly AssetStatus[];
-        /** Only these assets, e.g. those a player may see. */
         assetIds?: readonly string[] | undefined;
+        archivedAssetIds?: readonly string[] | undefined;
       }
     | undefined;
 };
@@ -83,31 +95,40 @@ export class ClassesRepository {
 
   async listPage(db: AppDatabase, filter: ClassListFilter): Promise<ClassPage> {
     const scopes: SQL[] = [];
+    const archivedAmong = (assetIds: readonly string[] | undefined) =>
+      assetIds && assetIds.length > 0
+        ? and(eq(assets.status, "ARCHIVED"), inArray(classes.assetId, [...assetIds]))
+        : undefined;
+    const withStatuses = (statuses: readonly AssetStatus[], assetIds?: readonly string[]) =>
+      statuses.length > 0 && assetIds?.length !== 0
+        ? and(
+            inArray(assets.status, [...statuses]),
+            assetIds ? inArray(classes.assetId, [...assetIds]) : undefined,
+          )
+        : undefined;
 
-    if (filter.system && filter.system.statuses.length > 0) {
-      scopes.push(
-        and(
-          isNull(classes.campaignId),
-          inArray(assets.status, [...filter.system.statuses]),
-          filter.system.rulesetCondition,
-        ) as SQL,
+    if (filter.system) {
+      const status = or(
+        withStatuses(filter.system.statuses),
+        archivedAmong(filter.system.archivedAssetIds),
       );
+
+      if (status) {
+        scopes.push(
+          and(isNull(classes.campaignId), status, filter.system.rulesetCondition) as SQL,
+        );
+      }
     }
 
-    if (
-      filter.campaign &&
-      filter.campaign.statuses.length > 0 &&
-      filter.campaign.assetIds?.length !== 0
-    ) {
-      scopes.push(
-        and(
-          eq(classes.campaignId, filter.campaign.campaignId),
-          inArray(assets.status, [...filter.campaign.statuses]),
-          filter.campaign.assetIds
-            ? inArray(classes.assetId, [...filter.campaign.assetIds])
-            : undefined,
-        ) as SQL,
+    if (filter.campaign) {
+      const status = or(
+        withStatuses(filter.campaign.statuses, filter.campaign.assetIds),
+        archivedAmong(filter.campaign.archivedAssetIds),
       );
+
+      if (status) {
+        scopes.push(and(eq(classes.campaignId, filter.campaign.campaignId), status) as SQL);
+      }
     }
 
     if (scopes.length === 0) {
@@ -139,16 +160,19 @@ export class ClassesRepository {
   }
 
   /**
-   * Classes whose definition contains the asset id anywhere: grants, upgrade targets, bound
-   * parameter values, choice options, equipment, proficiencies, spell lists. `campaignId` limits
-   * them to global classes and those of the campaign; null searches everywhere, for global assets.
-   * Archived classes only with `includeArchived`.
+   * Classes whose definition refers to the asset: grants, upgrade targets, static bound values,
+   * choice options, equipment, proficiency options and spell lists. Only these paths count, so text
+   * that happens to look like the id is no usage. `campaignId` limits them to global classes and
+   * those of the campaign; null searches everywhere, for global assets. Archived classes only with
+   * `includeArchived`.
    */
   async listReferencing(
     db: AppDatabase,
     input: { assetId: string; campaignId: string | null; includeArchived: boolean },
   ): Promise<ClassWithAsset[]> {
-    const definition = sql`jsonb_build_array(${classes.proficiencies}, ${classes.startingEquipment}, ${classes.levels}, ${classes.choices}, ${classes.spellcasting})`;
+    const vars = sql`jsonb_build_object('id', ${input.assetId}::text)`;
+    const at = (column: AnyColumn, path: string) =>
+      sql`jsonb_path_exists(${column}, ${path}::jsonpath, ${vars})`;
 
     return this.selectWithAsset(db)
       .where(
@@ -158,22 +182,48 @@ export class ClassesRepository {
             ? or(isNull(classes.campaignId), eq(classes.campaignId, input.campaignId))
             : undefined,
           input.includeArchived ? undefined : sql`${assets.status} <> 'ARCHIVED'`,
-          sql`jsonb_path_exists(${definition}, '$.** ? (@ == $id)', jsonb_build_object('id', ${input.assetId}::text))`,
+          or(
+            at(classes.proficiencies, "$[*].options[*].assetId ? (@ == $id)"),
+            at(classes.startingEquipment, "$[*].entries[*].itemAssetId ? (@ == $id)"),
+            at(classes.levels, "$[*].featureGrants[*].featureAssetId ? (@ == $id)"),
+            at(classes.levels, "$[*].featureGrants[*].targetFeatureAssetId ? (@ == $id)"),
+            at(
+              classes.levels,
+              '$[*].featureGrants[*].bindings[*] ? (@.bindingSource == "STATIC" && @.staticValue == $id)',
+            ),
+            at(classes.choices, "$[*].options[*].linkedAssetId ? (@ == $id)"),
+            at(classes.spellcasting, "$.spellListAssetId ? (@ == $id)"),
+          ),
         ),
       )
       .orderBy(asc(classes.code), asc(classes.id));
   }
 
-  /** Active custom classes of the campaign released to its players. */
-  async listReleased(db: AppDatabase, campaignId: string): Promise<ClassWithAsset[]> {
-    return this.selectWithAsset(db).where(
-      and(
-        isNull(classes.deletedAt),
-        eq(classes.campaignId, campaignId),
-        eq(assets.status, "ACTIVE"),
-        eq(assets.releasedToPlayers, true),
-      ),
-    );
+  /**
+   * Asset ids that active released custom classes of the campaign grant, upgrade or offer as choice
+   * options. Read straight from the stored json, so a definition that no longer parses cannot break
+   * what players see elsewhere.
+   */
+  async listReleasedReferencedIds(db: AppDatabase, campaignId: string): Promise<string[]> {
+    const rows = await db.execute<{ id: string }>(sql`
+      select distinct ids.id
+      from ${classes}
+      join ${assets} on ${assets.id} = ${classes.assetId} and ${assets.deletedAt} is null
+      cross join lateral (
+        select jsonb_path_query(${classes.levels}, '$[*].featureGrants[*].featureAssetId') #>> '{}'
+        union all
+        select jsonb_path_query(${classes.levels}, '$[*].featureGrants[*].targetFeatureAssetId') #>> '{}'
+        union all
+        select jsonb_path_query(${classes.choices}, '$[*].options[*].linkedAssetId') #>> '{}'
+      ) as ids(id)
+      where ${classes.deletedAt} is null
+        and ${classes.campaignId} = ${campaignId}
+        and ${assets.status} = 'ACTIVE'
+        and ${assets.releasedToPlayers} = true
+        and ids.id is not null
+    `);
+
+    return rows.rows.map((row) => row.id);
   }
 
   private selectWithAsset(db: AppDatabase) {

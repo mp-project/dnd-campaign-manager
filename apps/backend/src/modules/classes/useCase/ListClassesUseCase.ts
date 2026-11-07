@@ -40,12 +40,16 @@ export class ClassListing {
     context: RequestContext,
     input: { campaignId: string; query: RequestCampaignClassesQueryDto },
   ): Promise<ResponseClassListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, { system: false });
+    return this.listInCampaign(context, input.campaignId, input.query, {
+      system: false,
+      catalog: false,
+    });
   }
 
   /**
-   * What the campaign may choose from: active global classes for its ruleset and its own classes
-   * (for players only released ones). Archived classes are not offered anymore.
+   * What the campaign may use: active global classes for its ruleset and its own classes (for
+   * players only released ones), plus archived classes the campaign still uses. Those are marked
+   * `selectable: false`; they cannot be chosen anew.
    */
   async listCatalog(
     context: RequestContext,
@@ -54,6 +58,7 @@ export class ClassListing {
     return this.listInCampaign(context, input.campaignId, input.query, {
       system: input.query.scope !== "CAMPAIGN",
       campaign: input.query.scope !== "SYSTEM",
+      catalog: true,
     });
   }
 
@@ -82,17 +87,25 @@ export class ClassListing {
     context: RequestContext,
     campaignId: string,
     query: RequestCampaignClassesQueryDto,
-    include: { system: boolean; campaign?: boolean },
+    include: { system: boolean; campaign?: boolean; catalog: boolean },
   ): Promise<ResponseClassListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
     const { db, repository } = this.classesService;
     const isGm = viewer.view === "GM";
+    // GMs manage their own archived classes in the campaign list; everywhere else archived classes
+    // only stay while the campaign still uses them.
+    const managesArchived = isGm && !include.catalog;
+    const inUse =
+      !managesArchived && (query.status === undefined || query.status === "ARCHIVED")
+        ? [...(await this.assetsService.listInUseAssetIds(viewer.campaignId))]
+        : undefined;
     const filter: ClassListFilter = {
       ...this.baseFilter(query),
       system: include.system
         ? {
-            // Global drafts and archived classes are not offered to campaigns.
+            // Global drafts are not offered to campaigns.
             statuses: query.status === undefined || query.status === "ACTIVE" ? ["ACTIVE"] : [],
+            archivedAssetIds: inUse,
             rulesetCondition: this.assetsService.repository.compatibleWith(db, viewer.rulesetId),
           }
         : undefined,
@@ -101,8 +114,11 @@ export class ClassListing {
           ? undefined
           : {
               campaignId: viewer.campaignId,
-              statuses: statusesFor(isGm, query.status),
+              statuses: statusesFor(isGm, query.status).filter(
+                (status) => managesArchived || status !== "ARCHIVED",
+              ),
               assetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+              archivedAssetIds: inUse,
             },
     };
 

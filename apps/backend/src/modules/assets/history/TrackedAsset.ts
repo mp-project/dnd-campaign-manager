@@ -36,6 +36,8 @@ type TrackedAssetDeps = {
   assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Runs when the asset leaves `ACTIVE`, after the archive check. */
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
+  /** Runs when the asset leaves `ARCHIVED`, so its owner can check that it is still consistent. */
+  onReactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
   gmRevertibleActions: ReadonlySet<string>;
   /** Whether custom assets of this type may be released to players. */
@@ -122,6 +124,10 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
 
       if (current.status === "ACTIVE" && next.status !== "ACTIVE") {
         await deps.onDeactivate(next, db);
+      }
+
+      if (current.status === "ARCHIVED" && next.status !== "ARCHIVED") {
+        await deps.onReactivate(next, db);
       }
     },
   });

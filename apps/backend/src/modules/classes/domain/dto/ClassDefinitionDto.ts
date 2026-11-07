@@ -400,24 +400,32 @@ export const ClassChoiceOptionSchema = z.strictObject({
   linkedAssetId: uuidDto.nullable().default(null),
 });
 
+const classChoiceShape = {
+  key: featureKeyDto,
+  /** Level the choice is made at; null for choices at the start (skills, equipment). */
+  level: classLevelDto.nullable().default(null),
+  /** The grant whose feature asks for this choice, e.g. Fighting Style. */
+  grantKey: featureKeyDto.nullable().default(null),
+  choiceType: z.enum(CLASS_CHOICE_TYPES),
+  minimumSelections: z.number().int().min(0).max(50),
+  maximumSelections: z.number().int().min(1).max(50),
+  replacementPolicy: z.enum(REPLACEMENT_POLICIES).default("NONE"),
+  optionFilter: z
+    .strictObject({ assetTypes: z.array(AssetBaseSchema.shape.assetType).min(1).max(5) })
+    .nullable()
+    .default(null),
+  displayOrder: displayOrderDto,
+  options: z.array(ClassChoiceOptionSchema).max(100).default([]),
+};
+
+/**
+ * Choices as stored, without the checks; for the player view, which leaves out options the player
+ * may not see, so a choice may have fewer options than it requires there.
+ */
+export const ClassChoiceViewSchema = z.strictObject(classChoiceShape);
+
 export const ClassChoiceSchema = z
-  .strictObject({
-    key: featureKeyDto,
-    /** Level the choice is made at; null for choices at the start (skills, equipment). */
-    level: classLevelDto.nullable().default(null),
-    /** The grant whose feature asks for this choice, e.g. Fighting Style. */
-    grantKey: featureKeyDto.nullable().default(null),
-    choiceType: z.enum(CLASS_CHOICE_TYPES),
-    minimumSelections: z.number().int().min(0).max(50),
-    maximumSelections: z.number().int().min(1).max(50),
-    replacementPolicy: z.enum(REPLACEMENT_POLICIES).default("NONE"),
-    optionFilter: z
-      .strictObject({ assetTypes: z.array(AssetBaseSchema.shape.assetType).min(1).max(5) })
-      .nullable()
-      .default(null),
-    displayOrder: displayOrderDto,
-    options: z.array(ClassChoiceOptionSchema).max(100).default([]),
-  })
+  .strictObject(classChoiceShape)
   .superRefine((choice, ctx) => {
     const allowed = CHOICE_ASSET_TYPES[choice.choiceType];
 

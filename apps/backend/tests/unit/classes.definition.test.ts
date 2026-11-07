@@ -409,6 +409,54 @@ describe("class views", () => {
     expect(view.levels[8]?.featureGrants).toEqual([]);
     expect(view.levels[0]?.featureGrants).toHaveLength(1);
     expect(view.startingEquipment[0]?.entries[0]?.itemAssetId).toBeNull();
-    expect(view.choices[0]?.options[0]?.linkedAssetId).toBeNull();
+    // A hidden option is left out with its label, not only its link.
+    expect(view.choices[0]?.options).toEqual([]);
+  });
+
+  it("leaves out what depends on a hidden grant for players", () => {
+    const base = barbarian();
+    const definition = ClassDefinitionSchema.parse({
+      ...base,
+      levels: levels(20, {
+        1: base.levels[0]?.featureGrants ?? [],
+        // The hidden upgrade asks for a style; the style selects a grant that binds the choice.
+        9: [
+          ...(base.levels[8]?.featureGrants ?? []),
+          {
+            key: "style_feature",
+            featureAssetId: RAGE,
+            grantOperation: "GRANT",
+            choiceKey: "style",
+            displayOrder: 1,
+          },
+        ],
+        10: [
+          {
+            key: "other",
+            featureAssetId: RAGE,
+            grantOperation: "GRANT",
+            displayOrder: 0,
+            bindings: [{ parameterKey: "pick", bindingSource: "CLASS_CHOICE", choiceKey: "style" }],
+          },
+        ],
+      }),
+      choices: [
+        ...base.choices,
+        {
+          ...subclassChoice,
+          key: "style",
+          choiceType: "FEATURE_OPTION",
+          grantKey: "brutal",
+          level: 9,
+          optionFilter: { assetTypes: ["FEATURE"] },
+          options: [],
+        },
+      ],
+    });
+    const view = toPlayerDefinition(definition, (assetId) => assetId !== RAGE_2);
+
+    expect(view.choices.map((choice) => choice.key)).toEqual(["subclass"]);
+    expect(view.levels[8]?.featureGrants).toEqual([]);
+    expect(view.levels[9]?.featureGrants[0]?.bindings).toEqual([]);
   });
 });

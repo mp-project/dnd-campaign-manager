@@ -113,6 +113,11 @@ async function registerFeaturesModule(
   assetsService.allowGmRevert(FEATURE_ASSET_ACTIONS);
   // Custom features reach players through a release, not through content shares.
   assetsService.registerReleasableType("FEATURE");
+  // Archived features keep nothing from being archived, so coming back needs the check again.
+  assetsService.registerReactivateHook({
+    name: "features",
+    onReactivate: (asset, db) => service.assertReactivatable(asset, db),
+  });
   assetLinks.service.registerEditRoute("FEATURE", (input, db) =>
     service.findEditRoutes(input, db),
   );

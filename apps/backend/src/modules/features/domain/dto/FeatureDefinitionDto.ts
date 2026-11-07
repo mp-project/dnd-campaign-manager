@@ -137,16 +137,24 @@ export const FeatureChoiceOptionSchema = z.strictObject({
   linkedAssetId: uuidDto.nullable().default(null),
 });
 
+const featureChoiceShape = {
+  key: featureKeyDto,
+  choiceType: z.enum(CHOICE_TYPES),
+  minimumSelections: z.number().int().min(0).max(50),
+  maximumSelections: z.number().int().min(1).max(50),
+  optionFilter: ChoiceOptionFilterSchema.nullable().default(null),
+  displayOrder: z.number().int().min(0).max(1_000),
+  options: z.array(FeatureChoiceOptionSchema).max(100).default([]),
+};
+
+/**
+ * Choices as stored, without the checks; for the player view, which leaves out options the player
+ * may not see, so a choice may have fewer options than it requires there.
+ */
+export const FeatureChoiceViewSchema = z.strictObject(featureChoiceShape);
+
 export const FeatureChoiceSchema = z
-  .strictObject({
-    key: featureKeyDto,
-    choiceType: z.enum(CHOICE_TYPES),
-    minimumSelections: z.number().int().min(0).max(50),
-    maximumSelections: z.number().int().min(1).max(50),
-    optionFilter: ChoiceOptionFilterSchema.nullable().default(null),
-    displayOrder: z.number().int().min(0).max(1_000),
-    options: z.array(FeatureChoiceOptionSchema).max(100).default([]),
-  })
+  .strictObject(featureChoiceShape)
   .superRefine((choice, ctx) => {
     if (choice.minimumSelections > choice.maximumSelections) {
       ctx.addIssue({

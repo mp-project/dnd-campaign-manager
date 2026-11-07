@@ -28,7 +28,11 @@ export class GetClassUsagesUseCase {
     const { characterClass, asset } = await this.classesService.requireCatalogClass(
       { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
       input.classId,
-      visibleAssetIds,
+      {
+        visibleAssetIds,
+        inUseAssetIds: await this.assetsService.listInUseAssetIds(viewer.campaignId),
+        archived: this.ownOnly ? "always" : "ifInUse",
+      },
     );
 
     if (this.ownOnly && characterClass.campaignId !== viewer.campaignId) {

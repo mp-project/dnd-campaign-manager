@@ -143,13 +143,18 @@ export class FeaturesService {
 
   /**
    * A feature available in the campaign: its own, or a global one for the campaign ruleset. Global
-   * drafts only exist for administrators; archived global features stay readable for existing
-   * usages. Players only see what `isVisibleToPlayer` allows.
+   * drafts only exist for administrators. Archived features only stay while the campaign still uses
+   * them (`inUseAssetIds`); `archived: "always"` is for GMs managing their own features. Players
+   * only see what `isVisibleToPlayerInCampaign` allows.
    */
   async requireCatalogFeature(
     viewer: CampaignAssetViewer & { isAdmin: boolean },
     featureId: string,
-    visibleAssetIds: ReadonlySet<string>,
+    access: {
+      visibleAssetIds: ReadonlySet<string>;
+      inUseAssetIds: ReadonlySet<string>;
+      archived: "always" | "ifInUse";
+    },
   ): Promise<FeatureWithAsset> {
     const found = await this.requireFeature(this.db, featureId);
     const { feature, asset } = found;
@@ -169,7 +174,18 @@ export class FeaturesService {
       }
     }
 
-    if (viewer.view === "PLAYER" && !this.assets.isVisibleToPlayer(asset, visibleAssetIds)) {
+    if (
+      asset.status === "ARCHIVED" &&
+      (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
+      !access.inUseAssetIds.has(asset.id)
+    ) {
+      throw missing;
+    }
+
+    if (
+      viewer.view === "PLAYER" &&
+      !this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
+    ) {
       throw missing;
     }
 
@@ -192,13 +208,15 @@ export class FeaturesService {
   }
 
   /**
-   * Which referenced assets of these features a player may see: active global assets and campaign
-   * assets visible to the player. Used to strip hidden references from the player view.
+   * Which referenced assets of these features a player may see: active global assets, campaign
+   * assets visible to the player and archived ones the campaign still uses. Used to strip hidden
+   * references from the player view.
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     items: readonly FeatureWithAsset[],
     visibleAssetIds: ReadonlySet<string>,
+    inUseAssetIds: ReadonlySet<string> = new Set(),
   ): Promise<(assetId: string) => boolean> {
     const ids = items.flatMap(({ feature }) =>
       collectAssetReferences(parseFeatureGraph(feature)).map((reference) => reference.assetId),
@@ -208,7 +226,10 @@ export class FeaturesService {
     return (assetId) => {
       const asset = referenced.get(assetId);
 
-      return asset !== undefined && this.assets.isVisibleToPlayer(asset, visibleAssetIds);
+      return (
+        asset !== undefined &&
+        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
+      );
     };
   }
 
@@ -454,6 +475,23 @@ export class FeaturesService {
     });
 
     return this.loadRecord(scope.tx, await this.requireFeature(scope.tx, params.found.feature.id));
+  }
+
+  /**
+   * Runs when a feature asset leaves ARCHIVED, through the restore route, undoing or restoring a
+   * version. While archived, the feature kept nothing from being archived, so its references are
+   * checked again.
+   */
+  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
+    if (asset.assetType !== "FEATURE") {
+      return;
+    }
+
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (found) {
+      await this.assertReferencesValid(db, found.feature, parseFeatureGraph(found.feature));
+    }
   }
 
   // ---------------------------------------------------------------------------

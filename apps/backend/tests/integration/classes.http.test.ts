@@ -1,5 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
+import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   assets,
@@ -9,6 +10,11 @@ import {
   rulesets,
   users,
 } from "#core/db/schema";
+import {
+  ASSETS_MODULE_DEPENDENCIES,
+  type AssetsModuleDependencies,
+} from "#src/modules/assets/index";
+import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 
 const TEST_DB_URL =
@@ -45,8 +51,25 @@ const OUTSIDER = actor(ID.outsider);
 const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
 
+/** Stands in for the character modules: assets the campaign still uses. */
+const inUseAssetIds = new Set<string>();
+
+const inUseModule: AppModule = {
+  name: "test-classes-in-use",
+  dependencies: ["assets"],
+  register: (_app, container) => {
+    container.dependencies
+      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
+      .service.registerInUseProvider({
+        name: "test-characters",
+        listInUseAssetIds: async () => [...inUseAssetIds],
+      });
+  },
+};
+
 type ClassBody = {
   view: string;
+  selectable?: boolean;
   id: string;
   assetId: string;
   version: number;
@@ -202,7 +225,8 @@ describe("classes", () => {
     (await db.select().from(assets).where(eq(assets.assetType, "CLASS"))).length;
 
   beforeEach(async () => {
-    session = buildTestApp();
+    inUseAssetIds.clear();
+    session = buildTestApp({ modules: [...defaultAppModules, inUseModule] });
 
     await db.insert(rulesets).values(
       [
@@ -416,8 +440,9 @@ describe("classes", () => {
       expect((await get(campaignUrl())).json().data).toHaveLength(0);
       expect((await get(catalogUrl())).json().data).toHaveLength(0);
       expect((await get(`${campaignUrl()}?status=ARCHIVED`)).json().data).toHaveLength(1);
-      // Still readable for characters that already have it.
-      expect((await get(`${catalogUrl()}/${item.id}`)).statusCode).toBe(200);
+      // Not used in the campaign: gone from the catalog, but GMs still manage it.
+      expect((await get(`${catalogUrl()}/${item.id}`)).statusCode).toBe(404);
+      expect((await get(`${campaignUrl()}/${item.id}`)).statusCode).toBe(200);
       expect((await update(archived.json() as ClassBody, { displayOrder: 1 })).statusCode).toBe(409);
 
       const restored = await session.injectAs(EDITOR, {
@@ -429,6 +454,75 @@ describe("classes", () => {
       expect(restored.statusCode).toBe(200);
       expect(restored.json()).toMatchObject({ status: "ACTIVE" });
       expect(await classCount()).toBe(1);
+    });
+
+    it("keeps archived classes the campaign still uses in the catalog, but not selectable", async () => {
+      const item = await createOk({ releasedToPlayers: true });
+
+      expect((await get(`${catalogUrl()}/${item.id}`, PLAYER)).json()).toMatchObject({ selectable: true });
+
+      expect((await remove(item)).statusCode).toBe(200);
+
+      inUseAssetIds.add(item.assetId);
+
+      for (const as of [GM, PLAYER]) {
+        const detail = await get(`${catalogUrl()}/${item.id}`, as);
+
+        expect(detail.statusCode).toBe(200);
+        expect(detail.json()).toMatchObject({ view: as === GM ? "GM" : "PLAYER", selectable: false });
+        expect((await get(`${catalogUrl()}/${item.id}/features`, as)).statusCode).toBe(200);
+        expect((await get(catalogUrl(), as)).json().data).toEqual([
+          expect.objectContaining({ id: item.id, selectable: false }),
+        ]);
+        expect((await get(`${catalogUrl()}?status=ACTIVE`, as)).json().data).toEqual([]);
+        expect((await get(`${catalogUrl()}?status=ARCHIVED`, as)).json().data).toHaveLength(1);
+      }
+
+      // Once nobody uses it any more, it leaves the catalog.
+      inUseAssetIds.clear();
+
+      expect((await get(`${catalogUrl()}/${item.id}`, PLAYER)).statusCode).toBe(404);
+      expect((await get(catalogUrl(), PLAYER)).json().data).toEqual([]);
+    });
+
+    it("checks references again when an archived class comes back, on every path", async () => {
+      const feature = await createFeature();
+      const item = await createOk({
+        progressionTracks: [rages],
+        levels: levelsWith({ 1: [rageGrant(feature.assetId)] }),
+      });
+      const archived = (await remove(item)).json() as ClassBody;
+
+      // The archived class no longer keeps its feature from being archived.
+      expect(
+        (
+          await session.injectAs(GM, {
+            method: "DELETE",
+            url: `/api/v1/campaigns/${ID.campaign}/features/${feature.id}?expectedAssetVersion=${feature.assetVersion}`,
+          })
+        ).statusCode,
+      ).toBe(200);
+
+      const restored = await session.injectAs(GM, {
+        method: "POST",
+        url: `${itemUrl(item)}/restore`,
+        payload: { expectedAssetVersion: archived.assetVersion },
+      });
+
+      expect(restored.statusCode).toBe(409);
+
+      const history = await get(`/api/v1/history/asset/${item.assetId}?field=status`);
+      const archiving = (history.json().data as { eventId: string; value: unknown }[]).find(
+        (entry) => entry.value === "ARCHIVED",
+      );
+      const revert = await session.injectAs(GM, {
+        method: "POST",
+        url: `/api/v1/history/events/${archiving?.eventId}/revert`,
+        payload: {},
+      });
+
+      expect(revert.statusCode).toBe(409);
+      expect((await get(`${campaignUrl()}/${item.id}`)).json()).toMatchObject({ status: "ARCHIVED" });
     });
 
     it("rolls back the whole action when a later step fails", async () => {
@@ -566,6 +660,51 @@ describe("classes", () => {
   });
 
   describe("global classes and the catalog", () => {
+    it("shows campaigns only the global classes they are offered as usages", async () => {
+      const feature = await createSystemFeature();
+      const grants = { progressionTracks: [rages], levels: levelsWith({ 1: [rageGrant(feature.assetId)] }) };
+      const draft = await createSystem({ ...grants, code: "draft", status: "DRAFT" });
+      const active = await createSystem({ ...grants, code: "active" });
+      const elsewhere = await createSystem({ ...grants, code: "elsewhere" });
+
+      // Moved to the other ruleset; the feature must cover it, so it goes neutral first.
+      expect(
+        (await update(elsewhere, { rulesetIds: [ID.otherRuleset] }, ADMIN)).statusCode,
+      ).toBe(409);
+
+      const usagesUrl = `/api/v1/campaigns/${ID.campaign}/assets/${feature.assetId}/usages`;
+      const asGm = (await get(usagesUrl)).json().typedUsages as { id: string; editRoute: string | null }[];
+      const asAdmin = (await get(usagesUrl, ADMIN)).json().typedUsages as { id: string }[];
+
+      expect(asGm.map((usage) => usage.id).sort()).toEqual([active.id, elsewhere.id].sort());
+      expect(asGm.every((usage) => usage.editRoute === null)).toBe(true);
+      expect(asAdmin.map((usage) => usage.id)).toEqual(expect.arrayContaining([draft.id, active.id]));
+
+      await db
+        .update(assets)
+        .set({ rulesetPolicy: "RESTRICTED" })
+        .where(eq(assets.id, elsewhere.assetId));
+      await db.execute(
+        sql`update asset_rulesets set ruleset_id = ${ID.otherRuleset} where asset_id = ${elsewhere.assetId}`,
+      );
+
+      const afterMove = (await get(usagesUrl)).json().typedUsages as { id: string }[];
+
+      expect(afterMove.map((usage) => usage.id)).toEqual([active.id]);
+    });
+
+    it("counts only real references as usages, not text that looks like an id", async () => {
+      await createOk({
+        choices: [
+          { ...subclassChoice, options: [{ code: "named", label: ID.systemAxe }] },
+        ],
+      });
+
+      const usages = await get(`/api/v1/campaigns/${ID.campaign}/assets/${ID.systemAxe}/usages`);
+
+      expect(usages.json().typedUsages).toEqual([]);
+    });
+
     it("lets only administrators write global classes", async () => {
       const item = await createSystem();
 
@@ -664,6 +803,58 @@ describe("classes", () => {
       const features = (await get(`${catalogUrl()}/${item.id}/features`, PLAYER)).json();
 
       expect(features).toMatchObject({ view: "PLAYER", grants: [expect.objectContaining({ level: 1, key: "rage" })] });
+    });
+
+    it("keep seeing released features when another stored class no longer parses", async () => {
+      const feature = await createFeature();
+      const item = await createOk({
+        releasedToPlayers: true,
+        progressionTracks: [rages],
+        levels: levelsWith({ 1: [rageGrant(feature.assetId)] }),
+      });
+      const broken = await createOk({ code: "broken", releasedToPlayers: true });
+
+      await db
+        .update(classes)
+        .set({ multiclass: { combinationMode: "SOME" } })
+        .where(eq(classes.id, broken.id));
+
+      expect(
+        (await get(`/api/v1/campaigns/${ID.campaign}/catalog/features/${feature.id}`, PLAYER)).statusCode,
+      ).toBe(200);
+      expect((await get(`${catalogUrl()}/${item.id}`, PLAYER)).statusCode).toBe(200);
+    });
+
+    it("lose custom features of a class when its release is withdrawn", async () => {
+      const feature = await createFeature();
+      const item = await createOk({
+        releasedToPlayers: true,
+        progressionTracks: [rages],
+        levels: levelsWith({ 1: [rageGrant(feature.assetId)] }),
+      });
+      const featureUrl = `/api/v1/campaigns/${ID.campaign}/catalog/features/${feature.id}`;
+
+      expect((await get(featureUrl, PLAYER)).statusCode).toBe(200);
+      expect((await update(item, { releasedToPlayers: false })).statusCode).toBe(200);
+      expect((await get(featureUrl, PLAYER)).statusCode).toBe(404);
+    });
+
+    it("do not see grants of draft features, and only usages they may see", async () => {
+      const draft = await createFeature(GM, `/api/v1/campaigns/${ID.campaign}/features`, { status: "DRAFT" });
+      const item = await createOk({
+        releasedToPlayers: true,
+        progressionTracks: [rages],
+        levels: levelsWith({ 1: [rageGrant(draft.assetId)] }),
+      });
+      const view = (await get(`${catalogUrl()}/${item.id}`, PLAYER)).json() as ClassBody;
+
+      expect(view.levels[0]?.featureGrants).toEqual([]);
+
+      const hidden = await createOk({ code: "hidden" });
+      const usages = await get(`${catalogUrl()}/${item.id}/usages`, PLAYER);
+
+      expect(usages.statusCode).toBe(200);
+      expect((await get(`${catalogUrl()}/${hidden.id}/usages`, PLAYER)).statusCode).toBe(404);
     });
   });
 

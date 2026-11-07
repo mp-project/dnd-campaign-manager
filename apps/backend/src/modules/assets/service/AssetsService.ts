@@ -60,6 +60,16 @@ export type AssetVisibilityProvider = {
 };
 
 /**
+ * Supplies the assets a campaign still uses, e.g. the classes and features its characters have.
+ * Archived content stays readable in the campaign while it is in use (but cannot be chosen anew);
+ * otherwise it leaves the catalog. Nothing is in use unless a provider says so.
+ */
+export type AssetInUseProvider = {
+  name: string;
+  listInUseAssetIds(input: { campaignId: string }, db: AppDatabase): Promise<string[]>;
+};
+
+/**
  * Lets other modules forbid archiving, for example while an asset is still in use. Runs in the
  * transaction with the asset locked, so it may only use `db`. Throws to reject.
  */
@@ -79,6 +89,18 @@ export type AssetDeactivateHook = {
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
 };
 
+/**
+ * Lets the module owning an asset type check that an asset may come back when it leaves `ARCHIVED`
+ * (to draft or active), for example that the assets its definition refers to are still available:
+ * archived content does not keep its targets from being archived. Runs in the same transaction with
+ * the asset locked, on every path: restore routes, undoing and restoring versions. May only use
+ * `db`. Throws to reject.
+ */
+export type AssetReactivateHook = {
+  name: string;
+  onReactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
+};
+
 /** An asset a definition (class, species …) refers to, with where and which types are allowed. */
 export type AssetReference = {
   assetId: string;
@@ -93,6 +115,8 @@ export type CampaignAssetViewer = {
   campaignId: string;
   rulesetId: string;
   view: AssetView;
+  /** System administrator; set by `resolveCampaignViewer`, missing means no. */
+  isAdmin?: boolean | undefined;
 };
 
 type AssetCommandInput = {
@@ -113,6 +137,8 @@ export class AssetsService {
   private readonly visibilityProviders: AssetVisibilityProvider[] = [];
   private readonly archiveGuards: AssetArchiveGuard[] = [];
   private readonly deactivateHooks: AssetDeactivateHook[] = [];
+  private readonly reactivateHooks: AssetReactivateHook[] = [];
+  private readonly inUseProviders: AssetInUseProvider[] = [];
   private readonly gmRevertibleActions = new Set<string>(GM_REVERTIBLE_ASSET_ACTIONS);
   private readonly releasableTypes = new Set<AssetRow["assetType"]>();
   public readonly trackedAsset: TrackedAsset;
@@ -140,6 +166,11 @@ export class AssetsService {
       onDeactivate: async (asset, db) => {
         for (const hook of this.deactivateHooks) {
           await hook.onDeactivate(asset, db);
+        }
+      },
+      onReactivate: async (asset, db) => {
+        for (const hook of this.reactivateHooks) {
+          await hook.onReactivate(asset, db);
         }
       },
     });
@@ -192,6 +223,46 @@ export class AssetsService {
     }
 
     this.deactivateHooks.push(hook);
+  }
+
+  registerInUseProvider(provider: AssetInUseProvider): void {
+    if (this.inUseProviders.some((existing) => existing.name === provider.name)) {
+      throw new Error(`Asset in-use provider '${provider.name}' is already registered`);
+    }
+
+    this.inUseProviders.push(provider);
+  }
+
+  /** Assets the campaign still uses, see `AssetInUseProvider`. */
+  async listInUseAssetIds(campaignId: string, db: AppDatabase = this.db): Promise<Set<string>> {
+    const results = await Promise.all(
+      this.inUseProviders.map((provider) => provider.listInUseAssetIds({ campaignId }, db)),
+    );
+
+    return new Set(results.flat());
+  }
+
+  /**
+   * Whether a player may see the asset in the campaign: active and visible as before, or archived
+   * and still in use there.
+   */
+  isVisibleToPlayerInCampaign(
+    asset: AssetRow,
+    visibleAssetIds: ReadonlySet<string>,
+    inUseAssetIds: ReadonlySet<string>,
+  ): boolean {
+    return (
+      this.isVisibleToPlayer(asset, visibleAssetIds) ||
+      (asset.status === "ARCHIVED" && inUseAssetIds.has(asset.id))
+    );
+  }
+
+  registerReactivateHook(hook: AssetReactivateHook): void {
+    if (this.reactivateHooks.some((existing) => existing.name === hook.name)) {
+      throw new Error(`Asset reactivate hook '${hook.name}' is already registered`);
+    }
+
+    this.reactivateHooks.push(hook);
   }
 
   /**
@@ -724,6 +795,7 @@ export class AssetsService {
       campaignId: campaign.campaignId,
       rulesetId: campaign.rulesetId,
       view: isAdmin || campaign.role === "EDITOR" ? "GM" : "PLAYER",
+      isAdmin,
     };
   }
 

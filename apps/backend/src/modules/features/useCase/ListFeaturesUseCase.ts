@@ -42,7 +42,10 @@ export class FeatureListing {
     context: RequestContext,
     input: { campaignId: string; query: RequestCampaignFeaturesQueryDto },
   ): Promise<ResponseFeatureListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, { system: false });
+    return this.listInCampaign(context, input.campaignId, input.query, {
+      system: false,
+      catalog: false,
+    });
   }
 
   async listCatalog(
@@ -52,6 +55,7 @@ export class FeatureListing {
     return this.listInCampaign(context, input.campaignId, input.query, {
       system: input.query.scope !== "CAMPAIGN",
       campaign: input.query.scope !== "SYSTEM",
+      catalog: true,
     });
   }
 
@@ -80,17 +84,25 @@ export class FeatureListing {
     context: RequestContext,
     campaignId: string,
     query: RequestCampaignFeaturesQueryDto,
-    include: { system: boolean; campaign?: boolean },
+    include: { system: boolean; campaign?: boolean; catalog: boolean },
   ): Promise<ResponseFeatureListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
     const { db, repository } = this.featuresService;
     const isGm = viewer.view === "GM";
+    // GMs manage their own archived features in the campaign list; everywhere else archived
+    // features only stay while the campaign still uses them.
+    const managesArchived = isGm && !include.catalog;
+    const inUse =
+      !managesArchived && (query.status === undefined || query.status === "ARCHIVED")
+        ? [...(await this.assetsService.listInUseAssetIds(viewer.campaignId))]
+        : undefined;
     const filter: FeatureListFilter = {
       ...this.baseFilter(query),
       system: include.system
         ? {
-            // Global drafts and archived features are not offered to campaigns.
+            // Global drafts are not offered to campaigns.
             statuses: query.status === undefined || query.status === "ACTIVE" ? ["ACTIVE"] : [],
+            archivedAssetIds: inUse,
             rulesetCondition: this.assetsService.repository.compatibleWith(db, viewer.rulesetId),
           }
         : undefined,
@@ -99,8 +111,11 @@ export class FeatureListing {
           ? undefined
           : {
               campaignId: viewer.campaignId,
-              statuses: statusesFor(isGm, query.status),
+              statuses: statusesFor(isGm, query.status).filter(
+                (status) => managesArchived || status !== "ARCHIVED",
+              ),
               assetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+              archivedAssetIds: inUse,
             },
     };
 

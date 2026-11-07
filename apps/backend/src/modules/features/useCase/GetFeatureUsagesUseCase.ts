@@ -26,7 +26,11 @@ export class GetFeatureUsagesUseCase {
     const { feature, asset } = await this.featuresService.requireCatalogFeature(
       { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
       input.featureId,
-      visibleAssetIds,
+      {
+        visibleAssetIds,
+        inUseAssetIds: await this.assetsService.listInUseAssetIds(viewer.campaignId),
+        archived: "always",
+      },
     );
 
     if (feature.campaignId !== viewer.campaignId) {

@@ -29,7 +29,11 @@ export class ResolveFeatureUseCase {
     const found = await this.featuresService.requireCatalogFeature(
       { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
       input.featureId,
-      visibleAssetIds,
+      {
+        visibleAssetIds,
+        inUseAssetIds: await this.assetsService.listInUseAssetIds(viewer.campaignId),
+        archived: "ifInUse",
+      },
     );
     const resolved = await this.featuresService.resolveFeature(found, {
       viewer,

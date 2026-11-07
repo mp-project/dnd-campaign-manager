@@ -55,6 +55,8 @@ function createDefaultTestPorts(): AppPublicPorts {
         rulesetId: "ruleset-default",
         campaignMemberId: actorId ? `member-${actorId}` : null,
         membershipActive: Boolean(actorId),
+        // The most permissive role, so the use case decides in tests with this fake.
+        campaignRole: actorId ? "OWNER" : null,
       }),
     },
   };

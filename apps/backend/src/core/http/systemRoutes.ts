@@ -20,6 +20,7 @@ export function registerApiPingRoute(app: FastifyInstance): void {
   app.withTypeProvider<ZodTypeProvider>().get(
     "/ping",
     {
+      config: { public: "liveness check" },
       schema: {
         tags: ["System"],
         security: [],
@@ -105,6 +106,7 @@ export function registerApiBaseRoute(app: FastifyInstance): void {
   app.withTypeProvider<ZodTypeProvider>().get(
     "/",
     {
+      config: { public: "API metadata" },
       schema: {
         tags: ["System"],
         security: [],

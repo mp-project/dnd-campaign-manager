@@ -5,6 +5,7 @@ import {
 } from "#core/error/http/index";
 import type {
   CampaignContext,
+  CampaignRole,
 } from "#core/http/requestContext";
 import type { SystemRole } from "#core/permissions/roles";
 import {
@@ -27,7 +28,25 @@ export type PermissionDefinition = {
   description: string;
   allowedSystemRoles?: readonly SystemRole[];
   resourcePolicy?: PermissionPolicy;
+  /**
+   * Campaign roles that may use the key on a campaign route (`:campaignId`). Checked by the
+   * authorization hook before the use case; system admins pass. Keys without it are not
+   * campaign-bound (global routes or routes whose campaign comes from the row).
+   */
+  campaignRoles?: readonly CampaignRole[];
+  /**
+   * Answer for a member whose role is not listed: "forbidden" (403, default) or "notFound"
+   * (404) where the use case hides the resource from that role.
+   */
+  campaignRoleDenial?: "forbidden" | "notFound";
 };
+
+/** Every member, also players. */
+export const ANY_CAMPAIGN_ROLE: readonly CampaignRole[] = ["OWNER", "EDITOR", "PLAYER"];
+/** Members who edit content. */
+export const CAMPAIGN_EDITOR_ROLES: readonly CampaignRole[] = ["OWNER", "EDITOR"];
+/** Only the owner (game master). */
+export const CAMPAIGN_OWNER_ROLE: readonly CampaignRole[] = ["OWNER"];
 
 export type SystemRolePermissionAssignments = Partial<
   Record<SystemRole, readonly string[]>
@@ -166,7 +185,37 @@ export class PermissionService {
   }
 
   /**
-   * Lists permissions effectively available for the given context.
+   * Checks the campaign role for a key on a campaign route. Non-members get 404, so a campaign
+   * they do not belong to stays invisible; members with another role get the key's denial.
+   *
+   * @param key Permission key.
+   * @param context Campaign context built from the route's `:campaignId`.
+   */
+  requireCampaignRole(key: string, context: CampaignContext): void {
+    const definition = this.definitionsByKey.get(key);
+
+    if (!definition?.campaignRoles || isSysAdminRole(context.systemRole)) {
+      return;
+    }
+
+    if (!context.campaignRole) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    if (definition.campaignRoles.includes(context.campaignRole)) {
+      return;
+    }
+
+    if (definition.campaignRoleDenial === "notFound") {
+      throw new NotFoundError("Resource not found");
+    }
+
+    throw new ForbiddenError("Insufficient permissions");
+  }
+
+  /**
+   * Lists permissions effectively available for the given context. In a campaign context, keys
+   * bound to campaign roles only count for those roles.
    *
    * @param context Resolved campaign context.
    * @returns Sorted permission keys.
@@ -188,6 +237,16 @@ export class PermissionService {
     for (const definition of this.definitionsByKey.values()) {
       if (definition.allowedSystemRoles?.includes(context.systemRole)) {
         effectivePermissions.add(definition.key);
+      }
+    }
+
+    if (context.campaignRole !== undefined && !isSysAdminRole(context.systemRole)) {
+      for (const key of Array.from(effectivePermissions)) {
+        const roles = this.definitionsByKey.get(key)?.campaignRoles;
+
+        if (roles && (!context.campaignRole || !roles.includes(context.campaignRole))) {
+          effectivePermissions.delete(key);
+        }
       }
     }
 

@@ -1,4 +1,8 @@
-import type { PermissionDefinition } from "#core/permissions/service";
+import {
+  ANY_CAMPAIGN_ROLE,
+  CAMPAIGN_EDITOR_ROLES,
+  type PermissionDefinition,
+} from "#core/permissions/service";
 
 export const MEDIA_PERMISSIONS = {
   read: "media.read",
@@ -16,16 +20,27 @@ export const MEDIA_USER_PERMISSION_KEYS = MEDIA_PERMISSION_KEYS;
 export const mediaPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: MEDIA_PERMISSIONS.read,
+    campaignRoles: ANY_CAMPAIGN_ROLE,
     description: "Read media; players only what is attached for them to assets they may see",
   },
-  { key: MEDIA_PERMISSIONS.upload, description: "Upload files; checked per campaign" },
-  { key: MEDIA_PERMISSIONS.update, description: "Update assignments; checked per campaign" },
+  {
+    key: MEDIA_PERMISSIONS.upload,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
+    description: "Upload files; checked per campaign",
+  },
+  {
+    key: MEDIA_PERMISSIONS.update,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
+    description: "Update assignments; checked per campaign",
+  },
   {
     key: MEDIA_PERMISSIONS.delete,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
     description: "Delete unused files; checked per campaign, global files only for administrators",
   },
   {
     key: MEDIA_PERMISSIONS.attach,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
     description: "Attach files to assets and detach them; checked per campaign",
   },
 ];

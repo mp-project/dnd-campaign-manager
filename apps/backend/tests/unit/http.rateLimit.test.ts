@@ -15,11 +15,11 @@ const rateLimitTestModule: AppModule = {
   name: "rate-limit-test",
   dependencies: [],
   register: async (app: FastifyInstance) => {
-    app.get("/first", async () => ({ ok: true }));
-    app.get("/second", async () => ({ ok: true }));
-    app.get("/items/:id", async () => ({ ok: true }));
-    app.patch("/write", async () => ({ ok: true }));
-    app.post("/sensitive", { config: { rateLimit: SENSITIVE_ROUTE_RATE_LIMIT } }, async () => ({
+    app.get("/first", { config: { public: "test probe" } }, async () => ({ ok: true }));
+    app.get("/second", { config: { public: "test probe" } }, async () => ({ ok: true }));
+    app.get("/items/:id", { config: { public: "test probe" } }, async () => ({ ok: true }));
+    app.patch("/write", { config: { public: "test probe" } }, async () => ({ ok: true }));
+    app.post("/sensitive", { config: { rateLimit: SENSITIVE_ROUTE_RATE_LIMIT, public: "test probe" } }, async () => ({
       ok: true,
     }));
   },

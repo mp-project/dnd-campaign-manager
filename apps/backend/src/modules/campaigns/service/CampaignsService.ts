@@ -85,6 +85,7 @@ export class CampaignsService {
     rulesetId: string;
     campaignMemberId: string | null;
     membershipActive: boolean;
+    campaignRole: "OWNER" | "EDITOR" | "PLAYER" | null;
   } | null> {
     return this.repository.resolveCampaignAccess({
       db: this.db,

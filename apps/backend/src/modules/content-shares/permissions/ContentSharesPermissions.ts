@@ -1,4 +1,8 @@
-import type { PermissionDefinition } from "#core/permissions/service";
+import {
+  ANY_CAMPAIGN_ROLE,
+  CAMPAIGN_EDITOR_ROLES,
+  type PermissionDefinition,
+} from "#core/permissions/service";
 
 export const CONTENT_SHARES_PERMISSIONS = {
   read: "contentShares.read",
@@ -15,9 +19,22 @@ export const CONTENT_SHARES_USER_PERMISSION_KEYS = CONTENT_SHARES_PERMISSION_KEY
 export const contentSharesPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: CONTENT_SHARES_PERMISSIONS.read,
+    campaignRoles: ANY_CAMPAIGN_ROLE,
     description: "Read shares; players only those shared with them",
   },
-  { key: CONTENT_SHARES_PERMISSIONS.create, description: "Share content; checked per campaign" },
-  { key: CONTENT_SHARES_PERMISSIONS.update, description: "Change a share; checked per campaign" },
-  { key: CONTENT_SHARES_PERMISSIONS.revoke, description: "End a share; checked per campaign" },
+  {
+    key: CONTENT_SHARES_PERMISSIONS.create,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
+    description: "Share content; checked per campaign",
+  },
+  {
+    key: CONTENT_SHARES_PERMISSIONS.update,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
+    description: "Change a share; checked per campaign",
+  },
+  {
+    key: CONTENT_SHARES_PERMISSIONS.revoke,
+    campaignRoles: CAMPAIGN_EDITOR_ROLES,
+    description: "End a share; checked per campaign",
+  },
 ];

@@ -1,4 +1,8 @@
-import type { PermissionDefinition } from "#core/permissions/service";
+import {
+  ANY_CAMPAIGN_ROLE,
+  CAMPAIGN_OWNER_ROLE,
+  type PermissionDefinition,
+} from "#core/permissions/service";
 
 export const CAMPAIGNS_PERMISSIONS = {
   create: "campaigns.create",
@@ -27,22 +31,31 @@ export const campaignsPermissionDefinitions: readonly PermissionDefinition[] = [
   },
   {
     key: CAMPAIGNS_PERMISSIONS.read,
+    campaignRoles: ANY_CAMPAIGN_ROLE,
     description: "Read campaigns with membership or ownership",
   },
   {
     key: CAMPAIGNS_PERMISSIONS.update,
+    campaignRoles: CAMPAIGN_OWNER_ROLE,
+    campaignRoleDenial: "notFound",
     description: "Update campaigns in own scope",
   },
   {
     key: CAMPAIGNS_PERMISSIONS.archive,
+    campaignRoles: CAMPAIGN_OWNER_ROLE,
+    campaignRoleDenial: "notFound",
     description: "Archive campaigns in own scope",
   },
   {
     key: CAMPAIGNS_PERMISSIONS.advanceTime,
+    campaignRoles: CAMPAIGN_OWNER_ROLE,
+    campaignRoleDenial: "notFound",
     description: "Advance campaign time in own scope",
   },
   {
     key: CAMPAIGNS_PERMISSIONS.correctTime,
+    campaignRoles: CAMPAIGN_OWNER_ROLE,
+    campaignRoleDenial: "notFound",
     description: "Correct campaign time with explicit reason",
   },
 ];

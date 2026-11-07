@@ -1,4 +1,5 @@
 import type { HistoryPort } from "#core/history/types";
+import type { CampaignRole } from "#core/http/requestContext";
 import type { SystemRole } from "#core/permissions/roles";
 import type { Pool } from "pg";
 
@@ -28,6 +29,8 @@ export type CampaignAccessFacts = {
   rulesetId: string;
   campaignMemberId: string | null;
   membershipActive: boolean;
+  /** Null when the actor is neither owner nor active member. */
+  campaignRole: CampaignRole | null;
 };
 
 export type CampaignFactPort = {

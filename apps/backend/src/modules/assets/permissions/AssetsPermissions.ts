@@ -1,4 +1,7 @@
-import type { PermissionDefinition } from "#core/permissions/service";
+import {
+  ANY_CAMPAIGN_ROLE,
+  type PermissionDefinition,
+} from "#core/permissions/service";
 
 export const ASSETS_PERMISSIONS = {
   read: "assets.read",
@@ -20,6 +23,7 @@ export const ASSETS_USER_PERMISSION_KEYS = [
 export const assetsPermissionDefinitions: readonly PermissionDefinition[] = [
   {
     key: ASSETS_PERMISSIONS.read,
+    campaignRoles: ANY_CAMPAIGN_ROLE,
     description: "Read asset metadata of own campaigns, shared assets or global definitions",
   },
   {
@@ -36,6 +40,7 @@ export const assetsPermissionDefinitions: readonly PermissionDefinition[] = [
   },
   {
     key: ASSETS_PERMISSIONS.readCatalog,
+    campaignRoles: ANY_CAMPAIGN_ROLE,
     description: "Read selectable asset catalogs",
   },
 ];

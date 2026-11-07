@@ -192,6 +192,7 @@ async function resolveCampaignAccessFacts(
     rulesetId: "ruleset-default",
     campaignMemberId: null,
     membershipActive: false,
+    campaignRole: null,
   };
 }
 
@@ -371,6 +372,7 @@ export async function resolveCampaignContext(
     campaignMemberId: accessFacts.membershipActive
       ? accessFacts.campaignMemberId
       : null,
+    campaignRole: accessFacts.membershipActive ? accessFacts.campaignRole : null,
     permissions: [],
   };
 

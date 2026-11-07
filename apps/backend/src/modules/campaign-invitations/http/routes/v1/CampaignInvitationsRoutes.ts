@@ -137,7 +137,10 @@ export function registerCampaignInvitationsRoutes(
   app.post(
     "/invitations/accept",
     {
-      config: { rateLimit: SENSITIVE_ROUTE_RATE_LIMIT },
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.accept },
+      },
       schema: {
         tags,
         operationId: "acceptCampaignInvitation",

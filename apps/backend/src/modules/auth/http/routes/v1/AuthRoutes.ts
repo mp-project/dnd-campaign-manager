@@ -85,6 +85,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration",
       },
       schema: {
         tags,
@@ -109,6 +110,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration",
       },
       schema: {
         tags,
@@ -133,6 +135,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration; the code proves the mailbox",
       },
       schema: {
         tags,
@@ -154,6 +157,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration; the signed link proves the mailbox",
       },
       schema: {
         tags,
@@ -174,6 +178,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "sign-in",
       },
       schema: {
         tags,
@@ -195,6 +200,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "sign-in; the refresh token is the credential",
       },
       schema: {
         tags,
@@ -263,6 +269,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "password reset",
       },
       schema: {
         tags,
@@ -285,6 +292,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "password reset; the reset token is the credential",
       },
       schema: {
         tags,
@@ -379,6 +387,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "OAuth sign-in",
       },
       schema: {
         tags,
@@ -401,6 +410,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "OAuth sign-in; the signed state is the credential",
       },
       schema: {
         tags,
@@ -424,6 +434,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "OAuth sign-in; the signed onboarding cookie is the credential",
       },
       schema: {
         tags,
@@ -495,6 +506,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "the signed link proves the mailbox",
       },
       schema: {
         tags,

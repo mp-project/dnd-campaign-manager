@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, features, mediaFiles, notes, rulesets, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, mediaFiles, notes, rulesets, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -32,6 +32,8 @@ const ID = {
   note: "f0000000-0000-4000-8000-00000000000e",
   featureAsset: "d0000000-0000-4000-8000-00000000000d",
   feature: "f0000000-0000-4000-8000-00000000000f",
+  classAsset: "d0000000-0000-4000-8000-00000000000e",
+  class: "f0000000-0000-4000-8000-000000000010",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -58,6 +60,7 @@ const tagUrl = `/api/v1/campaigns/${ID.campaign}/tags/${ID.tag}`;
 const assetLinkUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/links/${ID.assetLink}`;
 const noteUrl = `/api/v1/campaigns/${ID.campaign}/notes/${ID.note}`;
 const featureUrl = `/api/v1/campaigns/${ID.campaign}/features/${ID.feature}`;
+const classUrl = `/api/v1/campaigns/${ID.campaign}/classes/${ID.class}`;
 
 type Inject = ReturnType<typeof buildTestApp>["injectAs"];
 type Response = Awaited<ReturnType<Inject>>;
@@ -90,7 +93,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof features | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -253,6 +256,28 @@ describe("history rights of every tracked entity", () => {
           content: "Taken over",
           expectedVersion: await rowVersion(notes, ID.note),
           expectedAssetVersion: await rowVersion(assets, ID.noteAsset),
+        }),
+    },
+    class: {
+      id: ID.class,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", classUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(classes, ID.class),
+            expectedAssetVersion: await rowVersion(assets, ID.classAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, classUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(classes, ID.class),
+          expectedAssetVersion: await rowVersion(assets, ID.classAsset),
         }),
     },
     feature: {
@@ -455,6 +480,43 @@ describe("history rights of every tracked entity", () => {
       assetId: ID.featureAsset,
       code: "rage",
       featureType: "ACTIVE",
+    });
+    await db.insert(assets).values({
+      id: ID.classAsset,
+      title: "Barbarian",
+      slug: "barbarian",
+      scope: "CAMPAIGN",
+      origin: "CUSTOM",
+      campaignId: ID.campaign,
+      assetType: "CLASS",
+      status: "ACTIVE",
+    });
+    await db.insert(classes).values({
+      id: ID.class,
+      campaignId: ID.campaign,
+      assetId: ID.classAsset,
+      code: "barbarian",
+      hitDie: "D12",
+      firstLevelHitPoints: 12,
+      fixedHitPointsPerLevel: 7,
+      subclassSelectionLevel: 3,
+      primaryAbilities: { combinationMode: "ALL", abilities: ["str"] },
+      levels: Array.from({ length: 20 }, (_, index) => ({ level: index + 1, featureGrants: [] })),
+      choices: [
+        {
+          key: "subclass",
+          level: 3,
+          grantKey: null,
+          choiceType: "SUBCLASS",
+          minimumSelections: 1,
+          maximumSelections: 1,
+          replacementPolicy: "NONE",
+          optionFilter: { assetTypes: ["SUBCLASS"] },
+          displayOrder: 0,
+          options: [],
+        },
+      ],
+      multiclass: { combinationMode: "ALL", abilityRequirements: [] },
     });
     await db.insert(mediaFiles).values({
       id: ID.media,

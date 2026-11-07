@@ -212,6 +212,21 @@ export class FeaturesService {
     };
   }
 
+  /**
+   * Parameters of the features behind these assets, for source modules that bind them. Assets
+   * without an active feature row are missing from the result.
+   */
+  async listParameters(
+    db: AppDatabase,
+    assetIds: readonly string[],
+  ): Promise<Map<string, FeatureGraph["parameters"]>> {
+    const found = await this.repository.findByAssetIds(db, assetIds);
+
+    return new Map(
+      [...found].map(([assetId, { feature }]) => [assetId, parseFeatureGraph(feature).parameters]),
+    );
+  }
+
   /** Edit routes for asset-links, for all custom features of one request in one query. */
   async findEditRoutes(
     input: { campaignId: string; assetIds: readonly string[] },

@@ -79,6 +79,15 @@ export type AssetDeactivateHook = {
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
 };
 
+/** An asset a definition (class, species …) refers to, with where and which types are allowed. */
+export type AssetReference = {
+  assetId: string;
+  path: (string | number)[];
+  assetTypes: readonly AssetRow["assetType"][];
+};
+
+export type AssetReferenceIssue = { path: (string | number)[]; message: string };
+
 export type CampaignAssetViewer = {
   actorId: string;
   campaignId: string;
@@ -456,6 +465,113 @@ export class AssetsService {
     }
 
     return this.toRecord(db, asset);
+  }
+
+  /**
+   * Checks the assets a stored definition refers to, for rule content modules. `missing` holds
+   * unknown assets, assets of other campaigns and unpublished global ones (404 for the caller);
+   * `issues` wrong types, self references, archived and incompatible assets (409). A global owner
+   * may only refer to active global assets that cover all of its rulesets; a campaign owner to its
+   * own assets and active global ones, compatible with the campaign ruleset.
+   */
+  async collectReferenceIssues(
+    db: AppDatabase,
+    owner: { assetId: string; campaignId: string | null; campaignRulesetId: string | null },
+    references: readonly AssetReference[],
+  ): Promise<{ missing: AssetReferenceIssue[]; issues: AssetReferenceIssue[] }> {
+    const missing: AssetReferenceIssue[] = [];
+    const issues: AssetReferenceIssue[] = [];
+
+    if (references.length === 0) {
+      return { missing, issues };
+    }
+
+    const referenced = await this.findMany(
+      references.map((reference) => reference.assetId),
+      db,
+    );
+    const ownRulesets = owner.campaignId === null ? await this.ownRulesets(db, owner.assetId) : null;
+
+    for (const reference of references) {
+      const target = referenced.get(reference.assetId);
+      const report = (message: string) => issues.push({ path: reference.path, message });
+
+      if (!target || (target.campaignId !== null && target.campaignId !== owner.campaignId)) {
+        missing.push({ path: reference.path, message: "Asset not found" });
+        continue;
+      }
+
+      if (!reference.assetTypes.includes(target.assetType)) {
+        report(`Expected an asset of type ${reference.assetTypes.join(" or ")}`);
+        continue;
+      }
+
+      if (target.id === owner.assetId) {
+        report("An asset cannot refer to itself");
+        continue;
+      }
+
+      if (target.status === "ARCHIVED") {
+        report("The asset is archived");
+        continue;
+      }
+
+      if (owner.campaignId === null) {
+        if (target.scope !== "SYSTEM" || target.status !== "ACTIVE") {
+          report("Global content can only refer to active global assets");
+        } else if (!(await this.coversRulesets(db, target, ownRulesets))) {
+          report("The asset is not available for all rulesets of the referring content");
+        }
+
+        continue;
+      }
+
+      if (target.scope === "SYSTEM" && target.status !== "ACTIVE") {
+        missing.push({ path: reference.path, message: "Asset not found" });
+        continue;
+      }
+
+      if (
+        owner.campaignRulesetId &&
+        !(await this.repository.isCompatible(db, target.id, owner.campaignRulesetId))
+      ) {
+        report("The asset is not available for the campaign ruleset");
+      }
+    }
+
+    return { missing, issues };
+  }
+
+  /** Rulesets of an asset; null for a neutral one, which fits every ruleset. */
+  async ownRulesets(db: AppDatabase, assetId: string): Promise<string[] | null> {
+    const asset = await this.requireAsset(db, assetId);
+
+    if (asset.rulesetPolicy === "NEUTRAL") {
+      return null;
+    }
+
+    return (await this.repository.listRulesetIds(db, [assetId])).get(assetId) ?? [];
+  }
+
+  /** A neutral target fits everything; a restricted one must cover every given ruleset. */
+  private async coversRulesets(
+    db: AppDatabase,
+    target: AssetRow,
+    rulesets: readonly string[] | null,
+  ): Promise<boolean> {
+    if (target.rulesetPolicy === "NEUTRAL") {
+      return true;
+    }
+
+    if (rulesets === null) {
+      return false;
+    }
+
+    const targetRulesets = new Set(
+      (await this.repository.listRulesetIds(db, [target.id])).get(target.id) ?? [],
+    );
+
+    return rulesets.every((rulesetId) => targetRulesets.has(rulesetId));
   }
 
   /**

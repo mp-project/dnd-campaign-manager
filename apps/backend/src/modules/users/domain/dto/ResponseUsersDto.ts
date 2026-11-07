@@ -31,6 +31,8 @@ export const ResponseMeSchema = UserBaseSchema.pick({
   status: true,
 }).extend({
   emailVerificationRequiredCode: z.enum(["EMAIL_NOT_VERIFIED"]).nullable(),
+  // Requested new address that is not confirmed yet; `email` stays in use until then.
+  pendingEmail: UserBaseSchema.shape.email.nullable(),
   settings: ResponseUserSettingsSchema,
   effectiveGlobalPermissions: z.array(z.string().min(1)),
 });
@@ -99,6 +101,7 @@ export function toMeResponse(
     systemRole: user.systemRole,
     status: user.status,
     emailVerificationRequiredCode: user.emailVerifiedAt ? null : "EMAIL_NOT_VERIFIED",
+    pendingEmail: user.pendingEmail,
     settings: toUserSettingsResponse(settings),
     effectiveGlobalPermissions,
   };

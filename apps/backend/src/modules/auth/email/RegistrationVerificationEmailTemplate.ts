@@ -47,3 +47,27 @@ export function renderRegistrationVerificationEmail(input: {
     text,
   };
 }
+
+/**
+ * Sent instead of a code when someone registers with an address that already has a verified
+ * account; the registration answer itself stays the same.
+ */
+export function renderRegistrationExistingAccountEmail(input: {
+  locale: string | undefined;
+  loginUrl: string;
+}): { subject: string; text: string } {
+  const lang = getAuthLang(input.locale).registrationExistingAccountEmail;
+
+  return {
+    subject: lang.subject,
+    text: [
+      lang.intro,
+      "",
+      lang.actionLabel,
+      input.loginUrl,
+      "",
+      lang.resetHint,
+      lang.ignoreHint,
+    ].join("\n"),
+  };
+}

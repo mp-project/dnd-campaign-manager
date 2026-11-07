@@ -70,6 +70,7 @@ export class AuthPasswordService {
         actorId: user.id,
       });
 
+      await this.deps.repository.updateSessionVersion(tx, { userId: user.id, actorId: user.id });
       await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: user.id,
         actorId: user.id,
@@ -178,6 +179,7 @@ export class AuthPasswordService {
         actorId: user.id,
       });
 
+      await this.deps.repository.updateSessionVersion(tx, { userId: user.id, actorId: user.id });
       await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: user.id,
         actorId: user.id,

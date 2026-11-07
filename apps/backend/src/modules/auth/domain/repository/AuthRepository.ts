@@ -66,6 +66,45 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
+  async findSessionState(
+    db: AppDatabase,
+    userId: string,
+  ): Promise<Pick<UserRow, "systemRole" | "status" | "sessionVersion"> | null> {
+    const [row] = await db
+      .select({
+        systemRole: users.systemRole,
+        status: users.status,
+        sessionVersion: users.sessionVersion,
+      })
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+
+    return row ?? null;
+  }
+
+  /**
+   * Ends every access token of the user. Refresh tokens are revoked separately.
+   */
+  async updateSessionVersion(
+    db: AppDatabase,
+    params: { userId: string; actorId?: string },
+  ): Promise<UserRow | null> {
+    const auditActorId = toAuditActorId(params.actorId);
+    const [updated] = await db
+      .update(users)
+      .set({
+        sessionVersion: sql`${users.sessionVersion} + 1`,
+        version: sql`${users.version} + 1`,
+        updatedAt: new Date(),
+        updatedBy: auditActorId,
+      })
+      .where(and(eq(users.id, params.userId), isNull(users.deletedAt)))
+      .returning();
+
+    return updated ?? null;
+  }
+
   async findByEmail(db: AppDatabase, email: string): Promise<UserRow | null> {
     const rows = await db
       .select()
@@ -249,6 +288,79 @@ export class AuthRepository {
     return updated ?? null;
   }
 
+  /**
+   * Stores (or with null removes) the requested address change. A new request replaces the old
+   * one and resets the attempt count.
+   */
+  async updatePendingEmail(
+    db: AppDatabase,
+    params: {
+      userId: string;
+      pending: { email: string; codeHash: string; expiresAt: Date } | null;
+      actorId?: string;
+    },
+  ): Promise<UserRow | null> {
+    const auditActorId = toAuditActorId(params.actorId);
+    const [updated] = await db
+      .update(users)
+      .set({
+        pendingEmail: params.pending?.email ?? null,
+        pendingEmailCodeHash: params.pending?.codeHash ?? null,
+        pendingEmailExpiresAt: params.pending?.expiresAt ?? null,
+        pendingEmailAttemptCount: 0,
+        version: sql`${users.version} + 1`,
+        updatedAt: new Date(),
+        updatedBy: auditActorId,
+      })
+      .where(and(eq(users.id, params.userId), isNull(users.deletedAt)))
+      .returning();
+
+    return updated ?? null;
+  }
+
+  async updatePendingEmailAttemptCount(db: AppDatabase, userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        pendingEmailAttemptCount: sql`${users.pendingEmailAttemptCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)));
+  }
+
+  /**
+   * Moves the confirmed pending address into `email`; it counts as verified from now on.
+   */
+  async updateEmailFromPending(
+    db: AppDatabase,
+    params: { userId: string; verifiedAt: Date; actorId?: string },
+  ): Promise<UserRow | null> {
+    const auditActorId = toAuditActorId(params.actorId);
+    const [updated] = await db
+      .update(users)
+      .set({
+        email: sql`${users.pendingEmail}`,
+        emailVerifiedAt: params.verifiedAt,
+        pendingEmail: null,
+        pendingEmailCodeHash: null,
+        pendingEmailExpiresAt: null,
+        pendingEmailAttemptCount: 0,
+        version: sql`${users.version} + 1`,
+        updatedAt: new Date(),
+        updatedBy: auditActorId,
+      })
+      .where(
+        and(
+          eq(users.id, params.userId),
+          isNull(users.deletedAt),
+          sql`${users.pendingEmail} is not null`,
+        ),
+      )
+      .returning();
+
+    return updated ?? null;
+  }
+
   async createEmailVerificationRequest(
     db: AppDatabase,
     params: {
@@ -293,6 +405,25 @@ export class AuthRepository {
     }
 
     return created;
+  }
+
+  async findPendingEmailVerificationRequestByEmail(
+    db: AppDatabase,
+    email: string,
+  ): Promise<EmailVerificationRequestRow | null> {
+    const [row] = await db
+      .select()
+      .from(emailVerificationRequests)
+      .where(
+        and(
+          eq(emailVerificationRequests.email, email),
+          eq(emailVerificationRequests.status, "PENDING"),
+          isNull(emailVerificationRequests.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return row ?? null;
   }
 
   async findEmailVerificationRequestById(

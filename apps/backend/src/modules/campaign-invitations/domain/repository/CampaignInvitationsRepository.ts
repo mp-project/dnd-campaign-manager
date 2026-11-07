@@ -129,8 +129,17 @@ export class CampaignInvitationsRepository {
 
   async listPendingForUser(
     db: AppDatabase,
-    input: { userId: string; email: string; now: Date },
+    // email is null when the user's address is not verified: it must not reveal invitations.
+    input: { userId: string; email: string | null; now: Date },
   ): Promise<CampaignInvitationRow[]> {
+    const target =
+      input.email === null
+        ? eq(campaignInvitations.targetUserId, input.userId)
+        : or(
+            eq(campaignInvitations.targetUserId, input.userId),
+            eq(campaignInvitations.email, input.email),
+          );
+
     return db
       .select()
       .from(campaignInvitations)
@@ -139,10 +148,7 @@ export class CampaignInvitationsRepository {
           eq(campaignInvitations.status, "PENDING"),
           gt(campaignInvitations.expiresAt, input.now),
           isNull(campaignInvitations.deletedAt),
-          or(
-            eq(campaignInvitations.targetUserId, input.userId),
-            eq(campaignInvitations.email, input.email),
-          ),
+          target,
         ),
       );
   }

@@ -1,4 +1,5 @@
 import type { HistoryPort } from "#core/history/types";
+import type { SystemRole } from "#core/permissions/roles";
 import type { Pool } from "pg";
 
 import {
@@ -40,6 +41,19 @@ export type CampaignFactPort = {
   }): Promise<CampaignAccessFacts | null>;
 };
 
+/**
+ * Checks a verified access token against the current account state, so a lock, a role change,
+ * a password change or a logout everywhere ends the token at once. Returns the role to use for
+ * the request, or null when the token no longer counts.
+ */
+export type SessionStatePort = {
+  resolveActor(input: {
+    actorId: string;
+    systemRole: SystemRole;
+    sessionVersion: number | null;
+  }): Promise<{ systemRole: SystemRole } | null>;
+};
+
 export type AppPublicPorts = {
   permissionService?: PermissionService;
   campaignFactPort?: CampaignFactPort;
@@ -47,6 +61,8 @@ export type AppPublicPorts = {
   emailPort?: EmailPort;
   /** Set by the history module during registration. */
   history?: HistoryPort;
+  /** Set by the auth module unless provided. Without it, no access token is accepted. */
+  sessionStatePort?: SessionStatePort;
 };
 
 export type DependencyRegistry = {

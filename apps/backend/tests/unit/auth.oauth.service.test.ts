@@ -35,6 +35,11 @@ function createUserRow(overrides: Partial<UserRow> = {}): UserRow {
     status: "ACTIVE",
     emailVerifiedAt: new Date("2026-01-01T00:00:00.000Z"),
     lastLoginAt: null,
+    sessionVersion: 0,
+    pendingEmail: null,
+    pendingEmailCodeHash: null,
+    pendingEmailExpiresAt: null,
+    pendingEmailAttemptCount: 0,
     ...overrides,
   };
 }
@@ -308,6 +313,87 @@ describe("AuthOAuthService", () => {
       userAgent: "jest",
       ip: "127.0.0.1",
     });
+  });
+
+  it.each([
+    ["a password account, not verified", { passwordHash: "hash", emailVerifiedAt: null }],
+    ["a password account, verified", { passwordHash: "hash" }],
+    ["an account of another provider", { discordUserId: "discord-sub-9" }],
+  ])("refuses sign-in when the email belongs to %s", async (_label, existing) => {
+    const provider: OAuthProviderPort = {
+      createAuthorizationUrl: jest.fn(),
+      exchangeAndResolveIdentity: jest.fn(async (): Promise<OAuthIdentity> => ({
+        provider: "GOOGLE",
+        subject: "google-sub-attacker",
+        email: "Taken@Example.test",
+        emailVerified: true,
+        displayName: "Someone",
+      })),
+    };
+    const { deps, repository, sessionService, issueSession } = createDeps({
+      provider,
+      repositoryOverrides: {
+        findByEmail: jest.fn(async () => createUserRow({ email: "taken@example.test", ...existing })),
+      },
+    });
+    const service = new AuthOAuthService(deps, sessionService as AuthSessionService);
+    const state = "oauth-state-taken";
+    const stateCookie = encodeSignedJson<OAuthStatePayload>(
+      {
+        state,
+        provider: "GOOGLE",
+        intent: "login",
+        redirectPath: "/",
+        nonce: "nonce-taken",
+        expiresAt: Date.now() + 60_000,
+      },
+      OAUTH_SECRET,
+    );
+
+    await expect(
+      service.completeOAuthCallback({
+        provider: "GOOGLE",
+        code: "test-code",
+        state,
+        stateCookieValue: stateCookie,
+        metadata: { userAgent: "jest", ip: "127.0.0.1" },
+      }),
+    ).rejects.toMatchObject({ code: "OAUTH_EMAIL_IN_USE", statusCode: 409 });
+
+    expect(repository.updateOAuthIdentity).not.toHaveBeenCalled();
+    expect(issueSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses to finish a registration whose email was taken in the meantime", async () => {
+    const { deps, repository, sessionService, issueSession } = createDeps({
+      repositoryOverrides: {
+        findByEmail: jest.fn(async () => createUserRow({ email: "fresh@example.test" })),
+      },
+    });
+    const service = new AuthOAuthService(deps, sessionService as AuthSessionService);
+    const onboardingCookie = encodeSignedJson<OAuthOnboardingPayload>(
+      {
+        provider: "DISCORD",
+        subject: "discord-sub-123",
+        email: "fresh@example.test",
+        displayName: "Fresh User",
+        redirectPath: "/",
+        intent: "register",
+        expiresAt: Date.now() + 60_000,
+      },
+      OAUTH_SECRET,
+    );
+
+    await expect(
+      service.completeOAuthRegistration(
+        { displayName: "Fresh User", privacyAccepted: true },
+        onboardingCookie,
+        { userAgent: "jest", ip: "127.0.0.1" },
+      ),
+    ).rejects.toMatchObject({ code: "OAUTH_EMAIL_IN_USE" });
+
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(issueSession).not.toHaveBeenCalled();
   });
 
   it("rejects invalid oauth state without contacting provider", async () => {

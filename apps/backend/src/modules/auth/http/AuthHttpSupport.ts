@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 import type { ClientMetadata } from "#src/modules/auth/service/AuthService.contracts";
+import { normalizeRedirectPath } from "#src/modules/auth/service/AuthService.utils";
 import { parseCookieHeader, serializeCookie } from "#src/modules/auth/utils/cookies";
 
 export type AuthHttpOptions = {
@@ -132,7 +133,7 @@ export class AuthHttpSupport {
   ): string {
     const url = new URL("/auth/callback", this.options.frontendOrigin);
     url.searchParams.set("status", status);
-    url.searchParams.set("redirect", redirectPath);
+    url.searchParams.set("redirect", normalizeRedirectPath(redirectPath));
 
     if (extraQuery) {
       for (const [key, value] of Object.entries(extraQuery)) {
@@ -144,7 +145,7 @@ export class AuthHttpSupport {
   }
 
   frontendRedirectUrl(redirectPath: string): string {
-    return new URL(redirectPath, this.options.frontendOrigin).toString();
+    return new URL(normalizeRedirectPath(redirectPath), this.options.frontendOrigin).toString();
   }
 
   private readCookie(request: FastifyRequest, key: string): string | null {

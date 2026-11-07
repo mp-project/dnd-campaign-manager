@@ -85,7 +85,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   );
 
   registerSecurityPlugins(app, env);
-  registerAuthPlugin(app, env);
+  registerAuthPlugin(app, env, container);
   registerRequestContextPlugin(app);
   registerCampaignContextPlugin(app, container);
   registerAuthorizationPlugin(app, container);

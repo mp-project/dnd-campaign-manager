@@ -182,13 +182,13 @@ describe("auth attempt tracking", () => {
       displayName: "Verify Me",
       password: PASSWORD,
     });
-    const { verificationId, verificationCode } = registered.json();
+    expect(registered.statusCode).toBe(202);
+    const verificationCode = sentEmails.at(-1)?.text.match(/(\d{6})/)?.[1] as string;
     const wrongCode = verificationCode === "000000" ? "000001" : "000000";
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const response = await post("register/verify-email", {
         email,
-        verificationId,
         verificationCode: wrongCode,
       });
 
@@ -197,23 +197,21 @@ describe("auth attempt tracking", () => {
 
     const response = await post("register/verify-email", {
       email,
-      verificationId,
       verificationCode,
     });
 
     expect(response.statusCode).toBe(409);
-    expect(response.json().error.message).toBe("Verification request is no longer pending");
+    expect(response.json().error.message).toBe("Verification code is invalid or expired");
   }, 30_000);
 
   it("blocks verification for an email after repeated failures", async () => {
     const payload = {
       email: "missing@example.test",
-      verificationId: "99999999-9999-4999-8999-999999999999",
       verificationCode: "123456",
     };
 
     for (let attempt = 0; attempt < 10; attempt += 1) {
-      expect((await post("register/verify-email", payload)).statusCode).toBe(404);
+      expect((await post("register/verify-email", payload)).statusCode).toBe(409);
     }
 
     expect((await post("register/verify-email", payload)).statusCode).toBe(429);

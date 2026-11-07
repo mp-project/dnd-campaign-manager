@@ -21,8 +21,6 @@ export class VerifyRegistrationEmailByLinkController extends AbstractController 
         this.http.clientMetadata(request),
       );
 
-      this.http.setSessionCookies(reply, result.session);
-
       return reply.redirect(this.http.frontendRedirectUrl(result.redirectPath));
     });
 }

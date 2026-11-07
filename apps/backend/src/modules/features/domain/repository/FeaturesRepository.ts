@@ -1,4 +1,5 @@
 import { and, asc, eq, gt, ilike, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
+import { escapeLike } from "#core/db/escapeLike";
 
 import type { AppDatabase } from "#core/db/pool";
 import { decodeStringCursor } from "#core/http/listResponse";
@@ -194,8 +195,4 @@ export class FeaturesRepository {
 
     return or(gt(features.code, value), and(eq(features.code, value), gt(features.id, id)));
   }
-}
-
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }

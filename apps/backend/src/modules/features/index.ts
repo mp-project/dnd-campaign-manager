@@ -20,3 +20,11 @@ export type {
   ResolvedFeatureGraph,
 } from "#src/modules/features/domain/FeatureResolver";
 export { FeaturesService } from "#src/modules/features/service/FeaturesService";
+export {
+  checkTypedValue,
+  DieValueSchema,
+  DistanceValueSchema,
+  type FeatureParameter,
+  featureKeyDto,
+} from "#src/modules/features/domain/dto/FeatureDefinitionDto";
+export { ABILITIES, CONTEXT_VALUE_KEYS } from "#src/modules/features/domain/FeatureDefinition";

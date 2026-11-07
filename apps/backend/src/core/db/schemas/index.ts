@@ -99,3 +99,8 @@ export {
   featureStackingModeEnum,
   featureTypeEnum,
 } from "../../../modules/features/domain/entities/FeaturesTable.js";
+
+export {
+  classes,
+  classHitDieEnum,
+} from "../../../modules/classes/domain/entities/ClassesTable.js";

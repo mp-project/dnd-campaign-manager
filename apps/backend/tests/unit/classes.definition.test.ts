@@ -418,7 +418,7 @@ describe("class views", () => {
     const definition = ClassDefinitionSchema.parse({
       ...base,
       levels: levels(20, {
-        1: base.levels[0]?.featureGrants,
+        1: base.levels[0]?.featureGrants ?? [],
         // The hidden upgrade asks for a style; the style selects a grant that binds the choice.
         9: [
           ...(base.levels[8]?.featureGrants ?? []),

@@ -1,4 +1,5 @@
 import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { escapeLike } from "#core/db/escapeLike";
 
 import type { AppDatabase } from "#core/db/pool";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
@@ -70,43 +71,32 @@ export class UsersRepository {
       .where(and(inArray(users.id, userIds), isNull(users.deletedAt)));
   }
 
-  async isActiveEmailTaken(
-    db: AppDatabase,
-    email: string,
-    excludedUserId?: string,
-  ): Promise<boolean> {
-    const where = [eq(users.email, email), isNull(users.deletedAt)];
-
-    if (excludedUserId) {
-      where.push(ne(users.id, excludedUserId));
-    }
-
-    const rows = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(...where))
-      .limit(1);
-
-    return rows.length > 0;
-  }
-
+  /**
+   * `searchEmail` is only for system admins: matching addresses would tell everybody else which
+   * email belongs to which account.
+   */
   async list(
     db: AppDatabase,
     filter: UserListFilter,
+    options: { searchEmail: boolean },
   ): Promise<UserRow[]> {
     return db
       .select()
       .from(users)
-      .where(and(...this.buildListWhere(filter)))
+      .where(and(...this.buildListWhere(filter, options)))
       .orderBy(asc(users.createdAt))
       .limit(filter.limit);
   }
 
-  async count(db: AppDatabase, filter: UserListFilter): Promise<number> {
+  async count(
+    db: AppDatabase,
+    filter: UserListFilter,
+    options: { searchEmail: boolean },
+  ): Promise<number> {
     const [row] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(users)
-      .where(and(...this.buildListWhere(filter)));
+      .where(and(...this.buildListWhere(filter, options)));
 
     return row?.total ?? 0;
   }
@@ -195,11 +185,6 @@ export class UsersRepository {
 
     if (params.patch.displayName !== undefined) {
       updateInput.displayName = params.patch.displayName;
-    }
-
-    if (params.patch.email !== undefined) {
-      updateInput.email = params.patch.email;
-      updateInput.emailVerifiedAt = null;
     }
 
     const auditActorId = toAuditActorId(params.actorId);
@@ -300,7 +285,7 @@ export class UsersRepository {
     return { user, settings };
   }
 
-  private buildListWhere(filter: UserListFilter) {
+  private buildListWhere(filter: UserListFilter, options: { searchEmail: boolean }) {
     const where = [isNull(users.deletedAt)];
 
     if (!filter.includeDisabled) {
@@ -316,9 +301,11 @@ export class UsersRepository {
     }
 
     if (filter.search) {
+      const pattern = `%${escapeLike(filter.search)}%`;
       const searchCondition = or(
-        ilike(users.email, `%${filter.search}%`),
-        ilike(users.displayName, `%${filter.search}%`),
+        options.searchEmail ? ilike(users.email, pattern) : undefined,
+        ilike(users.displayName, pattern),
+        ilike(users.userTag, pattern),
       );
 
       if (searchCondition) {

@@ -6,9 +6,11 @@ services:
     environment:
       POSTGRES_DB: dnd_campaign_manager
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # No default: every environment sets its own password in the root .env.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}
+    # The database runs in every profile; only the local host may reach it, never other machines.
     ports:
-      - "${DB_PORT}:${DB_INTERNAL_PORT}"
+      - "127.0.0.1:${DB_PORT}:${DB_INTERNAL_PORT}"
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
@@ -69,7 +71,7 @@ services:
       HOST: ${CONTAINER_HOST}
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
@@ -109,7 +111,7 @@ services:
       HOST: ${CONTAINER_HOST}
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
@@ -149,7 +151,7 @@ services:
       HOST: ${CONTAINER_HOST}
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       STORAGE_DRIVER: s3
       STORAGE_S3_ENDPOINT: ${COMPOSE_STORAGE_S3_ENDPOINT:-http://rustfs:9000}
@@ -203,7 +205,7 @@ services:
     tmpfs:
       - /var/lib/postgresql
     ports:
-      - "${TEST_DB_PORT}:${DB_TEST_INTERNAL_PORT}"
+      - "127.0.0.1:${TEST_DB_PORT}:${DB_TEST_INTERNAL_PORT}"
     environment:
       POSTGRES_DB: dnd_campaign_manager_test
       POSTGRES_USER: postgres
@@ -247,7 +249,7 @@ services:
       HOST: 127.0.0.1
       PORT: ${BACKEND_PORT}
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
-      DATABASE_URL: postgres://postgres:postgres@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}

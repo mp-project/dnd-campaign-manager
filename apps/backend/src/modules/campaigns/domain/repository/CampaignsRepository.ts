@@ -151,6 +151,7 @@ export class CampaignsRepository {
     rulesetId: string;
     campaignMemberId: string | null;
     membershipActive: boolean;
+    campaignRole: "OWNER" | "EDITOR" | "PLAYER" | null;
   } | null> {
     const campaign = await this.findById(input.db, input.campaignId);
 
@@ -164,6 +165,7 @@ export class CampaignsRepository {
         rulesetId: campaign.rulesetId,
         campaignMemberId: null,
         membershipActive: false,
+        campaignRole: null,
       };
     }
 
@@ -176,6 +178,7 @@ export class CampaignsRepository {
         rulesetId: campaign.rulesetId,
         campaignMemberId: membership?.id ?? null,
         membershipActive: true,
+        campaignRole: "OWNER",
       };
     }
 
@@ -185,6 +188,7 @@ export class CampaignsRepository {
         rulesetId: campaign.rulesetId,
         campaignMemberId: null,
         membershipActive: false,
+        campaignRole: null,
       };
     }
 
@@ -193,6 +197,7 @@ export class CampaignsRepository {
       rulesetId: campaign.rulesetId,
       campaignMemberId: membership.id,
       membershipActive: true,
+      campaignRole: membership.role,
     };
   }
 

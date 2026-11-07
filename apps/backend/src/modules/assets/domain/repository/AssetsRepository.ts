@@ -284,7 +284,25 @@ export class AssetsRepository {
     return Boolean(row);
   }
 
-  private compatibleWith(db: AppDatabase, rulesetId: string): SQL {
+  /** Active custom assets released to the players of the campaign. */
+  async listReleasedIds(db: AppDatabase, campaignId: string): Promise<string[]> {
+    const rows = await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(
+        and(
+          eq(assets.campaignId, campaignId),
+          eq(assets.releasedToPlayers, true),
+          eq(assets.status, "ACTIVE"),
+          isNull(assets.deletedAt),
+        ),
+      );
+
+    return rows.map((row) => row.id);
+  }
+
+  /** Condition on `assets`: neutral, or restricted to a set that contains the ruleset. */
+  compatibleWith(db: AppDatabase, rulesetId: string): SQL {
     return or(
       eq(assets.rulesetPolicy, "NEUTRAL"),
       exists(

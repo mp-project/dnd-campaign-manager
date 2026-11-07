@@ -38,6 +38,8 @@ type TrackedAssetDeps = {
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
   gmRevertibleActions: ReadonlySet<string>;
+  /** Whether custom assets of this type may be released to players. */
+  isReleasable(assetType: AssetRow["assetType"]): boolean;
 };
 
 /**
@@ -78,6 +80,7 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       assetFamilyId: field.value(),
       rulesetPolicy: field.value(),
       sourceReference: field.value(),
+      releasedToPlayers: field.value(),
       // Set once when the asset is created.
       assetType: field.ignore(),
       scope: field.ignore(),
@@ -94,6 +97,10 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
     validate: (next, current) => {
       if (current.status === "ARCHIVED" && next.status === "ARCHIVED") {
         throw new ConflictError("Archived assets cannot be modified");
+      }
+
+      if (next.releasedToPlayers && !current.releasedToPlayers) {
+        assertReleasable(next, deps.isReleasable);
       }
 
       const rulesetIds = next.rulesetIds as readonly string[];
@@ -121,3 +128,19 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
 }
 
 export type TrackedAsset = ReturnType<typeof createTrackedAsset>;
+
+/** Only custom content of a type a module registered as releasable can be released. */
+export function assertReleasable(
+  asset: Pick<AssetRow, "scope" | "assetType">,
+  isReleasable: (assetType: AssetRow["assetType"]) => boolean,
+): void {
+  if (asset.scope !== "CAMPAIGN") {
+    throw new ValidationError("Global content is always available and needs no release");
+  }
+
+  if (!isReleasable(asset.assetType)) {
+    throw new ValidationError("Assets of this type cannot be released to players", {
+      assetType: asset.assetType,
+    });
+  }
+}

@@ -43,6 +43,13 @@ export const users = pgTable(
     status: userStatusEnum("status").notNull().default("ACTIVE"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    // Raised to end every access token at once (lock, role change, password, logout everywhere).
+    sessionVersion: integer("session_version").notNull().default(0),
+    // A requested address change; `email` only changes once the code sent to it is confirmed.
+    pendingEmail: varchar("pending_email", { length: 320 }),
+    pendingEmailCodeHash: text("pending_email_code_hash"),
+    pendingEmailExpiresAt: timestamp("pending_email_expires_at", { withTimezone: true }),
+    pendingEmailAttemptCount: integer("pending_email_attempt_count").notNull().default(0),
   },
   (table) => [
     uniqueIndex("users_email_active_unique_idx")

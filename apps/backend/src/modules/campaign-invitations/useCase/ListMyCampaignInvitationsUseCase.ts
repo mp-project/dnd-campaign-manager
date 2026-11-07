@@ -6,7 +6,8 @@ import {
 import { CampaignInvitationsService } from "#src/modules/campaign-invitations/service/CampaignInvitationsService";
 
 /**
- * Lists the pending invitations addressed to the current user (by user id or email).
+ * Lists the pending invitations addressed to the current user (by user id, or by email once the
+ * address is verified).
  */
 export class ListMyCampaignInvitationsUseCase {
   constructor(private readonly invitationsService: CampaignInvitationsService) {}
@@ -20,7 +21,8 @@ export class ListMyCampaignInvitationsUseCase {
 
     const invitations = await repository.listPendingForUser(db, {
       userId: user.id,
-      email: user.email.toLowerCase(),
+      // Only a verified address may see invitations sent to it.
+      email: user.emailVerifiedAt ? user.email.toLowerCase() : null,
       now,
     });
 

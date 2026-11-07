@@ -87,7 +87,7 @@ describe("users HTTP routes", () => {
     expect(settingsRows).toHaveLength(1);
   });
 
-  it("normalizes updated email and resets verification", async () => {
+  it("does not change the email through the profile patch", async () => {
     const userId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
     await seedUser({
@@ -109,12 +109,11 @@ describe("users HTTP routes", () => {
       },
     );
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json().email).toBe("new.email@example.test");
+    expect(response.statusCode).toBe(400);
 
     const rows = await db.select().from(users).where(eq(users.id, userId));
-    expect(rows[0]?.email).toBe("new.email@example.test");
-    expect(rows[0]?.emailVerifiedAt).toBeNull();
+    expect(rows[0]?.email).toBe("old@example.test");
+    expect(rows[0]?.emailVerifiedAt).not.toBeNull();
   });
 
   it("allows users to read player accounts but not elevated users", async () => {
@@ -341,5 +340,34 @@ describe("users HTTP routes", () => {
     );
 
     expect(adminSelfDemotion.statusCode).toBe(409);
+  });
+
+  it("F-06: searches email addresses only for system admins and matches wildcards literally", async () => {
+    const searcher = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const target = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const admin = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+
+    await seedUser({ id: searcher, email: "searcher@example.test", displayName: "Searcher", systemRole: "USER" });
+    await seedUser({ id: target, email: "ceo@secret-corp.test", displayName: "Quiet Bard", systemRole: "USER" });
+    await seedUser({ id: admin, email: "root@example.test", displayName: "Root", systemRole: "ADMIN" });
+
+    const search = (actorId: string, systemRole: SystemRole, term: string) =>
+      injectAs(
+        { actorId, systemRole },
+        { method: "GET", url: `/api/v1/users?limit=20&search=${encodeURIComponent(term)}` },
+      );
+
+    const byEmail = await search(searcher, "USER", "ceo@secret-corp.test");
+    expect(byEmail.statusCode).toBe(200);
+    expect(byEmail.json().data).toHaveLength(0);
+
+    const byName = await search(searcher, "USER", "Quiet");
+    expect(byName.json().data).toEqual([expect.objectContaining({ displayName: "Quiet Bard" })]);
+
+    const wildcard = await search(searcher, "USER", "%");
+    expect(wildcard.json().data).toHaveLength(0);
+
+    const asAdmin = await search(admin, "ADMIN", "secret-corp");
+    expect(asAdmin.json().data).toEqual([expect.objectContaining({ id: target })]);
   });
 });

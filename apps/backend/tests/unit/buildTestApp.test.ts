@@ -10,6 +10,7 @@ const probeModule: AppModule = {
     app.get(
       "/probe/:campaignId",
       {
+        config: { public: "test probe" },
         schema: {
           params: z.strictObject({
             campaignId: z.string().min(1),

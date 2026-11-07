@@ -5,6 +5,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { OAuthProvider } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import type { AuthRepository } from "#src/modules/auth/domain/repository/AuthRepository";
 import { AuthError } from "#src/modules/auth/error/http/AuthError";
+import { AuthEmailChangeService } from "#src/modules/auth/service/AuthEmailChangeService";
 import { AuthOAuthService } from "#src/modules/auth/service/AuthOAuthService";
 import { AuthPasswordService } from "#src/modules/auth/service/AuthPasswordService";
 import { AuthAttemptService } from "#src/modules/auth/service/AuthAttemptService";
@@ -32,6 +33,8 @@ export class AuthService {
   public readonly oauthService: AuthOAuthService;
 
   public readonly deviceService: AuthTrustedDeviceService;
+
+  public readonly emailChangeService: AuthEmailChangeService;
 
   constructor(
     db: AppDatabase,
@@ -82,6 +85,12 @@ export class AuthService {
       this.deviceService,
     );
     this.oauthService = new AuthOAuthService(deps, this.sessionService);
+    this.emailChangeService = new AuthEmailChangeService(
+      deps,
+      this.assertAuthenticated.bind(this),
+      passwordSupport.verifyPassword.bind(passwordSupport),
+      attempts,
+    );
   }
 
   assertAuthenticated(context: RequestContext): string {

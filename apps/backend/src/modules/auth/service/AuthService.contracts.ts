@@ -7,7 +7,6 @@ import type {
 import type { AuthResponseDto } from "#src/modules/auth/domain/dto/AuthResponseDto";
 import type {
   AuthRepository,
-  EmailVerificationRequestRow,
   UserRow,
 } from "#src/modules/auth/domain/repository/AuthRepository";
 import type { OAuthProviderPort } from "#src/modules/auth/service/oauth/OAuthProviderPort";
@@ -41,12 +40,6 @@ export type OAuthOnboardingPayload = {
   redirectPath: string;
   intent: OAuthIntent;
   expiresAt: number;
-};
-
-export type RegisterUserResult = {
-  user: UserRow;
-  verificationRequest: EmailVerificationRequestRow;
-  verificationCode: string;
 };
 
 export type VerifyRegistrationLinkResult = {

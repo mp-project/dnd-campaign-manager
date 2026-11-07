@@ -25,6 +25,7 @@ import type {
   AssetsRepository,
 } from "#src/modules/assets/domain/repository/AssetsRepository";
 import {
+  assertReleasable,
   createTrackedAsset,
   GM_REVERTIBLE_ASSET_ACTIONS,
   type TrackedAsset,
@@ -104,6 +105,7 @@ export class AssetsService {
   private readonly archiveGuards: AssetArchiveGuard[] = [];
   private readonly deactivateHooks: AssetDeactivateHook[] = [];
   private readonly gmRevertibleActions = new Set<string>(GM_REVERTIBLE_ASSET_ACTIONS);
+  private readonly releasableTypes = new Set<AssetRow["assetType"]>();
   public readonly trackedAsset: TrackedAsset;
 
   constructor(
@@ -120,6 +122,7 @@ export class AssetsService {
         return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
       },
       gmRevertibleActions: this.gmRevertibleActions,
+      isReleasable: (assetType) => this.releasableTypes.has(assetType),
       assertCanArchive: async (asset, db) => {
         for (const guard of this.archiveGuards) {
           await guard.assertCanArchive(asset, db);
@@ -131,6 +134,31 @@ export class AssetsService {
         }
       },
     });
+  }
+
+  /**
+   * Rule content modules (features, classes, spells …) register their type, so custom assets of it
+   * can be released to the players of their campaign. Released active assets are visible to every
+   * player of the campaign; story content uses content shares instead.
+   */
+  registerReleasableType(assetType: AssetRow["assetType"]): void {
+    if (this.releasableTypes.has(assetType)) {
+      throw new Error(`Asset type '${assetType}' is already releasable`);
+    }
+
+    if (this.releasableTypes.size === 0) {
+      this.registerVisibilityProvider({
+        name: "released",
+        listVisibleAssetIds: (input, db) =>
+          this.repository.listReleasedIds(db, input.campaignId),
+      });
+    }
+
+    this.releasableTypes.add(assetType);
+  }
+
+  isReleasable(assetType: AssetRow["assetType"]): boolean {
+    return this.releasableTypes.has(assetType);
   }
 
   registerVisibilityProvider(provider: AssetVisibilityProvider): void {
@@ -238,6 +266,13 @@ export class AssetsService {
       await this.assertFamilyMatches(db, data.assetFamilyId, data.assetType);
     }
 
+    if (data.releasedToPlayers) {
+      assertReleasable(
+        { scope: isSystem ? "SYSTEM" : "CAMPAIGN", assetType: data.assetType },
+        (assetType) => this.releasableTypes.has(assetType),
+      );
+    }
+
     const slug = data.slug ?? slugify(data.title);
 
     if (!slug) {
@@ -257,6 +292,7 @@ export class AssetsService {
         assetFamilyId: data.assetFamilyId ?? null,
         rulesetPolicy: data.rulesetPolicy,
         sourceReference: data.sourceReference ?? null,
+        releasedToPlayers: data.releasedToPlayers,
         rulesetIds,
       }),
     );

@@ -19,10 +19,15 @@ type VerifiedAccessToken = {
   systemRole: SystemRole;
 };
 
+type SignedAccessToken = VerifiedAccessToken & {
+  sessionVersion: number | null;
+};
+
 type AccessTokenPayload = JwtPayload & {
   actorId?: unknown;
   systemRole?: unknown;
   role?: unknown;
+  sv?: unknown;
 };
 
 const AUTH_COOKIE_KEYS = ["access_token", "auth_token", "token"] as const;
@@ -130,7 +135,7 @@ function resolveSystemRole(payload: AccessTokenPayload): SystemRole | null {
 async function verifyAccessToken(
   token: string,
   env: AppEnv,
-): Promise<VerifiedAccessToken | null> {
+): Promise<SignedAccessToken | null> {
   try {
     const verificationResult = jsonwebtoken.verify(token, env.JWT_ACCESS_SECRET, {
       algorithms: ["HS256", "HS384", "HS512"],
@@ -153,6 +158,7 @@ async function verifyAccessToken(
     return {
       actorId,
       systemRole,
+      sessionVersion: Number.isSafeInteger(payload.sv) ? (payload.sv as number) : null,
     };
   } catch {
     return null;
@@ -186,6 +192,7 @@ async function resolveCampaignAccessFacts(
     rulesetId: "ruleset-default",
     campaignMemberId: null,
     membershipActive: false,
+    campaignRole: null,
   };
 }
 
@@ -237,14 +244,18 @@ export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void
 }
 
 /**
- * Authenticates a request by verifying cookie or bearer JWT values.
+ * Authenticates a request by verifying cookie or bearer JWT values. A valid signature is not
+ * enough: the session state port must confirm the account and the session version, and it
+ * supplies the current role. Without the port, no token is accepted.
  *
  * @param request Fastify request to enrich with auth fields.
  * @param env Validated runtime environment.
+ * @param container Application container holding the session state port.
  */
 export async function authenticate(
   request: FastifyRequest,
   env: AppEnv,
+  container: AppContainer,
 ): Promise<void> {
   request.authToken = null;
   request.verifiedAccessToken = null;
@@ -256,14 +267,23 @@ export async function authenticate(
     return;
   }
 
-  const verifiedToken = await verifyAccessToken(token, env);
+  const signedToken = await verifyAccessToken(token, env);
 
-  if (!verifiedToken) {
+  if (!signedToken) {
+    return;
+  }
+
+  const actor = await container.ports.sessionStatePort?.resolveActor(signedToken);
+
+  if (!actor) {
     return;
   }
 
   request.authToken = token;
-  request.verifiedAccessToken = verifiedToken;
+  request.verifiedAccessToken = {
+    actorId: signedToken.actorId,
+    systemRole: actor.systemRole,
+  };
 }
 
 /**
@@ -271,13 +291,18 @@ export async function authenticate(
  *
  * @param app Fastify app instance.
  * @param env Validated runtime environment.
+ * @param container Application container holding the session state port.
  */
-export function registerAuthPlugin(app: FastifyInstance, env: AppEnv): void {
+export function registerAuthPlugin(
+  app: FastifyInstance,
+  env: AppEnv,
+  container: AppContainer,
+): void {
   app.decorateRequest("authToken", null as string | null);
   app.decorateRequest("verifiedAccessToken", null as VerifiedAccessToken | null);
 
   app.addHook("onRequest", async (request) => {
-    await authenticate(request, env);
+    await authenticate(request, env, container);
   });
 }
 
@@ -347,6 +372,7 @@ export async function resolveCampaignContext(
     campaignMemberId: accessFacts.membershipActive
       ? accessFacts.campaignMemberId
       : null,
+    campaignRole: accessFacts.membershipActive ? accessFacts.campaignRole : null,
     permissions: [],
   };
 

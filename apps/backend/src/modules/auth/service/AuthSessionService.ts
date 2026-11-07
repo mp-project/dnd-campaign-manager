@@ -187,6 +187,7 @@ export class AuthSessionService {
 
   async logoutAll(actorId: string): Promise<void> {
     await this.deps.transactionManager.inTransaction(async (tx) => {
+      await this.deps.repository.updateSessionVersion(tx, { userId: actorId, actorId });
       await this.deps.repository.deleteTrustedDevicesForUser(tx, actorId);
       await this.deps.repository.updateRefreshTokensRevokedForUser(tx, {
         userId: actorId,
@@ -202,6 +203,27 @@ export class AuthSessionService {
         actorId: userId,
       });
     });
+  }
+
+  /**
+   * Decides whether a signed access token still counts: the account must exist and be active,
+   * and the token must carry the current session version. The role comes from the database.
+   */
+  async resolveActor(input: {
+    actorId: string;
+    sessionVersion: number | null;
+  }): Promise<{ systemRole: UserRow["systemRole"] } | null> {
+    if (input.sessionVersion === null) {
+      return null;
+    }
+
+    const state = await this.deps.repository.findSessionState(this.deps.db, input.actorId);
+
+    if (!state || state.status !== "ACTIVE" || state.sessionVersion !== input.sessionVersion) {
+      return null;
+    }
+
+    return { systemRole: state.systemRole };
   }
 
   assertUserCanAuthenticate(user: UserRow): void {
@@ -283,6 +305,7 @@ export class AuthSessionService {
     return jsonwebtoken.sign(
       {
         systemRole: user.systemRole,
+        sv: user.sessionVersion,
       },
       this.deps.config.jwtAccessSecret,
       {

@@ -88,11 +88,40 @@ export type AreaSpecification = {
   unit: "ft" | "m";
 };
 
+export const DIE_FACES = [2, 3, 4, 6, 8, 10, 12, 20, 100] as const;
+
+export type DieFaces = (typeof DIE_FACES)[number];
+
+/**
+ * Dice to roll, such as `2d6`; the count may grow with level or parameters. `ref` names dice the
+ * caller provides, such as a die that grows with level (`scale.martial_arts`).
+ */
+export type DiceFormula =
+  | {
+      count: ValueExpression;
+      faces: DieFaces;
+    }
+  | {
+      ref: string;
+    };
+
+export const ADVANTAGE_MODES = ["ADVANTAGE", "DISADVANTAGE"] as const;
+
+/**
+ * What an effect does. Amounts are expressions, so they can depend on levels, parameters and
+ * scaling values; rolls carry their dice separately from the flat part.
+ */
 export type EffectPayload =
   | {
       type: "MODIFIER";
       stat: string;
-      delta: number;
+      amount: ValueExpression;
+    }
+  | {
+      /** Sets a base value, such as armor class without armor; the highest one applies. */
+      type: "BASE_VALUE";
+      stat: string;
+      value: ValueExpression;
     }
   | {
       type: "GRANT";
@@ -100,18 +129,25 @@ export type EffectPayload =
       value: string;
     }
   | {
+      type: "ADVANTAGE";
+      mode: (typeof ADVANTAGE_MODES)[number];
+      on: string;
+    }
+  | {
       type: "RESOURCE";
       resourceKey: string;
-      amount: number;
+      amount: ValueExpression;
     }
   | {
       type: "DAMAGE";
       damageType: string;
-      amount: ValueExpression;
+      dice?: DiceFormula | undefined;
+      amount?: ValueExpression | undefined;
     }
   | {
       type: "HEAL";
-      amount: ValueExpression;
+      dice?: DiceFormula | undefined;
+      amount?: ValueExpression | undefined;
     }
   | {
       type: "MOVEMENT";
@@ -123,7 +159,21 @@ export type EffectPayload =
       message: string;
     };
 
-const valueExpressionSchema: z.ZodType<ValueExpression> = z.lazy(() =>
+export type EffectPayloadType = EffectPayload["type"];
+
+export const EFFECT_PAYLOAD_TYPES = [
+  "MODIFIER",
+  "BASE_VALUE",
+  "GRANT",
+  "ADVANTAGE",
+  "RESOURCE",
+  "DAMAGE",
+  "HEAL",
+  "MOVEMENT",
+  "INFORMATION",
+] as const satisfies readonly EffectPayloadType[];
+
+export const valueExpressionSchema: z.ZodType<ValueExpression> = z.lazy(() =>
   z.union([
     z.strictObject({
       type: z.literal("CONST"),
@@ -140,7 +190,7 @@ const valueExpressionSchema: z.ZodType<ValueExpression> = z.lazy(() =>
   ]),
 );
 
-const predicateExpressionSchema: z.ZodType<PredicateExpression> = z.lazy(() =>
+export const predicateExpressionSchema: z.ZodType<PredicateExpression> = z.lazy(() =>
   z.union([
     z.strictObject({
       type: z.literal("ALL"),
@@ -197,46 +247,105 @@ const areaSpecificationSchema: z.ZodType<AreaSpecification> = z.strictObject({
   unit: z.enum(["ft", "m"]),
 });
 
-const targetSpecificationSchema: z.ZodType<TargetSpecification> = z.strictObject({
+export const targetSpecificationSchema: z.ZodType<TargetSpecification> = z.strictObject({
   targetType: z.enum(["SELF", "CREATURE", "LOCATION", "OBJECT", "AREA"]),
   area: areaSpecificationSchema.optional(),
 });
 
-const effectPayloadSchema: z.ZodType<EffectPayload> = z.discriminatedUnion("type", [
+export const diceFormulaSchema: z.ZodType<DiceFormula> = z.union([
+  z.strictObject({
+    count: valueExpressionSchema,
+    faces: z.literal([...DIE_FACES]),
+  }),
+  z.strictObject({
+    ref: z.string().min(1).max(100),
+  }),
+]);
+
+const rollAmountShape = {
+  dice: diceFormulaSchema.optional(),
+  amount: valueExpressionSchema.optional(),
+};
+
+const hasRollPart = (value: { dice?: unknown; amount?: unknown }) =>
+  value.dice !== undefined || value.amount !== undefined;
+
+const rollPartMessage = { message: "Damage and healing need dice, an amount or both" };
+
+export const effectPayloadSchema: z.ZodType<EffectPayload> = z.discriminatedUnion("type", [
   z.strictObject({
     type: z.literal("MODIFIER"),
-    stat: z.string().min(1),
-    delta: z.number().finite(),
+    stat: z.string().min(1).max(100),
+    amount: valueExpressionSchema,
+  }),
+  z.strictObject({
+    type: z.literal("BASE_VALUE"),
+    stat: z.string().min(1).max(100),
+    value: valueExpressionSchema,
   }),
   z.strictObject({
     type: z.literal("GRANT"),
-    grantType: z.string().min(1),
-    value: z.string().min(1),
+    grantType: z.string().min(1).max(100),
+    value: z.string().min(1).max(200),
+  }),
+  z.strictObject({
+    type: z.literal("ADVANTAGE"),
+    mode: z.enum(ADVANTAGE_MODES),
+    on: z.string().min(1).max(100),
   }),
   z.strictObject({
     type: z.literal("RESOURCE"),
-    resourceKey: z.string().min(1),
-    amount: z.number().finite(),
-  }),
-  z.strictObject({
-    type: z.literal("DAMAGE"),
-    damageType: z.string().min(1),
+    resourceKey: z.string().min(1).max(100),
     amount: valueExpressionSchema,
   }),
-  z.strictObject({
-    type: z.literal("HEAL"),
-    amount: valueExpressionSchema,
-  }),
+  z
+    .strictObject({
+      type: z.literal("DAMAGE"),
+      damageType: z.string().min(1).max(100),
+      ...rollAmountShape,
+    })
+    .refine(hasRollPart, rollPartMessage),
+  z
+    .strictObject({
+      type: z.literal("HEAL"),
+      ...rollAmountShape,
+    })
+    .refine(hasRollPart, rollPartMessage),
   z.strictObject({
     type: z.literal("MOVEMENT"),
-    mode: z.string().min(1),
+    mode: z.string().min(1).max(100),
     distance: valueExpressionSchema,
   }),
   z.strictObject({
     type: z.literal("INFORMATION"),
-    message: z.string().min(1),
+    message: z.string().min(1).max(2_000),
   }),
 ]);
+
+/** Every value expression inside a payload, so limits and variable keys can be checked. */
+export function listPayloadExpressions(payload: EffectPayload): ValueExpression[] {
+  switch (payload.type) {
+    case "MODIFIER":
+    case "RESOURCE":
+      return [payload.amount];
+    case "BASE_VALUE":
+      return [payload.value];
+    case "DAMAGE":
+    case "HEAL":
+      return [
+        payload.dice && "count" in payload.dice ? payload.dice.count : undefined,
+        payload.amount,
+      ].filter(
+        (expression): expression is ValueExpression => expression !== undefined,
+      );
+    case "MOVEMENT":
+      return [payload.distance];
+    case "GRANT":
+    case "ADVANTAGE":
+    case "INFORMATION":
+      return [];
+  }
+}
 
 export function parseValueExpression(input: unknown): ValueExpression {
   return valueExpressionSchema.parse(input);
@@ -252,4 +361,13 @@ export function parseTargetSpecification(input: unknown): TargetSpecification {
 
 export function parseEffectPayload(input: unknown): EffectPayload {
   return effectPayloadSchema.parse(input);
+}
+
+/** Keys of dice the caller has to provide for this payload. */
+export function listPayloadDiceRefs(payload: EffectPayload): string[] {
+  return (payload.type === "DAMAGE" || payload.type === "HEAL") &&
+    payload.dice !== undefined &&
+    "ref" in payload.dice
+    ? [payload.dice.ref]
+    : [];
 }

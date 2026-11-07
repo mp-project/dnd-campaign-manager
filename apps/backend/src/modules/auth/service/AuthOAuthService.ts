@@ -143,46 +143,14 @@ export class AuthOAuthService {
         };
       }
 
-      const byEmail = await this.deps.repository.findByEmail(tx, normalizedEmail);
-
-      if (byEmail) {
-        this.sessionService.assertUserCanAuthenticate(byEmail);
-        this.assertNoIdentityConflict(byEmail, identity.provider, identity.subject);
-
-        const oauthIdentityUpdate: {
-          userId: string;
-          provider: OAuthProvider;
-          subject: string;
-          actorId: string;
-          markEmailVerifiedAt?: Date;
-        } = {
-          userId: byEmail.id,
-          provider: identity.provider,
-          subject: identity.subject,
-          actorId: byEmail.id,
-        };
-
-        if (!byEmail.emailVerifiedAt) {
-          oauthIdentityUpdate.markEmailVerifiedAt = new Date();
-        }
-
-        const linkedUser = await this.deps.repository.updateOAuthIdentity(tx, oauthIdentityUpdate);
-
-        const resolvedUser = linkedUser ?? byEmail;
-
-        await this.deps.repository.updateLastLogin(tx, {
-          userId: resolvedUser.id,
-          at: new Date(),
-          actorId: resolvedUser.id,
-        });
-
-        const session = await this.sessionService.issueSession(tx, resolvedUser, input.metadata);
-
-        return {
-          type: "authenticated",
-          session: session.session,
-          redirectPath: statePayload.redirectPath,
-        };
+      // An address belongs to one account. If it is taken (password account or another
+      // provider), sign-in through this provider is refused instead of linked: whoever controls
+      // the provider account must not gain access to an account they did not create with it.
+      if (await this.deps.repository.findByEmail(tx, normalizedEmail)) {
+        throw new AuthError(
+          "OAUTH_EMAIL_IN_USE",
+          "An account with this email already exists; sign in with its original method",
+        );
       }
 
       if (!this.deps.config.oauthStateSecret) {
@@ -253,8 +221,8 @@ export class AuthOAuthService {
 
       if (existingUser) {
         throw new AuthError(
-          "OAUTH_IDENTITY_CONFLICT",
-          "A user with this verified email already exists",
+          "OAUTH_EMAIL_IN_USE",
+          "An account with this email already exists; sign in with its original method",
         );
       }
 
@@ -311,33 +279,6 @@ export class AuthOAuthService {
 
       return session.session;
     });
-  }
-
-  private assertNoIdentityConflict(
-    user: {
-      googleSubject: string | null;
-      discordUserId: string | null;
-    },
-    provider: OAuthProvider,
-    subject: string,
-  ): void {
-    if (provider === "GOOGLE") {
-      if (user.googleSubject && user.googleSubject !== subject) {
-        throw new AuthError(
-          "OAUTH_IDENTITY_CONFLICT",
-          "Google identity is already linked to another account",
-        );
-      }
-
-      return;
-    }
-
-    if (user.discordUserId && user.discordUserId !== subject) {
-      throw new AuthError(
-        "OAUTH_IDENTITY_CONFLICT",
-        "Discord identity is already linked to another account",
-      );
-    }
   }
 
   private async findUserByProvider(

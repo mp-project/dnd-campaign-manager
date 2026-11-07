@@ -46,6 +46,7 @@ function createAssetRow(overrides: Partial<AssetRow> = {}): AssetRow {
     assetFamilyId: null,
     rulesetPolicy: "NEUTRAL",
     sourceReference: null,
+    releasedToPlayers: false,
     ...overrides,
   };
 }
@@ -240,5 +241,43 @@ describe("AssetsService", () => {
     expect(() =>
       service.registerVisibilityProvider({ name: "shares", listVisibleAssetIds: async () => [] }),
     ).toThrow("already registered");
+  });
+});
+
+describe("releasing assets to players", () => {
+  const service = () =>
+    new AssetsService(db, transactionManager, {} as AssetsRepository, {
+      findCampaignRole: async () => null,
+    } as AssetCampaignAccessPort);
+
+  it("only knows types that a module registered", () => {
+    const assets = service();
+
+    expect(assets.isReleasable("FEATURE")).toBe(false);
+
+    assets.registerReleasableType("FEATURE");
+
+    expect(assets.isReleasable("FEATURE")).toBe(true);
+    expect(() => assets.registerReleasableType("FEATURE")).toThrow("already releasable");
+  });
+
+  it("refuses releases of global content and of types nobody registered", () => {
+    const assets = service();
+
+    assets.registerReleasableType("FEATURE");
+
+    const validate = assets.trackedAsset.validate!;
+    const current = { ...createAssetRow({ assetType: "FEATURE" }), rulesetIds: [] };
+
+    expect(() => validate({ ...current, releasedToPlayers: true }, current)).not.toThrow();
+    expect(() =>
+      validate({ ...current, assetType: "NOTE", releasedToPlayers: true }, { ...current, assetType: "NOTE" }),
+    ).toThrow("cannot be released");
+    expect(() =>
+      validate(
+        { ...current, scope: "SYSTEM", releasedToPlayers: true },
+        { ...current, scope: "SYSTEM" },
+      ),
+    ).toThrow("needs no release");
   });
 });

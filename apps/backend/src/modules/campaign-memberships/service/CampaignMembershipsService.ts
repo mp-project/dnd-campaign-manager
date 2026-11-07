@@ -10,6 +10,7 @@ import type {
 } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 import type { CampaignsService } from "#src/modules/campaigns/service/CampaignsService";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
+import type { CampaignAccessFacts } from "#core/app/container";
 
 export type CreateCampaignMembershipInput = {
   campaignId: string;
@@ -136,7 +137,10 @@ export class CampaignMembershipsService {
     return scope.create(this.trackedMembership, input);
   }
 
-  async buildCampaignContext(campaignId: string, actorId: string | null) {
+  async buildCampaignContext(
+    campaignId: string,
+    actorId: string | null,
+  ): Promise<CampaignAccessFacts | null> {
     const campaign = await this.campaignsService.findMembershipCampaign(this.db, campaignId);
 
     if (!campaign) {
@@ -146,12 +150,14 @@ export class CampaignMembershipsService {
     const membership = actorId
       ? await this.repository.findActiveByUser(this.db, campaignId, actorId)
       : null;
+    const isOwner = actorId !== null && actorId === campaign.ownerUserId;
 
     return {
       campaignId,
       rulesetId: campaign.rulesetId,
       campaignMemberId: membership?.id ?? null,
-      membershipActive: actorId === campaign.ownerUserId || Boolean(membership),
+      membershipActive: isOwner || Boolean(membership),
+      campaignRole: isOwner ? "OWNER" : (membership?.role ?? null),
     };
   }
 

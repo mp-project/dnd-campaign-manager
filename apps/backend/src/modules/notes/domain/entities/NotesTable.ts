@@ -2,11 +2,12 @@ import { sql } from "drizzle-orm";
 import { check, foreignKey, index, integer, pgEnum, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
 import { baseColumns, uniqueActiveIndex } from "../../../../core/db/schemaHelpers.js";
+import { TEXT_CONTENT_FORMATS } from "../../../../core/text/contentFormat.js";
 import { assets } from "../../../assets/domain/entities/AssetsTable.js";
 import { campaigns } from "../../../campaigns/domain/entities/CampaignsTable.js";
 
 export const NOTE_TYPES = ["GM_NOTE", "HANDOUT", "LORE", "EXPLANATION", "PLAYER_SECRET"] as const;
-export const NOTE_CONTENT_FORMATS = ["MARKDOWN", "PLAIN_TEXT"] as const;
+export const NOTE_CONTENT_FORMATS = TEXT_CONTENT_FORMATS;
 
 /** Upper bounds in characters; the DTOs use the same values. */
 export const NOTE_CONTENT_MAX_LENGTH = 100_000;

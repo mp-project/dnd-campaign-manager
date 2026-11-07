@@ -5,6 +5,7 @@ import type { UsersRepository } from "#src/modules/users/domain/repository/Users
 import { UsersService } from "#src/modules/users/service/UsersService";
 import { UpdateMeUseCase } from "#src/modules/users/useCase/UpdateMeUseCase";
 import { UpdateUserUseCase } from "#src/modules/users/useCase/UpdateUserUseCase";
+import { UpdateMeSchema } from "#src/modules/users/domain/dto/UpdateMeDto";
 
 function buildHistory(repository: Partial<UsersRepository>, tx: TransactionManager) {
   return {
@@ -149,7 +150,9 @@ describe("users use cases", () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("normalizes email for self updates", async () => {
+  it("rejects an email in the profile patch and passes the display name on", async () => {
+    expect(UpdateMeSchema.safeParse({ email: "new@example.test" }).success).toBe(false);
+
     const updateProfile = jest.fn().mockResolvedValue({
       id: "22222222-2222-4222-8222-222222222222",
       version: 2,
@@ -184,7 +187,6 @@ describe("users use cases", () => {
         emailVerifiedAt: new Date(),
         lastLoginAt: null,
       }),
-      isActiveEmailTaken: jest.fn().mockResolvedValue(false),
       updateProfile,
       findAggregate: jest.fn().mockResolvedValue({
         user: {
@@ -229,16 +231,14 @@ describe("users use cases", () => {
         systemRole: "USER",
       },
       {
-        email: "New.Email@Example.Test",
+        displayName: "New Name",
       },
     );
 
     expect(updateProfile).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        patch: expect.objectContaining({
-          email: "new.email@example.test",
-        }),
+        patch: { displayName: "New Name" },
       }),
     );
   });

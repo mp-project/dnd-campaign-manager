@@ -3,7 +3,7 @@ import { z } from "zod";
 import { baseEntityResponseDto, standardListResponseDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
 import { NoteBaseSchema } from "#src/modules/notes/domain/dto/BaseNoteDto";
-import { renderSafeMarkdown } from "#src/modules/notes/domain/NoteContent";
+import { renderSafeMarkdown } from "#core/text/safeMarkdown";
 import type { NotePage, NoteRecord } from "#src/modules/notes/domain/repository/NotesRepository";
 
 /** HTML rendered by the server from `content`; raw HTML and script links never get through. */

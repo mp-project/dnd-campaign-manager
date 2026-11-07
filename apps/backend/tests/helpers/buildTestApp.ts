@@ -19,6 +19,11 @@ export type BuildTestAppOptions = {
   modules?: readonly AppModule[];
   readyProbe?: () => Promise<{ database: boolean; migrations: boolean }>;
   publicPorts?: AppPublicPorts;
+  /**
+   * Checks access tokens against the database like production (status, role, session version).
+   * Off by default, because most tests sign tokens for actors without a user row.
+   */
+  realSessionState?: boolean;
 };
 
 export type TestInjectRequest = InjectOptions;
@@ -39,6 +44,10 @@ function createActorToken(actor: TestActor, env: AppEnv): string {
 
 function createDefaultTestPorts(): AppPublicPorts {
   return {
+    // Trusts the signed token as it is; tests opt into the real check with realSessionState.
+    sessionStatePort: {
+      resolveActor: async ({ systemRole }) => ({ systemRole }),
+    },
     campaignFactPort: {
       ...createUnknownCampaignFactPort(),
       resolveCampaignAccess: async ({ campaignId, actorId }) => ({
@@ -46,6 +55,8 @@ function createDefaultTestPorts(): AppPublicPorts {
         rulesetId: "ruleset-default",
         campaignMemberId: actorId ? `member-${actorId}` : null,
         membershipActive: Boolean(actorId),
+        // The most permissive role, so the use case decides in tests with this fake.
+        campaignRole: actorId ? "OWNER" : null,
       }),
     },
   };
@@ -53,6 +64,16 @@ function createDefaultTestPorts(): AppPublicPorts {
 
 export function buildTestApp(options: BuildTestAppOptions = {}) {
   const env = createTestEnv(options.env ?? {});
+  const publicPorts: AppPublicPorts = {
+    ...createDefaultTestPorts(),
+    ...(options.publicPorts ?? {}),
+  };
+
+  if (options.realSessionState) {
+    // The auth module then installs the production port.
+    delete publicPorts.sessionStatePort;
+  }
+
   const buildOptions: {
     env: AppEnv;
     modules?: readonly AppModule[];
@@ -66,10 +87,7 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
         database: true,
         migrations: true,
       })),
-    publicPorts: {
-      ...createDefaultTestPorts(),
-      ...(options.publicPorts ?? {}),
-    },
+    publicPorts,
   };
 
   if (options.modules) {

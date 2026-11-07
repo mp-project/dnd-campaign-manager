@@ -1,22 +1,16 @@
-import {
-  type ResponseEmailVerificationDto,
-  toEmailVerificationResponse,
-} from "#src/modules/auth/domain/dto/AuthResponseDto";
+import type { AcceptedResponseDto } from "#src/modules/auth/domain/dto/AuthResponseDto";
 import { AuthService } from "#src/modules/auth/service/AuthService";
 import type { ClientMetadata } from "#src/modules/auth/service/AuthService.contracts";
 
+/**
+ * Always answers "accepted", also for unknown or verified addresses.
+ */
 export class RequestRegistrationVerificationUseCase {
   constructor(private readonly authService: AuthService) {}
 
-  async execute(
-    email: string,
-    metadata: ClientMetadata,
-  ): Promise<ResponseEmailVerificationDto> {
-    const verification = await this.authService.registrationService.requestRegistrationVerification(
-      email,
-      metadata,
-    );
+  async execute(email: string, metadata: ClientMetadata): Promise<AcceptedResponseDto> {
+    await this.authService.registrationService.requestRegistrationVerification(email, metadata);
 
-    return toEmailVerificationResponse(verification);
+    return { status: "accepted" };
   }
 }

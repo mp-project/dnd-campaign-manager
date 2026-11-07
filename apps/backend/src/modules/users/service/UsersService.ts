@@ -45,6 +45,7 @@ export class UsersService {
 
   /**
    * Applies a managed change to a user, guarded against role escalation and losing the last admin.
+   * A role or status change raises the session version, which ends the access tokens at once.
    * Refresh tokens are revoked after the commit: the auth module uses its own connection, which
    * must not be requested while this transaction holds the user's row lock.
    */
@@ -86,12 +87,18 @@ export class UsersService {
 
           wasDisabled = nextStatus === "DISABLED" && current.status !== "DISABLED";
 
+          // A new role or status ends the user's access tokens; the next refresh carries the new
+          // role, and refreshing fails for anyone who is no longer active.
+          const accessChanged =
+            nextRole !== current.systemRole || nextStatus !== current.status;
+
           return {
             set: Object.fromEntries(
               Object.entries({
                 displayName: input.displayName,
                 systemRole: input.systemRole,
                 status: input.status,
+                sessionVersion: accessChanged ? current.sessionVersion + 1 : undefined,
               }).filter(([, value]) => value !== undefined),
             ),
           };

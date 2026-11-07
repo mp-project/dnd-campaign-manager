@@ -1,7 +1,7 @@
 import { randomInt, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
-import { ConflictError, InternalError, NotFoundError } from "#core/error/http/index";
+import { ConflictError, InternalError } from "#core/error/http/index";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
 import type {
   RegisterDto,
@@ -9,6 +9,7 @@ import type {
 } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import {
   buildRegistrationVerificationUrl,
+  renderRegistrationExistingAccountEmail,
   renderRegistrationVerificationEmail,
 } from "#src/modules/auth/email/RegistrationVerificationEmailTemplate";
 import {
@@ -19,13 +20,14 @@ import {
 import type {
   AuthServiceDependencies,
   ClientMetadata,
-  RegisterUserResult,
   VerifyRegistrationLinkResult,
 } from "#src/modules/auth/service/AuthService.contracts";
 import { MAX_VERIFICATION_ATTEMPTS } from "#src/modules/auth/service/AuthService.contracts";
 import { normalizeEmail, normalizeRedirectPath } from "#src/modules/auth/service/AuthService.utils";
 import { decodeSignedJson, encodeSignedJson, sha256 } from "#src/modules/auth/utils/crypto";
 import { generateUniqueUserTag, usernameFromDisplayName } from "#src/modules/auth/service/UserTag";
+
+const VERIFICATION_FAILED = "Verification code is invalid or expired";
 
 const registrationVerificationLinkPayloadSchema = z.strictObject({
   email: z.string().email(),
@@ -46,99 +48,54 @@ export class AuthRegistrationService {
     private readonly attempts: AuthAttemptService,
   ) {}
 
-  async requestRegistrationVerification(email: string, metadata: ClientMetadata) {
+  /**
+   * Sends a new code to an unverified account. Unknown and verified addresses get the same
+   * answer and no email, so the response tells nothing about existing accounts.
+   */
+  async requestRegistrationVerification(email: string, metadata: ClientMetadata): Promise<void> {
     const normalizedEmail = normalizeEmail(email);
 
     await this.attempts.consume(authEmailAttemptKeys(normalizedEmail, metadata.ip));
 
-    const code = this.generateVerificationCode();
-    const codeHash = this.hashVerificationCode(normalizedEmail, code);
-    const expiresAt = new Date(
-      Date.now() + this.deps.config.emailVerificationCodeTtlHours * 60 * 60 * 1000,
-    );
-
     const existingUser = await this.deps.repository.findByEmail(this.deps.db, normalizedEmail);
 
-    if (!existingUser) {
-      throw new NotFoundError("User not found");
+    if (!existingUser || existingUser.emailVerifiedAt) {
+      return;
     }
 
-    if (existingUser.emailVerifiedAt) {
-      throw new ConflictError("Email is already verified");
-    }
-
-    const verificationRequest = await this.deps.transactionManager.inTransaction(async (tx) => {
-      return this.deps.repository.createEmailVerificationRequest(tx, {
-        email: normalizedEmail,
-        codeHash,
-        expiresAt,
-      });
-    });
-
-    try {
-      await this.sendVerificationEmail({
-        email: normalizedEmail,
-        verificationId: verificationRequest.id,
-        code,
-        expiresAt,
-      });
-    } catch {
-      await this.deps.transactionManager.inTransaction(async (tx) => {
-        await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
-          verificationId: verificationRequest.id,
-          status: "EXPIRED",
-        });
-      });
-
-      throw new InternalError("Failed to deliver verification email");
-    }
-
-    return verificationRequest;
+    await this.issueVerificationCode(normalizedEmail);
   }
 
-  async getRegistrationVerificationStatus(verificationId: string) {
-    return this.deps.transactionManager.inTransaction(async (tx) => {
-      const request = await this.deps.repository.findEmailVerificationRequestById(
-        tx,
-        verificationId,
-      );
-
-      if (!request) {
-        throw new NotFoundError("Verification request not found");
-      }
-
-      if (request.status === "PENDING" && this.isVerificationExpired(request.expiresAt)) {
-        const updated = await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
-          verificationId: request.id,
-          status: "EXPIRED",
-        });
-
-        if (updated) {
-          return updated;
-        }
-      }
-
-      return request;
-    });
-  }
-
-  async register(input: RegisterDto, metadata: ClientMetadata): Promise<RegisterUserResult> {
+  /**
+   * Answers the same way whether the address is free or not. A free address gets an account and
+   * a code; a taken one gets an email to its owner instead (with a new code while unverified),
+   * so only the mailbox learns that the account exists.
+   */
+  async register(input: RegisterDto, metadata: ClientMetadata): Promise<void> {
     const normalizedEmail = normalizeEmail(input.email);
 
     await this.attempts.consume(authEmailAttemptKeys(normalizedEmail, metadata.ip));
 
+    // Hashed before the lookup so both outcomes take about the same time.
+    const passwordHash = await this.hashPassword(input.password);
     const normalizedDisplayName = input.displayName.trim();
-    const code = this.generateVerificationCode();
-    const codeHash = this.hashVerificationCode(normalizedEmail, code);
-    const expiresAt = new Date(
-      Date.now() + this.deps.config.emailVerificationCodeTtlHours * 60 * 60 * 1000,
-    );
 
     const created = await this.deps.transactionManager.inTransaction(async (tx) => {
       const existingUser = await this.deps.repository.findByEmail(tx, normalizedEmail);
 
       if (existingUser) {
-        throw new ConflictError("Email is already in use");
+        if (!existingUser.emailVerifiedAt) {
+          // Nobody has proven the mailbox yet, so the latest registration sets the password:
+          // a stranger who registered the address first cannot keep theirs once its owner
+          // registers too.
+          await this.deps.repository.updatePasswordHash(tx, {
+            userId: existingUser.id,
+            passwordHash,
+            actorId: existingUser.id,
+          });
+        }
+
+        return { existingUser };
       }
 
       const username = input.username ?? usernameFromDisplayName(normalizedDisplayName);
@@ -146,7 +103,6 @@ export class AuthRegistrationService {
         Boolean(await this.deps.repository.findByUserTag(tx, candidate)),
       );
 
-      const passwordHash = await this.hashPassword(input.password);
       const user = await this.deps.repository.create(tx, {
         email: normalizedEmail,
         passwordHash,
@@ -158,78 +114,64 @@ export class AuthRegistrationService {
         emailVerifiedAt: null,
       });
 
-      const verificationRequest = await this.deps.repository.createEmailVerificationRequest(tx, {
-        email: normalizedEmail,
-        codeHash,
-        expiresAt,
-      });
-
-      return {
-        user,
-        verificationRequest,
-        verificationCode: code,
-      };
+      return { user };
     });
 
-    try {
-      await this.sendVerificationEmail({
-        email: normalizedEmail,
-        verificationId: created.verificationRequest.id,
-        code,
-        expiresAt,
-      });
-    } catch {
-      await this.deps.transactionManager.inTransaction(async (tx) => {
-        await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
-          verificationId: created.verificationRequest.id,
-          status: "EXPIRED",
-        });
-      });
+    if ("existingUser" in created) {
+      if (created.existingUser.emailVerifiedAt) {
+        await this.sendExistingAccountEmail(normalizedEmail);
+      } else {
+        await this.issueVerificationCode(normalizedEmail);
+      }
 
-      throw new InternalError("Failed to deliver verification email");
+      return;
     }
 
-    return created;
+    await this.issueVerificationCode(normalizedEmail);
   }
 
   async verifyRegistrationEmail(input: VerifyEmailVerificationDto, metadata: ClientMetadata) {
     return this.attempts.trackFailures(
       verificationAttemptKeys(normalizeEmail(input.email), metadata.ip),
-      (error) => error instanceof ConflictError || error instanceof NotFoundError,
-      () => this.verifyCode(input),
+      (error) => error instanceof ConflictError,
+      () => this.verifyCode({ ...input, verificationId: null }),
     );
   }
 
-  private async verifyCode(input: VerifyEmailVerificationDto) {
+  /**
+   * Every failure gives the same answer, so it does not tell whether the address has an account,
+   * is verified already or has a code waiting. `verificationId` comes only from the signed link;
+   * a code typed in is matched against the pending request of the address.
+   */
+  private async verifyCode(input: {
+    email: string;
+    verificationId: string | null;
+    verificationCode: string;
+  }) {
     const normalizedEmail = normalizeEmail(input.email);
 
     // Failures are returned instead of thrown: throwing would roll back the attempt count.
     const outcome = await this.deps.transactionManager.inTransaction(async (tx) => {
       const user = await this.deps.repository.findByEmail(tx, normalizedEmail);
 
-      if (!user) {
-        throw new NotFoundError("User not found");
+      if (!user || user.emailVerifiedAt) {
+        return { failure: VERIFICATION_FAILED };
       }
 
-      if (user.emailVerifiedAt) {
-        throw new ConflictError("Email is already verified");
-      }
+      const verificationRequest =
+        input.verificationId === null
+          ? await this.deps.repository.findPendingEmailVerificationRequestByEmail(
+              tx,
+              normalizedEmail,
+            )
+          : await this.deps.repository.findEmailVerificationRequestById(tx, input.verificationId);
 
-      const verificationRequest = await this.deps.repository.findEmailVerificationRequestById(
-        tx,
-        input.verificationId,
-      );
-
-      if (!verificationRequest) {
-        throw new ConflictError("Invalid verification request");
-      }
-
-      if (verificationRequest.email !== normalizedEmail) {
-        throw new ConflictError("Verification request does not match email");
-      }
-
-      if (verificationRequest.status !== "PENDING") {
-        throw new ConflictError("Verification request is no longer pending");
+      if (
+        !verificationRequest ||
+        verificationRequest.email !== normalizedEmail ||
+        verificationRequest.status !== "PENDING"
+      ) {
+        return { failure: VERIFICATION_FAILED };
       }
 
       if (this.isVerificationExpired(verificationRequest.expiresAt)) {
@@ -237,7 +179,7 @@ export class AuthRegistrationService {
           verificationId: verificationRequest.id,
           status: "EXPIRED",
         });
-        return { failure: "Verification code expired" };
+        return { failure: VERIFICATION_FAILED };
       }
 
       const suppliedHash = this.hashVerificationCode(
@@ -253,10 +195,9 @@ export class AuthRegistrationService {
             verificationId: verificationRequest.id,
             status: "EXPIRED",
           });
-          return { failure: "Verification code expired" };
         }
 
-        return { failure: "Invalid verification code" };
+        return { failure: VERIFICATION_FAILED };
       }
 
       const verifiedAt = new Date();
@@ -267,7 +208,7 @@ export class AuthRegistrationService {
       });
 
       if (!updatedUser) {
-        throw new NotFoundError("User not found");
+        return { failure: VERIFICATION_FAILED };
       }
 
       await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
@@ -286,18 +227,26 @@ export class AuthRegistrationService {
     return outcome.user;
   }
 
-  async verifyRegistrationEmailByToken(token: string): Promise<VerifyRegistrationLinkResult> {
+  async verifyRegistrationEmailByToken(
+    token: string,
+    metadata: ClientMetadata,
+  ): Promise<VerifyRegistrationLinkResult> {
     const payload = this.decodeRegistrationVerificationToken(token);
 
     if (!payload || payload.expiresAt <= Date.now()) {
-      throw new ConflictError("Verification link is invalid or expired");
+      throw new ConflictError(VERIFICATION_FAILED);
     }
 
-    const user = await this.verifyCode({
-      email: payload.email,
-      verificationId: payload.verificationId,
-      verificationCode: payload.verificationCode,
-    });
+    const user = await this.attempts.trackFailures(
+      verificationAttemptKeys(payload.email, metadata.ip),
+      (error) => error instanceof ConflictError,
+      () =>
+        this.verifyCode({
+          email: payload.email,
+          verificationId: payload.verificationId,
+          verificationCode: payload.verificationCode,
+        }),
+    );
 
     return {
       user,
@@ -326,6 +275,56 @@ export class AuthRegistrationService {
 
   private isVerificationExpired(expiresAt: Date): boolean {
     return expiresAt.getTime() <= Date.now();
+  }
+
+  private async issueVerificationCode(email: string): Promise<void> {
+    const code = this.generateVerificationCode();
+    const expiresAt = new Date(
+      Date.now() + this.deps.config.emailVerificationCodeTtlHours * 60 * 60 * 1000,
+    );
+
+    const verificationRequest = await this.deps.transactionManager.inTransaction(async (tx) =>
+      this.deps.repository.createEmailVerificationRequest(tx, {
+        email,
+        codeHash: this.hashVerificationCode(email, code),
+        expiresAt,
+      }),
+    );
+
+    try {
+      await this.sendVerificationEmail({
+        email,
+        verificationId: verificationRequest.id,
+        code,
+        expiresAt,
+      });
+    } catch {
+      await this.deps.transactionManager.inTransaction(async (tx) => {
+        await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
+          verificationId: verificationRequest.id,
+          status: "EXPIRED",
+        });
+      });
+
+      throw new InternalError("Failed to deliver verification email");
+    }
+  }
+
+  private async sendExistingAccountEmail(email: string): Promise<void> {
+    if (!this.deps.emailPort) {
+      throw new InternalError("Email service unavailable");
+    }
+
+    const message = renderRegistrationExistingAccountEmail({
+      locale: undefined,
+      loginUrl: new URL("/login", this.deps.config.frontendOrigin).toString(),
+    });
+
+    try {
+      await this.deps.emailPort.send({ to: email, subject: message.subject, text: message.text });
+    } catch {
+      throw new InternalError("Failed to deliver verification email");
+    }
   }
 
   private async sendVerificationEmail(input: {

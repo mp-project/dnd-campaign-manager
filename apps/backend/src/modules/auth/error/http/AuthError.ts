@@ -13,7 +13,8 @@ export type AuthErrorCode =
   | "OAUTH_CALLBACK_FAILED"
   | "OAUTH_VERIFIED_EMAIL_REQUIRED"
   | "OAUTH_REGISTRATION_REQUIRED"
-  | "OAUTH_IDENTITY_CONFLICT";
+  | "OAUTH_IDENTITY_CONFLICT"
+  | "OAUTH_EMAIL_IN_USE";
 
 const statusByCode: Record<AuthErrorCode, number> = {
   INVALID_CREDENTIALS: 401,
@@ -29,6 +30,7 @@ const statusByCode: Record<AuthErrorCode, number> = {
   OAUTH_VERIFIED_EMAIL_REQUIRED: 409,
   OAUTH_REGISTRATION_REQUIRED: 409,
   OAUTH_IDENTITY_CONFLICT: 409,
+  OAUTH_EMAIL_IN_USE: 409,
 };
 
 export class AuthError extends CustomApiError<AuthErrorCode> {

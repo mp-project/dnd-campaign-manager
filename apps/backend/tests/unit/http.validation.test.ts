@@ -44,6 +44,7 @@ const validationModule: AppModule = {
     app.get(
       "/validation/items",
       {
+        config: { public: "test probe" },
         schema: {
           tags: ["Validation"],
           security: [{ bearerAuth: [] }],
@@ -86,6 +87,7 @@ const validationModule: AppModule = {
     app.post(
       "/validation/items/:id",
       {
+        config: { public: "test probe" },
         schema: {
           tags: ["Validation"],
           security: [{ bearerAuth: [] }],
@@ -119,6 +121,7 @@ const validationModule: AppModule = {
     app.patch(
       "/validation/items/:id",
       {
+        config: { public: "test probe" },
         schema: {
           tags: ["Validation"],
           security: [{ bearerAuth: [] }],
@@ -137,15 +140,15 @@ const validationModule: AppModule = {
       },
     );
 
-    app.get("/validation/error/forbidden", async () => {
+    app.get("/validation/error/forbidden", { config: { public: "test probe" } }, async () => {
       throw new ForbiddenError("Missing permission");
     });
 
-    app.get("/validation/error/internal", async () => {
+    app.get("/validation/error/internal", { config: { public: "test probe" } }, async () => {
       throw new Error("Sensitive stack details");
     });
 
-    app.get("/validation/error/rate-limited", async () => {
+    app.get("/validation/error/rate-limited", { config: { public: "test probe" } }, async () => {
       const error = new Error("Too many requests") as Error & {
         statusCode?: number;
         code?: string;

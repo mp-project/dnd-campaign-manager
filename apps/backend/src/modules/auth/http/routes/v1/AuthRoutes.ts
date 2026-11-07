@@ -16,7 +16,6 @@ import {
   RefreshSchema,
   RegisterSchema,
   RequestEmailVerificationSchema,
-  RequestEmailVerificationStatusParamsSchema,
   ResetPasswordSchema,
   VerifyEmailVerificationLinkQuerySchema,
   VerifyEmailVerificationSchema,
@@ -24,11 +23,18 @@ import {
 import {
   AcceptedResponseSchema,
   AuthResponseSchema,
-  ResponseEmailVerificationSchema,
-  ResponseRegisterUserSchema,
+  AuthUserProfileSchema,
 } from "#src/modules/auth/domain/dto/AuthResponseDto";
+import {
+  ConfirmEmailChangeLinkQuerySchema,
+  ConfirmEmailChangeSchema,
+  RequestEmailChangeSchema,
+  ResponseEmailChangeRequestSchema,
+} from "#src/modules/auth/domain/dto/EmailChangeDto";
+import { ConfirmEmailChangeByLinkController } from "#src/modules/auth/http/controller/ConfirmEmailChangeByLinkController";
+import { ConfirmEmailChangeController } from "#src/modules/auth/http/controller/ConfirmEmailChangeController";
+import { RequestEmailChangeController } from "#src/modules/auth/http/controller/RequestEmailChangeController";
 import { RequestRegistrationVerificationController } from "#src/modules/auth/http/controller/RequestRegistrationVerificationController";
-import { GetRegistrationVerificationStatusController } from "#src/modules/auth/http/controller/GetRegistrationVerificationStatusController";
 import { RegisterController } from "#src/modules/auth/http/controller/RegisterController";
 import { VerifyRegistrationEmailByLinkController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailByLinkController";
 import { VerifyRegistrationEmailController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailController";
@@ -47,7 +53,6 @@ import { CompleteOAuthRegistrationController } from "#src/modules/auth/http/cont
 
 export type AuthRouteControllers = {
   requestRegistrationVerificationController: RequestRegistrationVerificationController;
-  getRegistrationVerificationStatusController: GetRegistrationVerificationStatusController;
   registerController: RegisterController;
   verifyRegistrationEmailByLinkController: VerifyRegistrationEmailByLinkController;
   verifyRegistrationEmailController: VerifyRegistrationEmailController;
@@ -58,6 +63,9 @@ export type AuthRouteControllers = {
   forgotPasswordController: ForgotPasswordController;
   resetPasswordController: ResetPasswordController;
   changePasswordController: ChangePasswordController;
+  requestEmailChangeController: RequestEmailChangeController;
+  confirmEmailChangeController: ConfirmEmailChangeController;
+  confirmEmailChangeByLinkController: ConfirmEmailChangeByLinkController;
   trustCurrentDeviceController: TrustCurrentDeviceController;
   removeCurrentDeviceController: RemoveCurrentDeviceController;
   startOAuthController: StartOAuthController;
@@ -77,16 +85,16 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration",
       },
       schema: {
         tags,
         operationId: "requestRegistrationVerification",
         body: RequestEmailVerificationSchema,
         response: {
-          202: ResponseEmailVerificationSchema,
+          202: AcceptedResponseSchema,
           400: errorResponseDto,
-          404: errorResponseDto,
-          409: errorResponseDto,
+          429: errorResponseDto,
         },
       },
     },
@@ -97,47 +105,28 @@ export function registerAuthRoutes(
     },
   );
 
-  app.get(
-    "/auth/register/verification/:verificationId/status",
-    {
-      config: {
-        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
-      },
-      schema: {
-        tags,
-        operationId: "getRegistrationVerificationStatus",
-        params: RequestEmailVerificationStatusParamsSchema,
-        response: {
-          200: ResponseEmailVerificationSchema,
-          400: errorResponseDto,
-          404: errorResponseDto,
-        },
-      },
-    },
-    controllers.getRegistrationVerificationStatusController.handle,
-  );
-
   app.post(
     "/auth/register",
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration",
       },
       schema: {
         tags,
         operationId: "registerUser",
         body: RegisterSchema,
         response: {
-          201: ResponseRegisterUserSchema,
+          202: AcceptedResponseSchema,
           400: errorResponseDto,
-          409: errorResponseDto,
+          429: errorResponseDto,
         },
       },
     },
     async (request, reply) => {
       const payload = await controllers.registerController.handle(request);
 
-      return reply.code(201).send(payload);
+      return reply.code(202).send(payload);
     },
   );
 
@@ -146,16 +135,17 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration; the code proves the mailbox",
       },
       schema: {
         tags,
         operationId: "verifyRegistrationEmail",
         body: VerifyEmailVerificationSchema,
         response: {
-          200: ResponseRegisterUserSchema,
+          200: AuthUserProfileSchema,
           400: errorResponseDto,
-          404: errorResponseDto,
           409: errorResponseDto,
+          429: errorResponseDto,
         },
       },
     },
@@ -167,6 +157,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "registration; the signed link proves the mailbox",
       },
       schema: {
         tags,
@@ -175,8 +166,7 @@ export function registerAuthRoutes(
         response: {
           302: z.null(),
           400: errorResponseDto,
-          404: errorResponseDto,
-          409: errorResponseDto,
+          429: errorResponseDto,
         },
       },
     },
@@ -188,6 +178,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "sign-in",
       },
       schema: {
         tags,
@@ -209,6 +200,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "sign-in; the refresh token is the credential",
       },
       schema: {
         tags,
@@ -277,6 +269,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "password reset",
       },
       schema: {
         tags,
@@ -299,6 +292,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "password reset; the reset token is the credential",
       },
       schema: {
         tags,
@@ -393,6 +387,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "OAuth sign-in",
       },
       schema: {
         tags,
@@ -415,6 +410,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "OAuth sign-in; the signed state is the credential",
       },
       schema: {
         tags,
@@ -438,6 +434,7 @@ export function registerAuthRoutes(
     {
       config: {
         rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "OAuth sign-in; the signed onboarding cookie is the credential",
       },
       schema: {
         tags,
@@ -451,5 +448,78 @@ export function registerAuthRoutes(
       },
     },
     controllers.completeOAuthRegistrationController.handle,
+  );
+
+  app.post(
+    "/me/email-change",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.changeEmailSelf },
+      },
+      schema: {
+        tags,
+        operationId: "requestEmailChange",
+        security,
+        body: RequestEmailChangeSchema,
+        response: {
+          202: ResponseEmailChangeRequestSchema,
+          400: errorResponseDto,
+          401: errorResponseDto,
+          409: errorResponseDto,
+          429: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      const payload = await controllers.requestEmailChangeController.handle(request);
+      return reply.code(202).send(payload);
+    },
+  );
+
+  app.post(
+    "/me/email-change/confirm",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.changeEmailSelf },
+      },
+      schema: {
+        tags,
+        operationId: "confirmEmailChange",
+        security,
+        body: ConfirmEmailChangeSchema,
+        response: {
+          200: AuthUserProfileSchema,
+          400: errorResponseDto,
+          401: errorResponseDto,
+          409: errorResponseDto,
+          429: errorResponseDto,
+        },
+      },
+    },
+    controllers.confirmEmailChangeController.handle,
+  );
+
+  app.get(
+    "/auth/email-change/confirm-link",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        public: "the signed link proves the mailbox",
+      },
+      schema: {
+        tags,
+        operationId: "confirmEmailChangeByLink",
+        querystring: ConfirmEmailChangeLinkQuerySchema,
+        response: {
+          302: z.null(),
+          400: errorResponseDto,
+          409: errorResponseDto,
+          429: errorResponseDto,
+        },
+      },
+    },
+    controllers.confirmEmailChangeByLinkController.handle,
   );
 }

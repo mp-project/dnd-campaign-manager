@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from "#core/error/http/index";
+import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseMeDto,
@@ -21,24 +21,10 @@ export class UpdateMeUseCase {
         throw new NotFoundError("User not found");
       }
 
-      const patch = {
-        ...input,
-        email:
-          input.email !== undefined ? this.usersService.normalizeEmail(input.email) : undefined,
-      };
-
-      if (patch.email && patch.email !== current.email) {
-        const taken = await repository.isActiveEmailTaken(tx, patch.email, actorId);
-
-        if (taken) {
-          throw new ConflictError("Email is already in use");
-        }
-      }
-
       const updated = await repository.updateProfile(tx, {
         userId: actorId,
         actorId,
-        patch,
+        patch: input,
       });
 
       if (!updated) {

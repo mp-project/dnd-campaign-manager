@@ -2,6 +2,7 @@ import { z } from "zod";
 import jsonwebtoken from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
+import type { AppPublicPorts, SessionStatePort } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
 import { createTestEnv } from "#test/helpers/testEnv";
@@ -13,6 +14,7 @@ const contextProbeModule: AppModule = {
     app.get(
       "/context/:campaignId",
       {
+        config: { public: "test probe" },
         schema: {
           tags: ["Context"],
           operationId: "probeCampaignContext",
@@ -35,7 +37,7 @@ async function createAccessToken(
   secret: string,
 ): Promise<string> {
   return jsonwebtoken.sign(
-    { systemRole },
+    { systemRole, sv: 3 },
     secret,
     {
       algorithm: "HS256",
@@ -45,6 +47,80 @@ async function createAccessToken(
   );
 }
 
+const trustTokenSessionState: SessionStatePort = {
+  resolveActor: async ({ systemRole }) => ({ systemRole }),
+};
+
+async function probeRequestContext(publicPorts: AppPublicPorts, token: string) {
+  const env = createTestEnv();
+  const app = buildApp({
+    env,
+    modules: [contextProbeModule],
+    readyProbe: async () => ({ database: true, migrations: true }),
+    publicPorts,
+  });
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/v1/context/not-a-uuid",
+    headers: { authorization: `Bearer ${token}` },
+  });
+
+  await app.close();
+
+  return response.json().requestContext as { actorId: string | null; systemRole: string };
+}
+
+describe("session state check of access tokens", () => {
+  const env = createTestEnv();
+
+  it("accepts no token at all without a session state port", async () => {
+    const token = await createAccessToken("alice", SYSTEM_ROLE.ADMIN, env.JWT_ACCESS_SECRET);
+
+    expect(await probeRequestContext({}, token)).toEqual({ actorId: null, systemRole: "USER" });
+  });
+
+  it("drops the token when the port refuses it (locked, outdated session version)", async () => {
+    const token = await createAccessToken("alice", SYSTEM_ROLE.ADMIN, env.JWT_ACCESS_SECRET);
+    const resolveActor = jest.fn().mockResolvedValue(null);
+
+    expect(await probeRequestContext({ sessionStatePort: { resolveActor } }, token)).toEqual({
+      actorId: null,
+      systemRole: "USER",
+    });
+    expect(resolveActor).toHaveBeenCalledWith({
+      actorId: "alice",
+      systemRole: "ADMIN",
+      sessionVersion: 3,
+    });
+  });
+
+  it("uses the role from the port instead of the token", async () => {
+    const token = await createAccessToken("alice", SYSTEM_ROLE.ADMIN, env.JWT_ACCESS_SECRET);
+    const sessionStatePort: SessionStatePort = {
+      resolveActor: async () => ({ systemRole: SYSTEM_ROLE.USER }),
+    };
+
+    expect(await probeRequestContext({ sessionStatePort }, token)).toEqual({
+      actorId: "alice",
+      systemRole: "USER",
+    });
+  });
+
+  it("passes a missing session version on as null", async () => {
+    const token = jsonwebtoken.sign({ systemRole: "USER" }, env.JWT_ACCESS_SECRET, {
+      algorithm: "HS256",
+      subject: "alice",
+      expiresIn: "15m",
+    });
+    const resolveActor = jest.fn().mockResolvedValue(null);
+
+    await probeRequestContext({ sessionStatePort: { resolveActor } }, token);
+
+    expect(resolveActor).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: null }));
+  });
+});
+
 describe("request and campaign context hooks", () => {
   it("derives contexts from verified token and campaign facts instead of client role/ruleset", async () => {
     const env = createTestEnv();
@@ -53,6 +129,7 @@ describe("request and campaign context hooks", () => {
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
       publicPorts: {
+        sessionStatePort: trustTokenSessionState,
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
           hasMetNpc: async () => "UNKNOWN",
@@ -63,6 +140,7 @@ describe("request and campaign context hooks", () => {
             rulesetId: "ruleset-from-campaign",
             campaignMemberId: actorId ? `member-${actorId}` : null,
             membershipActive: true,
+            campaignRole: "PLAYER",
           }),
         },
       },
@@ -107,6 +185,7 @@ describe("request and campaign context hooks", () => {
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
       publicPorts: {
+        sessionStatePort: trustTokenSessionState,
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
           hasMetNpc: async () => "UNKNOWN",
@@ -117,6 +196,7 @@ describe("request and campaign context hooks", () => {
             rulesetId: "ruleset-x",
             campaignMemberId: "member-player-1",
             membershipActive: false,
+            campaignRole: "PLAYER",
           }),
         },
       },
@@ -155,6 +235,7 @@ describe("request and campaign context hooks", () => {
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
       publicPorts: {
+        sessionStatePort: trustTokenSessionState,
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
           hasMetNpc: async () => "UNKNOWN",

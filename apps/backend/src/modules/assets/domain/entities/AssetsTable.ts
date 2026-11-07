@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   foreignKey,
   index,
@@ -85,6 +86,11 @@ export const assets = pgTable(
     assetFamilyId: uuid("asset_family_id"),
     rulesetPolicy: assetRulesetPolicyEnum("ruleset_policy").notNull().default("NEUTRAL"),
     sourceReference: jsonb("source_reference"),
+    /**
+     * Custom rule content (classes, features, spells …) players of the campaign may see and use.
+     * Global content needs no release; story content is revealed through content shares instead.
+     */
+    releasedToPlayers: boolean("released_to_players").notNull().default(false),
   },
   (table) => [
     foreignKey({
@@ -102,6 +108,13 @@ export const assets = pgTable(
     index("assets_campaign_type_idx").on(table.campaignId, table.assetType),
     index("assets_scope_type_idx").on(table.scope, table.assetType),
     index("assets_family_idx").on(table.assetFamilyId),
+    index("assets_campaign_released_idx")
+      .on(table.campaignId)
+      .where(sql`${table.releasedToPlayers} and ${table.deletedAt} is null`),
+    check(
+      "assets_release_scope_check",
+      sql`${table.scope} = 'CAMPAIGN' or not ${table.releasedToPlayers}`,
+    ),
     check(
       "assets_scope_origin_campaign_check",
       sql`(${table.scope} = 'SYSTEM' and ${table.origin} = 'DEFAULT' and ${table.campaignId} is null)

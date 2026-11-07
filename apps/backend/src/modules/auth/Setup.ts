@@ -6,8 +6,6 @@ import { AuthRepository } from "#src/modules/auth/domain/repository/AuthReposito
 import { AuthHttpSupport } from "#src/modules/auth/http/AuthHttpSupport";
 import { RequestRegistrationVerificationController } from "#src/modules/auth/http/controller/RequestRegistrationVerificationController";
 import { RequestRegistrationVerificationUseCase } from "#src/modules/auth/useCase/RequestRegistrationVerificationUseCase";
-import { GetRegistrationVerificationStatusController } from "#src/modules/auth/http/controller/GetRegistrationVerificationStatusController";
-import { GetRegistrationVerificationStatusUseCase } from "#src/modules/auth/useCase/GetRegistrationVerificationStatusUseCase";
 import { RegisterController } from "#src/modules/auth/http/controller/RegisterController";
 import { RegisterUseCase } from "#src/modules/auth/useCase/RegisterUseCase";
 import { VerifyRegistrationEmailByLinkController } from "#src/modules/auth/http/controller/VerifyRegistrationEmailByLinkController";
@@ -28,6 +26,12 @@ import { ResetPasswordController } from "#src/modules/auth/http/controller/Reset
 import { ResetPasswordUseCase } from "#src/modules/auth/useCase/ResetPasswordUseCase";
 import { ChangePasswordController } from "#src/modules/auth/http/controller/ChangePasswordController";
 import { ChangePasswordUseCase } from "#src/modules/auth/useCase/ChangePasswordUseCase";
+import { RequestEmailChangeController } from "#src/modules/auth/http/controller/RequestEmailChangeController";
+import { RequestEmailChangeUseCase } from "#src/modules/auth/useCase/RequestEmailChangeUseCase";
+import { ConfirmEmailChangeController } from "#src/modules/auth/http/controller/ConfirmEmailChangeController";
+import { ConfirmEmailChangeUseCase } from "#src/modules/auth/useCase/ConfirmEmailChangeUseCase";
+import { ConfirmEmailChangeByLinkController } from "#src/modules/auth/http/controller/ConfirmEmailChangeByLinkController";
+import { ConfirmEmailChangeByLinkUseCase } from "#src/modules/auth/useCase/ConfirmEmailChangeByLinkUseCase";
 import { TrustCurrentDeviceController } from "#src/modules/auth/http/controller/TrustCurrentDeviceController";
 import { TrustCurrentDeviceUseCase } from "#src/modules/auth/useCase/TrustCurrentDeviceUseCase";
 import { RemoveCurrentDeviceController } from "#src/modules/auth/http/controller/RemoveCurrentDeviceController";
@@ -90,6 +94,11 @@ async function registerAuthModule(
     oauthProviders,
   );
 
+  // Tests may provide their own port; production always uses the account state.
+  container.ports.sessionStatePort ??= {
+    resolveActor: (input) => service.sessionService.resolveActor(input),
+  };
+
   const sessionDependencies: AuthSessionDependencies = {
     revokeRefreshTokensForUser: async (userId) => {
       await service.sessionService.revokeRefreshTokensForUser(userId);
@@ -112,9 +121,6 @@ async function registerAuthModule(
   app.register(async (authApp) => {
     registerAuthRoutes(authApp, {
       requestRegistrationVerificationController: new RequestRegistrationVerificationController(new RequestRegistrationVerificationUseCase(service), http),
-      getRegistrationVerificationStatusController: new GetRegistrationVerificationStatusController(
-        new GetRegistrationVerificationStatusUseCase(service),
-      ),
       registerController: new RegisterController(new RegisterUseCase(service), http),
       verifyRegistrationEmailByLinkController: new VerifyRegistrationEmailByLinkController(new VerifyRegistrationEmailByLinkUseCase(service), http),
       verifyRegistrationEmailController: new VerifyRegistrationEmailController(new VerifyRegistrationEmailUseCase(service), http),
@@ -125,6 +131,9 @@ async function registerAuthModule(
       forgotPasswordController: new ForgotPasswordController(new ForgotPasswordUseCase(service), http),
       resetPasswordController: new ResetPasswordController(new ResetPasswordUseCase(service), http),
       changePasswordController: new ChangePasswordController(new ChangePasswordUseCase(service), http),
+      requestEmailChangeController: new RequestEmailChangeController(new RequestEmailChangeUseCase(service), http),
+      confirmEmailChangeController: new ConfirmEmailChangeController(new ConfirmEmailChangeUseCase(service), http),
+      confirmEmailChangeByLinkController: new ConfirmEmailChangeByLinkController(new ConfirmEmailChangeByLinkUseCase(service), http),
       trustCurrentDeviceController: new TrustCurrentDeviceController(new TrustCurrentDeviceUseCase(service), http),
       removeCurrentDeviceController: new RemoveCurrentDeviceController(new RemoveCurrentDeviceUseCase(service), http),
       startOAuthController: new StartOAuthController(new StartOAuthUseCase(service), http),

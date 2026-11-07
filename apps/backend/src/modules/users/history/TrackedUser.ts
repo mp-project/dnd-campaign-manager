@@ -33,5 +33,10 @@ export const trackedUser = defineTrackedEntity({
     userTag: field.ignore(),
     emailVerifiedAt: field.ignore(),
     lastLoginAt: field.ignore(),
+    sessionVersion: field.ignore(),
+    pendingEmail: field.account(),
+    pendingEmailCodeHash: field.secret(),
+    pendingEmailExpiresAt: field.ignore(),
+    pendingEmailAttemptCount: field.ignore(),
   },
 });

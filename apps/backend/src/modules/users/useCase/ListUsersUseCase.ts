@@ -8,7 +8,8 @@ import {
 import { UsersService } from "#src/modules/users/service/UsersService";
 
 /**
- * System admins get the full view of every user; everyone else the reduced view of USER accounts.
+ * System admins get the full view of every user; everyone else the reduced view of USER accounts
+ * and a search over display name and user tag only, never over email addresses.
  */
 export class ListUsersUseCase {
   constructor(private readonly usersService: UsersService) {}
@@ -23,9 +24,10 @@ export class ListUsersUseCase {
     const canReadFull = this.usersService.canReadAllUsers(context);
     const visibleFilter = canReadFull ? filter : { ...filter, systemRole: SYSTEM_ROLE.USER };
 
+    const options = { searchEmail: canReadFull };
     const [items, total] = await Promise.all([
-      repository.list(db, visibleFilter),
-      repository.count(db, visibleFilter),
+      repository.list(db, visibleFilter, options),
+      repository.count(db, visibleFilter, options),
     ]);
 
     return toReadableUserListResponse(items, canReadFull, filter.limit, total);

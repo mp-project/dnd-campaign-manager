@@ -11,6 +11,8 @@ type VerifiedAccessToken = {
 declare module "fastify" {
   interface FastifyContextConfig {
     permission?: RoutePermissionConfig;
+    /** Reason an API route needs no permission; exactly one of the two must be set. */
+    public?: string;
   }
 
   interface FastifyRequest {

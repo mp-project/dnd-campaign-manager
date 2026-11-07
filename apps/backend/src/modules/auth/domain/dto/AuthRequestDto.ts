@@ -50,12 +50,8 @@ export const LogoutSchema = z.strictObject({
 
 export const RequestEmailVerificationSchema = UserBaseSchema.pick({ email: true });
 
-export const RequestEmailVerificationStatusParamsSchema = EmailVerificationBaseSchema.pick({
-  verificationId: true,
-});
-
 export const VerifyEmailVerificationSchema = UserBaseSchema.pick({ email: true }).extend(
-  EmailVerificationBaseSchema.pick({ verificationId: true, verificationCode: true }).shape,
+  EmailVerificationBaseSchema.pick({ verificationCode: true }).shape,
 );
 
 export const VerifyEmailVerificationLinkQuerySchema = z.strictObject({

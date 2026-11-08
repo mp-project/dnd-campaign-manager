@@ -3,7 +3,7 @@ import { escapeLike } from "#core/db/escapeLike";
 
 import type { AppDatabase } from "#core/db/pool";
 import { decodeStringCursor } from "#core/http/listResponse";
-import { assets, type AssetRow, type AssetStatus } from "#src/modules/assets/index";
+import { assets, type AssetRow } from "#src/modules/assets/index";
 import type { FeatureType } from "#src/modules/features/domain/dto/BaseFeatureDto";
 import { features } from "#src/modules/features/domain/entities/FeaturesTable";
 
@@ -21,29 +21,8 @@ export type FeatureListFilter = {
   cursor?: string | undefined;
   featureType?: FeatureType | undefined;
   search?: string | undefined;
-  /**
-   * Global features with these statuses, plus the archived ones among `archivedAssetIds`; omitted
-   * means none.
-   */
-  system?:
-    | {
-        statuses: readonly AssetStatus[];
-        archivedAssetIds?: readonly string[] | undefined;
-        rulesetCondition?: SQL | undefined;
-      }
-    | undefined;
-  /**
-   * Features of this campaign with these statuses (only `assetIds` if given, e.g. those a player
-   * may see), plus the archived ones among `archivedAssetIds`; omitted means none.
-   */
-  campaign?:
-    | {
-        campaignId: string;
-        statuses: readonly AssetStatus[];
-        assetIds?: readonly string[] | undefined;
-        archivedAssetIds?: readonly string[] | undefined;
-      }
-    | undefined;
+  /** Which features, as a condition on their asset (e.g. `ContentAccess.listWhere`). */
+  where: SQL;
 };
 
 /** A feature whose definition refers to an asset. */
@@ -95,52 +74,11 @@ export class FeaturesRepository {
   }
 
   async listPage(db: AppDatabase, filter: FeatureListFilter): Promise<FeaturePage> {
-    const scopes: SQL[] = [];
-    const archivedAmong = (assetIds: readonly string[] | undefined) =>
-      assetIds && assetIds.length > 0
-        ? and(eq(assets.status, "ARCHIVED"), inArray(features.assetId, [...assetIds]))
-        : undefined;
-    const withStatuses = (statuses: readonly AssetStatus[], assetIds?: readonly string[]) =>
-      statuses.length > 0 && assetIds?.length !== 0
-        ? and(
-            inArray(assets.status, [...statuses]),
-            assetIds ? inArray(features.assetId, [...assetIds]) : undefined,
-          )
-        : undefined;
-
-    if (filter.system) {
-      const status = or(
-        withStatuses(filter.system.statuses),
-        archivedAmong(filter.system.archivedAssetIds),
-      );
-
-      if (status) {
-        scopes.push(
-          and(isNull(features.campaignId), status, filter.system.rulesetCondition) as SQL,
-        );
-      }
-    }
-
-    if (filter.campaign) {
-      const status = or(
-        withStatuses(filter.campaign.statuses, filter.campaign.assetIds),
-        archivedAmong(filter.campaign.archivedAssetIds),
-      );
-
-      if (status) {
-        scopes.push(and(eq(features.campaignId, filter.campaign.campaignId), status) as SQL);
-      }
-    }
-
-    if (scopes.length === 0) {
-      return { items: [], hasMore: false };
-    }
-
     const rows = await this.selectWithAsset(db)
       .where(
         and(
           isNull(features.deletedAt),
-          or(...scopes),
+          filter.where,
           filter.featureType ? eq(features.featureType, filter.featureType) : undefined,
           filter.search
             ? or(

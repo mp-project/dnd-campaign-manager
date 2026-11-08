@@ -31,22 +31,14 @@ export class GetAssetByIdUseCase {
       return toAssetPlayerResponse(record);
     }
 
-    const viewer = await this.assetsService
-      .resolveCampaignViewer(context, asset.campaignId as string)
+    const access = await this.assetsService
+      .access(context, asset.campaignId as string)
       .catch((error: unknown) => {
         throw error instanceof NotFoundError ? new NotFoundError("Asset not found") : error;
       });
 
-    if (viewer.view === "FULL") {
-      return toAssetFullResponse(record);
-    }
+    await access.require("READ", asset);
 
-    const visibleAssetIds = await this.assetsService.listVisibleAssetIds(viewer);
-
-    if (asset.status !== "ACTIVE" || !visibleAssetIds.includes(asset.id)) {
-      throw new NotFoundError("Asset not found");
-    }
-
-    return toAssetPlayerResponse(record);
+    return access.isFullView ? toAssetFullResponse(record) : toAssetPlayerResponse(record);
   }
 }

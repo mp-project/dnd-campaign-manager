@@ -17,8 +17,9 @@ export class GetMediaUseCase {
     context: RequestContext,
     input: { campaignId: string; mediaId: string },
   ): Promise<ResponseMediaDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const file = await this.mediaService.requireFileForViewer(viewer, input.mediaId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { viewer } = access;
+    const file = await this.mediaService.requireFileForViewer(access, input.mediaId);
 
     if (viewer.view === "PLAYER") {
       return toMediaPlayerResponse(file, viewer.campaignId);

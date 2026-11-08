@@ -16,22 +16,15 @@ export class ListCampaignCatalogUseCase {
     assetType: AssetType,
     query: RequestAssetDto["campaignCatalogQuery"],
   ): Promise<ResponseAssetListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
-    const isFullView = viewer.view === "FULL";
-
-    const page = await this.assetsService.repository.listCatalog(this.assetsService.db, {
+    const access = await this.assetsService.access(context, campaignId);
+    const page = await this.assetsService.repository.listPage(this.assetsService.db, {
       assetType,
-      rulesetId: viewer.rulesetId,
-      campaign: {
-        campaignId: viewer.campaignId,
-        statuses: this.assetsService.campaignStatusesFor(viewer.view),
-        visibleAssetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
-      },
+      where: access.listWhere("CATALOG"),
       search: query.search,
       limit: query.limit,
       cursor: query.cursor,
     });
 
-    return toAssetListResponse({ page, view: viewer.view, limit: query.limit });
+    return toAssetListResponse({ page, view: access.viewer.view, limit: query.limit });
   }
 }

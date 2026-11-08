@@ -3,7 +3,7 @@ import { and, type AnyColumn, asc, eq, gt, ilike, inArray, isNull, ne, or, type 
 import { escapeLike } from "#core/db/escapeLike";
 import type { AppDatabase } from "#core/db/pool";
 import { decodeStringCursor } from "#core/http/listResponse";
-import { assets, type AssetRow, type AssetStatus } from "#src/modules/assets/index";
+import { assets, type AssetRow } from "#src/modules/assets/index";
 import type { ClassHitDie } from "#src/modules/classes/domain/dto/BaseClassDto";
 import type { CastingType } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
 import { classes } from "#src/modules/classes/domain/entities/ClassesTable";
@@ -23,29 +23,8 @@ export type ClassListFilter = {
   hitDie?: ClassHitDie | undefined;
   spellcastingType?: CastingType | undefined;
   search?: string | undefined;
-  /**
-   * Global classes with these statuses, plus the archived ones among `archivedAssetIds`; omitted
-   * means none.
-   */
-  system?:
-    | {
-        statuses: readonly AssetStatus[];
-        archivedAssetIds?: readonly string[] | undefined;
-        rulesetCondition?: SQL | undefined;
-      }
-    | undefined;
-  /**
-   * Classes of this campaign with these statuses (only `assetIds` if given, e.g. those a player
-   * may see), plus the archived ones among `archivedAssetIds`; omitted means none.
-   */
-  campaign?:
-    | {
-        campaignId: string;
-        statuses: readonly AssetStatus[];
-        assetIds?: readonly string[] | undefined;
-        archivedAssetIds?: readonly string[] | undefined;
-      }
-    | undefined;
+  /** Which entries, as a condition on their asset (e.g. `ContentAccess.listWhere`). */
+  where: SQL;
 };
 
 /** Class rows only change through the history; reads join the asset they belong to. */
@@ -94,52 +73,11 @@ export class ClassesRepository {
   }
 
   async listPage(db: AppDatabase, filter: ClassListFilter): Promise<ClassPage> {
-    const scopes: SQL[] = [];
-    const archivedAmong = (assetIds: readonly string[] | undefined) =>
-      assetIds && assetIds.length > 0
-        ? and(eq(assets.status, "ARCHIVED"), inArray(classes.assetId, [...assetIds]))
-        : undefined;
-    const withStatuses = (statuses: readonly AssetStatus[], assetIds?: readonly string[]) =>
-      statuses.length > 0 && assetIds?.length !== 0
-        ? and(
-            inArray(assets.status, [...statuses]),
-            assetIds ? inArray(classes.assetId, [...assetIds]) : undefined,
-          )
-        : undefined;
-
-    if (filter.system) {
-      const status = or(
-        withStatuses(filter.system.statuses),
-        archivedAmong(filter.system.archivedAssetIds),
-      );
-
-      if (status) {
-        scopes.push(
-          and(isNull(classes.campaignId), status, filter.system.rulesetCondition) as SQL,
-        );
-      }
-    }
-
-    if (filter.campaign) {
-      const status = or(
-        withStatuses(filter.campaign.statuses, filter.campaign.assetIds),
-        archivedAmong(filter.campaign.archivedAssetIds),
-      );
-
-      if (status) {
-        scopes.push(and(eq(classes.campaignId, filter.campaign.campaignId), status) as SQL);
-      }
-    }
-
-    if (scopes.length === 0) {
-      return { items: [], hasMore: false };
-    }
-
     const rows = await this.selectWithAsset(db)
       .where(
         and(
           isNull(classes.deletedAt),
-          or(...scopes),
+          filter.where,
           filter.hitDie ? eq(classes.hitDie, filter.hitDie) : undefined,
           filter.spellcastingType
             ? sql`coalesce(${classes.spellcasting} ->> 'castingType', 'NONE') = ${filter.spellcastingType}`

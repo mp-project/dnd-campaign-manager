@@ -1,6 +1,6 @@
 import type { Readable } from "node:stream";
 
-import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
+import { campaignRoleOf } from "#core/content/viewer";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -9,6 +9,7 @@ import type { StoragePort } from "#core/storage/index";
 import type {
   AssetRow,
   AssetsService,
+  ContentAccess,
 } from "#src/modules/assets/index";
 import type {
   AttachMediaDto,
@@ -98,41 +99,27 @@ export class MediaService {
   }
 
   /** Players only get ready files attached for them to an asset they may see. */
-  async requireFileForViewer(
-    viewer: ContentViewer,
-    mediaId: string,
-  ): Promise<MediaFileRow> {
-    const file = await this.requireFileInCampaign(viewer.campaignId, mediaId);
+  async requireFileForViewer(access: ContentAccess, mediaId: string): Promise<MediaFileRow> {
+    const file = await this.requireFileInCampaign(access.viewer.campaignId, mediaId);
 
-    if (viewer.view === "FULL") {
+    if (access.isFullView) {
       return file;
     }
 
     const assetIds = await this.repository.listPlayerAssetIdsOfFile(this.db, {
-      campaignId: viewer.campaignId,
+      campaignId: access.viewer.campaignId,
       mediaId,
     });
-    const visible = await this.listAssetIdsVisibleToPlayer(viewer, assetIds);
+    const readable = await access.filter(
+      "MANAGE",
+      [...(await this.assets.findMany(assetIds)).values()],
+    );
 
-    if (file.status !== "READY" || visible.length === 0) {
+    if (file.status !== "READY" || readable.length === 0) {
       throw new NotFoundError("Media not found");
     }
 
     return file;
-  }
-
-  /** Assets among `candidates` that the player may see; all of the campaign without candidates. */
-  async listAssetIdsVisibleToPlayer(
-    viewer: ContentViewer,
-    candidates?: readonly string[],
-  ): Promise<string[]> {
-    const visibleIds = await this.assets.listVisibleAssetIds(viewer);
-    const visible = new Set(visibleIds);
-    const found = await this.assets.findMany(candidates ?? visibleIds);
-
-    return [...found.values()]
-      .filter((asset) => this.assets.isVisibleToPlayer(asset, visible))
-      .map((asset) => asset.id);
   }
 
   /** A variant that isn't ready yet, or doesn't exist for this type, falls back to the file. */

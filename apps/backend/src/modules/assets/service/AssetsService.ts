@@ -1,8 +1,8 @@
+import type { SQL } from "drizzle-orm";
 import type { FastifyBaseLogger } from "fastify";
 import type { ContentReadPurpose } from "#core/content/access";
 import {
   campaignRoleOf,
-  type ContentView,
   type ContentViewer,
   contentViewOf,
 } from "#core/content/viewer";
@@ -123,9 +123,6 @@ type AssetCommandInput = {
   assetId: string;
   expectedVersion: number;
 };
-
-const FULL_VIEW_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
-const PLAYER_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["ACTIVE"];
 
 /**
  * Shared identity, lifecycle and catalog resolution for all linkable content.
@@ -261,21 +258,6 @@ export class AssetsService {
     });
 
     return ids;
-  }
-
-  /**
-   * Whether a player may see the asset in the campaign: active and visible as before, or archived
-   * and still in use there.
-   */
-  isVisibleToPlayerInCampaign(
-    asset: AssetRow,
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string>,
-  ): boolean {
-    return (
-      this.isVisibleToPlayer(asset, visibleAssetIds) ||
-      (asset.status === "ARCHIVED" && inUseAssetIds.has(asset.id))
-    );
   }
 
   registerReactivateHook(hook: AssetReactivateHook): void {
@@ -732,11 +714,6 @@ export class AssetsService {
     return access.require(purpose, await this.repository.findById(this.db, assetId));
   }
 
-  /** `visibleAssetIds` comes from `listVisibleAssetIds`; active global assets are always visible. */
-  isVisibleToPlayer(asset: AssetRow, visibleAssetIds: ReadonlySet<string>): boolean {
-    return asset.status === "ACTIVE" && (asset.scope === "SYSTEM" || visibleAssetIds.has(asset.id));
-  }
-
   /** Assets are changed directly through system administration only. */
   assertCanManage(context: RequestContext): void {
     this.assertAuthenticated(context);
@@ -812,6 +789,27 @@ export class AssetsService {
   }
 
   /**
+   * Global content outside a campaign, as a condition on `assets` for the global list routes:
+   * administrators get drafts and active content (archived when asked for), everybody else active
+   * content only. `rulesetId` narrows it to what fits that ruleset.
+   */
+  globalListWhere(
+    context: RequestContext,
+    filter: { status?: AssetStatus | undefined; rulesetId?: string | undefined },
+    db: AppDatabase = this.db,
+  ): SQL {
+    const statuses: readonly AssetStatus[] = isSysAdminRole(context.systemRole)
+      ? filter.status
+        ? [filter.status]
+        : ["DRAFT", "ACTIVE"]
+      : filter.status === undefined || filter.status === "ACTIVE"
+        ? ["ACTIVE"]
+        : [];
+
+    return this.repository.globalWhere(db, { statuses, rulesetId: filter.rulesetId });
+  }
+
+  /**
    * `access` for a viewer that is already resolved. Inside a transaction, pass its handle: the
    * grants are then read in it, and a failing provider fails the transaction.
    */
@@ -841,10 +839,6 @@ export class AssetsService {
     );
 
     return [...new Set(results.flat())];
-  }
-
-  campaignStatusesFor(view: ContentView): readonly AssetStatus[] {
-    return view === "FULL" ? FULL_VIEW_CAMPAIGN_STATUSES : PLAYER_CAMPAIGN_STATUSES;
   }
 
   async requireAsset(db: AppDatabase, assetId: string): Promise<AssetRow> {

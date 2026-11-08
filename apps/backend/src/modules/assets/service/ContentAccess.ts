@@ -87,6 +87,18 @@ export class ContentAccess {
     return asset;
   }
 
+  /**
+   * Ids of the campaign's own assets a player may read (`MANAGE`): those granted to them and
+   * archived ones in use. For the full view, which reads all of them, use `where` instead.
+   */
+  async listReadableOwnIds(db: AppDatabase = this.deps.db): Promise<string[]> {
+    const candidates = await this.deps.repository.findByIds(db, [
+      ...new Set([...this.visibleAssetIds, ...this.inUseAssetIds]),
+    ]);
+
+    return [...(await this.readableIds("MANAGE", candidates, db))];
+  }
+
   /** The same decision as a condition on `assets`, for lists, counts and search. */
   where(purpose: ContentReadPurpose, db: AppDatabase = this.deps.db): SQL {
     const own = and(eq(assets.scope, "CAMPAIGN"), eq(assets.campaignId, this.viewer.campaignId));
@@ -122,6 +134,25 @@ export class ContentAccess {
     return or(
       own,
       this.viewer.isAdmin ? global : and(global, ne(assets.status, "DRAFT"), offered),
+    ) as SQL;
+  }
+
+  /**
+   * `where` for a list with the usual filters of the list routes: `scope` and `status` as asked.
+   * Management lists of the full view leave archived content out unless it is asked for.
+   */
+  listWhere(
+    purpose: ContentReadPurpose,
+    filter: { scope?: AssetRow["scope"] | undefined; status?: AssetRow["status"] | undefined } = {},
+    db: AppDatabase = this.deps.db,
+  ): SQL {
+    const defaultStatus =
+      purpose === "MANAGE" && this.isFullView ? ne(assets.status, "ARCHIVED") : undefined;
+
+    return and(
+      this.where(purpose, db),
+      filter.scope ? eq(assets.scope, filter.scope) : undefined,
+      filter.status ? eq(assets.status, filter.status) : defaultStatus,
     ) as SQL;
   }
 

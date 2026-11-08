@@ -1,6 +1,7 @@
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService, AssetStatus } from "#src/modules/assets/index";
+import type { ContentReadPurpose } from "#core/content/access";
+import type { AssetsService } from "#src/modules/assets/index";
 import type {
   RequestCampaignClassesQueryDto,
   RequestClassCatalogQueryDto,
@@ -12,22 +13,8 @@ import {
   toClassListItemPlayerResponse,
   toClassListResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
-import type {
-  ClassListFilter,
-  ClassPage,
-} from "#src/modules/classes/domain/repository/ClassesRepository";
+import type { ClassPage } from "#src/modules/classes/domain/repository/ClassesRepository";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
-
-const EDITOR_DEFAULT_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
-
-/** Statuses an editor asked for, or the default; players and readers only get active entries. */
-function statusesFor(canEdit: boolean, status: AssetStatus | undefined): readonly AssetStatus[] {
-  if (!canEdit) {
-    return status === undefined || status === "ACTIVE" ? ["ACTIVE"] : [];
-  }
-
-  return status ? [status] : EDITOR_DEFAULT_STATUSES;
-}
 
 /** Shared by the list use cases. Lists carry no definitions; those come with the detail view. */
 export class ClassListing {
@@ -40,10 +27,7 @@ export class ClassListing {
     context: RequestContext,
     input: { campaignId: string; query: RequestCampaignClassesQueryDto },
   ): Promise<ResponseClassListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, {
-      system: false,
-      catalog: false,
-    });
+    return this.listInCampaign(context, input.campaignId, input.query, "MANAGE");
   }
 
   /**
@@ -55,11 +39,7 @@ export class ClassListing {
     context: RequestContext,
     input: { campaignId: string; query: RequestClassCatalogQueryDto },
   ): Promise<ResponseClassListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, {
-      system: input.query.scope !== "CAMPAIGN",
-      campaign: input.query.scope !== "SYSTEM",
-      catalog: true,
-    });
+    return this.listInCampaign(context, input.campaignId, input.query, "CATALOG");
   }
 
   async listSystem(
@@ -72,57 +52,30 @@ export class ClassListing {
     const { db, repository } = this.classesService;
     const page = await repository.listPage(db, {
       ...this.baseFilter(query),
-      system: {
-        statuses: statusesFor(isAdmin, query.status),
-        rulesetCondition: query.rulesetId
-          ? this.assetsService.repository.compatibleWith(db, query.rulesetId)
-          : undefined,
-      },
+      where: this.assetsService.globalListWhere(context, query),
     });
 
     return this.toResponse(page, isAdmin, query.limit);
   }
 
+  /** The campaign's own entries (`MANAGE`) or what the campaign may use (`CATALOG`). */
   private async listInCampaign(
     context: RequestContext,
     campaignId: string,
-    query: RequestCampaignClassesQueryDto,
-    include: { system: boolean; campaign?: boolean; catalog: boolean },
+    query: RequestCampaignClassesQueryDto | RequestClassCatalogQueryDto,
+    purpose: ContentReadPurpose,
   ): Promise<ResponseClassListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
+    const access = await this.assetsService.access(context, campaignId);
     const { db, repository } = this.classesService;
-    const isFullView = viewer.view === "FULL";
-    // GMs manage their own archived classes in the campaign list; everywhere else archived classes
-    // only stay while the campaign still uses them.
-    const managesArchived = isFullView && !include.catalog;
-    const inUse =
-      !managesArchived && (query.status === undefined || query.status === "ARCHIVED")
-        ? [...(await this.assetsService.listInUseAssetIds(viewer.campaignId))]
-        : undefined;
-    const filter: ClassListFilter = {
+    const page = await repository.listPage(db, {
       ...this.baseFilter(query),
-      system: include.system
-        ? {
-            // Global drafts are not offered to campaigns.
-            statuses: query.status === undefined || query.status === "ACTIVE" ? ["ACTIVE"] : [],
-            archivedAssetIds: inUse,
-            rulesetCondition: this.assetsService.repository.compatibleWith(db, viewer.rulesetId),
-          }
-        : undefined,
-      campaign:
-        include.campaign === false
-          ? undefined
-          : {
-              campaignId: viewer.campaignId,
-              statuses: statusesFor(isFullView, query.status).filter(
-                (status) => managesArchived || status !== "ARCHIVED",
-              ),
-              assetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
-              archivedAssetIds: inUse,
-            },
-    };
+      where: access.listWhere(purpose, {
+        scope: "scope" in query ? query.scope : undefined,
+        status: query.status,
+      }),
+    });
 
-    return this.toResponse(await repository.listPage(db, filter), isFullView, query.limit);
+    return this.toResponse(page, access.isFullView, query.limit);
   }
 
   private baseFilter(query: RequestCampaignClassesQueryDto) {

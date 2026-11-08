@@ -4,7 +4,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { escapeLike } from "#core/db/escapeLike";
 import type { AppDatabase } from "#core/db/pool";
 import { decodeStringCursor } from "#core/http/listResponse";
-import { assets, type AssetRow, type AssetStatus } from "#src/modules/assets/index";
+import { assets, type AssetRow } from "#src/modules/assets/index";
 import type { CreatureType } from "#src/modules/species/domain/dto/BaseSpeciesDto";
 import type { SpeciesSize } from "#src/modules/species/domain/dto/SpeciesDefinitionDto";
 import { species, speciesVariants } from "#src/modules/species/domain/entities/SpeciesTable";
@@ -32,29 +32,8 @@ export type SpeciesListFilter = {
   creatureType?: CreatureType | undefined;
   size?: SpeciesSize | undefined;
   search?: string | undefined;
-  /**
-   * Global species with these statuses, plus the archived ones among `archivedAssetIds`; omitted
-   * means none.
-   */
-  system?:
-    | {
-        statuses: readonly AssetStatus[];
-        archivedAssetIds?: readonly string[] | undefined;
-        rulesetCondition?: SQL | undefined;
-      }
-    | undefined;
-  /**
-   * Species of this campaign with these statuses (only `assetIds` if given, e.g. those a player may
-   * see), plus the archived ones among `archivedAssetIds`; omitted means none.
-   */
-  campaign?:
-    | {
-        campaignId: string;
-        statuses: readonly AssetStatus[];
-        assetIds?: readonly string[] | undefined;
-        archivedAssetIds?: readonly string[] | undefined;
-      }
-    | undefined;
+  /** Which entries, as a condition on their asset (e.g. `ContentAccess.listWhere`). */
+  where: SQL;
 };
 
 /** Grant paths that refer to assets; text that happens to look like an id is no usage. */
@@ -124,50 +103,11 @@ export class SpeciesRepository {
   }
 
   async listPage(db: AppDatabase, filter: SpeciesListFilter): Promise<SpeciesPage> {
-    const scopes: SQL[] = [];
-    const archivedAmong = (assetIds: readonly string[] | undefined) =>
-      assetIds && assetIds.length > 0
-        ? and(eq(assets.status, "ARCHIVED"), inArray(species.assetId, [...assetIds]))
-        : undefined;
-    const withStatuses = (statuses: readonly AssetStatus[], assetIds?: readonly string[]) =>
-      statuses.length > 0 && assetIds?.length !== 0
-        ? and(
-            inArray(assets.status, [...statuses]),
-            assetIds ? inArray(species.assetId, [...assetIds]) : undefined,
-          )
-        : undefined;
-
-    if (filter.system) {
-      const status = or(
-        withStatuses(filter.system.statuses),
-        archivedAmong(filter.system.archivedAssetIds),
-      );
-
-      if (status) {
-        scopes.push(and(isNull(species.campaignId), status, filter.system.rulesetCondition) as SQL);
-      }
-    }
-
-    if (filter.campaign) {
-      const status = or(
-        withStatuses(filter.campaign.statuses, filter.campaign.assetIds),
-        archivedAmong(filter.campaign.archivedAssetIds),
-      );
-
-      if (status) {
-        scopes.push(and(eq(species.campaignId, filter.campaign.campaignId), status) as SQL);
-      }
-    }
-
-    if (scopes.length === 0) {
-      return { items: [], hasMore: false };
-    }
-
     const rows = await this.selectWithAsset(db)
       .where(
         and(
           isNull(species.deletedAt),
-          or(...scopes),
+          filter.where,
           filter.creatureType ? eq(species.creatureType, filter.creatureType) : undefined,
           filter.size
             ? sql`jsonb_path_exists(${species.sizeOptions}, '$[*] ? (@.size == $size)', jsonb_build_object('size', ${filter.size}::text))`

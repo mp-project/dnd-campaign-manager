@@ -44,21 +44,16 @@ type PageInput = {
   search?: string | undefined;
 };
 
-export type CampaignAssetListFilter = PageInput & {
-  campaignId: string;
+export type AssetListFilter = PageInput & {
   assetType?: AssetType | undefined;
-  statuses?: readonly AssetStatus[] | undefined;
-  visibleAssetIds?: readonly string[] | undefined;
+  /** Which assets, e.g. `ContentAccess.listWhere`. */
+  where: SQL;
 };
 
+/** Active global assets of a type, for the catalog outside a campaign. */
 export type AssetCatalogFilter = PageInput & {
   assetType: AssetType;
   rulesetId: string | null;
-  campaign: {
-    campaignId: string;
-    statuses: readonly AssetStatus[];
-    visibleAssetIds?: readonly string[] | undefined;
-  } | null;
 };
 
 function containsPattern(search: string): string {
@@ -179,46 +174,26 @@ export class AssetsRepository {
     );
   }
 
-  async listCampaignAssets(
-    db: AppDatabase,
-    filter: CampaignAssetListFilter,
-  ): Promise<AssetPage> {
-    if (filter.visibleAssetIds && filter.visibleAssetIds.length === 0) {
-      return { items: [], hasMore: false };
-    }
-
+  async listPage(db: AppDatabase, filter: AssetListFilter): Promise<AssetPage> {
     const where: (SQL | undefined)[] = [
       isNull(assets.deletedAt),
-      eq(assets.scope, "CAMPAIGN"),
-      eq(assets.campaignId, filter.campaignId),
+      filter.where,
       filter.assetType ? eq(assets.assetType, filter.assetType) : undefined,
-      filter.statuses ? inArray(assets.status, [...filter.statuses]) : undefined,
-      filter.visibleAssetIds ? inArray(assets.id, [...filter.visibleAssetIds]) : undefined,
       ...this.buildPageWhere(filter),
     ];
 
     return this.loadPage(db, where, filter.limit);
   }
 
-  async countCampaignAssets(
-    db: AppDatabase,
-    filter: Omit<CampaignAssetListFilter, "cursor" | "limit">,
-  ): Promise<number> {
-    if (filter.visibleAssetIds && filter.visibleAssetIds.length === 0) {
-      return 0;
-    }
-
+  async count(db: AppDatabase, filter: Omit<AssetListFilter, "cursor" | "limit">): Promise<number> {
     const [row] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(assets)
       .where(
         and(
           isNull(assets.deletedAt),
-          eq(assets.scope, "CAMPAIGN"),
-          eq(assets.campaignId, filter.campaignId),
+          filter.where,
           filter.assetType ? eq(assets.assetType, filter.assetType) : undefined,
-          filter.statuses ? inArray(assets.status, [...filter.statuses]) : undefined,
-          filter.visibleAssetIds ? inArray(assets.id, [...filter.visibleAssetIds]) : undefined,
           filter.search ? ilike(assets.title, containsPattern(filter.search)) : undefined,
         ),
       );
@@ -226,18 +201,17 @@ export class AssetsRepository {
     return row?.total ?? 0;
   }
 
+
   /**
    * Lists selectable definitions: active system assets plus (optionally) assets of one campaign,
    * both restricted to definitions compatible with `rulesetId` when given.
    */
   async listCatalog(db: AppDatabase, filter: AssetCatalogFilter): Promise<AssetPage> {
-    const systemCondition = and(eq(assets.scope, "SYSTEM"), eq(assets.status, "ACTIVE"));
-    const campaignCondition = this.buildCatalogCampaignCondition(filter.campaign);
-
     const where: (SQL | undefined)[] = [
       isNull(assets.deletedAt),
       eq(assets.assetType, filter.assetType),
-      campaignCondition ? or(systemCondition, campaignCondition) : systemCondition,
+      eq(assets.scope, "SYSTEM"),
+      eq(assets.status, "ACTIVE"),
       filter.rulesetId ? this.compatibleWith(db, filter.rulesetId) : undefined,
       ...this.buildPageWhere(filter),
     ];
@@ -319,6 +293,18 @@ export class AssetsRepository {
     return rows.map((row) => row.id);
   }
 
+  /** Condition on `assets`: global assets with these statuses, fitting the ruleset if given. */
+  globalWhere(
+    db: AppDatabase,
+    filter: { statuses: readonly AssetStatus[]; rulesetId?: string | undefined },
+  ): SQL {
+    return and(
+      eq(assets.scope, "SYSTEM"),
+      filter.statuses.length > 0 ? inArray(assets.status, [...filter.statuses]) : sql`false`,
+      filter.rulesetId ? this.compatibleWith(db, filter.rulesetId) : undefined,
+    ) as SQL;
+  }
+
   /** Condition on `assets`: neutral, or restricted to a set that contains the ruleset. */
   compatibleWith(db: AppDatabase, rulesetId: string): SQL {
     return or(
@@ -336,25 +322,6 @@ export class AssetsRepository {
           ),
       ),
     ) as SQL;
-  }
-
-  private buildCatalogCampaignCondition(
-    campaign: AssetCatalogFilter["campaign"],
-  ): SQL | undefined {
-    if (!campaign) {
-      return undefined;
-    }
-
-    if (campaign.visibleAssetIds && campaign.visibleAssetIds.length === 0) {
-      return undefined;
-    }
-
-    return and(
-      eq(assets.scope, "CAMPAIGN"),
-      eq(assets.campaignId, campaign.campaignId),
-      inArray(assets.status, [...campaign.statuses]),
-      campaign.visibleAssetIds ? inArray(assets.id, [...campaign.visibleAssetIds]) : undefined,
-    );
   }
 
   private buildPageWhere(input: PageInput): (SQL | undefined)[] {

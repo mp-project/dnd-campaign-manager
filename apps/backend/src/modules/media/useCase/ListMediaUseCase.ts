@@ -21,7 +21,8 @@ export class ListMediaUseCase {
     context: RequestContext,
     input: { campaignId: string; query: RequestMediaQueryDto },
   ): Promise<ResponseMediaListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { viewer } = access;
     const { db, repository } = this.mediaService;
     const { limit, cursor } = input.query;
 
@@ -30,7 +31,7 @@ export class ListMediaUseCase {
         campaignId: viewer.campaignId,
         limit,
         cursor,
-        onAssetIds: await this.mediaService.listAssetIdsVisibleToPlayer(viewer),
+        onAssetIds: await access.listReadableOwnIds(),
       });
 
       return toMediaListResponse({

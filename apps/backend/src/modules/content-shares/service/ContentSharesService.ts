@@ -185,7 +185,10 @@ export class ContentSharesService {
     );
   }
 
-  /** The shared asset as a player may see it right now, or null. */
+  /**
+   * The shared assets a share still reveals: active, of a shareable type, of the campaign or
+   * global. A share grants the asset itself, so no other grant is needed.
+   */
   async findVisibleAsset(
     viewer: Pick<ContentViewer, "campaignId">,
     assetIds: readonly string[],
@@ -194,10 +197,10 @@ export class ContentSharesService {
 
     return new Map(
       [...assets].filter(
-        ([id, asset]) =>
+        ([, asset]) =>
           (asset.campaignId === null || asset.campaignId === viewer.campaignId) &&
           this.isShareable(asset.assetType) &&
-          this.assets.isVisibleToPlayer(asset, new Set([id])),
+          asset.status === "ACTIVE",
       ),
     );
   }

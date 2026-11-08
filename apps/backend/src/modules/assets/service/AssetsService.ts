@@ -1,3 +1,4 @@
+import type { FastifyBaseLogger } from "fastify";
 import {
   ConflictError,
   ForbiddenError,
@@ -7,6 +8,7 @@ import {
   VersionConflictError,
 } from "#core/error/http/index";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
+import { isDatabaseBusyError } from "#core/error/databaseBusy";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { ActionScope, ChangeResult, ListFieldRule } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
@@ -148,6 +150,7 @@ export class AssetsService {
     public readonly transactionManager: TransactionManager,
     public readonly repository: AssetsRepository,
     private readonly campaignAccess: AssetCampaignAccessPort,
+    private readonly logger: Pick<FastifyBaseLogger, "error">,
   ) {
     this.trackedAsset = createTrackedAsset({
       repository,
@@ -233,13 +236,36 @@ export class AssetsService {
     this.inUseProviders.push(provider);
   }
 
-  /** Assets the campaign still uses, see `AssetInUseProvider`. */
+  /**
+   * Assets the campaign still uses, see `AssetInUseProvider`. A provider that fails on its own is
+   * logged and counts as "nothing in use", so its archived content is hidden instead of every read
+   * failing; that never shows more than before. A busy database (503) and every failure inside a
+   * transaction, which Postgres would abort anyway, are thrown.
+   */
   async listInUseAssetIds(campaignId: string, db: AppDatabase = this.db): Promise<Set<string>> {
-    const results = await Promise.all(
+    const results = await Promise.allSettled(
       this.inUseProviders.map((provider) => provider.listInUseAssetIds({ campaignId }, db)),
     );
+    const ids = new Set<string>();
 
-    return new Set(results.flat());
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        result.value.forEach((id) => ids.add(id));
+
+        return;
+      }
+
+      if (db !== this.db || isDatabaseBusyError(result.reason)) {
+        throw result.reason;
+      }
+
+      this.logger.error(
+        { err: result.reason, provider: this.inUseProviders[index]?.name, campaignId },
+        "Asset in-use provider failed",
+      );
+    });
+
+    return ids;
   }
 
   /**

@@ -104,3 +104,10 @@ export {
   classes,
   classHitDieEnum,
 } from "../../../modules/classes/domain/entities/ClassesTable.js";
+
+export {
+  species,
+  speciesCreatureTypeEnum,
+  speciesLifespanModeEnum,
+  speciesVariants,
+} from "../../../modules/species/domain/entities/SpeciesTable.js";

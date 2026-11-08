@@ -3,6 +3,7 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
+import { UUID_PATTERN } from "#core/uuid";
 import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
@@ -757,12 +758,19 @@ export class ClassesService {
     return { missing: result.missing, issues: [...result.issues, ...bindingIssues] };
   }
 
-  /** Bound values of asset parameters; ids of any type, so they are hidden like references. */
+  /**
+   * Bound values that may be asset ids; ids of any type, so they are hidden like references. Free
+   * text is left out, because it is no asset and must not reach a uuid column.
+   */
   private staticAssetValues(definition: ClassDefinition): string[] {
     return listGrants(definition).flatMap(({ grant }) =>
-      grant.bindings
-        .filter((binding) => binding.bindingSource === "STATIC" && typeof binding.staticValue === "string")
-        .map((binding) => binding.staticValue as string),
+      grant.bindings.flatMap((binding) =>
+        binding.bindingSource === "STATIC" &&
+        typeof binding.staticValue === "string" &&
+        UUID_PATTERN.test(binding.staticValue)
+          ? [binding.staticValue]
+          : [],
+      ),
     );
   }
 

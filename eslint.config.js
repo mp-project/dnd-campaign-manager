@@ -8,7 +8,7 @@ import vueParser from "vue-eslint-parser";
  * Tracked tables are only written through the history, so no change can skip its entry.
  * `tests/unit/history.schema.test.ts` checks that this list matches what is registered.
  */
-const TRACKED_TABLES = ["assetLinks", "assetMedia", "assets", "campaignMemberships", "campaigns", "classes", "features", "notes", "rulesets", "tags", "users"];
+const TRACKED_TABLES = ["assetLinks", "assetMedia", "assets", "campaignMemberships", "campaigns", "classes", "features", "notes", "rulesets", "species", "speciesVariants", "tags", "users"];
 
 function trackedWritesRule(tables) {
   return [

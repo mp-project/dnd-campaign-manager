@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import {
@@ -61,6 +61,20 @@ export class RulesetRepository {
       .limit(1);
 
     return rows[0] ?? null;
+  }
+
+  /** Edition years of the rulesets in one query; unknown and deleted ids are missing. */
+  async listEditionYears(db: AppDatabase, rulesetIds: readonly string[]): Promise<Map<string, number>> {
+    if (rulesetIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await db
+      .select({ id: rulesets.id, editionYear: rulesets.editionYear })
+      .from(rulesets)
+      .where(and(inArray(rulesets.id, [...new Set(rulesetIds)]), isNull(rulesets.deletedAt)));
+
+    return new Map(rows.map((row) => [row.id, row.editionYear]));
   }
 
   async findAggregateById(

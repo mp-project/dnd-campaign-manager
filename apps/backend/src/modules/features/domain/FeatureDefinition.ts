@@ -11,6 +11,56 @@ export type DefinitionIssue = { path: (string | number)[]; message: string };
 
 export const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"] as const;
 
+const ABILITY_SCORE_STATS = new Set<string>(ABILITIES.map((ability) => `ability.${ability}`));
+
+/**
+ * Whether the effects raise or set an ability score: `MODIFIER` or `BASE_VALUE` on `ability.str`
+ * …, compared without case and surrounding spaces because `stat` is free text. The derived
+ * modifier (`ability.str.modifier`) does not count, and neither does a modifier with a constant
+ * amount of zero or less (a penalty). Amounts that are computed may be positive, so they count.
+ */
+export function raisesAbilityScore(graph: Pick<FeatureGraph, "effects">): boolean {
+  return graph.effects.some(({ payload }) => {
+    if (payload.type !== "MODIFIER" && payload.type !== "BASE_VALUE") {
+      return false;
+    }
+
+    if (!ABILITY_SCORE_STATS.has(payload.stat.trim().toLowerCase())) {
+      return false;
+    }
+
+    return !(payload.type === "MODIFIER" && payload.amount.type === "CONST" && payload.amount.value <= 0);
+  });
+}
+
+/**
+ * Whether the definition depends on the level of a class: a scaling track by `CLASS_LEVEL` or an
+ * expression with `level.class`. Sources without a class level (species, feats) cannot resolve such
+ * a feature.
+ */
+export function usesClassLevel(graph: FeatureGraph): boolean {
+  if (graph.scalingTracks.some((track) => track.scaleBy === "CLASS_LEVEL")) {
+    return true;
+  }
+
+  const values: ValueExpression[] = [
+    ...graph.resources.map((resource) => resource.maximumExpression),
+    ...graph.activations.flatMap((activation) => [
+      ...(activation.duration?.amount ? [activation.duration.amount] : []),
+      ...activation.costs.map((cost) => cost.amountExpression),
+    ]),
+    ...graph.effects.flatMap((effect) => listPayloadExpressions(effect.payload)),
+  ];
+  const expressions = [
+    ...values.map((root) => ({ kind: "value" as const, root })),
+    ...graph.effects.flatMap((effect) =>
+      effect.condition ? [{ kind: "predicate" as const, root: effect.condition }] : [],
+    ),
+  ];
+
+  return expressions.some((expression) => collectVariableKeys(expression).has("level.class"));
+}
+
 /** Values every resolution may provide; missing ones make results unknown, not invalid. */
 export const CONTEXT_VALUE_KEYS: readonly string[] = [
   "level.character",

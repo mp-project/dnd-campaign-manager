@@ -282,7 +282,6 @@ export class HistoryActionScope implements ActionScope {
     const next = { ...current, ...update } as TrackedRow;
 
     erased.validate?.(next, current);
-    await erased.guard?.(next, current, this.tx);
 
     const columnUpdate = Object.fromEntries(
       Object.entries(update).filter(([field]) => !erased.lists?.[field]),
@@ -293,6 +292,8 @@ export class HistoryActionScope implements ActionScope {
         ...columnUpdate,
         updatedAt: new Date(),
       });
+
+      await erased.guard?.(next, current, this.tx);
 
       return { row, changed: true, merged };
     }
@@ -306,6 +307,9 @@ export class HistoryActionScope implements ActionScope {
     });
 
     await this.saveLists(erased, id, update);
+    // After writing row and lists, so whatever the guard reads from the database is the new state.
+    // A rejection rolls the whole action back.
+    await erased.guard?.(next, current, this.tx);
     await this.writeEvent(erased, { ...row, ...update }, version, fields, options);
 
     return { row, changed: true, merged };

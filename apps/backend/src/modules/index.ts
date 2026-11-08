@@ -20,6 +20,7 @@ import { contentSharesModule } from "#src/modules/content-shares/index";
 import { notesModule } from "#src/modules/notes/index";
 import { featuresModule } from "#src/modules/features/index";
 import { classesModule } from "#src/modules/classes/index";
+import { speciesModule } from "#src/modules/species/index";
 import { historyModule } from "#src/modules/history/index";
 
 export const systemModule: AppModule = {
@@ -47,6 +48,7 @@ export const defaultAppModules: readonly AppModule[] = [
   notesModule,
   featuresModule,
   classesModule,
+  speciesModule,
 ];
 
 export async function registerAppModules(
@@ -69,6 +71,7 @@ export { rulesetModule } from "#src/modules/ruleset/index";
 export { mediaModule } from "#src/modules/media/index";
 export { featuresModule } from "#src/modules/features/index";
 export { classesModule } from "#src/modules/classes/index";
+export { speciesModule } from "#src/modules/species/index";
 export { notesModule } from "#src/modules/notes/index";
 export { tagsModule } from "#src/modules/tags/index";
 export { usersModule } from "#src/modules/users/index";

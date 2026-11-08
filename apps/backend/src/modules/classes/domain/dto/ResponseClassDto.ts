@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { UUID_PATTERN } from "#core/uuid";
 import { baseEntityResponseDto, standardListResponseDto, uuidDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
 import { renderSafeMarkdown } from "#core/text/safeMarkdown";
@@ -371,7 +372,7 @@ export function toPlayerDefinition(
               !(
                 binding.bindingSource === "STATIC" &&
                 typeof binding.staticValue === "string" &&
-                /^[0-9a-f-]{36}$/i.test(binding.staticValue) &&
+                UUID_PATTERN.test(binding.staticValue) &&
                 hidden(binding.staticValue)
               ) &&
               !(binding.bindingSource === "CLASS_CHOICE" && removedChoices.has(binding.choiceKey ?? "")),

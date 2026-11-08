@@ -19,7 +19,11 @@ export type {
   FeatureBindings,
   ResolvedFeatureGraph,
 } from "#src/modules/features/domain/FeatureResolver";
-export { FeaturesService } from "#src/modules/features/service/FeaturesService";
+export {
+  type FeatureChangeGuard,
+  type FeatureInspection,
+  FeaturesService,
+} from "#src/modules/features/service/FeaturesService";
 export {
   checkTypedValue,
   DieValueSchema,
@@ -27,4 +31,10 @@ export {
   type FeatureParameter,
   featureKeyDto,
 } from "#src/modules/features/domain/dto/FeatureDefinitionDto";
-export { ABILITIES, CONTEXT_VALUE_KEYS } from "#src/modules/features/domain/FeatureDefinition";
+export { ABILITIES, CONTEXT_VALUE_KEYS, raisesAbilityScore, usesClassLevel } from "#src/modules/features/domain/FeatureDefinition";
+export { ActorSnapshotSchema } from "#src/modules/features/domain/dto/RequestFeatureDto";
+export {
+  ResponseResolvedFeatureSchema,
+  type ResponseResolvedFeatureDto,
+  toResolvedFeatureResponse,
+} from "#src/modules/features/domain/dto/ResponseFeatureDto";

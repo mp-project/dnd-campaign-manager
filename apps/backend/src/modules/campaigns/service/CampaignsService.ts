@@ -1,3 +1,4 @@
+import { RFC_UUID_PATTERN } from "#core/uuid";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import {
   ConflictError,
@@ -25,8 +26,7 @@ import {
 import type { RulesetModuleDependencies } from "#src/modules/ruleset/index";
 import type { UsersModuleDependencies } from "#src/modules/users/index";
 
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = RFC_UUID_PATTERN;
 
 type LoadedCampaign = {
   campaign: CampaignRow;

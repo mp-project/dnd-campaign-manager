@@ -10,6 +10,7 @@ import {
   campaigns,
   features,
   rulesets,
+  systemRuntimeState,
   users,
 } from "#core/db/schema";
 import {
@@ -535,6 +536,14 @@ describe("features", () => {
       await assetsService.rebuildReferences();
 
       expect(await stored()).toEqual(maintained);
+
+      // At startup the app builds it once when the stored index version is missing or older.
+      await db.delete(assetReferences);
+      await db.delete(systemRuntimeState);
+
+      expect(await assetsService.ensureReferenceIndex()).toBe(true);
+      expect(await stored()).toEqual(maintained);
+      expect(await assetsService.ensureReferenceIndex()).toBe(false);
 
       // A change replaces the references of its asset.
       expect((await update(improved, { supersedes: [] })).statusCode).toBe(200);

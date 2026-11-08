@@ -93,6 +93,12 @@ export type AssetDeactivateHook = {
  * What the module owning an asset type tells the content kernel about it. Only what cannot be
  * derived from elsewhere belongs here (tables, routes and rights already say the rest).
  */
+/**
+ * Version of the rules behind `asset_references`. Raise it when a content type changes what it
+ * reports as references; the app then rebuilds the index once when it starts.
+ */
+export const CONTENT_REFERENCE_INDEX_VERSION = 1;
+
 /** A place in stored content that refers to another asset. */
 export type ContentReference = {
   assetId: string;
@@ -276,23 +282,47 @@ export class AssetsService {
   }
 
   /**
-   * Builds `asset_references` again from the stored content of every registered type, e.g. after
-   * a migration or to repair it. Returns how many assets were read.
+   * Builds `asset_references` again from the stored content of every registered type, e.g. to
+   * repair it. Each asset is locked while its references are rebuilt, so an action that changes
+   * it meanwhile can't be overwritten with older references. Returns how many assets were read.
    */
   async rebuildReferences(): Promise<number> {
+    return this.transactionManager.inTransaction((tx) => this.rebuildReferencesIn(tx));
+  }
+
+  /**
+   * Run once when the app starts: rebuilds the reference index when the stored index version is
+   * older than `CONTENT_REFERENCE_INDEX_VERSION`, e.g. after the migration that added it or after
+   * the rules of a type's references changed. An advisory lock keeps several app instances from
+   * doing it at the same time; the others wait and then find the version current.
+   */
+  async ensureReferenceIndex(): Promise<boolean> {
+    return this.transactionManager.inTransaction(async (tx) => {
+      await this.repository.lockReferenceIndex(tx);
+
+      if ((await this.repository.findReferenceIndexVersion(tx)) === CONTENT_REFERENCE_INDEX_VERSION) {
+        return false;
+      }
+
+      await this.rebuildReferencesIn(tx);
+      await this.repository.updateReferenceIndexVersion(tx, CONTENT_REFERENCE_INDEX_VERSION);
+
+      return true;
+    });
+  }
+
+  private async rebuildReferencesIn(tx: AppDatabase): Promise<number> {
     const assetTypes = [...this.contentTypes.values()]
       .filter((type) => type.references)
       .map((type) => type.assetType);
-    const ids = await this.repository.listIdsOfTypes(this.db, assetTypes);
+    const ids = await this.repository.listIdsOfTypes(tx, assetTypes);
 
     for (const id of ids) {
-      await this.transactionManager.inTransaction(async (tx) => {
-        const asset = await this.repository.findById(tx, id);
+      const asset = await this.repository.findByIdForUpdate(tx, id);
 
-        if (asset) {
-          await this.storeReferences(asset, tx);
-        }
-      });
+      if (asset) {
+        await this.storeReferences(asset, tx);
+      }
     }
 
     return ids.length;

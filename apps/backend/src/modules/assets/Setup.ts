@@ -78,6 +78,12 @@ async function registerAssetsModule(
 
   history.register(service.trackedAsset);
   history.registerVerifier(service.contentVerifier);
+  // Once all modules registered their content types: bring the reference index up to date.
+  app.addHook("onReady", async () => {
+    if (await service.ensureReferenceIndex()) {
+      app.log.info("Content reference index rebuilt");
+    }
+  });
 
   const listCampaignAssetsUseCase = new ListCampaignAssetsUseCase(service);
   const getAssetByIdUseCase = new GetAssetByIdUseCase(service);

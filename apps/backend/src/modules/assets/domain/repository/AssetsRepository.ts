@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
+import { systemRuntimeState } from "#core/db/schemas/runtimeState.table";
 import { decodePaginationCursor } from "#core/http/listResponse";
 import {
   assetFamilies,
@@ -61,6 +62,8 @@ function containsPattern(search: string): string {
   return `%${search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 }
 
+const REFERENCE_INDEX_STATE_KEY = "content.reference_index";
+
 /** One row of `asset_references`. */
 export type StoredAssetReference = {
   targetAssetId: string;
@@ -92,6 +95,16 @@ export class AssetsRepository {
   }
 
   /** Sorted, so parallel callers lock rows in the same order. */
+  async findByIdForUpdate(db: AppDatabase, assetId: string): Promise<AssetRow | null> {
+    const [row] = await db
+      .select()
+      .from(assets)
+      .where(and(eq(assets.id, assetId), isNull(assets.deletedAt)))
+      .for("update");
+
+    return row ?? null;
+  }
+
   async lockShared(db: AppDatabase, assetIds: readonly string[]): Promise<void> {
     await db
       .select({ id: assets.id })
@@ -371,6 +384,43 @@ export class AssetsRepository {
           sql`${assets.status} <> 'ARCHIVED'`,
         ),
       );
+  }
+
+  /** Serializes rebuilding the reference index across app instances, until the transaction ends. */
+  async lockReferenceIndex(db: AppDatabase): Promise<void> {
+    await db.execute(sql`select pg_advisory_xact_lock(hashtext(${REFERENCE_INDEX_STATE_KEY}))`);
+  }
+
+  async findReferenceIndexVersion(db: AppDatabase): Promise<number | null> {
+    const [row] = await db
+      .select({ value: systemRuntimeState.value })
+      .from(systemRuntimeState)
+      .where(
+        and(
+          eq(systemRuntimeState.stateKey, REFERENCE_INDEX_STATE_KEY),
+          isNull(systemRuntimeState.deletedAt),
+        ),
+      );
+    const version = (row?.value as { version?: unknown } | undefined)?.version;
+
+    return typeof version === "number" ? version : null;
+  }
+
+  async updateReferenceIndexVersion(db: AppDatabase, version: number): Promise<void> {
+    const updated = await db
+      .update(systemRuntimeState)
+      .set({ value: { version }, updatedAt: new Date() })
+      .where(
+        and(
+          eq(systemRuntimeState.stateKey, REFERENCE_INDEX_STATE_KEY),
+          isNull(systemRuntimeState.deletedAt),
+        ),
+      )
+      .returning({ id: systemRuntimeState.id });
+
+    if (updated.length === 0) {
+      await db.insert(systemRuntimeState).values({ stateKey: REFERENCE_INDEX_STATE_KEY, value: { version } });
+    }
   }
 
   /** Assets of these types, archived ones included, for rebuilding the references. */

@@ -154,10 +154,6 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
     name: "species-features",
     listVisibleAssetIds: (input, db) => service.listReleasedFeatureIds(input, db),
   });
-  // Features granted by 2024 species may not start raising ability scores later.
-  features.service.registerChangeGuard((change, db) =>
-    service.assertFeatureChangeAllowed(change, db),
-  );
   assetsService.registerContentType({
     assetType: "SPECIES",
     references: (asset, db) => service.listContentReferences(asset, db),

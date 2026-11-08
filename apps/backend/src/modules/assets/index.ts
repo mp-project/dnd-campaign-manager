@@ -32,6 +32,7 @@ export {
   type AssetDeactivateHook,
   type AssetReference,
   type AssetReferenceIssue,
+  type ContentProperty,
   type ContentReference,
   type ContentTypeDefinition,
   type AssetVisibilityProvider,

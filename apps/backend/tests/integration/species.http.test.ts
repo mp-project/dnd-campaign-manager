@@ -553,7 +553,7 @@ describe("species", () => {
       const patched = await update(featureUrl(plain), plain, asiEffect());
 
       expect(patched.statusCode).toBe(409);
-      expect(JSON.stringify(patched.json())).toContain("may not raise ability scores");
+      expect(JSON.stringify(patched.json())).toContain("forbids that this asset raises ability scores");
 
       // A feature that raised ability scores before it was granted cannot get them back by undo.
       const asi = await createFeature({ name: "Former ASI", ...asiEffect() });
@@ -993,7 +993,7 @@ describe("species", () => {
       );
 
       expect(patched.statusCode).toBe(409);
-      expect(JSON.stringify(patched.json())).toContain("may not depend on a class level");
+      expect(JSON.stringify(patched.json())).toContain("forbids that this asset depends on a class level");
     });
   });
 

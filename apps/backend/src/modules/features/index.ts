@@ -20,7 +20,7 @@ export type {
   ResolvedFeatureGraph,
 } from "#src/modules/features/domain/FeatureResolver";
 export {
-  type FeatureChangeGuard,
+  FEATURE_PROPERTIES,
   type FeatureInspection,
   FeaturesService,
 } from "#src/modules/features/service/FeaturesService";

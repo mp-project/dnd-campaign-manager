@@ -11,6 +11,7 @@ import {
   type AssetRow,
   type AssetsService,
   type ContentAccess,
+  type ContentProperty,
   type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
@@ -82,11 +83,11 @@ export type FeatureInspection =
     }
   | { valid: false };
 
-/** See `FeaturesService.registerChangeGuard`. */
-export type FeatureChangeGuard = (
-  change: { assetId: string; campaignId: string | null; graph: FeatureGraph },
-  db: AppDatabase,
-) => Promise<void>;
+/** What a feature does that referring content may forbid (see `ContentReference.forbids`). */
+export const FEATURE_PROPERTIES = {
+  raisesAbilityScore: { code: "RAISES_ABILITY_SCORE", phrase: "raises ability scores" },
+  usesClassLevel: { code: "USES_CLASS_LEVEL", phrase: "depends on a class level" },
+} as const;
 
 /**
  * Feature definitions: global ones, maintained by administrators per ruleset, and custom ones of a
@@ -97,7 +98,6 @@ export type FeatureChangeGuard = (
 export class FeaturesService {
   public readonly trackedFeature: TrackedFeature;
   public readonly cache = new FeatureResolutionCache();
-  private readonly changeGuards: FeatureChangeGuard[] = [];
 
   constructor(
     public readonly db: AppDatabase,
@@ -278,16 +278,6 @@ export class FeaturesService {
     }
 
     return result;
-  }
-
-  /**
-   * Lets another module refuse a change of a feature definition, for rules it keeps about the
-   * features it uses (for example species of 2024 rulesets, which may not grant ability score
-   * increases). Runs in the history guard, so on direct changes, undoing and restoring alike, with
-   * the transaction of the change. Throws to reject.
-   */
-  registerChangeGuard(guard: FeatureChangeGuard): void {
-    this.changeGuards.push(guard);
   }
 
   /** Edit routes for asset-links, for all custom features of one request in one query. */
@@ -524,8 +514,8 @@ export class FeaturesService {
 
   /**
    * The content check of a feature at the end of every action that touched it (see
-   * `ContentTypeDefinition.verify`): its references, and the rules of the modules that grant it
-   * (`registerChangeGuard`), on the state the action leaves behind.
+   * `ContentTypeDefinition.verify`): its references, on the state the action leaves behind. What
+   * referring content forbids is checked by the kernel against `listContentProperties`.
    */
   async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
     const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
@@ -534,13 +524,23 @@ export class FeaturesService {
       return;
     }
 
+    await this.assertReferencesValid(db, found.feature, parseFeatureGraph(found.feature));
+  }
+
+  /** What the stored definition does that referring content may forbid; see `FEATURE_PROPERTIES`. */
+  async listContentProperties(asset: AssetRow, db: AppDatabase): Promise<ContentProperty[]> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
+    }
+
     const graph = parseFeatureGraph(found.feature);
 
-    await this.assertReferencesValid(db, found.feature, graph);
-
-    for (const guard of this.changeGuards) {
-      await guard({ assetId: asset.id, campaignId: found.feature.campaignId, graph }, db);
-    }
+    return [
+      ...(raisesAbilityScore(graph) ? [FEATURE_PROPERTIES.raisesAbilityScore] : []),
+      ...(usesClassLevel(graph) ? [FEATURE_PROPERTIES.usesClassLevel] : []),
+    ];
   }
 
 

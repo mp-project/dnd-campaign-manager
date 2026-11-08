@@ -102,6 +102,13 @@ export type ContentReference = {
   forbids?: readonly string[] | undefined;
 };
 
+/** Something content is or does that a reference may forbid, e.g. raising ability scores. */
+export type ContentProperty = {
+  code: string;
+  /** Completes "Referring content forbids that this asset …", e.g. "raises ability scores". */
+  phrase: string;
+};
+
 export type ContentTypeDefinition = {
   assetType: AssetRow["assetType"];
   /**
@@ -117,6 +124,12 @@ export type ContentTypeDefinition = {
    * not archived. Rule content that merely refers to other rules does not count.
    */
   usesContent?: boolean;
+  /**
+   * What the content currently is or does that referring content may forbid (`forbids` of its
+   * references). The kernel checks it at the end of every action that touched the content, so a
+   * change can't break the rules of content that refers to it.
+   */
+  properties?(asset: AssetRow, db: AppDatabase): Promise<readonly ContentProperty[]>;
   /**
    * Checks the content as it is at the end of an action that touched it (its asset or any row
    * whose history root is the asset), in the transaction of the action: references, unique codes
@@ -252,6 +265,49 @@ export class AssetsService {
     return ids.length;
   }
 
+  /**
+   * Refuses a state of the asset that non-archived content referring to it forbids, e.g. a feature
+   * that starts raising ability scores while a 2024 species grants it.
+   */
+  private async assertAllowedByReferrers(asset: AssetRow, db: AppDatabase): Promise<void> {
+    const properties = (await this.contentTypes.get(asset.assetType)?.properties?.(asset, db)) ?? [];
+
+    if (properties.length === 0) {
+      return;
+    }
+
+    const issues = (await this.repository.listReferencing(db, asset.id)).flatMap(
+      ({ source, reference }) =>
+        source.status === "ARCHIVED"
+          ? []
+          : properties
+              .filter((property) => reference.forbids.includes(property.code))
+              .map((property) => ({
+                assetId: source.id,
+                assetType: source.assetType,
+                name: source.title,
+                path: reference.path,
+                property: property.code,
+                phrase: property.phrase,
+              })),
+    );
+
+    if (issues.length > 0) {
+      const phrases = [...new Set(issues.map((issue) => issue.phrase))].join(" or ");
+
+      throw new ConflictError(`Referring content forbids that this asset ${phrases}`, {
+        assetId: asset.id,
+        usages: issues.map(({ assetId, assetType, name, path, property }) => ({
+          assetId,
+          assetType,
+          name,
+          path,
+          property,
+        })),
+      });
+    }
+  }
+
   private async storeReferences(asset: AssetRow, db: AppDatabase): Promise<void> {
     const type = this.contentTypes.get(asset.assetType);
 
@@ -315,6 +371,7 @@ export class AssetsService {
 
         if (asset.status !== "ARCHIVED") {
           await type?.verify?.(asset, db);
+          await this.assertAllowedByReferrers(asset, db);
         }
 
         await this.storeReferences(asset, db);

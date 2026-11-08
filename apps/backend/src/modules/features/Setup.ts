@@ -117,6 +117,7 @@ async function registerFeaturesModule(
   assetsService.registerContentType({
     assetType: "FEATURE",
     references: (asset, db) => service.listContentReferences(asset, db),
+    properties: (asset, db) => service.listContentProperties(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("FEATURE", (input, db) =>

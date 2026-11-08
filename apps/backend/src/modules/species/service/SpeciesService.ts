@@ -18,10 +18,8 @@ import {
 } from "#src/modules/assets/index";
 import {
   checkTypedValue,
-  type FeatureChangeGuard,
+  FEATURE_PROPERTIES,
   type FeaturesService,
-  raisesAbilityScore,
-  usesClassLevel,
 } from "#src/modules/features/index";
 import type { CreateSpeciesDto } from "#src/modules/species/domain/dto/CreateSpeciesDto";
 import type {
@@ -511,11 +509,21 @@ export class SpeciesService {
    * parses.
    */
   async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+    // Species grants scale by character level; from 2024 on they raise no ability scores either.
+    const owner = { assetId: asset.id, campaignId: asset.campaignId };
+    const forbids = [
+      FEATURE_PROPERTIES.usesClassLevel.code,
+      ...((await this.abilityRuleOwners(db, [owner])).has(asset.id)
+        ? [FEATURE_PROPERTIES.raisesAbilityScore.code]
+        : []),
+    ];
     const fromGrants = (grants: readonly SpeciesFeatureGrant[]): ContentReference[] => [
       ...collectGrantReferences(grants).map((reference) => ({
         assetId: reference.assetId,
         path: reference.path,
         kind: "DEFINITION",
+        // The rules hold for granted features, not for the targets of upgrades.
+        forbids: reference.path.at(-1) === "featureAssetId" ? forbids : [],
       })),
       ...grants.flatMap((grant, grantIndex) =>
         grant.bindings.flatMap((binding, bindingIndex) =>
@@ -1111,64 +1119,6 @@ export class SpeciesService {
     return [...issues, ...result.fit, ...result.missing, ...result.references];
   }
 
-  /**
-   * Change guard of the features module. A feature that species or variants grant may not start
-   * to depend on a class level, and one that species or variants of rulesets from 2024 on grant
-   * may not start raising ability scores. Without it the rules would only be checked when the
-   * species is written. Archived species are checked again when they come back.
-   */
-  async assertFeatureChangeAllowed(
-    change: Parameters<FeatureChangeGuard>[0],
-    db: AppDatabase,
-  ): Promise<void> {
-    const raises = raisesAbilityScore(change.graph);
-    const classLevel = usesClassLevel(change.graph);
-
-    if (!raises && !classLevel) {
-      return;
-    }
-
-    const input = { assetId: change.assetId, campaignId: change.campaignId, includeArchived: false };
-    const owners = [
-      ...(await this.repository.listReferencing(db, input)).map(({ species: row, asset }) => ({
-        row,
-        asset,
-        assetType: "SPECIES" as const,
-      })),
-      ...(await this.repository.listVariantsReferencing(db, input)).map(({ variant, asset }) => ({
-        row: variant,
-        asset,
-        assetType: "SPECIES_VARIANT" as const,
-      })),
-    ].filter(({ row }) => grantsFeature(row.featureGrants, change.assetId));
-    const usagesOf = (items: typeof owners) =>
-      items.map(({ asset, assetType }) => ({ assetId: asset.id, assetType, name: asset.title }));
-
-    if (classLevel && owners.length > 0) {
-      throw new ConflictError(
-        "Species and variants grant this feature, so it may not depend on a class level",
-        { usages: usagesOf(owners) },
-      );
-    }
-
-    if (!raises || owners.length === 0) {
-      return;
-    }
-
-    const applies = await this.abilityRuleOwners(
-      db,
-      owners.map(({ row, asset }) => ({ assetId: asset.id, campaignId: row.campaignId })),
-    );
-    const usages = usagesOf(owners.filter(({ asset }) => applies.has(asset.id)));
-
-    if (usages.length > 0) {
-      throw new ConflictError(
-        `Species of rulesets from ${ABILITY_INCREASE_FREE_EDITION_YEAR} on grant this feature, so it may not raise ability scores`,
-        { usages },
-      );
-    }
-  }
-
   // ---------------------------------------------------------------------------
   // Usages
   // ---------------------------------------------------------------------------
@@ -1272,12 +1222,3 @@ function rulesetCoverageIssues(
     : [{ path: ["rulesetIds"], message: "A variant is only available within the rulesets of its species" }];
 }
 
-/** Whether stored grants grant the feature, read from the raw json like the visibility provider. */
-function grantsFeature(featureGrants: unknown, featureAssetId: string): boolean {
-  return (
-    Array.isArray(featureGrants) &&
-    featureGrants.some(
-      (grant) => (grant as { featureAssetId?: unknown } | null)?.featureAssetId === featureAssetId,
-    )
-  );
-}

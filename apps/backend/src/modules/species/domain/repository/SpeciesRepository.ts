@@ -36,13 +36,6 @@ export type SpeciesListFilter = {
   where: SQL;
 };
 
-/** Grant paths that refer to assets; text that happens to look like an id is no usage. */
-const GRANT_REFERENCE_PATHS = [
-  "$[*].featureAssetId ? (@ == $id)",
-  "$[*].targetFeatureAssetId ? (@ == $id)",
-  '$[*].bindings[*] ? (@.bindingSource == "STATIC" && @.staticValue == $id)',
-];
-
 /** Species and variant rows only change through the history; reads join their assets. */
 export class SpeciesRepository {
   // ---------------------------------------------------------------------------
@@ -127,29 +120,6 @@ export class SpeciesRepository {
     return { items: rows.slice(0, filter.limit), hasMore: rows.length > filter.limit };
   }
 
-  /**
-   * Species whose grants refer to the asset. `campaignId` limits them to global species and those
-   * of the campaign; null searches everywhere, for global assets. Archived species only with
-   * `includeArchived`.
-   */
-  async listReferencing(
-    db: AppDatabase,
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-  ): Promise<SpeciesWithAsset[]> {
-    return this.selectWithAsset(db)
-      .where(
-        and(
-          isNull(species.deletedAt),
-          input.campaignId
-            ? or(isNull(species.campaignId), eq(species.campaignId, input.campaignId))
-            : undefined,
-          input.includeArchived ? undefined : sql`${assets.status} <> 'ARCHIVED'`,
-          this.grantsReferTo(species.featureGrants, input.assetId),
-        ),
-      )
-      .orderBy(asc(species.code), asc(species.id));
-  }
-
   // ---------------------------------------------------------------------------
   // Variants
   // ---------------------------------------------------------------------------
@@ -182,31 +152,6 @@ export class SpeciesRepository {
     return this.selectVariantWithAsset(db)
       .where(and(eq(speciesVariants.speciesId, speciesId), isNull(speciesVariants.deletedAt)))
       .orderBy(asc(speciesVariants.displayOrder), asc(speciesVariants.code), asc(speciesVariants.id));
-  }
-
-  /**
-   * Variants whose grants refer to the asset, or whose species it is. Same limits as
-   * `listReferencing`.
-   */
-  async listVariantsReferencing(
-    db: AppDatabase,
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-  ): Promise<SpeciesVariantWithAsset[]> {
-    return this.selectVariantWithAsset(db)
-      .where(
-        and(
-          isNull(speciesVariants.deletedAt),
-          input.campaignId
-            ? or(isNull(speciesVariants.campaignId), eq(speciesVariants.campaignId, input.campaignId))
-            : undefined,
-          input.includeArchived ? undefined : sql`${assets.status} <> 'ARCHIVED'`,
-          or(
-            eq(species.assetId, input.assetId),
-            this.grantsReferTo(speciesVariants.featureGrants, input.assetId),
-          ),
-        ),
-      )
-      .orderBy(asc(speciesVariants.code), asc(speciesVariants.id));
   }
 
   /**
@@ -250,16 +195,6 @@ export class SpeciesRepository {
     `);
 
     return rows.rows.map((row) => row.id);
-  }
-
-  private grantsReferTo(column: AnyColumn, assetId: string): SQL {
-    const vars = sql`jsonb_build_object('id', ${assetId}::text)`;
-
-    return or(
-      ...GRANT_REFERENCE_PATHS.map(
-        (path) => sql`jsonb_path_exists(${column}, ${path}::jsonpath, ${vars})`,
-      ),
-    ) as SQL;
   }
 
   private selectWithAsset(db: AppDatabase) {

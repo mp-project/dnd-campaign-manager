@@ -1,4 +1,4 @@
-import { campaignRoleOf } from "#core/content/viewer";
+import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -9,7 +9,6 @@ import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-li
 import {
   type AssetRow,
   type AssetsService,
-  type CampaignAssetViewer,
   slugify,
 } from "#src/modules/assets/index";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
@@ -170,7 +169,7 @@ export class FeaturesService {
    * only see what `isVisibleToPlayerInCampaign` allows.
    */
   async requireCatalogFeature(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     featureId: string,
     access: {
       visibleAssetIds: ReadonlySet<string>;
@@ -781,7 +780,7 @@ export class FeaturesService {
   async resolveFeature(
     found: FeatureWithAsset,
     input: {
-      viewer: CampaignAssetViewer;
+      viewer: ContentViewer;
       visibleAssetIds: ReadonlySet<string>;
       bindings: FeatureBindings;
       actor: ActorSnapshot;
@@ -851,7 +850,7 @@ export class FeaturesService {
   private async checkAssetSelections(
     graph: FeatureGraph,
     input: {
-      viewer: CampaignAssetViewer;
+      viewer: ContentViewer;
       visibleAssetIds: ReadonlySet<string>;
       bindings: FeatureBindings;
       db?: AppDatabase | undefined;
@@ -921,7 +920,7 @@ export class FeaturesService {
     }));
   }
 
-  async getUsages(viewer: CampaignAssetViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
+  async getUsages(viewer: ContentViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
     return this.links.getUsages(viewer, assetId, visibleAssetIds);
   }
 

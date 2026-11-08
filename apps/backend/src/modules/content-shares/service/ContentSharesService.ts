@@ -1,5 +1,6 @@
 import type { z } from "zod";
 
+import type { ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import {
@@ -13,7 +14,6 @@ import type {
   AssetRow,
   AssetsService,
   AssetType,
-  CampaignAssetViewer,
 } from "#src/modules/assets/index";
 import type { CreateContentShareDto } from "#src/modules/content-shares/domain/dto/CreateContentShareDto";
 import type { UpdateContentShareDto } from "#src/modules/content-shares/domain/dto/UpdateContentShareDto";
@@ -187,7 +187,7 @@ export class ContentSharesService {
 
   /** The shared asset as a player may see it right now, or null. */
   async findVisibleAsset(
-    viewer: Pick<CampaignAssetViewer, "campaignId">,
+    viewer: Pick<ContentViewer, "campaignId">,
     assetIds: readonly string[],
   ): Promise<Map<string, AssetRow>> {
     const assets = await this.assets.findMany(assetIds);
@@ -207,7 +207,7 @@ export class ContentSharesService {
    * preview of what their players see.
    */
   async loadSharedContent(
-    viewer: Pick<CampaignAssetViewer, "actorId" | "campaignId" | "view">,
+    viewer: Pick<ContentViewer, "actorId" | "campaignId" | "view">,
     shareId: string,
   ): Promise<{ share: ContentShareRow; asset: AssetRow; content: unknown }> {
     const share =

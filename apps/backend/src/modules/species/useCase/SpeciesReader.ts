@@ -1,7 +1,8 @@
+import type { ContentView, ContentViewer } from "#core/content/viewer";
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService, CampaignAssetViewer } from "#src/modules/assets/index";
+import type { AssetsService } from "#src/modules/assets/index";
 import type { SpeciesFeatureGrant } from "#src/modules/species/domain/dto/SpeciesDefinitionDto";
 import type {
   SpeciesVariantWithAsset,
@@ -26,11 +27,11 @@ export type ReadableVariant = SpeciesVariantWithAsset & { featureGrants: Species
 export type ReadableSpecies = {
   found: SpeciesWithAsset;
   mode: SpeciesReadMode;
-  view: "FULL" | "PLAYER";
+  view: ContentView;
   isAdmin: boolean;
   /** Set inside a campaign; null for global species read outside of one. */
   campaign: {
-    viewer: CampaignAssetViewer & { isAdmin: boolean };
+    viewer: ContentViewer;
     visibleAssetIds: ReadonlySet<string>;
     inUseAssetIds: ReadonlySet<string>;
   } | null;
@@ -70,11 +71,10 @@ export class SpeciesReader {
       return { found, mode, view: isAdmin ? "FULL" : "PLAYER", isAdmin, campaign: null };
     }
 
-    const resolved = await this.assetsService.resolveCampaignViewer(
+    const viewer = await this.assetsService.resolveCampaignViewer(
       context,
       input.campaignId as string,
     );
-    const viewer = { ...resolved, isAdmin };
     const visibleAssetIds = new Set(
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );

@@ -35,7 +35,6 @@ export {
   type AssetReference,
   type AssetReferenceIssue,
   type AssetVisibilityProvider,
-  type CampaignAssetViewer,
 } from "#src/modules/assets/service/AssetsService";
 export { ASSET_ENTITY_TYPE } from "#src/modules/assets/history/TrackedAsset";
 export { slugify } from "#src/modules/assets/domain/slugify";

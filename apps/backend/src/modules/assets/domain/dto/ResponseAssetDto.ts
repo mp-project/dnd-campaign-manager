@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ContentView } from "#core/content/viewer";
 import { baseEntityResponseDto, standardListResponseDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
 import { AssetBaseSchema } from "#src/modules/assets/domain/dto/BaseAssetDto";
@@ -45,7 +46,6 @@ export type ResponseUpdateAssetDto = z.infer<typeof ResponseUpdateAssetSchema>;
 export type ResponseAssetPlayerDto = z.infer<typeof ResponseAssetPlayerSchema>;
 export type ResponseAssetDto = z.infer<typeof ResponseAssetSchema>;
 export type ResponseAssetListDto = z.infer<typeof ResponseAssetListSchema>;
-export type AssetView = ResponseAssetDto["view"];
 
 export function toAssetFullResponse({ asset, rulesetIds }: AssetRecord): ResponseAssetFullDto {
   return {
@@ -90,13 +90,13 @@ export function toAssetPlayerResponse({ asset }: AssetRecord): ResponseAssetPlay
   };
 }
 
-export function toAssetResponse(record: AssetRecord, view: AssetView): ResponseAssetDto {
+export function toAssetResponse(record: AssetRecord, view: ContentView): ResponseAssetDto {
   return view === "FULL" ? toAssetFullResponse(record) : toAssetPlayerResponse(record);
 }
 
 export function toAssetListResponse(params: {
   page: AssetPage;
-  view: AssetView;
+  view: ContentView;
   limit: number;
   total?: number;
 }): ResponseAssetListDto {

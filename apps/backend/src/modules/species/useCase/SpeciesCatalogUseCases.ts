@@ -1,3 +1,4 @@
+import type { ContentView } from "#core/content/viewer";
 import type { RequestContext } from "#core/http/requestContext";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
 import type { SpeciesSelectionDto } from "#src/modules/species/domain/dto/RequestSpeciesDto";
@@ -13,7 +14,7 @@ import type { SpeciesSelectionService } from "#src/modules/species/service/Speci
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
 import type { SpeciesReader } from "#src/modules/species/useCase/SpeciesReader";
 
-const header = (readable: { found: { species: { id: string }; asset: { id: string } }; view: "FULL" | "PLAYER" }) => ({
+const header = (readable: { found: { species: { id: string }; asset: { id: string } }; view: ContentView }) => ({
   speciesId: readable.found.species.id,
   assetId: readable.found.asset.id,
   view: readable.view,

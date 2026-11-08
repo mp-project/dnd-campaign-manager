@@ -1,3 +1,4 @@
+import type { ContentView } from "#core/content/viewer";
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
@@ -13,7 +14,7 @@ export type ClassReadMode = "campaign" | "catalog" | "system";
 
 export type ReadableClass = {
   found: ClassWithAsset;
-  view: "FULL" | "PLAYER";
+  view: ContentView;
   /** For the player view; always true for GMs. */
   isVisible: (assetId: string) => boolean;
 };
@@ -66,7 +67,7 @@ export class ClassReader {
     );
     const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
     const found = await this.classesService.requireCatalogClass(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+      viewer,
       input.classId,
       {
         visibleAssetIds,

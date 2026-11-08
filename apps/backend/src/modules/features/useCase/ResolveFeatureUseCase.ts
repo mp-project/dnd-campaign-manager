@@ -1,5 +1,4 @@
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { ResolveFeatureDto } from "#src/modules/features/domain/dto/RequestFeatureDto";
 import {
@@ -27,7 +26,7 @@ export class ResolveFeatureUseCase {
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
     const found = await this.featuresService.requireCatalogFeature(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+      viewer,
       input.featureId,
       {
         visibleAssetIds,

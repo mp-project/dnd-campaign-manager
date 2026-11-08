@@ -1,7 +1,8 @@
+import type { ContentViewer } from "#core/content/viewer";
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
-import { type CampaignAssetViewer, slugify } from "#src/modules/assets/index";
+import { slugify } from "#src/modules/assets/index";
 import type { CreateSpeciesVariantDto } from "#src/modules/species/domain/dto/CreateSpeciesDto";
 import type { UpdateSpeciesVariantDto } from "#src/modules/species/domain/dto/UpdateSpeciesDto";
 import type {
@@ -49,7 +50,7 @@ export class SpeciesVariantsService {
    * Callers inside a transaction pass its handle as `db`.
    */
   async listAvailable(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     speciesId: string,
     access: CatalogAccess,
     db: AppDatabase = this.db,

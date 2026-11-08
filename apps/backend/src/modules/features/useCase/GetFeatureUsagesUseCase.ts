@@ -1,6 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
 import { NotFoundError } from "#core/error/http/index";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
 import type { AssetsService } from "#src/modules/assets/index";
 import { FeaturesService } from "#src/modules/features/service/FeaturesService";
@@ -24,7 +23,7 @@ export class GetFeatureUsagesUseCase {
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
     const { feature, asset } = await this.featuresService.requireCatalogFeature(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+      viewer,
       input.featureId,
       {
         visibleAssetIds,

@@ -1,5 +1,10 @@
 import type { FastifyBaseLogger } from "fastify";
-import { campaignRoleOf } from "#core/content/viewer";
+import {
+  campaignRoleOf,
+  type ContentView,
+  type ContentViewer,
+  contentViewOf,
+} from "#core/content/viewer";
 import {
   ConflictError,
   ForbiddenError,
@@ -21,7 +26,6 @@ import {
 import type { UpdateAssetMetadataDto } from "#src/modules/assets/domain/dto/UpdateAssetDto";
 import type { AssetStatus } from "#src/modules/assets/domain/dto/BaseAssetDto";
 import { slugify } from "#src/modules/assets/domain/slugify";
-import type { AssetView } from "#src/modules/assets/domain/dto/ResponseAssetDto";
 import type {
   AssetRecord,
   AssetRow,
@@ -112,15 +116,6 @@ export type AssetReference = {
 };
 
 export type AssetReferenceIssue = { path: (string | number)[]; message: string };
-
-export type CampaignAssetViewer = {
-  actorId: string;
-  campaignId: string;
-  rulesetId: string;
-  view: AssetView;
-  /** System administrator; set by `resolveCampaignViewer`, missing means no. */
-  isAdmin?: boolean | undefined;
-};
 
 type AssetCommandInput = {
   assetId: string;
@@ -732,7 +727,7 @@ export class AssetsService {
    */
   async requireReadableInCampaign(
     context: RequestContext,
-    viewer: CampaignAssetViewer,
+    viewer: ContentViewer,
     assetId: string,
     visibleAssetIds: ReadonlySet<string>,
   ): Promise<AssetRow> {
@@ -799,32 +794,32 @@ export class AssetsService {
   }
 
   /**
-   * Resolves whether the actor sees a campaign as GM (admin, owner, editor) or player.
-   * Non-members get 404 so campaign existence is not leaked.
+   * Resolves who looks at a campaign: role, administrator and with that the view (full for owner,
+   * editors and administrators, player otherwise). Non-members get 404 so campaign existence is
+   * not leaked.
    */
-  async resolveCampaignViewer(
-    context: RequestContext,
-    campaignId: string,
-  ): Promise<CampaignAssetViewer> {
+  async resolveCampaignViewer(context: RequestContext, campaignId: string): Promise<ContentViewer> {
     const actorId = this.assertAuthenticated(context);
     const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, this.db);
     const isAdmin = isSysAdminRole(context.systemRole);
+    const campaignRole = campaignRoleOf(campaign);
 
-    if (!campaign || (!campaign.role && !isAdmin)) {
+    if (!campaign || (!campaignRole && !isAdmin)) {
       throw new NotFoundError("Campaign not found");
     }
 
     return {
       actorId,
+      isAdmin,
       campaignId: campaign.campaignId,
       rulesetId: campaign.rulesetId,
-      view: isAdmin || campaign.role === "EDITOR" ? "FULL" : "PLAYER",
-      isAdmin,
+      campaignRole,
+      view: contentViewOf({ isAdmin, campaignRole }),
     };
   }
 
   async listVisibleAssetIds(
-    viewer: Pick<CampaignAssetViewer, "campaignId" | "actorId">,
+    viewer: Pick<ContentViewer, "campaignId" | "actorId">,
     db: AppDatabase = this.db,
   ): Promise<string[]> {
     const results = await Promise.all(
@@ -839,7 +834,7 @@ export class AssetsService {
     return [...new Set(results.flat())];
   }
 
-  campaignStatusesFor(view: AssetView): readonly AssetStatus[] {
+  campaignStatusesFor(view: ContentView): readonly AssetStatus[] {
     return view === "FULL" ? FULL_VIEW_CAMPAIGN_STATUSES : PLAYER_CAMPAIGN_STATUSES;
   }
 

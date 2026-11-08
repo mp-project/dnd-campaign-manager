@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
 
-import { campaignRoleOf } from "#core/content/viewer";
+import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -25,7 +25,6 @@ import type {
   AssetRow,
   AssetsService,
   AssetType,
-  CampaignAssetViewer,
 } from "#src/modules/assets/index";
 
 /** Campaign facts the module needs; provided by the campaigns module. */
@@ -86,11 +85,6 @@ export type AssetEditRouteBuilder = (
 type EditTarget = { campaignId: string; assetId: string; asset: AssetRow | undefined };
 
 type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
-
-/** Without `isAdmin`, the viewer is treated as no administrator. */
-type UsageViewer = Pick<CampaignAssetViewer, "actorId" | "campaignId" | "rulesetId" | "view"> & {
-  isAdmin?: boolean | undefined;
-};
 
 /**
  * Relations between assets and the view on where an asset is used.
@@ -307,7 +301,7 @@ export class AssetLinksService {
   }
 
   async getUsages(
-    viewer: UsageViewer,
+    viewer: ContentViewer,
     assetId: string,
     visibleAssetIds: ReadonlySet<string>,
   ): Promise<ResponseAssetUsagesDto> {
@@ -340,7 +334,7 @@ export class AssetLinksService {
       !viewer.isAdmin && asset?.scope === "SYSTEM" && !offered.has(asset.id);
     // Only administrators change global content.
     const mayEdit = (asset: AssetRow | undefined): boolean =>
-      viewer.isAdmin === true || (isFullView && asset?.scope !== "SYSTEM");
+      viewer.isAdmin || (isFullView && asset?.scope !== "SYSTEM");
 
     const visibleLinks = links.filter((link) => {
       const other = relatedAssets.get(otherEndOf(link, assetId));
@@ -407,7 +401,7 @@ export class AssetLinksService {
    * Archived ones stay, because they may still be in use.
    */
   private async listOfferedGlobalIds(
-    viewer: UsageViewer,
+    viewer: ContentViewer,
     related: readonly AssetRow[],
   ): Promise<ReadonlySet<string>> {
     if (viewer.isAdmin) {
@@ -427,7 +421,7 @@ export class AssetLinksService {
   }
 
   /** One failing provider leaves its group incomplete; the answer says which one it was. */
-  private async collectProvidedUsages(viewer: UsageViewer, assetId: string) {
+  private async collectProvidedUsages(viewer: ContentViewer, assetId: string) {
     const { campaignId, actorId } = viewer;
     const results = await Promise.allSettled(
       this.usageProviders.map((provider) =>

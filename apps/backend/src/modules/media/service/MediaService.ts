@@ -1,6 +1,6 @@
 import type { Readable } from "node:stream";
 
-import { campaignRoleOf } from "#core/content/viewer";
+import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -9,7 +9,6 @@ import type { StoragePort } from "#core/storage/index";
 import type {
   AssetRow,
   AssetsService,
-  CampaignAssetViewer,
 } from "#src/modules/assets/index";
 import type {
   AttachMediaDto,
@@ -100,7 +99,7 @@ export class MediaService {
 
   /** Players only get ready files attached for them to an asset they may see. */
   async requireFileForViewer(
-    viewer: CampaignAssetViewer,
+    viewer: ContentViewer,
     mediaId: string,
   ): Promise<MediaFileRow> {
     const file = await this.requireFileInCampaign(viewer.campaignId, mediaId);
@@ -124,7 +123,7 @@ export class MediaService {
 
   /** Assets among `candidates` that the player may see; all of the campaign without candidates. */
   async listAssetIdsVisibleToPlayer(
-    viewer: CampaignAssetViewer,
+    viewer: ContentViewer,
     candidates?: readonly string[],
   ): Promise<string[]> {
     const visibleIds = await this.assets.listVisibleAssetIds(viewer);

@@ -59,7 +59,7 @@ export class GetFeatureUseCase {
     );
     const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
     const found = await this.featuresService.requireCatalogFeature(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+      viewer,
       input.featureId,
       {
         visibleAssetIds,

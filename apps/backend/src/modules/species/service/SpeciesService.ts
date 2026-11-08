@@ -1,4 +1,4 @@
-import { campaignRoleOf } from "#core/content/viewer";
+import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -10,7 +10,6 @@ import {
   type AssetReference,
   type AssetRow,
   type AssetsService,
-  type CampaignAssetViewer,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -216,7 +215,7 @@ export class SpeciesService {
    * Callers inside a transaction pass its handle as `db`.
    */
   async isAvailableInCatalog(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     asset: AssetRow,
     access: CatalogAccess,
     db: AppDatabase = this.db,
@@ -226,7 +225,7 @@ export class SpeciesService {
 
   /** Ids of those assets that `isAvailableInCatalog` accepts, with one ruleset query for all. */
   async filterAvailableInCatalog(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     candidates: readonly AssetRow[],
     access: CatalogAccess,
     db: AppDatabase = this.db,
@@ -266,7 +265,7 @@ export class SpeciesService {
 
   /** A species available in the campaign, see `isAvailableInCatalog`; otherwise 404. */
   async requireCatalogSpecies(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     speciesId: string,
     access: CatalogAccess,
     db: AppDatabase = this.db,
@@ -1234,7 +1233,7 @@ export class SpeciesService {
     ];
   }
 
-  async getUsages(viewer: CampaignAssetViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
+  async getUsages(viewer: ContentViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
     return this.links.getUsages(viewer, assetId, visibleAssetIds);
   }
 

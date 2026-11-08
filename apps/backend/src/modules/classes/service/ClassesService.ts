@@ -1,4 +1,4 @@
-import { campaignRoleOf } from "#core/content/viewer";
+import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -11,7 +11,6 @@ import {
   type AssetReference,
   type AssetRow,
   type AssetsService,
-  type CampaignAssetViewer,
   slugify,
 } from "#src/modules/assets/index";
 import type { ClassDefinition } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
@@ -148,7 +147,7 @@ export class ClassesService {
    * Players only see what `isVisibleToPlayerInCampaign` allows.
    */
   async requireCatalogClass(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     classId: string,
     access: {
       visibleAssetIds: ReadonlySet<string>;
@@ -197,7 +196,7 @@ export class ClassesService {
    * catalog and active. Archived classes in use stay readable but cannot be chosen again (409).
    */
   async requireSelectableClass(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    viewer: ContentViewer,
     classId: string,
     visibleAssetIds: ReadonlySet<string>,
   ): Promise<ClassWithAsset & { definition: ClassDefinition }> {
@@ -796,7 +795,7 @@ export class ClassesService {
     }));
   }
 
-  async getUsages(viewer: CampaignAssetViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
+  async getUsages(viewer: ContentViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
     return this.links.getUsages(viewer, assetId, visibleAssetIds);
   }
 

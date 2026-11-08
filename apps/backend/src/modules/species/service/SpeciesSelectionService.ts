@@ -1,6 +1,6 @@
+import type { ContentView, ContentViewer } from "#core/content/viewer";
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError } from "#core/error/http/index";
-import type { CampaignAssetViewer } from "#src/modules/assets/index";
 import {
   type ActorSnapshot,
   type FeaturesService,
@@ -144,8 +144,8 @@ export class SpeciesSelectionService {
   async resolveSpeciesSelection(
     found: SpeciesWithAsset,
     input: {
-      viewer: CampaignAssetViewer;
-      view: "FULL" | "PLAYER";
+      viewer: ContentViewer;
+      view: ContentView;
       visibleAssetIds: ReadonlySet<string>;
       isVisible: (assetId: string) => boolean;
       offered: readonly OfferedVariant[];

@@ -1,6 +1,5 @@
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
 import type { AssetsService } from "#src/modules/assets/index";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
@@ -26,7 +25,7 @@ export class GetClassUsagesUseCase {
       viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
     );
     const { characterClass, asset } = await this.classesService.requireCatalogClass(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+      viewer,
       input.classId,
       {
         visibleAssetIds,

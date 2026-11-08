@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ContentView } from "#core/content/viewer";
 import { UUID_PATTERN } from "#core/uuid";
 import { baseEntityResponseDto, standardListResponseDto, uuidDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
@@ -515,7 +516,7 @@ export function toClassListResponse(params: {
 export function toClassSectionResponse(
   section: ClassSection,
   found: ClassWithAsset,
-  view: "FULL" | "PLAYER",
+  view: ContentView,
   definition: ReturnType<typeof toPlayerDefinition>,
 ): ResponseClassSectionDto {
   const header = { classId: found.characterClass.id, assetId: found.asset.id, view };

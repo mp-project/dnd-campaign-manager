@@ -1,23 +1,24 @@
+import type { ContentReadPurpose } from "#core/content/access";
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
-import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
   type AssetReference,
   type AssetRow,
   type AssetsService,
-  type CampaignAssetViewer,
+  type ContentAccess,
+  type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
 import {
   checkTypedValue,
-  type FeatureChangeGuard,
+  FEATURE_PROPERTIES,
   type FeaturesService,
-  raisesAbilityScore,
-  usesClassLevel,
 } from "#src/modules/features/index";
 import type { CreateSpeciesDto } from "#src/modules/species/domain/dto/CreateSpeciesDto";
 import type {
@@ -96,13 +97,6 @@ type VariantCheckRow = Pick<
   "assetId" | "campaignId" | "speciesId" | "variantGroupCode"
 > & { featureGrants: SpeciesFeatureGrant[] };
 
-/** What a viewer may see of the catalog; see `SpeciesService.isAvailableInCatalog`. */
-export type CatalogAccess = {
-  visibleAssetIds: ReadonlySet<string>;
-  inUseAssetIds: ReadonlySet<string>;
-  archived: "always" | "ifInUse";
-};
-
 /**
  * Species definitions: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each species is an asset of type
@@ -125,12 +119,9 @@ export class SpeciesService {
     private readonly campaignAccess: SpeciesCampaignAccessPort,
   ) {
     const deps = {
-      resolveRole: async (campaignId: string, actorId: string, tx: AppDatabase) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? ("GM" as const) : (campaign?.role ?? null);
-      },
-      assertSpeciesConsistent: async (
+      resolveRole: async (campaignId: string, actorId: string, tx: AppDatabase) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
+      assertSpeciesChangeable: async (
         row: SpeciesRow & { definition: SpeciesDefinition },
         tx: AppDatabase,
       ) => {
@@ -139,10 +130,8 @@ export class SpeciesService {
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived species cannot be modified", { assetId: asset.id });
         }
-
-        await this.assertSpeciesValid(tx, row, row.definition);
       },
-      assertVariantConsistent: async (
+      assertVariantChangeable: async (
         row: SpeciesVariantRow & { featureGrants: SpeciesFeatureGrant[] },
         tx: AppDatabase,
       ) => {
@@ -151,8 +140,6 @@ export class SpeciesService {
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived variants cannot be modified", { assetId: asset.id });
         }
-
-        await this.assertVariantValid(tx, row);
       },
     };
 
@@ -210,74 +197,20 @@ export class SpeciesService {
   }
 
   /**
-   * Whether an asset (species or variant) is available in the campaign: its own, or a global one
-   * for the campaign ruleset. Global drafts only exist for administrators. Archived assets only
-   * stay while the campaign still uses them (`inUseAssetIds`), so characters that have one keep
-   * seeing it; `archived: "always"` is for GMs managing their own content and for the selection
-   * check, which answers 409 instead. Players only see what `isVisibleToPlayerInCampaign` allows.
-   * Callers inside a transaction pass its handle as `db`.
+   * A species of the campaign the viewer may read for this purpose (`ContentReadPurpose`): `MANAGE`
+   * for the routes of the campaign's own species, `CATALOG` for what the campaign may choose.
+   * Archived species stay in the catalog while the campaign still uses them. Callers inside a
+   * transaction pass its handle as `db`.
    */
-  async isAvailableInCatalog(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
-    asset: AssetRow,
-    access: CatalogAccess,
-    db: AppDatabase = this.db,
-  ): Promise<boolean> {
-    return (await this.filterAvailableInCatalog(viewer, [asset], access, db)).has(asset.id);
-  }
-
-  /** Ids of those assets that `isAvailableInCatalog` accepts, with one ruleset query for all. */
-  async filterAvailableInCatalog(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
-    candidates: readonly AssetRow[],
-    access: CatalogAccess,
-    db: AppDatabase = this.db,
-  ): Promise<Set<string>> {
-    const global = candidates.filter(
-      (asset) => asset.campaignId === null && (asset.status !== "DRAFT" || viewer.isAdmin),
-    );
-    const compatible = await this.assets.repository.listCompatibleIds(
-      db,
-      global.map((asset) => asset.id),
-      viewer.rulesetId,
-    );
-
-    return new Set(
-      candidates
-        .filter((asset) => {
-          if (asset.campaignId === null ? !compatible.has(asset.id) : asset.campaignId !== viewer.campaignId) {
-            return false;
-          }
-
-          if (
-            asset.status === "ARCHIVED" &&
-            (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
-            !access.inUseAssetIds.has(asset.id)
-          ) {
-            return false;
-          }
-
-          return (
-            viewer.view !== "PLAYER" ||
-            this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
-          );
-        })
-        .map((asset) => asset.id),
-    );
-  }
-
-  /** A species available in the campaign, see `isAvailableInCatalog`; otherwise 404. */
-  async requireCatalogSpecies(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+  async requireReadableSpecies(
+    access: ContentAccess,
     speciesId: string,
-    access: CatalogAccess,
+    purpose: ContentReadPurpose,
     db: AppDatabase = this.db,
   ): Promise<SpeciesWithAsset> {
     const found = await this.requireSpecies(db, speciesId);
 
-    if (!(await this.isAvailableInCatalog(viewer, found.asset, access, db))) {
-      throw new NotFoundError("Species not found");
-    }
+    await access.require(purpose, found.asset, "Species not found", db);
 
     return found;
   }
@@ -298,30 +231,19 @@ export class SpeciesService {
   }
 
   /**
-   * Which assets these grants refer to a player may see: active global assets, campaign assets
-   * visible to the player and archived ones the campaign still uses. Used to strip hidden
-   * references from the player view.
+   * Which assets these grants refer to the viewer may read; used to strip hidden references from
+   * the player view. Without access (outside a campaign) only active global assets count.
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     grantLists: readonly (readonly SpeciesFeatureGrant[])[],
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
+    access: ContentAccess | null,
   ): Promise<(assetId: string) => boolean> {
     const ids = grantLists.flatMap((grants) => [
       ...collectGrantReferences(grants).map((item) => item.assetId),
       ...staticBindingValues(grants),
     ]);
-    const referenced = await this.assets.findMany(ids, db);
-
-    return (assetId) => {
-      const asset = referenced.get(assetId);
-
-      return (
-        asset !== undefined &&
-        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
-      );
-    };
+    return this.assets.referenceVisibility(access, ids, db);
   }
 
   /**
@@ -340,7 +262,7 @@ export class SpeciesService {
 
   /** Edit routes for asset-links, for all custom species of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findByAssetIds(db, input.assetIds);
@@ -350,14 +272,14 @@ export class SpeciesService {
         .filter(([, item]) => item.species.campaignId === input.campaignId)
         .map(([assetId, item]) => [
           assetId,
-          `/campaigns/${input.campaignId}/species/${item.species.id}`,
+          `${editRoutePrefix(input.campaignId)}/species/${item.species.id}`,
         ]),
     );
   }
 
   /** Edit routes of custom variants, for asset-links. */
   async findVariantEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findVariantsByAssetIds(db, input.assetIds);
@@ -367,7 +289,7 @@ export class SpeciesService {
         .filter(([, item]) => item.variant.campaignId === input.campaignId)
         .map(([assetId, item]) => [
           assetId,
-          `/campaigns/${input.campaignId}/species/${item.variant.speciesId}/variants/${item.variant.id}`,
+          `${editRoutePrefix(input.campaignId)}/species/${item.variant.speciesId}/variants/${item.variant.id}`,
         ]),
     );
   }
@@ -385,13 +307,7 @@ export class SpeciesService {
     campaignId: string | null,
     db: AppDatabase,
   ): Promise<string> {
-    if (campaignId === null) {
-      this.assets.assertCanManage(context);
-    } else {
-      await this.assets.assertCanEditCampaignContent(context, campaignId, db);
-    }
-
-    return this.assets.assertAuthenticated(context);
+    return this.assets.assertCanWrite(context, "EDIT", campaignId, db);
   }
 
   /** Id of the acting user, after `assertCanWrite` checked the rights. */
@@ -444,9 +360,6 @@ export class SpeciesService {
       ...definition,
     };
 
-    // Creating runs no history guard, so code and references are checked here.
-    await this.assertSpeciesValid(scope.tx, { ...row, id: null }, definition);
-
     const created = await this.withConstraintErrors(() => scope.create(this.trackedSpecies, row));
 
     return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, created.id));
@@ -454,8 +367,7 @@ export class SpeciesService {
 
   /**
    * Asset fields first, then the species. `merged` names the fields of both that kept a newer
-   * value from somebody else. When the rulesets change, the rules are checked again, because the
-   * history guard only runs when the species row itself changes.
+   * value from somebody else. The rules are checked at the end of the action (`verifyContent`).
    */
   async updateSpecies(
     scope: ActionScope,
@@ -475,7 +387,6 @@ export class SpeciesService {
       fields,
     });
     const set = rowFields(fields);
-    let changed = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.withConstraintErrors(() =>
@@ -485,19 +396,10 @@ export class SpeciesService {
         })),
       );
 
-      changed = result.changed;
       merged.push(...result.merged);
     }
 
     const found = await this.requireSpecies(scope.tx, row.id);
-
-    if (!changed && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.assertSpeciesValid(
-        scope.tx,
-        found.species,
-        parseSpeciesDefinition(found.species),
-      );
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -588,17 +490,88 @@ export class SpeciesService {
       expectedVersion: params.expectedAssetVersion,
     });
 
-    // The rules are checked by `assertReactivatable`, on every path that unarchives.
     return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, params.found.species.id));
   }
 
   /**
-   * Runs when a species or variant asset leaves ARCHIVED, through the restore route, undoing or
-   * restoring a version. While archived it kept nothing from being archived, another global
-   * species may have taken its code, and a variant's species may have changed, so the rules are
-   * checked again.
+   * What a stored species or variant refers to, for the reference index: granted and targeted
+   * features, bound asset ids, and for a variant its species. Nothing if the definition no longer
+   * parses.
    */
-  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
+  async listContentReferences(
+    asset: AssetRow,
+    db: AppDatabase,
+  ): Promise<ContentReference[] | null> {
+    // Species grants scale by character level; from 2024 on they raise no ability scores either.
+    const owner = { assetId: asset.id, campaignId: asset.campaignId };
+    const forbids = [
+      FEATURE_PROPERTIES.usesClassLevel.code,
+      ...((await this.abilityRuleOwners(db, [owner])).has(asset.id)
+        ? [FEATURE_PROPERTIES.raisesAbilityScore.code]
+        : []),
+    ];
+    const fromGrants = async (grants: readonly SpeciesFeatureGrant[]): Promise<ContentReference[]> => [
+      ...collectGrantReferences(grants).map((reference) => ({
+        assetId: reference.assetId,
+        path: reference.path,
+        kind: "DEFINITION",
+        // The rules hold for granted features, not for the targets of upgrades.
+        forbids: reference.path.at(-1) === "featureAssetId" ? forbids : [],
+      })),
+      ...(
+        await this.features.collectBoundAssetReferences(
+          db,
+          grants.map((grant, grantIndex) => ({ ...grant, path: ["featureGrants", grantIndex] })),
+        )
+      ).map((reference) => ({ ...reference, kind: "DEFINITION" })),
+    ];
+
+    if (asset.assetType === "SPECIES") {
+      const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+      if (!found) {
+        return [];
+      }
+
+      let grants: SpeciesFeatureGrant[];
+
+      try {
+        grants = parseSpeciesDefinition(found.species).featureGrants;
+      } catch {
+        // Unknown for now; the stored references stay.
+        return null;
+      }
+
+      return fromGrants(grants);
+    }
+
+    const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
+    }
+
+    const grants = tryParseVariantGrants(found.variant);
+
+    if (grants === null) {
+      return null;
+    }
+
+    const species = await this.repository.findById(db, found.variant.speciesId);
+
+    return [
+      ...(species ? [{ assetId: species.asset.id, path: ["species"], kind: "DEFINITION" }] : []),
+      ...(await fromGrants(grants)),
+    ];
+  }
+
+
+  /**
+   * The content check of a species or variant at the end of every action that touched it (see
+   * `ContentTypeDefinition.verify`), on the state the action leaves behind: creating, changing
+   * rulesets, undoing and restoring all count.
+   */
+  async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
     if (asset.assetType === "SPECIES") {
       const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
@@ -609,17 +582,16 @@ export class SpeciesService {
       return;
     }
 
-    if (asset.assetType === "SPECIES_VARIANT") {
-      const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
+    const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
 
-      if (found) {
-        await this.assertVariantValid(db, {
-          ...found.variant,
-          featureGrants: parseVariantGrants(found.variant),
-        });
-      }
+    if (found) {
+      await this.assertVariantValid(db, {
+        ...found.variant,
+        featureGrants: parseVariantGrants(found.variant),
+      });
     }
   }
+
 
   // ---------------------------------------------------------------------------
   // Rules that need the database
@@ -1142,102 +1114,12 @@ export class SpeciesService {
     return [...issues, ...result.fit, ...result.missing, ...result.references];
   }
 
-  /**
-   * Change guard of the features module. A feature that species or variants grant may not start
-   * to depend on a class level, and one that species or variants of rulesets from 2024 on grant
-   * may not start raising ability scores. Without it the rules would only be checked when the
-   * species is written. Archived species are checked again when they come back.
-   */
-  async assertFeatureChangeAllowed(
-    change: Parameters<FeatureChangeGuard>[0],
-    db: AppDatabase,
-  ): Promise<void> {
-    const raises = raisesAbilityScore(change.graph);
-    const classLevel = usesClassLevel(change.graph);
-
-    if (!raises && !classLevel) {
-      return;
-    }
-
-    const input = { assetId: change.assetId, campaignId: change.campaignId, includeArchived: false };
-    const owners = [
-      ...(await this.repository.listReferencing(db, input)).map(({ species: row, asset }) => ({
-        row,
-        asset,
-        assetType: "SPECIES" as const,
-      })),
-      ...(await this.repository.listVariantsReferencing(db, input)).map(({ variant, asset }) => ({
-        row: variant,
-        asset,
-        assetType: "SPECIES_VARIANT" as const,
-      })),
-    ].filter(({ row }) => grantsFeature(row.featureGrants, change.assetId));
-    const usagesOf = (items: typeof owners) =>
-      items.map(({ asset, assetType }) => ({ assetId: asset.id, assetType, name: asset.title }));
-
-    if (classLevel && owners.length > 0) {
-      throw new ConflictError(
-        "Species and variants grant this feature, so it may not depend on a class level",
-        { usages: usagesOf(owners) },
-      );
-    }
-
-    if (!raises || owners.length === 0) {
-      return;
-    }
-
-    const applies = await this.abilityRuleOwners(
-      db,
-      owners.map(({ row, asset }) => ({ assetId: asset.id, campaignId: row.campaignId })),
-    );
-    const usages = usagesOf(owners.filter(({ asset }) => applies.has(asset.id)));
-
-    if (usages.length > 0) {
-      throw new ConflictError(
-        `Species of rulesets from ${ABILITY_INCREASE_FREE_EDITION_YEAR} on grant this feature, so it may not raise ability scores`,
-        { usages },
-      );
-    }
-  }
-
   // ---------------------------------------------------------------------------
   // Usages
   // ---------------------------------------------------------------------------
 
-  /** Species and variants whose definitions refer to the asset, as typed usages for asset-links. */
-  async listUsages(
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]> {
-    const speciesRows = await this.repository.listReferencing(db, input);
-    const variantRows = await this.repository.listVariantsReferencing(db, input);
-
-    return [
-      ...speciesRows.map(({ species: row, asset }) => ({
-        id: row.id,
-        type: "SPECIES_DEFINITION",
-        label: asset.title,
-        assetId: asset.id,
-        assetType: "SPECIES" as const,
-        editRoute:
-          row.campaignId === null ? `/species/${row.id}` : `/campaigns/${row.campaignId}/species/${row.id}`,
-      })),
-      ...variantRows.map(({ variant, asset }) => ({
-        id: variant.id,
-        type: "SPECIES_VARIANT_DEFINITION",
-        label: asset.title,
-        assetId: asset.id,
-        assetType: "SPECIES_VARIANT" as const,
-        editRoute:
-          variant.campaignId === null
-            ? `/species/${variant.speciesId}/variants/${variant.id}`
-            : `/campaigns/${variant.campaignId}/species/${variant.speciesId}/variants/${variant.id}`,
-      })),
-    ];
-  }
-
-  async getUsages(viewer: CampaignAssetViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
-    return this.links.getUsages(viewer, assetId, visibleAssetIds);
+  async getUsages(access: ContentAccess, assetId: string) {
+    return this.links.getUsages(access, assetId);
   }
 
   async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {
@@ -1335,12 +1217,3 @@ function rulesetCoverageIssues(
     : [{ path: ["rulesetIds"], message: "A variant is only available within the rulesets of its species" }];
 }
 
-/** Whether stored grants grant the feature, read from the raw json like the visibility provider. */
-function grantsFeature(featureGrants: unknown, featureAssetId: string): boolean {
-  return (
-    Array.isArray(featureGrants) &&
-    featureGrants.some(
-      (grant) => (grant as { featureAssetId?: unknown } | null)?.featureAssetId === featureAssetId,
-    )
-  );
-}

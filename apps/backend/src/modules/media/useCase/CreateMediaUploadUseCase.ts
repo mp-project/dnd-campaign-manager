@@ -19,9 +19,7 @@ export class CreateMediaUploadUseCase {
     context: RequestContext,
     input: { campaignId: string; command: CreateMediaUploadDto },
   ): Promise<ResponseCreateMediaUploadDto> {
-    await this.assetsService.assertCanEditCampaignContent(
-      context,
-      input.campaignId,
+    await this.assetsService.assertCanWrite(context, "EDIT", input.campaignId,
       this.uploadService.db,
     );
 

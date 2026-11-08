@@ -3,7 +3,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import type { RequestTagsQueryDto } from "#src/modules/tags/domain/dto/RequestTagDto";
 import {
   type ResponseTagListDto,
-  toTagGmResponse,
+  toTagFullResponse,
   toTagListResponse,
   toTagPlayerResponse,
 } from "#src/modules/tags/domain/dto/ResponseTagDto";
@@ -19,7 +19,8 @@ export class ListTagsUseCase {
     context: RequestContext,
     input: { campaignId: string; query: RequestTagsQueryDto },
   ): Promise<ResponseTagListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { viewer } = access;
     const { db, repository } = this.tagsService;
 
     if (viewer.view === "PLAYER") {
@@ -27,7 +28,7 @@ export class ListTagsUseCase {
         campaignId: viewer.campaignId,
         limit: input.query.limit,
         cursor: input.query.cursor,
-        onAssetIds: await this.listPlayerAssetIds(viewer),
+        onAssetIds: await access.listReadableOwnIds(),
       });
 
       return toTagListResponse({
@@ -49,21 +50,8 @@ export class ListTagsUseCase {
 
     return toTagListResponse({
       page,
-      data: page.items.map((tag) => toTagGmResponse(tag, usage.get(tag.id) ?? 0)),
+      data: page.items.map((tag) => toTagFullResponse(tag, usage.get(tag.id) ?? 0)),
       limit: input.query.limit,
     });
-  }
-
-  /** Assets of the campaign that players see; archived ones stay hidden even when shared. */
-  private async listPlayerAssetIds(
-    viewer: Parameters<AssetsService["listVisibleAssetIds"]>[0],
-  ): Promise<string[]> {
-    const visibleIds = await this.assetsService.listVisibleAssetIds(viewer);
-    const visible = new Set(visibleIds);
-    const found = await this.assetsService.findMany(visibleIds);
-
-    return [...found.values()]
-      .filter((asset) => this.assetsService.isVisibleToPlayer(asset, visible))
-      .map((asset) => asset.id);
   }
 }

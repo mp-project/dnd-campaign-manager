@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ValidationError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import { FeatureBaseSchema } from "#src/modules/features/domain/dto/BaseFeatureDto";
 import {
@@ -36,12 +34,12 @@ type TrackedFeatureDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /**
-   * Checks the referenced assets of the definition and that its asset may still change. Runs for
-   * every change, so undoing and restoring cannot bring back a cycle or an unavailable target.
+   * Refuses changes to a feature whose asset is archived. References and the other rules across
+   * rows are checked at the end of the action (`FeaturesService.verifyContent`).
    */
-  assertReferencesValid(row: FeatureRow & { graph: FeatureGraph }, db: AppDatabase): Promise<void>;
+  assertChangeable(row: FeatureRow & { graph: FeatureGraph }, db: AppDatabase): Promise<void>;
 };
 
 /** Parses the stored parts and checks the rules across them; throws 400 with all issues. */
@@ -125,7 +123,7 @@ export function createTrackedFeature(deps: TrackedFeatureDeps) {
       parseFeatureGraph(next);
     },
     guard: async (next, _current, db) => {
-      await deps.assertReferencesValid({ ...next, graph: parseFeatureGraph(next) }, db);
+      await deps.assertChangeable({ ...next, graph: parseFeatureGraph(next) }, db);
     },
   });
 }

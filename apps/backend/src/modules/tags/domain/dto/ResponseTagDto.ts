@@ -5,7 +5,7 @@ import { createStandardListResponse, encodePaginationCursor } from "#core/http/l
 import { TagBaseSchema } from "#src/modules/tags/domain/dto/BaseTagDto";
 import type { TagPage, TagRow } from "#src/modules/tags/domain/repository/TagsRepository";
 
-export const ResponseTagGmSchema = baseEntityResponseDto
+export const ResponseTagFullSchema = baseEntityResponseDto
   .extend(
     TagBaseSchema.pick({
       campaignId: true,
@@ -16,13 +16,13 @@ export const ResponseTagGmSchema = baseEntityResponseDto
     }).shape,
   )
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     /** Assets with this tag, including archived ones. */
     usageCount: z.number().int().nonnegative(),
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateTagSchema = ResponseTagGmSchema.extend({
+export const ResponseUpdateTagSchema = ResponseTagFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -34,18 +34,18 @@ export const ResponseTagPlayerSchema = TagBaseSchema.pick({
 }).extend({ view: z.literal("PLAYER") });
 
 export const ResponseTagListSchema = standardListResponseDto(
-  z.discriminatedUnion("view", [ResponseTagGmSchema, ResponseTagPlayerSchema]),
+  z.discriminatedUnion("view", [ResponseTagFullSchema, ResponseTagPlayerSchema]),
 );
 
 /** `assetVersion` is what a replacement sends as `expectedVersion`. */
-export const ResponseAssetTagsGmSchema = z.strictObject({
-  view: z.literal("GM"),
+export const ResponseAssetTagsFullSchema = z.strictObject({
+  view: z.literal("FULL"),
   assetId: uuidDto,
   assetVersion: z.number().int().positive(),
-  tags: z.array(ResponseTagGmSchema),
+  tags: z.array(ResponseTagFullSchema),
 });
 
-export const ResponseReplaceAssetTagsSchema = ResponseAssetTagsGmSchema.extend({
+export const ResponseReplaceAssetTagsSchema = ResponseAssetTagsFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -56,21 +56,21 @@ export const ResponseAssetTagsPlayerSchema = z.strictObject({
 });
 
 export const ResponseAssetTagsSchema = z.discriminatedUnion("view", [
-  ResponseAssetTagsGmSchema,
+  ResponseAssetTagsFullSchema,
   ResponseAssetTagsPlayerSchema,
 ]);
 
-export type ResponseTagGmDto = z.infer<typeof ResponseTagGmSchema>;
+export type ResponseTagFullDto = z.infer<typeof ResponseTagFullSchema>;
 export type ResponseUpdateTagDto = z.infer<typeof ResponseUpdateTagSchema>;
 export type ResponseTagPlayerDto = z.infer<typeof ResponseTagPlayerSchema>;
 export type ResponseTagListDto = z.infer<typeof ResponseTagListSchema>;
-export type ResponseAssetTagsGmDto = z.infer<typeof ResponseAssetTagsGmSchema>;
+export type ResponseAssetTagsFullDto = z.infer<typeof ResponseAssetTagsFullSchema>;
 export type ResponseReplaceAssetTagsDto = z.infer<typeof ResponseReplaceAssetTagsSchema>;
 export type ResponseAssetTagsDto = z.infer<typeof ResponseAssetTagsSchema>;
 
-export function toTagGmResponse(tag: TagRow, usageCount: number): ResponseTagGmDto {
+export function toTagFullResponse(tag: TagRow, usageCount: number): ResponseTagFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: tag.id,
     version: tag.version,
     createdAt: tag.createdAt.toISOString(),

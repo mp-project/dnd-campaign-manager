@@ -13,13 +13,10 @@ export class GetAssetUsagesUseCase {
     context: RequestContext,
     input: { campaignId: string; assetId: string },
   ): Promise<ResponseAssetUsagesDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
+    const access = await this.assetsService.access(context, input.campaignId);
 
-    await this.assetsService.requireReadableInCampaign(context, viewer, input.assetId, visibleAssetIds);
+    await this.assetsService.requireReadable(access, input.assetId);
 
-    return this.linksService.getUsages(viewer, input.assetId, visibleAssetIds);
+    return this.linksService.getUsages(access, input.assetId);
   }
 }

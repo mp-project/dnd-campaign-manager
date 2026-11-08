@@ -26,8 +26,8 @@ export class GetMediaContentUseCase {
     context: RequestContext,
     input: { campaignId: string; mediaId: string; query: RequestMediaContentQueryDto },
   ): Promise<MediaContent> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const file = await this.mediaService.requireFileForViewer(viewer, input.mediaId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const file = await this.mediaService.requireFileForViewer(access, input.mediaId);
     const target = await this.mediaService.resolveContentTarget(
       file,
       input.query.variant === "thumbnail"

@@ -46,16 +46,16 @@ export const ResponseMediaUploadPartSchema = z.strictObject({
   sizeBytes: z.number().int().positive(),
 });
 
-export const ResponseMediaGmSchema = baseEntityResponseDto
+export const ResponseMediaFullSchema = baseEntityResponseDto
   .extend(MediaFileBaseSchema.omit({ id: true }).shape)
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     contentUrl: contentUrlDto,
     /** Active assignments, also on archived assets. */
     usageCount: z.number().int().nonnegative(),
   });
 
-export const ResponseCompleteMediaUploadSchema = ResponseMediaGmSchema.extend(storageUsageShape);
+export const ResponseCompleteMediaUploadSchema = ResponseMediaFullSchema.extend(storageUsageShape);
 
 export const ResponseMediaPlayerSchema = MediaFileBaseSchema.pick({
   id: true,
@@ -68,17 +68,17 @@ export const ResponseMediaPlayerSchema = MediaFileBaseSchema.pick({
 });
 
 export const ResponseMediaSchema = z.discriminatedUnion("view", [
-  ResponseMediaGmSchema,
+  ResponseMediaFullSchema,
   ResponseMediaPlayerSchema,
 ]);
 
 export const ResponseMediaListSchema =
   standardListResponseDto(ResponseMediaSchema).extend(storageUsageShape);
 
-export const ResponseAssetMediaGmSchema = baseEntityResponseDto
+export const ResponseAssetMediaFullSchema = baseEntityResponseDto
   .extend(AssetMediaBaseSchema.omit({ id: true }).shape)
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     media: MediaFileBaseSchema.pick({
       id: true,
       originalName: true,
@@ -90,7 +90,7 @@ export const ResponseAssetMediaGmSchema = baseEntityResponseDto
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateAssetMediaSchema = ResponseAssetMediaGmSchema.extend({
+export const ResponseUpdateAssetMediaSchema = ResponseAssetMediaFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -114,7 +114,7 @@ export const ResponseAssetMediaPlayerSchema = AssetMediaBaseSchema.pick({
 
 export const ResponseAssetMediaListSchema = z.strictObject({
   data: z.array(
-    z.discriminatedUnion("view", [ResponseAssetMediaGmSchema, ResponseAssetMediaPlayerSchema]),
+    z.discriminatedUnion("view", [ResponseAssetMediaFullSchema, ResponseAssetMediaPlayerSchema]),
   ),
 });
 
@@ -124,11 +124,11 @@ export type ResponseCreateMediaUploadDto = z.infer<typeof ResponseCreateMediaUpl
 export type ResponseCompleteMediaUploadDto = z.infer<typeof ResponseCompleteMediaUploadSchema>;
 export type ResponseMediaRemovedDto = z.infer<typeof ResponseMediaRemovedSchema>;
 export type ResponseMediaUploadPartDto = z.infer<typeof ResponseMediaUploadPartSchema>;
-export type ResponseMediaGmDto = z.infer<typeof ResponseMediaGmSchema>;
+export type ResponseMediaFullDto = z.infer<typeof ResponseMediaFullSchema>;
 export type ResponseMediaPlayerDto = z.infer<typeof ResponseMediaPlayerSchema>;
 export type ResponseMediaDto = z.infer<typeof ResponseMediaSchema>;
 export type ResponseMediaListDto = z.infer<typeof ResponseMediaListSchema>;
-export type ResponseAssetMediaGmDto = z.infer<typeof ResponseAssetMediaGmSchema>;
+export type ResponseAssetMediaFullDto = z.infer<typeof ResponseAssetMediaFullSchema>;
 export type ResponseUpdateAssetMediaDto = z.infer<typeof ResponseUpdateAssetMediaSchema>;
 export type ResponseAssetMediaPlayerDto = z.infer<typeof ResponseAssetMediaPlayerSchema>;
 export type ResponseAssetMediaListDto = z.infer<typeof ResponseAssetMediaListSchema>;
@@ -155,13 +155,13 @@ export function toMediaUploadResponse(
   };
 }
 
-export function toMediaGmResponse(
+export function toMediaFullResponse(
   file: MediaFileRow,
   campaignId: string,
   usageCount: number,
-): ResponseMediaGmDto {
+): ResponseMediaFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: file.id,
     version: file.version,
     createdAt: file.createdAt.toISOString(),
@@ -221,12 +221,12 @@ export function toMediaListResponse(params: {
   };
 }
 
-export function toAssetMediaGmResponse(
+export function toAssetMediaFullResponse(
   assignment: AssetMediaRow,
   file: MediaFileRow,
-): ResponseAssetMediaGmDto {
+): ResponseAssetMediaFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: assignment.id,
     version: assignment.version,
     createdAt: assignment.createdAt.toISOString(),

@@ -1,3 +1,4 @@
+import type { ContentView } from "#core/content/viewer";
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
@@ -13,7 +14,7 @@ export type ClassReadMode = "campaign" | "catalog" | "system";
 
 export type ReadableClass = {
   found: ClassWithAsset;
-  view: "GM" | "PLAYER";
+  view: ContentView;
   /** For the player view; always true for GMs. */
   isVisible: (assetId: string) => boolean;
 };
@@ -43,7 +44,7 @@ export class ClassReader {
       const found = await this.classesService.requireSystemClass(db, input.classId);
 
       if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "GM", isVisible: () => true };
+        return { found, view: "FULL", isVisible: () => true };
       }
 
       if (found.asset.status !== "ACTIVE") {
@@ -53,46 +54,25 @@ export class ClassReader {
       return {
         found,
         view: "PLAYER",
-        isVisible: await this.classesService.playerReferenceVisibility(db, [found], new Set()),
+        isVisible: await this.classesService.playerReferenceVisibility(db, [found], null),
       };
     }
 
-    const viewer = await this.assetsService.resolveCampaignViewer(
-      context,
-      input.campaignId as string,
-    );
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
-    const found = await this.classesService.requireCatalogClass(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+    const access = await this.assetsService.access(context, input.campaignId as string);
+    const found = await this.classesService.requireReadableClass(
+      access,
       input.classId,
-      {
-        visibleAssetIds,
-        inUseAssetIds,
-        // GMs manage their own archived classes; the catalog only keeps those still in use.
-        archived: mode === "campaign" ? "always" : "ifInUse",
-      },
+      mode === "campaign" ? "MANAGE" : "CATALOG",
     );
 
-    if (mode === "campaign" && found.characterClass.campaignId !== viewer.campaignId) {
-      throw new NotFoundError("Class not found");
-    }
-
-    if (viewer.view === "GM") {
-      return { found, view: "GM", isVisible: () => true };
+    if (access.isFullView) {
+      return { found, view: "FULL", isVisible: () => true };
     }
 
     return {
       found,
       view: "PLAYER",
-      isVisible: await this.classesService.playerReferenceVisibility(
-        db,
-        [found],
-        visibleAssetIds,
-        inUseAssetIds,
-      ),
+      isVisible: await this.classesService.playerReferenceVisibility(db, [found], access),
     };
   }
 }

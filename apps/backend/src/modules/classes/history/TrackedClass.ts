@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ValidationError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import { ClassBaseSchema } from "#src/modules/classes/domain/dto/BaseClassDto";
 import {
@@ -51,12 +49,12 @@ type TrackedClassDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /**
-   * Checks the referenced assets, feature parameters, the code and that the asset may still change.
-   * Runs for every change, so undoing and restoring cannot bring back an unavailable target.
+   * Refuses changes to a class whose asset is archived. Code, references and the other rules across
+   * rows are checked at the end of the action (`ClassesService.verifyContent`).
    */
-  assertConsistent(row: ClassRow & { definition: ClassDefinition }, db: AppDatabase): Promise<void>;
+  assertChangeable(row: ClassRow & { definition: ClassDefinition }, db: AppDatabase): Promise<void>;
 };
 
 /** Parses the stored parts and checks the rules across them; throws 400 with all issues. */
@@ -144,7 +142,7 @@ export function createTrackedClass(deps: TrackedClassDeps) {
       parseClassDefinition(next);
     },
     guard: async (next, _current, db) => {
-      await deps.assertConsistent({ ...next, definition: parseClassDefinition(next) }, db);
+      await deps.assertChangeable({ ...next, definition: parseClassDefinition(next) }, db);
     },
   });
 }

@@ -21,9 +21,7 @@ export class UploadMediaPartUseCase {
       stream: Readable;
     },
   ): Promise<ResponseMediaUploadPartDto> {
-    await this.assetsService.assertCanEditCampaignContent(
-      context,
-      input.campaignId,
+    await this.assetsService.assertCanWrite(context, "EDIT", input.campaignId,
       this.uploadService.db,
     );
 

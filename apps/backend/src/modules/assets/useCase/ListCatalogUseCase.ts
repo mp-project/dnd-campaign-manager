@@ -21,7 +21,6 @@ export class ListCatalogUseCase {
     const page = await this.assetsService.repository.listCatalog(this.assetsService.db, {
       assetType,
       rulesetId: query.ruleset ?? null,
-      campaign: null,
       search: query.search,
       limit: query.limit,
       cursor: query.cursor,
@@ -29,7 +28,7 @@ export class ListCatalogUseCase {
 
     return toAssetListResponse({
       page,
-      view: isSysAdminRole(context.systemRole) ? "GM" : "PLAYER",
+      view: isSysAdminRole(context.systemRole) ? "FULL" : "PLAYER",
       limit: query.limit,
     });
   }

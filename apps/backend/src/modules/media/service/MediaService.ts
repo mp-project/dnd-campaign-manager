@@ -1,5 +1,6 @@
 import type { Readable } from "node:stream";
 
+import { campaignRoleOf } from "#core/content/viewer";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -8,7 +9,7 @@ import type { StoragePort } from "#core/storage/index";
 import type {
   AssetRow,
   AssetsService,
-  CampaignAssetViewer,
+  ContentAccess,
 } from "#src/modules/assets/index";
 import type {
   AttachMediaDto,
@@ -70,11 +71,8 @@ export class MediaService {
     public readonly config: MediaDeliveryConfig,
   ) {
     this.trackedAssignment = createTrackedAssetMedia({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       assertAssetChangeable: async (assetId, tx) => {
         this.assertNotArchived(await assets.requireAsset(tx, assetId));
       },
@@ -101,41 +99,27 @@ export class MediaService {
   }
 
   /** Players only get ready files attached for them to an asset they may see. */
-  async requireFileForViewer(
-    viewer: CampaignAssetViewer,
-    mediaId: string,
-  ): Promise<MediaFileRow> {
-    const file = await this.requireFileInCampaign(viewer.campaignId, mediaId);
+  async requireFileForViewer(access: ContentAccess, mediaId: string): Promise<MediaFileRow> {
+    const file = await this.requireFileInCampaign(access.viewer.campaignId, mediaId);
 
-    if (viewer.view === "GM") {
+    if (access.isFullView) {
       return file;
     }
 
     const assetIds = await this.repository.listPlayerAssetIdsOfFile(this.db, {
-      campaignId: viewer.campaignId,
+      campaignId: access.viewer.campaignId,
       mediaId,
     });
-    const visible = await this.listAssetIdsVisibleToPlayer(viewer, assetIds);
+    const readable = await access.filter(
+      "MANAGE",
+      [...(await this.assets.findMany(assetIds)).values()],
+    );
 
-    if (file.status !== "READY" || visible.length === 0) {
+    if (file.status !== "READY" || readable.length === 0) {
       throw new NotFoundError("Media not found");
     }
 
     return file;
-  }
-
-  /** Assets among `candidates` that the player may see; all of the campaign without candidates. */
-  async listAssetIdsVisibleToPlayer(
-    viewer: CampaignAssetViewer,
-    candidates?: readonly string[],
-  ): Promise<string[]> {
-    const visibleIds = await this.assets.listVisibleAssetIds(viewer);
-    const visible = new Set(visibleIds);
-    const found = await this.assets.findMany(candidates ?? visibleIds);
-
-    return [...found.values()]
-      .filter((asset) => this.assets.isVisibleToPlayer(asset, visible))
-      .map((asset) => asset.id);
   }
 
   /** A variant that isn't ready yet, or doesn't exist for this type, falls back to the file. */

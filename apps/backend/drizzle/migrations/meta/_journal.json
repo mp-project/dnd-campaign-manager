@@ -225,6 +225,13 @@
       "when": 1794093558439,
       "tag": "0031_low_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794171249217,
+      "tag": "0032_glamorous_white_queen",
+      "breakpoints": true
     }
   ]
 }

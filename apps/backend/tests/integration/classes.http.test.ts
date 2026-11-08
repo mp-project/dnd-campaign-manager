@@ -1,6 +1,5 @@
 import { eq, sql } from "drizzle-orm";
 
-import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   assets,
@@ -10,12 +9,20 @@ import {
   rulesets,
   users,
 } from "#core/db/schema";
+import type { AppModule } from "#core/app/moduleSystem";
 import {
   ASSETS_MODULE_DEPENDENCIES,
   type AssetsModuleDependencies,
+  type AssetsService,
 } from "#src/modules/assets/index";
+import {
+  CLASSES_MODULE_DEPENDENCIES,
+  type ClassesModuleDependencies,
+  type ClassesService,
+} from "#src/modules/classes/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { createContentUse } from "#test/helpers/contentUse";
 
 const TEST_DB_URL =
   process.env.TEST_DATABASE_URL ??
@@ -51,19 +58,20 @@ const OUTSIDER = actor(ID.outsider);
 const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
 
-/** Stands in for the character modules: assets the campaign still uses. */
-const inUseAssetIds = new Set<string>();
+let services: { assets: AssetsService; classes: ClassesService };
 
-const inUseModule: AppModule = {
-  name: "test-classes-in-use",
-  dependencies: ["assets"],
+/** Hands out the services, for the port the character modules will use. */
+const servicesModule: AppModule = {
+  name: "test-classes-services",
+  dependencies: ["assets", "classes"],
   register: (_app, container) => {
-    container.dependencies
-      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
-      .service.registerInUseProvider({
-        name: "test-characters",
-        listInUseAssetIds: async () => [...inUseAssetIds],
-      });
+    services = {
+      assets: container.dependencies.require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
+        .service,
+      classes: container.dependencies.require<ClassesModuleDependencies>(
+        CLASSES_MODULE_DEPENDENCIES,
+      ).service,
+    };
   },
 };
 
@@ -141,6 +149,7 @@ const rages = {
 describe("classes", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
+  const contentUse = createContentUse(db);
   let session: ReturnType<typeof buildTestApp>;
 
   const campaignUrl = (campaignId: string = ID.campaign) =>
@@ -225,8 +234,10 @@ describe("classes", () => {
     (await db.select().from(assets).where(eq(assets.assetType, "CLASS"))).length;
 
   beforeEach(async () => {
-    inUseAssetIds.clear();
-    session = buildTestApp({ modules: [...defaultAppModules, inUseModule] });
+    contentUse.reset();
+    session = buildTestApp({
+      modules: [...defaultAppModules, contentUse.module, servicesModule],
+    });
 
     await db.insert(rulesets).values(
       [
@@ -319,7 +330,7 @@ describe("classes", () => {
       const item = await createOk();
 
       expect(item).toMatchObject({
-        view: "GM",
+        view: "FULL",
         scope: "CAMPAIGN",
         campaignId: ID.campaign,
         name: "Barbarian",
@@ -463,13 +474,13 @@ describe("classes", () => {
 
       expect((await remove(item)).statusCode).toBe(200);
 
-      inUseAssetIds.add(item.assetId);
+      const npc = await contentUse.use(ID.campaign, item.assetId);
 
       for (const as of [GM, PLAYER]) {
         const detail = await get(`${catalogUrl()}/${item.id}`, as);
 
         expect(detail.statusCode).toBe(200);
-        expect(detail.json()).toMatchObject({ view: as === GM ? "GM" : "PLAYER", selectable: false });
+        expect(detail.json()).toMatchObject({ view: as === GM ? "FULL" : "PLAYER", selectable: false });
         expect((await get(`${catalogUrl()}/${item.id}/features`, as)).statusCode).toBe(200);
         expect((await get(catalogUrl(), as)).json().data).toEqual([
           expect.objectContaining({ id: item.id, selectable: false }),
@@ -478,11 +489,41 @@ describe("classes", () => {
         expect((await get(`${catalogUrl()}?status=ARCHIVED`, as)).json().data).toHaveLength(1);
       }
 
-      // Once nobody uses it any more, it leaves the catalog.
-      inUseAssetIds.clear();
+      // Players only see the use if they may read the NPC that uses the class.
+      contentUse.showToPlayers(false);
 
       expect((await get(`${catalogUrl()}/${item.id}`, PLAYER)).statusCode).toBe(404);
-      expect((await get(catalogUrl(), PLAYER)).json().data).toEqual([]);
+      expect((await get(`${catalogUrl()}/${item.id}`, GM)).statusCode).toBe(200);
+
+      // Once nobody uses it any more, it leaves the catalog.
+      await db.update(assets).set({ status: "ARCHIVED" }).where(eq(assets.id, npc));
+
+      expect((await get(`${catalogUrl()}/${item.id}`, GM)).statusCode).toBe(404);
+      expect((await get(catalogUrl(), GM)).json().data).toEqual([]);
+    });
+
+    it("refuses archived classes as a new choice with 409, hidden ones with 404", async () => {
+      const item = await createOk({ releasedToPlayers: true });
+
+      expect((await remove(item)).statusCode).toBe(200);
+      await session.app.ready();
+
+      const accessOf = async (actorId: string) =>
+        services.assets.accessFor(
+          await services.assets.resolveCampaignViewer(
+            { actorId, systemRole: "USER" },
+            ID.campaign,
+          ),
+        );
+
+      // The GM sees the archived class: it exists, but can't be chosen.
+      await expect(
+        services.classes.requireSelectableClass(await accessOf(ID.gm), item.id),
+      ).rejects.toMatchObject({ statusCode: 409 });
+      // A player doesn't see it while nobody uses it.
+      await expect(
+        services.classes.requireSelectableClass(await accessOf(ID.player), item.id),
+      ).rejects.toMatchObject({ statusCode: 404 });
     });
 
     it("checks references again when an archived class comes back, on every path", async () => {
@@ -613,7 +654,7 @@ describe("classes", () => {
       const usages = await get(`/api/v1/campaigns/${ID.campaign}/features/${feature.id}/usages`);
 
       expect(usages.json().typedUsages).toEqual([
-        expect.objectContaining({ id: item.id, type: "CLASS_DEFINITION", assetType: "CLASS" }),
+        expect.objectContaining({ id: item.assetId, type: "CLASS_DEFINITION", assetType: "CLASS" }),
       ]);
 
       // Once the class is archived, the feature may go as well.
@@ -676,9 +717,9 @@ describe("classes", () => {
       const asGm = (await get(usagesUrl)).json().typedUsages as { id: string; editRoute: string | null }[];
       const asAdmin = (await get(usagesUrl, ADMIN)).json().typedUsages as { id: string }[];
 
-      expect(asGm.map((usage) => usage.id).sort()).toEqual([active.id, elsewhere.id].sort());
+      expect(asGm.map((usage) => usage.id).sort()).toEqual([active.assetId, elsewhere.assetId].sort());
       expect(asGm.every((usage) => usage.editRoute === null)).toBe(true);
-      expect(asAdmin.map((usage) => usage.id)).toEqual(expect.arrayContaining([draft.id, active.id]));
+      expect(asAdmin.map((usage) => usage.id)).toEqual(expect.arrayContaining([draft.assetId, active.assetId]));
 
       await db
         .update(assets)
@@ -690,7 +731,7 @@ describe("classes", () => {
 
       const afterMove = (await get(usagesUrl)).json().typedUsages as { id: string }[];
 
-      expect(afterMove.map((usage) => usage.id)).toEqual([active.id]);
+      expect(afterMove.map((usage) => usage.id)).toEqual([active.assetId]);
     });
 
     it("counts only real references as usages, not text that looks like an id", async () => {
@@ -703,6 +744,58 @@ describe("classes", () => {
       const usages = await get(`/api/v1/campaigns/${ID.campaign}/assets/${ID.systemAxe}/usages`);
 
       expect(usages.json().typedUsages).toEqual([]);
+    });
+
+    it("checks the content only when it changes, not on a release or a new name", async () => {
+      const feature = await createSystemFeature();
+      const item = await createOk({
+        progressionTracks: [rages],
+        levels: levelsWith({ 1: [rageGrant(feature.assetId)] }),
+      });
+
+      // The global feature goes back to draft meanwhile: no longer valid as a grant.
+      await db.update(assets).set({ status: "DRAFT" }).where(eq(assets.id, feature.assetId));
+
+      const released = await update(item, { releasedToPlayers: true, name: "Berserker" });
+
+      expect(released.statusCode).toBe(200);
+
+      // A change of the definition is checked again.
+      const body = released.json() as ClassBody;
+
+      expect((await update(body, { hitDie: "D10" })).statusCode).toBe(404);
+    });
+
+    it("counts bound values as usages only for asset parameters", async () => {
+      const feature = await createFeature(GM, undefined, {
+        parameters: [
+          { key: "uses", valueType: "INTEGER", required: true },
+          { key: "label", valueType: "TEXT", required: false },
+          { key: "gear", valueType: "ASSET_REF", required: false },
+        ],
+      });
+      const grant = (parameterKey: string) => ({
+        progressionTracks: [rages],
+        levels: levelsWith({
+          1: [
+            rageGrant(feature.assetId, [
+              usesBinding,
+              { parameterKey, bindingSource: "STATIC", staticValue: ID.systemAxe },
+            ]),
+          ],
+        }),
+      });
+      const usagesOfAxe = async () =>
+        (await get(`/api/v1/campaigns/${ID.campaign}/assets/${ID.systemAxe}/usages`)).json()
+          .typedUsages as { assetId: string }[];
+
+      await createOk({ code: "labelled", name: "Labelled", ...grant("label") });
+
+      expect(await usagesOfAxe()).toEqual([]);
+
+      const equipped = await createOk({ code: "equipped", name: "Equipped", ...grant("gear") });
+
+      expect((await usagesOfAxe()).map((usage) => usage.assetId)).toEqual([equipped.assetId]);
     });
 
     it("lets only administrators write global classes", async () => {
@@ -760,6 +853,23 @@ describe("classes", () => {
       await createSystem();
 
       // Version 1 was active for the ruleset the second class uses now.
+      const restored = await session.injectAs(ADMIN, {
+        method: "POST",
+        url: `/api/v1/history/asset/${first.assetId}/versions/1/restore`,
+        payload: {},
+      });
+
+      expect(restored.statusCode).toBe(409);
+      expect(restored.json().error.message).toBe("Class code is already used for one of these rulesets");
+    });
+
+    it("checks the code when the rulesets of an active class are restored", async () => {
+      const first = await createSystem();
+
+      expect((await update(first, { rulesetIds: [ID.otherRuleset] }, ADMIN)).statusCode).toBe(200);
+      await createSystem();
+
+      // Only the asset goes back to version 1, the class row stays: still checked at the end.
       const restored = await session.injectAs(ADMIN, {
         method: "POST",
         url: `/api/v1/history/asset/${first.assetId}/versions/1/restore`,

@@ -3,7 +3,7 @@ import { escapeLike } from "#core/db/escapeLike";
 
 import type { AppDatabase } from "#core/db/pool";
 import { decodeNumberCursor } from "#core/http/listResponse";
-import { assets, type AssetRow, type AssetStatus } from "#src/modules/assets/index";
+import { assets, type AssetRow } from "#src/modules/assets/index";
 import { notes } from "#src/modules/notes/domain/entities/NotesTable";
 import type { NoteType } from "#src/modules/notes/domain/dto/BaseNoteDto";
 
@@ -20,13 +20,13 @@ export type NotePage = {
 };
 
 export type NoteListFilter = {
-  campaignId: string;
-  statuses: readonly AssetStatus[];
+  /** Which notes, as a condition on their asset (e.g. `ContentAccess.listWhere`). */
+  where: SQL;
   limit: number;
   cursor?: string | undefined;
   noteType?: NoteType | undefined;
   search?: string | undefined;
-  /** Only notes of these assets, e.g. those shared with a player or carrying a tag. */
+  /** Only notes of these assets, e.g. those carrying a tag. */
   assetIds?: readonly string[] | undefined;
 };
 
@@ -66,16 +66,15 @@ export class NotesRepository {
   }
 
   async listPage(db: AppDatabase, filter: NoteListFilter): Promise<NotePage> {
-    if (filter.assetIds?.length === 0 || filter.statuses.length === 0) {
+    if (filter.assetIds?.length === 0) {
       return { items: [], hasMore: false };
     }
 
     const rows = await this.selectWithAsset(db)
       .where(
         and(
-          eq(notes.campaignId, filter.campaignId),
           isNull(notes.deletedAt),
-          inArray(assets.status, [...filter.statuses]),
+          filter.where,
           filter.noteType ? eq(notes.noteType, filter.noteType) : undefined,
           filter.assetIds ? inArray(notes.assetId, [...filter.assetIds]) : undefined,
           filter.search ? ilike(assets.title, `%${escapeLike(filter.search)}%`) : undefined,

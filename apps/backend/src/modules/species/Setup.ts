@@ -91,7 +91,7 @@ export const SPECIES_MODULE_DEPENDENCIES = "species.module.dependencies";
  * (`validateSpeciesSelection`, `resolveSpeciesSelection`, `getCreationOptions`). They store the
  * choice themselves, in their own transaction; inside it they pass its handle as `db` to every one
  * of these reads, because a read on the pool would need a second connection while the first is
- * held. Resolve with the GM view (`isVisible` always true): the player view leaves hidden grants
+ * held. Resolve with the full view (`isVisible` always true): the player view leaves hidden grants
  * out entirely and is only a preview. This module changes no actor.
  */
 export type SpeciesModuleDependencies = {
@@ -145,35 +145,27 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
 
   history.register(service.trackedSpecies);
   history.register(service.trackedVariant);
-  assetsService.allowGmRevert(SPECIES_ASSET_ACTIONS);
-  // Custom species and variants reach players through a release, not through content shares.
-  assetsService.registerReleasableType("SPECIES");
-  assetsService.registerReleasableType("SPECIES_VARIANT");
   // Custom features of a released species or variant become visible with it.
   assetsService.registerVisibilityProvider({
     name: "species-features",
     listVisibleAssetIds: (input, db) => service.listReleasedFeatureIds(input, db),
   });
-  // Features granted by 2024 species may not start raising ability scores later.
-  features.service.registerChangeGuard((change, db) =>
-    service.assertFeatureChangeAllowed(change, db),
-  );
-  // Archived content keeps nothing from being archived, so coming back needs the checks again.
-  assetsService.registerReactivateHook({
-    name: "species",
-    onReactivate: (asset, db) => service.assertReactivatable(asset, db),
+  // Custom species and variants reach players through a release, not through content shares.
+  assetsService.registerContentType({
+    assetType: "SPECIES",
+    kind: "RULE",
+    editRoutes: (input, db) => service.findEditRoutes(input, db),
+    revertibleActions: SPECIES_ASSET_ACTIONS,
+    references: (asset, db) => service.listContentReferences(asset, db),
+    verify: (asset, db) => service.verifyContent(asset, db),
   });
-  assetLinks.service.registerEditRoute("SPECIES", (input, db) => service.findEditRoutes(input, db));
-  assetLinks.service.registerEditRoute("SPECIES_VARIANT", (input, db) =>
-    service.findVariantEditRoutes(input, db),
-  );
-  // Definitions that refer to an asset keep it from being archived, and so do the variants of a
-  // species; archived ones don't.
-  assetLinks.service.registerUsageProvider({
-    name: "species",
-    group: "typedUsages",
-    listUsages: (input, db) => service.listUsages({ ...input, includeArchived: true }, db),
-    listBlockingUsages: (input, db) => service.listUsages({ ...input, includeArchived: false }, db),
+  assetsService.registerContentType({
+    assetType: "SPECIES_VARIANT",
+    kind: "RULE",
+    editRoutes: (input, db) => service.findVariantEditRoutes(input, db),
+    revertibleActions: SPECIES_ASSET_ACTIONS,
+    references: (asset, db) => service.listContentReferences(asset, db),
+    verify: (asset, db) => service.verifyContent(asset, db),
   });
 
   container.dependencies.set<SpeciesModuleDependencies>(SPECIES_MODULE_DEPENDENCIES, {

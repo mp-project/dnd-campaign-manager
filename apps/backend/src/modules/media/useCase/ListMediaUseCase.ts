@@ -3,7 +3,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import type { RequestMediaQueryDto } from "#src/modules/media/domain/dto/RequestMediaDto";
 import {
   type ResponseMediaListDto,
-  toMediaGmResponse,
+  toMediaFullResponse,
   toMediaListResponse,
   toMediaPlayerResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
@@ -21,7 +21,8 @@ export class ListMediaUseCase {
     context: RequestContext,
     input: { campaignId: string; query: RequestMediaQueryDto },
   ): Promise<ResponseMediaListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { viewer } = access;
     const { db, repository } = this.mediaService;
     const { limit, cursor } = input.query;
 
@@ -30,7 +31,7 @@ export class ListMediaUseCase {
         campaignId: viewer.campaignId,
         limit,
         cursor,
-        onAssetIds: await this.mediaService.listAssetIdsVisibleToPlayer(viewer),
+        onAssetIds: await access.listReadableOwnIds(),
       });
 
       return toMediaListResponse({
@@ -54,7 +55,7 @@ export class ListMediaUseCase {
     return toMediaListResponse({
       page,
       data: page.items.map((file) =>
-        toMediaGmResponse(file, viewer.campaignId, usage.get(file.id) ?? 0),
+        toMediaFullResponse(file, viewer.campaignId, usage.get(file.id) ?? 0),
       ),
       limit,
       storageUsage: await this.quota.findVisibleUsage(context, viewer.campaignId),

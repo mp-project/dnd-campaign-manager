@@ -1,6 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
 import type { RequestAssetDto } from "#src/modules/assets/domain/dto/RequestAssetDto";
-import type { CampaignAssetListFilter } from "#src/modules/assets/domain/repository/AssetsRepository";
 import {
   type ResponseAssetListDto,
   toAssetListResponse,
@@ -15,34 +14,20 @@ export class ListCampaignAssetsUseCase {
     campaignId: string,
     query: RequestAssetDto["campaignAssetsQuery"],
   ): Promise<ResponseAssetListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
-    const allowedStatuses = this.assetsService.campaignStatusesFor(viewer.view);
-    const isGm = viewer.view === "GM";
-
-    if (query.status && !isGm && !allowedStatuses.includes(query.status)) {
-      return toAssetListResponse({
-        page: { items: [], hasMore: false },
-        view: viewer.view,
-        limit: query.limit,
-        total: 0,
-      });
-    }
-
-    const filter: CampaignAssetListFilter = {
-      campaignId: viewer.campaignId,
+    const access = await this.assetsService.access(context, campaignId);
+    const filter = {
       assetType: query.assetType,
-      statuses: query.status ? [query.status] : isGm ? undefined : allowedStatuses,
-      visibleAssetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+      where: access.listWhere("MANAGE", { status: query.status }),
       search: query.search,
       limit: query.limit,
       cursor: query.cursor,
     };
-
+    const { db, repository } = this.assetsService;
     const [page, total] = await Promise.all([
-      this.assetsService.repository.listCampaignAssets(this.assetsService.db, filter),
-      this.assetsService.repository.countCampaignAssets(this.assetsService.db, filter),
+      repository.listPage(db, filter),
+      repository.count(db, filter),
     ]);
 
-    return toAssetListResponse({ page, view: viewer.view, limit: query.limit, total });
+    return toAssetListResponse({ page, view: access.viewer.view, limit: query.limit, total });
   }
 }

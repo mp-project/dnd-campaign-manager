@@ -1,5 +1,7 @@
+import type { ContentView } from "#core/content/viewer";
 import type { RequestContext } from "#core/http/requestContext";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
+import type { ContentAccess } from "#src/modules/assets/index";
 import type { SpeciesSelectionDto } from "#src/modules/species/domain/dto/RequestSpeciesDto";
 import type {
   ResponseSpeciesCreationOptionsDto,
@@ -13,7 +15,7 @@ import type { SpeciesSelectionService } from "#src/modules/species/service/Speci
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
 import type { SpeciesReader } from "#src/modules/species/useCase/SpeciesReader";
 
-const header = (readable: { found: { species: { id: string }; asset: { id: string } }; view: "GM" | "PLAYER" }) => ({
+const header = (readable: { found: { species: { id: string }; asset: { id: string } }; view: ContentView }) => ({
   speciesId: readable.found.species.id,
   assetId: readable.found.asset.id,
   view: readable.view,
@@ -100,14 +102,11 @@ export class ResolveSpeciesSelectionUseCase {
     const readable = await this.reader.read(context, "catalog", input);
     const variants = await this.reader.variants(readable);
     const isVisible = await this.reader.visibility(readable, variants);
-    const campaign = readable.campaign as NonNullable<typeof readable.campaign>;
 
     return {
       ...header(readable),
       ...(await this.selection.resolveSpeciesSelection(readable.found, {
-        viewer: campaign.viewer,
-        view: readable.view,
-        visibleAssetIds: campaign.visibleAssetIds,
+        access: readable.access as ContentAccess,
         isVisible,
         offered: this.selection.offeredVariants(variants, isVisible),
         selection: input.command,
@@ -134,16 +133,10 @@ export class GetSpeciesUsagesUseCase {
     input: { campaignId: string; speciesId: string },
   ): Promise<ResponseAssetUsagesDto> {
     const readable = await this.reader.read(context, this.ownOnly ? "campaign" : "catalog", input);
-    const campaign = readable.campaign;
-
-    if (!campaign) {
+    if (!readable.access) {
       throw new NotFoundError("Species not found");
     }
 
-    return this.speciesService.getUsages(
-      campaign.viewer,
-      readable.found.asset.id,
-      campaign.visibleAssetIds,
-    );
+    return this.speciesService.getUsages(readable.access, readable.found.asset.id);
   }
 }

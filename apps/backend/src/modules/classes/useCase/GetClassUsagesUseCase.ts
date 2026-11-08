@@ -1,6 +1,4 @@
-import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
 import type { AssetsService } from "#src/modules/assets/index";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
@@ -21,24 +19,13 @@ export class GetClassUsagesUseCase {
     context: RequestContext,
     input: { campaignId: string; classId: string },
   ): Promise<ResponseAssetUsagesDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const { characterClass, asset } = await this.classesService.requireCatalogClass(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { asset } = await this.classesService.requireReadableClass(
+      access,
       input.classId,
-      {
-        visibleAssetIds,
-        inUseAssetIds: await this.assetsService.listInUseAssetIds(viewer.campaignId),
-        archived: this.ownOnly ? "always" : "ifInUse",
-      },
+      this.ownOnly ? "MANAGE" : "CATALOG",
     );
 
-    if (this.ownOnly && characterClass.campaignId !== viewer.campaignId) {
-      throw new NotFoundError("Class not found");
-    }
-
-    return this.classesService.getUsages(viewer, asset.id, visibleAssetIds);
+    return this.classesService.getUsages(access, asset.id);
   }
 }

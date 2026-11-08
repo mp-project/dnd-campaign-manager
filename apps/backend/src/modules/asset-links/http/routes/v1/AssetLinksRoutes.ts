@@ -9,7 +9,7 @@ import {
   RequestAssetLinksQuerySchema,
 } from "#src/modules/asset-links/domain/dto/RequestAssetLinkDto";
 import {
-  ResponseAssetLinkGmSchema,
+  ResponseAssetLinkFullSchema,
   ResponseAssetLinkListSchema,
   ResponseAssetUsagesSchema,
   ResponseUpdateAssetLinkSchema,
@@ -88,7 +88,7 @@ export function registerAssetLinksRoutes(
         params: RequestAssetLinksParamsSchema,
         body: CreateAssetLinkSchema,
         response: {
-          201: ResponseAssetLinkGmSchema,
+          201: ResponseAssetLinkFullSchema,
           ...writeErrorResponses,
         },
       },

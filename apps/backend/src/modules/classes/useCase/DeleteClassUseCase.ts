@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseClassGmDto,
-  toClassGmResponse,
+  type ResponseClassFullDto,
+  toClassFullResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
 import type { ClassLifecycleCommandDto } from "#src/modules/classes/domain/dto/UpdateClassDto";
 import { CLASS_ACTIONS } from "#src/modules/classes/history/TrackedClass";
@@ -18,7 +18,7 @@ export type DeleteClassInput = {
 };
 
 /** Archives the class; it can be restored. Fails while other definitions refer to it. */
-export class DeleteClassUseCase extends MutationUseCase<DeleteClassInput, ResponseClassGmDto> {
+export class DeleteClassUseCase extends MutationUseCase<DeleteClassInput, ResponseClassFullDto> {
   protected readonly action = CLASS_ACTIONS.delete;
 
   constructor(
@@ -42,10 +42,10 @@ export class DeleteClassUseCase extends MutationUseCase<DeleteClassInput, Respon
     scope: ActionScope,
     _context: RequestContext,
     input: DeleteClassInput,
-  ): Promise<ResponseClassGmDto> {
+  ): Promise<ResponseClassFullDto> {
     const found = await this.classesService.requireForWrite(scope.tx, input);
 
-    return toClassGmResponse(
+    return toClassFullResponse(
       await this.classesService.archiveClass(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

@@ -1,3 +1,4 @@
+import { campaignRoleOf } from "#core/content/viewer";
 import { RFC_UUID_PATTERN } from "#core/uuid";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import {
@@ -66,11 +67,8 @@ export class CampaignsService {
     public readonly permissionService?: PermissionService,
   ) {
     const historyRights = {
-      resolveRole: async (campaignId: string, actorId: string, db: AppDatabase) => {
-        const campaign = await this.findCampaignRole(campaignId, actorId, db);
-
-        return campaign?.isOwner ? ("GM" as const) : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId: string, actorId: string, db: AppDatabase) =>
+        campaignRoleOf(await this.findCampaignRole(campaignId, actorId, db)),
     };
 
     this.trackedCampaign = createTrackedCampaign(historyRights);

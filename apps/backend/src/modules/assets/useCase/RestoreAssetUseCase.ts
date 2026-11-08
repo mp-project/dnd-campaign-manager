@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AssetLifecycleCommandDto } from "#src/modules/assets/domain/dto/UpdateAssetDto";
 import {
-  type ResponseAssetGmDto,
-  toAssetGmResponse,
+  type ResponseAssetFullDto,
+  toAssetFullResponse,
 } from "#src/modules/assets/domain/dto/ResponseAssetDto";
 import { ASSET_ACTIONS } from "#src/modules/assets/history/TrackedAsset";
 import { AssetsService } from "#src/modules/assets/service/AssetsService";
@@ -16,7 +16,7 @@ export type RestoreAssetInput = {
   command: AssetLifecycleCommandDto;
 };
 
-export class RestoreAssetUseCase extends MutationUseCase<RestoreAssetInput, ResponseAssetGmDto> {
+export class RestoreAssetUseCase extends MutationUseCase<RestoreAssetInput, ResponseAssetFullDto> {
   protected readonly action = ASSET_ACTIONS.restore;
 
   constructor(
@@ -40,8 +40,8 @@ export class RestoreAssetUseCase extends MutationUseCase<RestoreAssetInput, Resp
     scope: ActionScope,
     _context: RequestContext,
     input: RestoreAssetInput,
-  ): Promise<ResponseAssetGmDto> {
-    return toAssetGmResponse(
+  ): Promise<ResponseAssetFullDto> {
+    return toAssetFullResponse(
       await this.assetsService.restoreBase(scope, {
         assetId: input.assetId,
         expectedVersion: input.command.expectedVersion,

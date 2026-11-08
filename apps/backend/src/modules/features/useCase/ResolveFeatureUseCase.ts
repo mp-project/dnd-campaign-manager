@@ -1,5 +1,4 @@
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { ResolveFeatureDto } from "#src/modules/features/domain/dto/RequestFeatureDto";
 import {
@@ -22,26 +21,18 @@ export class ResolveFeatureUseCase {
     context: RequestContext,
     input: { campaignId: string; featureId: string; command: ResolveFeatureDto },
   ): Promise<ResponseResolvedFeatureDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const found = await this.featuresService.requireCatalogFeature(
-      { ...viewer, isAdmin: isSysAdminRole(context.systemRole) },
+    const access = await this.assetsService.access(context, input.campaignId);
+    const found = await this.featuresService.requireReadableFeature(
+      access,
       input.featureId,
-      {
-        visibleAssetIds,
-        inUseAssetIds: await this.assetsService.listInUseAssetIds(viewer.campaignId),
-        archived: "ifInUse",
-      },
+      "CATALOG",
     );
     const resolved = await this.featuresService.resolveFeature(found, {
-      viewer,
-      visibleAssetIds,
+      access,
       bindings: input.command.bindings,
       actor: input.command.actor,
     });
 
-    return toResolvedFeatureResponse(found, viewer.rulesetId, resolved);
+    return toResolvedFeatureResponse(found, access.viewer.rulesetId, resolved);
   }
 }

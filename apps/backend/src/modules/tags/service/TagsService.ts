@@ -1,3 +1,4 @@
+import { campaignRoleOf } from "#core/content/viewer";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -42,11 +43,8 @@ export class TagsService {
     campaignAccess: TagCampaignAccessPort,
   ) {
     this.trackedTag = createTrackedTag({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
     });
 
     assets.registerTrackedList(

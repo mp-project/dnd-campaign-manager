@@ -3,7 +3,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseContentShareDto,
-  toContentShareGmResponse,
+  toContentShareFullResponse,
   toContentSharePlayerResponse,
 } from "#src/modules/content-shares/domain/dto/ResponseContentShareDto";
 import { ContentSharesService } from "#src/modules/content-shares/service/ContentSharesService";
@@ -41,6 +41,6 @@ export class GetContentShareUseCase {
     const recipients = await this.sharesService.listActiveRecipients(viewer.campaignId, [share.id]);
     const asset = await this.assetsService.requireAsset(this.sharesService.db, share.assetId);
 
-    return toContentShareGmResponse(share, recipients.get(share.id) ?? [], asset);
+    return toContentShareFullResponse(share, recipients.get(share.id) ?? [], asset);
   }
 }

@@ -3,34 +3,48 @@ import { eq } from "drizzle-orm";
 import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
+  assetReferences,
   assetRulesets,
   assets,
   campaignMemberships,
   campaigns,
   features,
   rulesets,
+  systemRuntimeState,
   users,
 } from "#core/db/schema";
 import {
   ASSETS_MODULE_DEPENDENCIES,
   type AssetsModuleDependencies,
+  type AssetsService,
 } from "#src/modules/assets/index";
+import type { HistoryPort } from "#core/history/types";
+import {
+  FEATURES_MODULE_DEPENDENCIES,
+  type FeaturesModuleDependencies,
+  type FeaturesService,
+} from "#src/modules/features/index";
 import { defaultAppModules } from "#src/modules/index";
+import { authorized } from "#core/history/authorization";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { createContentUse } from "#test/helpers/contentUse";
 
-/** Stands in for the character modules: assets the campaign still uses. */
-const inUseAssetIds = new Set<string>();
+let assetsService: AssetsService;
+let featuresService: FeaturesService;
+let history: HistoryPort;
 
-const inUseModule: AppModule = {
-  name: "test-features-in-use",
-  dependencies: ["assets"],
+/** Hands out services, for the reference index and for actions no route makes. */
+const assetsModule: AppModule = {
+  name: "test-features-assets",
+  dependencies: ["assets", "features"],
   register: (_app, container) => {
-    container.dependencies
-      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
-      .service.registerInUseProvider({
-        name: "test-characters",
-        listInUseAssetIds: async () => [...inUseAssetIds],
-      });
+    assetsService = container.dependencies.require<AssetsModuleDependencies>(
+      ASSETS_MODULE_DEPENDENCIES,
+    ).service;
+    featuresService = container.dependencies.require<FeaturesModuleDependencies>(
+      FEATURES_MODULE_DEPENDENCIES,
+    ).service;
+    history = container.ports.history as HistoryPort;
   },
 };
 
@@ -131,6 +145,7 @@ const KI = {
 describe("features", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
+  const contentUse = createContentUse(db);
   let session: ReturnType<typeof buildTestApp>;
 
   const campaignUrl = (campaignId: string = ID.campaign) =>
@@ -206,8 +221,8 @@ describe("features", () => {
     (await db.select().from(assets).where(eq(assets.assetType, "FEATURE"))).length;
 
   beforeEach(async () => {
-    inUseAssetIds.clear();
-    session = buildTestApp({ modules: [...defaultAppModules, inUseModule] });
+    contentUse.reset();
+    session = buildTestApp({ modules: [...defaultAppModules, assetsModule, contentUse.module] });
 
     await db.insert(rulesets).values(
       [
@@ -301,7 +316,7 @@ describe("features", () => {
       const feature = await createOk(KI);
 
       expect(feature).toMatchObject({
-        view: "GM",
+        view: "FULL",
         scope: "CAMPAIGN",
         campaignId: ID.campaign,
         name: "Ki",
@@ -439,7 +454,7 @@ describe("features", () => {
       expect((await get(`${catalogUrl()}/${feature.id}`)).statusCode).toBe(404);
       expect((await get(`${campaignUrl()}/${feature.id}`)).statusCode).toBe(200);
 
-      inUseAssetIds.add(feature.assetId);
+      await contentUse.use(ID.campaign, feature.assetId);
 
       for (const as of [GM, PLAYER]) {
         expect((await get(`${catalogUrl()}/${feature.id}`, as)).statusCode).toBe(200);
@@ -513,6 +528,109 @@ describe("features", () => {
       expect(JSON.stringify(response.json())).toContain("cycle");
     });
 
+    it("keeps the reference index in step with the stored content", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+      const stored = async () =>
+        (await db.select().from(assetReferences))
+          .map((row) => `${row.sourceAssetId}>${row.targetAssetId}@${row.path}:${row.kind}`)
+          .sort();
+      const maintained = await stored();
+
+      expect(maintained).toEqual([
+        `${improved.assetId}>${base.assetId}@supersedes.0.targetAssetId:SUPERSEDES`,
+      ]);
+
+      // Built again from the stored content, the index is the same.
+      await db.delete(assetReferences);
+      await assetsService.rebuildReferences();
+
+      expect(await stored()).toEqual(maintained);
+
+      // At startup the app builds it once when the stored index version is missing or older.
+      await db.delete(assetReferences);
+      await db.delete(systemRuntimeState);
+
+      expect(await assetsService.ensureReferenceIndex()).toBe(true);
+      expect(await stored()).toEqual(maintained);
+      expect(await assetsService.ensureReferenceIndex()).toBe(false);
+
+      // A change replaces the references of its asset.
+      expect((await update(improved, { supersedes: [] })).statusCode).toBe(200);
+      expect(await stored()).toEqual([]);
+    });
+
+    it("names a usage after the first reference the definition makes", async () => {
+      const base = await createOk({ code: "base" });
+
+      await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+        ...option(base.assetId),
+      });
+
+      expect((await get(`${campaignUrl()}/${base.id}/usages`)).json().typedUsages).toEqual([
+        expect.objectContaining({ type: "FEATURE_SUPERSEDES" }),
+      ]);
+    });
+
+    it("judges archiving on the final state when one action also drops the reference", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+      const action = (dropReference: boolean) =>
+        history.runAction(
+          { action: "test.retire", context: GM, authorize: async () => authorized() },
+          async (scope) => {
+            if (dropReference) {
+              await featuresService.updateFeature(scope, {
+                found: await featuresService.requireFeature(scope.tx, improved.id),
+                actorId: ID.gm,
+                command: {
+                  expectedVersion: improved.version,
+                  expectedAssetVersion: improved.assetVersion,
+                  supersedes: [],
+                },
+              });
+            }
+
+            await assetsService.archiveBase(scope, {
+              assetId: base.assetId,
+              expectedVersion: base.assetVersion,
+            });
+          },
+        );
+
+      await session.app.ready();
+
+      // Still referred to: refused, and nothing of the action stays.
+      await expect(action(false)).rejects.toMatchObject({ statusCode: 409 });
+      // The same action drops the reference first: allowed, judged after all its writes.
+      await expect(action(true)).resolves.toBeUndefined();
+    });
+
+    it("keeps the references of a definition that no longer parses", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+
+      await db
+        .update(features)
+        .set({ choices: [{ broken: true }] })
+        .where(eq(features.id, improved.id));
+      await assetsService.rebuildReferences();
+
+      // Still known as a usage, so the base can't be archived under it.
+      expect((await remove(base)).statusCode).toBe(409);
+    });
+
     it("keeps referenced assets from being archived and lists the usage", async () => {
       const base = await createOk({ code: "base" });
       const improved = await createOk({
@@ -526,7 +644,7 @@ describe("features", () => {
       expect(blocked.statusCode).toBe(409);
       expect(blocked.json().error.details.blockingUsages).toEqual([
         expect.objectContaining({
-          id: improved.id,
+          id: improved.assetId,
           type: "FEATURE_SUPERSEDES",
           editRoute: `/campaigns/${ID.campaign}/features/${improved.id}`,
         }),
@@ -536,7 +654,7 @@ describe("features", () => {
 
       expect(usages.statusCode).toBe(200);
       expect(usages.json().typedUsages).toEqual([
-        expect.objectContaining({ id: improved.id, assetId: improved.assetId }),
+        expect.objectContaining({ id: improved.assetId, assetId: improved.assetId }),
       ]);
 
       expect((await remove(improved)).statusCode).toBe(200);
@@ -661,7 +779,7 @@ describe("features", () => {
       expect((await get(`${systemUrl}?status=DRAFT`, ADMIN)).json().data).toHaveLength(1);
       expect((await get(`${systemUrl}?rulesetId=${ID.otherRuleset}`, ADMIN)).json().data).toHaveLength(2);
       expect((await get(`${systemUrl}/${draft.id}`, PLAYER)).statusCode).toBe(404);
-      expect((await get(`${systemUrl}/${draft.id}`, ADMIN)).json().view).toBe("GM");
+      expect((await get(`${systemUrl}/${draft.id}`, ADMIN)).json().view).toBe("FULL");
     });
 
     it("validates stored definitions against changes elsewhere", async () => {

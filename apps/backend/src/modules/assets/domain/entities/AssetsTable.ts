@@ -4,9 +4,13 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
+  text,
+  timestamp,
   unique,
   uniqueIndex,
   uuid,
@@ -141,5 +145,35 @@ export const assetRulesets = pgTable(
       table.deletedAt,
     ),
     index("asset_rulesets_ruleset_id_idx").on(table.rulesetId),
+  ],
+);
+
+/**
+ * Which assets the stored content of an asset refers to (definitions, grants, bindings), one row
+ * per place. Derived: the content kernel replaces the rows of an asset at the end of every action
+ * that touched it, and `npm run content:reindex` builds them again from the stored content. Not
+ * the truth and not tracked; `asset_links` holds the relations people set themselves.
+ */
+export const assetReferences = pgTable(
+  "asset_references",
+  {
+    sourceAssetId: uuid("source_asset_id")
+      .notNull()
+      .references(() => assets.id, { onDelete: "cascade" }),
+    /** No foreign key: archived content keeps references nobody checks any more. */
+    targetAssetId: uuid("target_asset_id").notNull(),
+    /** Where in the source, e.g. `supersedes.0.targetAssetId`. */
+    path: varchar("path", { length: 500 }).notNull(),
+    /** What kind of reference, e.g. `SUPERSEDES` or `DEFINITION`. */
+    kind: varchar("kind", { length: 60 }).notNull(),
+    /** Order in which the module reports its references; the first one names a usage. */
+    position: integer("position").notNull(),
+    /** Properties the target must not have (see `ContentTypeDefinition.properties`). */
+    forbids: text("forbids").array().notNull().default(sql`'{}'::text[]`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ name: "asset_references_pk", columns: [table.sourceAssetId, table.path] }),
+    index("asset_references_target_idx").on(table.targetAssetId),
   ],
 );

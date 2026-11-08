@@ -17,7 +17,7 @@ import {
   UpdateAssetMediaSchema,
 } from "#src/modules/media/domain/dto/RequestMediaDto";
 import {
-  ResponseAssetMediaGmSchema,
+  ResponseAssetMediaFullSchema,
   ResponseAssetMediaListSchema,
   ResponseCompleteMediaUploadSchema,
   ResponseCreateMediaUploadSchema,
@@ -290,7 +290,7 @@ export function registerMediaRoutes(
         security,
         params: RequestAssetMediaParamsSchema,
         body: AttachMediaSchema,
-        response: { 201: ResponseAssetMediaGmSchema, ...writeErrorResponses },
+        response: { 201: ResponseAssetMediaFullSchema, ...writeErrorResponses },
       },
     },
     async (request, reply) => {

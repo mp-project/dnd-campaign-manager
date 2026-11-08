@@ -14,9 +14,11 @@ import {
 } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
+import { systemRuntimeState } from "#core/db/schemas/runtimeState.table";
 import { decodePaginationCursor } from "#core/http/listResponse";
 import {
   assetFamilies,
+  assetReferences,
   assetRulesets,
   assets,
 } from "#src/modules/assets/domain/entities/AssetsTable";
@@ -44,26 +46,31 @@ type PageInput = {
   search?: string | undefined;
 };
 
-export type CampaignAssetListFilter = PageInput & {
-  campaignId: string;
+export type AssetListFilter = PageInput & {
   assetType?: AssetType | undefined;
-  statuses?: readonly AssetStatus[] | undefined;
-  visibleAssetIds?: readonly string[] | undefined;
+  /** Which assets, e.g. `ContentAccess.listWhere`. */
+  where: SQL;
 };
 
+/** Active global assets of a type, for the catalog outside a campaign. */
 export type AssetCatalogFilter = PageInput & {
   assetType: AssetType;
   rulesetId: string | null;
-  campaign: {
-    campaignId: string;
-    statuses: readonly AssetStatus[];
-    visibleAssetIds?: readonly string[] | undefined;
-  } | null;
 };
 
 function containsPattern(search: string): string {
   return `%${search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 }
+
+const REFERENCE_INDEX_STATE_KEY = "content.reference_index";
+
+/** One row of `asset_references`. */
+export type StoredAssetReference = {
+  targetAssetId: string;
+  path: string;
+  kind: string;
+  forbids: readonly string[];
+};
 
 export class AssetsRepository {
   async findById(db: AppDatabase, assetId: string): Promise<AssetRow | null> {
@@ -88,6 +95,16 @@ export class AssetsRepository {
   }
 
   /** Sorted, so parallel callers lock rows in the same order. */
+  async findByIdForUpdate(db: AppDatabase, assetId: string): Promise<AssetRow | null> {
+    const [row] = await db
+      .select()
+      .from(assets)
+      .where(and(eq(assets.id, assetId), isNull(assets.deletedAt)))
+      .for("update");
+
+    return row ?? null;
+  }
+
   async lockShared(db: AppDatabase, assetIds: readonly string[]): Promise<void> {
     await db
       .select({ id: assets.id })
@@ -179,46 +196,26 @@ export class AssetsRepository {
     );
   }
 
-  async listCampaignAssets(
-    db: AppDatabase,
-    filter: CampaignAssetListFilter,
-  ): Promise<AssetPage> {
-    if (filter.visibleAssetIds && filter.visibleAssetIds.length === 0) {
-      return { items: [], hasMore: false };
-    }
-
+  async listPage(db: AppDatabase, filter: AssetListFilter): Promise<AssetPage> {
     const where: (SQL | undefined)[] = [
       isNull(assets.deletedAt),
-      eq(assets.scope, "CAMPAIGN"),
-      eq(assets.campaignId, filter.campaignId),
+      filter.where,
       filter.assetType ? eq(assets.assetType, filter.assetType) : undefined,
-      filter.statuses ? inArray(assets.status, [...filter.statuses]) : undefined,
-      filter.visibleAssetIds ? inArray(assets.id, [...filter.visibleAssetIds]) : undefined,
       ...this.buildPageWhere(filter),
     ];
 
     return this.loadPage(db, where, filter.limit);
   }
 
-  async countCampaignAssets(
-    db: AppDatabase,
-    filter: Omit<CampaignAssetListFilter, "cursor" | "limit">,
-  ): Promise<number> {
-    if (filter.visibleAssetIds && filter.visibleAssetIds.length === 0) {
-      return 0;
-    }
-
+  async count(db: AppDatabase, filter: Omit<AssetListFilter, "cursor" | "limit">): Promise<number> {
     const [row] = await db
       .select({ total: sql<number>`count(*)::int` })
       .from(assets)
       .where(
         and(
           isNull(assets.deletedAt),
-          eq(assets.scope, "CAMPAIGN"),
-          eq(assets.campaignId, filter.campaignId),
+          filter.where,
           filter.assetType ? eq(assets.assetType, filter.assetType) : undefined,
-          filter.statuses ? inArray(assets.status, [...filter.statuses]) : undefined,
-          filter.visibleAssetIds ? inArray(assets.id, [...filter.visibleAssetIds]) : undefined,
           filter.search ? ilike(assets.title, containsPattern(filter.search)) : undefined,
         ),
       );
@@ -226,18 +223,17 @@ export class AssetsRepository {
     return row?.total ?? 0;
   }
 
+
   /**
    * Lists selectable definitions: active system assets plus (optionally) assets of one campaign,
    * both restricted to definitions compatible with `rulesetId` when given.
    */
   async listCatalog(db: AppDatabase, filter: AssetCatalogFilter): Promise<AssetPage> {
-    const systemCondition = and(eq(assets.scope, "SYSTEM"), eq(assets.status, "ACTIVE"));
-    const campaignCondition = this.buildCatalogCampaignCondition(filter.campaign);
-
     const where: (SQL | undefined)[] = [
       isNull(assets.deletedAt),
       eq(assets.assetType, filter.assetType),
-      campaignCondition ? or(systemCondition, campaignCondition) : systemCondition,
+      eq(assets.scope, "SYSTEM"),
+      eq(assets.status, "ACTIVE"),
       filter.rulesetId ? this.compatibleWith(db, filter.rulesetId) : undefined,
       ...this.buildPageWhere(filter),
     ];
@@ -319,6 +315,155 @@ export class AssetsRepository {
     return rows.map((row) => row.id);
   }
 
+  /** Adds what the stored content of the asset refers to, in the order the module reported it. */
+  async createReferences(
+    db: AppDatabase,
+    sourceAssetId: string,
+    references: readonly StoredAssetReference[],
+  ): Promise<void> {
+    if (references.length > 0) {
+      await db.insert(assetReferences).values(
+        references.map((reference, position) => ({
+          sourceAssetId,
+          position,
+          targetAssetId: reference.targetAssetId,
+          path: reference.path,
+          kind: reference.kind,
+          forbids: [...reference.forbids],
+        })),
+      );
+    }
+  }
+
+  async deleteReferences(db: AppDatabase, sourceAssetIds: readonly string[]): Promise<void> {
+    if (sourceAssetIds.length > 0) {
+      await db
+        .delete(assetReferences)
+        .where(inArray(assetReferences.sourceAssetId, [...sourceAssetIds]));
+    }
+  }
+
+  /**
+   * Existing assets whose stored content refers to the target, with how; ordered by source. With
+   * `campaignId` only global ones and those of that campaign.
+   */
+  async listReferencing(
+    db: AppDatabase,
+    targetAssetId: string,
+    filter: { campaignId?: string | undefined } = {},
+  ): Promise<{ source: AssetRow; reference: StoredAssetReference }[]> {
+    const rows = await db
+      .select({ source: assets, reference: assetReferences })
+      .from(assetReferences)
+      .innerJoin(
+        assets,
+        and(eq(assets.id, assetReferences.sourceAssetId), isNull(assets.deletedAt)),
+      )
+      .where(
+        and(
+          eq(assetReferences.targetAssetId, targetAssetId),
+          filter.campaignId
+            ? or(isNull(assets.campaignId), eq(assets.campaignId, filter.campaignId))
+            : undefined,
+        ),
+      )
+      .orderBy(asc(assets.title), asc(assets.id), asc(assetReferences.position));
+
+    return rows.map(({ source, reference }) => ({ source, reference }));
+  }
+
+  /** What non-archived content of these types in the campaign refers to: pairs of ids only. */
+  async listUses(
+    db: AppDatabase,
+    campaignId: string,
+    sourceTypes: readonly AssetType[],
+  ): Promise<{ sourceAssetId: string; targetAssetId: string }[]> {
+    if (sourceTypes.length === 0) {
+      return [];
+    }
+
+    return db
+      .selectDistinct({
+        sourceAssetId: assetReferences.sourceAssetId,
+        targetAssetId: assetReferences.targetAssetId,
+      })
+      .from(assetReferences)
+      .innerJoin(assets, eq(assets.id, assetReferences.sourceAssetId))
+      .where(
+        and(
+          isNull(assets.deletedAt),
+          eq(assets.campaignId, campaignId),
+          inArray(assets.assetType, [...sourceTypes]),
+          sql`${assets.status} <> 'ARCHIVED'`,
+        ),
+      );
+  }
+
+
+  /** Serializes rebuilding the reference index across app instances, until the transaction ends. */
+  async lockReferenceIndex(db: AppDatabase): Promise<void> {
+    await db.execute(sql`select pg_advisory_xact_lock(hashtext(${REFERENCE_INDEX_STATE_KEY}))`);
+  }
+
+  async findReferenceIndexVersion(db: AppDatabase): Promise<number | null> {
+    const [row] = await db
+      .select({ value: systemRuntimeState.value })
+      .from(systemRuntimeState)
+      .where(
+        and(
+          eq(systemRuntimeState.stateKey, REFERENCE_INDEX_STATE_KEY),
+          isNull(systemRuntimeState.deletedAt),
+        ),
+      );
+    const version = (row?.value as { version?: unknown } | undefined)?.version;
+
+    return typeof version === "number" ? version : null;
+  }
+
+  async updateReferenceIndexVersion(db: AppDatabase, version: number): Promise<void> {
+    const updated = await db
+      .update(systemRuntimeState)
+      .set({ value: { version }, updatedAt: new Date() })
+      .where(
+        and(
+          eq(systemRuntimeState.stateKey, REFERENCE_INDEX_STATE_KEY),
+          isNull(systemRuntimeState.deletedAt),
+        ),
+      )
+      .returning({ id: systemRuntimeState.id });
+
+    if (updated.length === 0) {
+      await db.insert(systemRuntimeState).values({ stateKey: REFERENCE_INDEX_STATE_KEY, value: { version } });
+    }
+  }
+
+  /** Assets of these types, archived ones included, for rebuilding the references. */
+  async listIdsOfTypes(db: AppDatabase, assetTypes: readonly AssetType[]): Promise<string[]> {
+    if (assetTypes.length === 0) {
+      return [];
+    }
+
+    const rows = await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(isNull(assets.deletedAt), inArray(assets.assetType, [...assetTypes])))
+      .orderBy(asc(assets.id));
+
+    return rows.map((row) => row.id);
+  }
+
+  /** Condition on `assets`: global assets with these statuses, fitting the ruleset if given. */
+  globalWhere(
+    db: AppDatabase,
+    filter: { statuses: readonly AssetStatus[]; rulesetId?: string | undefined },
+  ): SQL {
+    return and(
+      eq(assets.scope, "SYSTEM"),
+      filter.statuses.length > 0 ? inArray(assets.status, [...filter.statuses]) : sql`false`,
+      filter.rulesetId ? this.compatibleWith(db, filter.rulesetId) : undefined,
+    ) as SQL;
+  }
+
   /** Condition on `assets`: neutral, or restricted to a set that contains the ruleset. */
   compatibleWith(db: AppDatabase, rulesetId: string): SQL {
     return or(
@@ -336,25 +481,6 @@ export class AssetsRepository {
           ),
       ),
     ) as SQL;
-  }
-
-  private buildCatalogCampaignCondition(
-    campaign: AssetCatalogFilter["campaign"],
-  ): SQL | undefined {
-    if (!campaign) {
-      return undefined;
-    }
-
-    if (campaign.visibleAssetIds && campaign.visibleAssetIds.length === 0) {
-      return undefined;
-    }
-
-    return and(
-      eq(assets.scope, "CAMPAIGN"),
-      eq(assets.campaignId, campaign.campaignId),
-      inArray(assets.status, [...campaign.statuses]),
-      campaign.visibleAssetIds ? inArray(assets.id, [...campaign.visibleAssetIds]) : undefined,
-    );
   }
 
   private buildPageWhere(input: PageInput): (SQL | undefined)[] {

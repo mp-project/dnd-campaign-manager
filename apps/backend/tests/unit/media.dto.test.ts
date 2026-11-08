@@ -3,7 +3,7 @@ import {
   UpdateAssetMediaSchema,
   CreateMediaUploadSchema,
 } from "#src/modules/media/domain/dto/RequestMediaDto";
-import { ResponseMediaGmSchema } from "#src/modules/media/domain/dto/ResponseMediaDto";
+import { ResponseMediaFullSchema } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import { assertAltTextForPlayers } from "#src/modules/media/history/TrackedAssetMedia";
 
 const MEDIA = "f0000000-0000-4000-8000-000000000001";
@@ -50,7 +50,7 @@ describe("media DTOs", () => {
   });
 
   it("never contains the storage key in a response", () => {
-    expect(Object.keys(ResponseMediaGmSchema.shape)).not.toContain("storageKey");
+    expect(Object.keys(ResponseMediaFullSchema.shape)).not.toContain("storageKey");
   });
 });
 

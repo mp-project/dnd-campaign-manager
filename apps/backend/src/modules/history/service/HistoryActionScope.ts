@@ -17,6 +17,7 @@ import {
   type FieldRule,
   type HistoryEvent,
   type StoredFieldValue,
+  type TouchedEntity,
   type TrackedEntity,
   type TrackedRow,
   type TrackedTable,
@@ -81,6 +82,8 @@ type PendingField = ChangeFieldInsert;
 
 export class HistoryActionScope implements ActionScope {
   readonly events: HistoryEvent[] = [];
+  /** Every row the action created or changed, for the verifiers at its end. */
+  readonly touched: TouchedEntity[] = [];
 
   constructor(
     readonly tx: AppDatabase,
@@ -128,6 +131,7 @@ export class HistoryActionScope implements ActionScope {
     });
 
     await this.saveLists(erased, row.id, listValues);
+    this.touch(erased, row, { created: true, fields: Object.keys(values) });
     await this.writeEvent(
       erased,
       row,
@@ -293,6 +297,7 @@ export class HistoryActionScope implements ActionScope {
         updatedAt: new Date(),
       });
 
+      this.touch(erased, row, { created: false, fields: Object.keys(update) });
       await erased.guard?.(next, current, this.tx);
 
       return { row, changed: true, merged };
@@ -307,6 +312,7 @@ export class HistoryActionScope implements ActionScope {
     });
 
     await this.saveLists(erased, id, update);
+    this.touch(erased, row, { created: false, fields: Object.keys(update) });
     // After writing row and lists, so whatever the guard reads from the database is the new state.
     // A rejection rolls the whole action back.
     await erased.guard?.(next, current, this.tx);
@@ -508,6 +514,22 @@ export class HistoryActionScope implements ActionScope {
           : changes;
       }),
     );
+  }
+
+  private touch(
+    entity: TrackedEntity,
+    row: TrackedRow,
+    change: { created: boolean; fields: readonly string[] },
+  ): void {
+    const root = entity.root?.(row) ?? null;
+
+    this.touched.push({
+      entityType: entity.type,
+      entityId: row.id,
+      root,
+      contentOfRoot: root !== null && (entity.contentOfRoot ?? true),
+      ...change,
+    });
   }
 
   private async writeEvent(

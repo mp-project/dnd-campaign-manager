@@ -27,6 +27,7 @@ const UNTRACKED_TABLES: Record<string, string> = {
   media_files: "Nobody can edit a file; the status only records the course of the upload",
   media_uploads: "A running upload; nothing to restore",
   media_variants: "Generated from the file and can be generated again",
+  asset_references: "Derived from the stored content and rebuilt from it",
   campaign_invitations: "Nothing to restore; an expired invitation is sent again",
   content_shares: "A reveal, no content; an ended share is deleted",
   content_share_recipients: "Part of a share; deleted with it",

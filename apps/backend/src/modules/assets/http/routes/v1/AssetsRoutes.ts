@@ -11,7 +11,7 @@ import {
   RequestCatalogQuerySchema,
 } from "#src/modules/assets/domain/dto/RequestAssetDto";
 import {
-  ResponseAssetGmSchema,
+  ResponseAssetFullSchema,
   ResponseUpdateAssetSchema,
   ResponseAssetListSchema,
   ResponseAssetSchema,
@@ -194,7 +194,7 @@ export function registerAssetsRoutes(
         params: RequestAssetParamsSchema,
         querystring: AssetLifecycleCommandSchema,
         response: {
-          200: ResponseAssetGmSchema,
+          200: ResponseAssetFullSchema,
           ...writeErrorResponses,
         },
       },
@@ -217,7 +217,7 @@ export function registerAssetsRoutes(
         params: RequestAssetParamsSchema,
         body: AssetLifecycleCommandSchema,
         response: {
-          200: ResponseAssetGmSchema,
+          200: ResponseAssetFullSchema,
           ...writeErrorResponses,
         },
       },

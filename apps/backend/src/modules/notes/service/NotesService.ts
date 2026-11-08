@@ -1,10 +1,10 @@
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
-import type { AssetLinksService } from "#src/modules/asset-links/index";
-import { type AssetRow, type AssetsService, slugify } from "#src/modules/assets/index";
-import type { ContentSharesService } from "#src/modules/content-shares/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
+import { type AssetsService, type ContentAccess, slugify } from "#src/modules/assets/index";
 import type { TagsService } from "#src/modules/tags/index";
 import type { CreateNoteDto } from "#src/modules/notes/domain/dto/CreateNoteDto";
 import type { UpdateNoteDto } from "#src/modules/notes/domain/dto/UpdateNoteDto";
@@ -43,15 +43,11 @@ export class NotesService {
     private readonly assets: AssetsService,
     private readonly tags: TagsService,
     private readonly links: AssetLinksService,
-    private readonly shares: ContentSharesService,
     campaignAccess: NoteCampaignAccessPort,
   ) {
     this.trackedNote = createTrackedNote({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       assertAssetChangeable: async (assetId, tx) => {
         const asset = await assets.requireAsset(tx, assetId);
 
@@ -90,18 +86,13 @@ export class NotesService {
   }
 
   /**
-   * Notes reach players only through shares, and only while active. Everything else is reported as
-   * missing, so ids don't leak. `visibleAssetIds` comes from `AssetsService.listVisibleAssetIds`.
+   * A note of the campaign the viewer may read: the full view gets every note, players only active
+   * notes shared with them. Everything else is reported as missing, so ids don't leak.
    */
-  async requireVisibleToPlayer(
-    path: NotePath,
-    visibleAssetIds: ReadonlySet<string>,
-  ): Promise<NoteWithAsset> {
+  async requireReadableNote(access: ContentAccess, path: NotePath): Promise<NoteWithAsset> {
     const found = await this.requireNote(this.db, path);
 
-    if (!this.assets.isVisibleToPlayer(found.asset, visibleAssetIds)) {
-      throw new NotFoundError("Note not found");
-    }
+    await access.require("MANAGE", found.asset, "Note not found");
 
     return found;
   }
@@ -122,15 +113,19 @@ export class NotesService {
 
   /** Edit routes for asset-links, for all notes of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
+    if (input.campaignId === null) {
+      return new Map();
+    }
+
     const noteIds = await this.repository.findIdsByAssetIds(db, input.assetIds);
 
     return new Map(
       [...noteIds].map(([assetId, noteId]) => [
         assetId,
-        `/campaigns/${input.campaignId}/notes/${noteId}`,
+        `${editRoutePrefix(input.campaignId)}/notes/${noteId}`,
       ]),
     );
   }
@@ -286,16 +281,6 @@ export class NotesService {
     });
 
     return this.loadRecord(scope.tx, await this.requireNote(scope.tx, params));
-  }
-
-  /**
-   * Registered as deactivate hook: a note that was hidden as draft or archived must not be revealed
-   * again when it becomes active, so the GM has to share it anew.
-   */
-  async endSharesOfHiddenNote(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType === "NOTE") {
-      await this.shares.endSharesOfAsset(db, asset.id);
-    }
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

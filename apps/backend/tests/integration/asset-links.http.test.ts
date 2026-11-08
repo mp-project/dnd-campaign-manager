@@ -5,6 +5,7 @@ import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   assetLinks,
+  assetReferences,
   assetRulesets,
   assets,
   campaignMemberships,
@@ -29,6 +30,7 @@ import {
 } from "#src/modules/assets/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { createContentUse } from "#test/helpers/contentUse";
 
 const TEST_DB_URL =
   process.env.TEST_DATABASE_URL ??
@@ -70,11 +72,7 @@ const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
 
 let failUsageProvider = false;
-let failBlockingProvider = false;
-let blockingProviderItems: { id: string; type: string; label: string }[] = [];
 let typedUsageItems: AssetUsageItemDto[] = [];
-let inUseAssetIds: string[] = [];
-let inUseError: Error | null = null;
 let registeredRelations: () => readonly AssetRelationDefinition[] = () => [];
 
 const TEST_RELATIONS = ["CONTAINS", "SECRET_OF", "REPEATS"];
@@ -95,16 +93,6 @@ const testModule: AppModule = {
       name: "test-shares",
       listVisibleAssetIds: async ({ actorId }) =>
         actorId === ID.player ? [ID.location, ID.sharedNote] : [],
-    });
-    assetsService.registerInUseProvider({
-      name: "test-in-use",
-      listInUseAssetIds: async () => {
-        if (inUseError) {
-          throw inUseError;
-        }
-
-        return inUseAssetIds;
-      },
     });
 
     const { service } = container.dependencies.require<AssetLinksModuleDependencies>(
@@ -136,12 +124,16 @@ const testModule: AppModule = {
       allowMultiple: true,
       playerVisible: true,
     });
-    service.registerEditRoute("ITEM", ({ campaignId, assetIds }) =>
-      new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/items/${assetId}`])),
-    );
-    service.registerEditRoute("SPELL", ({ campaignId, assetIds }) =>
-      new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/spells/${assetId}`])),
-    );
+    for (const [assetType, segment] of [["ITEM", "items"], ["SPELL", "spells"]] as const) {
+      assetsService.registerContentType({
+        assetType,
+        kind: "RULE",
+        editRoutes: ({ campaignId, assetIds }) =>
+          new Map(
+            assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/${segment}/${assetId}`]),
+          ),
+      });
+    }
     service.registerUsageProvider({
       name: "test-outline",
       group: "outlinePlacements",
@@ -168,7 +160,7 @@ const testModule: AppModule = {
           label: "Without asset",
           assetId: null,
           assetType: null,
-          editRoute: null,
+          editRoute: "/campaigns/x/outline/3",
         },
       ],
     });
@@ -182,18 +174,6 @@ const testModule: AppModule = {
 
         return typedUsageItems;
       },
-      listBlockingUsages: async () => {
-        if (failBlockingProvider) {
-          throw new Error("Provider down");
-        }
-
-        return blockingProviderItems.map((item) => ({
-          ...item,
-          assetId: null,
-          assetType: null,
-          editRoute: null,
-        }));
-      },
     });
   },
 };
@@ -201,6 +181,7 @@ const testModule: AppModule = {
 describe("asset links", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
+  const contentUse = createContentUse(db);
   // A new app per test, because one test can send more requests than one route allows in its window.
   let session: ReturnType<typeof buildTestApp>;
 
@@ -250,14 +231,11 @@ describe("asset links", () => {
     });
 
   beforeEach(async () => {
-    session = buildTestApp({ modules: [...defaultAppModules, testModule] });
+    session = buildTestApp({ modules: [...defaultAppModules, testModule, contentUse.module] });
     await session.app.ready();
     failUsageProvider = false;
-    failBlockingProvider = false;
-    blockingProviderItems = [];
     typedUsageItems = [];
-    inUseAssetIds = [];
-    inUseError = null;
+    contentUse.reset();
 
     await db.insert(rulesets).values(
       [
@@ -362,7 +340,7 @@ describe("asset links", () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json()).toMatchObject({
-        view: "GM",
+        view: "FULL",
         campaignId: ID.campaign,
         sourceAssetId: ID.location,
         targetAssetId: ID.item,
@@ -731,6 +709,10 @@ describe("asset links", () => {
         expect.objectContaining({ label: "Hidden", assetId: ID.hiddenNote, editRoute: null }),
       ]);
       expect(body.outlinePlacements).toHaveLength(3);
+      // An entry without an asset belongs to the campaign; its provider decides the route.
+      expect(body.outlinePlacements).toContainEqual(
+        expect.objectContaining({ id: "outline-3", editRoute: "/campaigns/x/outline/3" }),
+      );
       expect(body.shares).toEqual([]);
       expect(body.unavailableProviders).toEqual([]);
     });
@@ -815,19 +797,45 @@ describe("asset links", () => {
 
       expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([]);
 
-      inUseAssetIds = [ID.systemSpell];
+      await contentUse.use(ID.campaign, ID.systemSpell);
 
       expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([
         expect.objectContaining({ assetId: ID.systemSpell, editRoute: null }),
       ]);
     });
 
-    it("answers 503 when the database is too busy to tell what is in use", async () => {
-      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
-      await setStatus(ID.systemSpell, "ARCHIVED");
-      inUseError = Object.assign(new Error("lock timeout"), { code: "55P03" });
+    it("shows the same link ends in links and usages", async () => {
+      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await createOk(ID.location, relatedTo(ID.item));
+      // The global spell moves to another ruleset: no longer part of this campaign.
+      await db.update(assets).set({ rulesetPolicy: "RESTRICTED" }).where(eq(assets.id, ID.systemSpell));
+      await db.insert(assetRulesets).values({ assetId: ID.systemSpell, rulesetId: ID.otherRuleset });
 
-      expect((await usages(ID.location, PLAYER)).statusCode).toBe(503);
+      const listed = (await list(ID.location)).json().data as { relatedAsset: { id: string } }[];
+      const used = (await usages(ID.location)).json().outgoing as { assetId: string }[];
+
+      expect(listed.map((link) => link.relatedAsset.id)).toEqual([ID.item]);
+      expect(used.map((item) => item.assetId)).toEqual([ID.item]);
+      expect((await usages(ID.systemSpell)).statusCode).toBe(404);
+      expect((await usages(ID.systemSpell, ADMIN)).statusCode).toBe(200);
+    });
+
+    it("shows players archived content the campaign uses in links and its own usages", async () => {
+      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await setStatus(ID.systemSpell, "ARCHIVED");
+
+      const linkedIds = async () =>
+        ((await list(ID.location, PLAYER)).json().data as { relatedAsset: { id: string } }[]).map(
+          (link) => link.relatedAsset.id,
+        );
+
+      expect(await linkedIds()).toEqual([]);
+      expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(404);
+
+      await contentUse.use(ID.campaign, ID.systemSpell);
+
+      expect(await linkedIds()).toEqual([ID.systemSpell]);
+      expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(200);
     });
   });
 
@@ -863,28 +871,26 @@ describe("asset links", () => {
       expect((await archive(ID.sharedNote)).statusCode).toBe(200);
     });
 
-    it("also takes blocking usages of providers into account", async () => {
-      blockingProviderItems = [{ id: "share-1", type: "SHARE", label: "Shared with party" }];
+    it("also counts content that refers to the asset, unless that content is archived", async () => {
+      // As the content kernel stores it for definitions that refer to the item.
+      await db.insert(assetReferences).values({
+        sourceAssetId: ID.location,
+        targetAssetId: ID.item,
+        path: "loot.0",
+        kind: "LOOT",
+        position: 0,
+      });
 
       const blocked = await archive(ID.item);
 
       expect(blocked.statusCode).toBe(409);
       expect(blocked.json().error.details.blockingUsages).toEqual([
-        expect.objectContaining({ id: "share-1" }),
+        expect.objectContaining({ id: ID.location, assetId: ID.location, type: "LOCATION_LOOT" }),
       ]);
-    });
 
-    it("rolls back when a provider fails, because the result is unknown", async () => {
-      failBlockingProvider = true;
+      await db.update(assets).set({ status: "ARCHIVED" }).where(eq(assets.id, ID.location));
 
-      expect((await archive(ID.item)).statusCode).toBe(500);
-
-      const [row] = await db.select().from(assets).where(eq(assets.id, ID.item));
-
-      expect(row!.status).toBe("ACTIVE");
-      expect(
-        await db.select().from(entityChangeEvents).where(eq(entityChangeEvents.entityId, ID.item)),
-      ).toEqual([]);
+      expect((await archive(ID.item)).statusCode).toBe(200);
     });
 
     it("cannot be bypassed by undoing a restore", async () => {

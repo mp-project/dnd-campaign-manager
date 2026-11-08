@@ -2,7 +2,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseMediaDto,
-  toMediaGmResponse,
+  toMediaFullResponse,
   toMediaPlayerResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import { MediaService } from "#src/modules/media/service/MediaService";
@@ -17,8 +17,9 @@ export class GetMediaUseCase {
     context: RequestContext,
     input: { campaignId: string; mediaId: string },
   ): Promise<ResponseMediaDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const file = await this.mediaService.requireFileForViewer(viewer, input.mediaId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { viewer } = access;
+    const file = await this.mediaService.requireFileForViewer(access, input.mediaId);
 
     if (viewer.view === "PLAYER") {
       return toMediaPlayerResponse(file, viewer.campaignId);
@@ -27,6 +28,6 @@ export class GetMediaUseCase {
     const { db, repository } = this.mediaService;
     const usage = await repository.countAssignments(db, [file.id]);
 
-    return toMediaGmResponse(file, viewer.campaignId, usage.get(file.id) ?? 0);
+    return toMediaFullResponse(file, viewer.campaignId, usage.get(file.id) ?? 0);
   }
 }

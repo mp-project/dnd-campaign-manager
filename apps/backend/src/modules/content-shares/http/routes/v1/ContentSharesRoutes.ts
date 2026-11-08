@@ -9,7 +9,7 @@ import {
   RequestContentSharesQuerySchema,
 } from "#src/modules/content-shares/domain/dto/RequestContentShareDto";
 import {
-  ResponseContentShareGmSchema,
+  ResponseContentShareFullSchema,
   ResponseContentShareListSchema,
   ResponseContentShareSchema,
   ResponseSharedContentSchema,
@@ -87,7 +87,7 @@ export function registerContentSharesRoutes(
         params: RequestContentSharesParamsSchema,
         body: CreateContentShareSchema,
         response: {
-          201: ResponseContentShareGmSchema,
+          201: ResponseContentShareFullSchema,
           ...writeErrorResponses,
         },
       },
@@ -156,7 +156,7 @@ export function registerContentSharesRoutes(
         params: RequestContentShareItemParamsSchema,
         body: UpdateContentShareSchema,
         response: {
-          200: ResponseContentShareGmSchema,
+          200: ResponseContentShareFullSchema,
           ...writeErrorResponses,
         },
       },

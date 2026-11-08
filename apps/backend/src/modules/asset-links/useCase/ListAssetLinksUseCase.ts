@@ -1,17 +1,13 @@
 import type { RequestContext } from "#core/http/requestContext";
 import type { RequestAssetLinksQueryDto } from "#src/modules/asset-links/domain/dto/RequestAssetLinkDto";
 import {
-  type ResponseAssetLinkDto,
   type ResponseAssetLinkListDto,
   toAssetLinkDirection,
-  toAssetLinkGmResponse,
+  toAssetLinkFullResponse,
   toAssetLinkListResponse,
   toAssetLinkPlayerResponse,
 } from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
-import {
-  AssetLinksService,
-  otherEndOf,
-} from "#src/modules/asset-links/service/AssetLinksService";
+import { AssetLinksService } from "#src/modules/asset-links/service/AssetLinksService";
 import type { AssetsService } from "#src/modules/assets/index";
 
 export type ListAssetLinksInput = {
@@ -34,39 +30,27 @@ export class ListAssetLinksUseCase {
     context: RequestContext,
     input: ListAssetLinksInput,
   ): Promise<ResponseAssetLinkListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
+    const access = await this.assetsService.access(context, input.campaignId);
 
-    await this.assetsService.requireReadableInCampaign(context, viewer, input.assetId, visibleAssetIds);
+    await this.assetsService.requireReadable(access, input.assetId);
 
     const page = await this.linksService.repository.listPage(this.linksService.db, {
-      campaignId: viewer.campaignId,
+      campaignId: access.viewer.campaignId,
       assetId: input.assetId,
       direction: input.query.direction,
       relationType: input.query.relationType,
       limit: input.query.limit,
       cursor: input.query.cursor,
     });
-    const related = await this.assetsService.findMany(
-      page.items.map((link) => otherEndOf(link, input.assetId)),
+    const data = (await this.linksService.readableLinks(access, page.items, input.assetId)).map(
+      ({ link, other }) => {
+        const direction = toAssetLinkDirection(link, input.assetId);
+
+        return access.isFullView
+          ? toAssetLinkFullResponse(link, direction, other)
+          : toAssetLinkPlayerResponse(link, direction, other);
+      },
     );
-    const data: ResponseAssetLinkDto[] = [];
-
-    for (const link of page.items) {
-      const other = related.get(otherEndOf(link, input.assetId));
-      const direction = toAssetLinkDirection(link, input.assetId);
-
-      if (viewer.view === "GM" && other) {
-        data.push(toAssetLinkGmResponse(link, direction, other));
-      } else if (
-        viewer.view === "PLAYER" &&
-        this.linksService.canPlayerSeeLink(link, other, visibleAssetIds)
-      ) {
-        data.push(toAssetLinkPlayerResponse(link, direction, other));
-      }
-    }
 
     return toAssetLinkListResponse({
       data,

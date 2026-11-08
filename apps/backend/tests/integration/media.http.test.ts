@@ -333,7 +333,7 @@ describe("media", () => {
 
       expect(response.statusCode).toBe(201);
       expect(body).toMatchObject({
-        view: "GM",
+        view: "FULL",
         scope: "CAMPAIGN",
         campaignId: ID.campaign,
         status: "READY",
@@ -899,7 +899,7 @@ describe("media", () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json()).toMatchObject({
-        view: "GM",
+        view: "FULL",
         title: "Map",
         altText: "A map",
         visibility: "WITH_ASSET",

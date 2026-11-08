@@ -12,7 +12,7 @@ import { AssetBaseSchema, type AssetRow } from "#src/modules/assets/index";
 
 const AssetLinkDirectionSchema = z.enum(ASSET_LINK_DIRECTIONS);
 
-const RelatedAssetGmSchema = AssetBaseSchema.pick({
+const RelatedAssetFullSchema = AssetBaseSchema.pick({
   id: true,
   assetType: true,
   title: true,
@@ -20,22 +20,22 @@ const RelatedAssetGmSchema = AssetBaseSchema.pick({
   scope: true,
 });
 
-const RelatedAssetPlayerSchema = RelatedAssetGmSchema.omit({ status: true });
+const RelatedAssetPlayerSchema = RelatedAssetFullSchema.omit({ status: true });
 
 /**
  * Full view for people who may change links. `relatedAsset` is the other end of the link, so the
  * content itself is never copied into the link.
  */
-export const ResponseAssetLinkGmSchema = baseEntityResponseDto
+export const ResponseAssetLinkFullSchema = baseEntityResponseDto
   .extend(AssetLinkBaseSchema.omit({ id: true }).shape)
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     direction: AssetLinkDirectionSchema,
-    relatedAsset: RelatedAssetGmSchema,
+    relatedAsset: RelatedAssetFullSchema,
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateAssetLinkSchema = ResponseAssetLinkGmSchema.extend({
+export const ResponseUpdateAssetLinkSchema = ResponseAssetLinkFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -53,7 +53,7 @@ export const ResponseAssetLinkPlayerSchema = AssetLinkBaseSchema.pick({
 });
 
 export const ResponseAssetLinkSchema = z.discriminatedUnion("view", [
-  ResponseAssetLinkGmSchema,
+  ResponseAssetLinkFullSchema,
   ResponseAssetLinkPlayerSchema,
 ]);
 
@@ -71,7 +71,7 @@ export const AssetUsageItemSchema = z.strictObject({
 
 export const ResponseAssetUsagesSchema = z.strictObject({
   assetId: uuidDto,
-  view: z.enum(["GM", "PLAYER"]),
+  view: z.enum(["FULL", "PLAYER"]),
   incoming: z.array(AssetUsageItemSchema),
   outgoing: z.array(AssetUsageItemSchema),
   outlinePlacements: z.array(AssetUsageItemSchema),
@@ -81,7 +81,7 @@ export const ResponseAssetUsagesSchema = z.strictObject({
   unavailableProviders: z.array(z.string()),
 });
 
-export type ResponseAssetLinkGmDto = z.infer<typeof ResponseAssetLinkGmSchema>;
+export type ResponseAssetLinkFullDto = z.infer<typeof ResponseAssetLinkFullSchema>;
 export type ResponseUpdateAssetLinkDto = z.infer<typeof ResponseUpdateAssetLinkSchema>;
 export type ResponseAssetLinkPlayerDto = z.infer<typeof ResponseAssetLinkPlayerSchema>;
 export type ResponseAssetLinkDto = z.infer<typeof ResponseAssetLinkSchema>;
@@ -93,13 +93,13 @@ export function toAssetLinkDirection(link: AssetLinkRow, assetId: string): Asset
   return link.sourceAssetId === assetId ? "outgoing" : "incoming";
 }
 
-export function toAssetLinkGmResponse(
+export function toAssetLinkFullResponse(
   link: AssetLinkRow,
   direction: AssetLinkDirection,
   related: AssetRow,
-): ResponseAssetLinkGmDto {
+): ResponseAssetLinkFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: link.id,
     version: link.version,
     createdAt: link.createdAt.toISOString(),
@@ -130,7 +130,7 @@ export function toUpdateAssetLinkResponse(
   related: AssetRow,
   merged: string[],
 ): ResponseUpdateAssetLinkDto {
-  return { ...toAssetLinkGmResponse(link, "outgoing", related), merged };
+  return { ...toAssetLinkFullResponse(link, "outgoing", related), merged };
 }
 
 export function toAssetLinkPlayerResponse(

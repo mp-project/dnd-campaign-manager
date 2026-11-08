@@ -1,14 +1,18 @@
+import type { ContentReadPurpose } from "#core/content/access";
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope, HistoryEvent } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
-import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   type AssetRow,
   type AssetsService,
-  type CampaignAssetViewer,
+  type ContentAccess,
+  type ContentProperty,
+  type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
@@ -79,11 +83,11 @@ export type FeatureInspection =
     }
   | { valid: false };
 
-/** See `FeaturesService.registerChangeGuard`. */
-export type FeatureChangeGuard = (
-  change: { assetId: string; campaignId: string | null; graph: FeatureGraph },
-  db: AppDatabase,
-) => Promise<void>;
+/** What a feature does that referring content may forbid (see `ContentReference.forbids`). */
+export const FEATURE_PROPERTIES = {
+  raisesAbilityScore: { code: "RAISES_ABILITY_SCORE", phrase: "raises ability scores" },
+  usesClassLevel: { code: "USES_CLASS_LEVEL", phrase: "depends on a class level" },
+} as const;
 
 /**
  * Feature definitions: global ones, maintained by administrators per ruleset, and custom ones of a
@@ -94,7 +98,6 @@ export type FeatureChangeGuard = (
 export class FeaturesService {
   public readonly trackedFeature: TrackedFeature;
   public readonly cache = new FeatureResolutionCache();
-  private readonly changeGuards: FeatureChangeGuard[] = [];
 
   constructor(
     public readonly db: AppDatabase,
@@ -105,22 +108,13 @@ export class FeaturesService {
     private readonly campaignAccess: FeatureCampaignAccessPort,
   ) {
     this.trackedFeature = createTrackedFeature({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
-      assertReferencesValid: async (row, tx) => {
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
+      assertChangeable: async (row, tx) => {
         const asset = await assets.requireAsset(tx, row.assetId);
 
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived features cannot be modified", { assetId: asset.id });
-        }
-
-        await this.assertReferencesValid(tx, row, row.graph);
-
-        for (const guard of this.changeGuards) {
-          await guard({ assetId: row.assetId, campaignId: row.campaignId, graph: row.graph }, tx);
         }
       },
     });
@@ -166,52 +160,17 @@ export class FeaturesService {
   }
 
   /**
-   * A feature available in the campaign: its own, or a global one for the campaign ruleset. Global
-   * drafts only exist for administrators. Archived features only stay while the campaign still uses
-   * them (`inUseAssetIds`); `archived: "always"` is for GMs managing their own features. Players
-   * only see what `isVisibleToPlayerInCampaign` allows.
+   * A feature of the campaign the viewer may read for this purpose (`ContentReadPurpose`): `MANAGE`
+   * for the routes of the campaign's own features, `CATALOG` for what the campaign may use.
    */
-  async requireCatalogFeature(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+  async requireReadableFeature(
+    access: ContentAccess,
     featureId: string,
-    access: {
-      visibleAssetIds: ReadonlySet<string>;
-      inUseAssetIds: ReadonlySet<string>;
-      archived: "always" | "ifInUse";
-    },
+    purpose: ContentReadPurpose,
   ): Promise<FeatureWithAsset> {
     const found = await this.requireFeature(this.db, featureId);
-    const { feature, asset } = found;
-    const missing = new NotFoundError("Feature not found");
 
-    if (feature.campaignId !== null && feature.campaignId !== viewer.campaignId) {
-      throw missing;
-    }
-
-    if (feature.campaignId === null) {
-      if (asset.status === "DRAFT" && !viewer.isAdmin) {
-        throw missing;
-      }
-
-      if (!(await this.assets.repository.isCompatible(this.db, asset.id, viewer.rulesetId))) {
-        throw missing;
-      }
-    }
-
-    if (
-      asset.status === "ARCHIVED" &&
-      (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
-      !access.inUseAssetIds.has(asset.id)
-    ) {
-      throw missing;
-    }
-
-    if (
-      viewer.view === "PLAYER" &&
-      !this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
-    ) {
-      throw missing;
-    }
+    await access.require(purpose, found.asset, "Feature not found");
 
     return found;
   }
@@ -232,30 +191,21 @@ export class FeaturesService {
   }
 
   /**
-   * Which referenced assets of these features a player may see: active global assets, campaign
-   * assets visible to the player and archived ones the campaign still uses. Used to strip hidden
-   * references from the player view.
+   * Which referenced assets of these features the viewer may see, for the player view; outside a
+   * campaign (`access` null) only active global ones (`AssetsService.referenceVisibility`).
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     items: readonly FeatureWithAsset[],
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
+    access: ContentAccess | null,
   ): Promise<(assetId: string) => boolean> {
     const ids = items.flatMap(({ feature }) =>
       collectAssetReferences(parseFeatureGraph(feature)).map((reference) => reference.assetId),
     );
-    const referenced = await this.assets.findMany(ids, db);
 
-    return (assetId) => {
-      const asset = referenced.get(assetId);
-
-      return (
-        asset !== undefined &&
-        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
-      );
-    };
+    return this.assets.referenceVisibility(access, ids, db);
   }
+
 
   /**
    * Parameters of the features behind these assets, for source modules that bind them. Assets
@@ -280,6 +230,46 @@ export class FeaturesService {
    * features stay locked (shared) until the transaction ends, so a concurrent change or archive
    * waits instead of slipping past the caller's checks. Missing ids are missing from the result.
    */
+  /**
+   * Asset ids bound statically to `ASSET_REF` parameters of granted features, for the reference
+   * index of the modules that grant them (classes, species …). Values bound to other parameters
+   * are no references, even when they look like ids. Grants of features whose stored definition no
+   * longer parses report nothing.
+   */
+  async collectBoundAssetReferences(
+    db: AppDatabase,
+    grants: readonly {
+      featureAssetId: string;
+      bindings: readonly { parameterKey: string; bindingSource: string; staticValue?: unknown }[];
+      path: readonly (string | number)[];
+    }[],
+  ): Promise<{ assetId: string; path: (string | number)[] }[]> {
+    const inspected = await this.inspectFeatures(
+      db,
+      grants.map((grant) => grant.featureAssetId),
+    );
+
+    return grants.flatMap((grant) => {
+      const feature = inspected.get(grant.featureAssetId);
+      const assetParameters = new Set(
+        feature?.valid
+          ? feature.parameters
+              .filter((parameter) => parameter.valueType === "ASSET_REF")
+              .map((parameter) => parameter.key)
+          : [],
+      );
+
+      return grant.bindings.flatMap((binding, bindingIndex) =>
+        binding.bindingSource === "STATIC" &&
+        assetParameters.has(binding.parameterKey) &&
+        typeof binding.staticValue === "string" &&
+        UUID_PATTERN.test(binding.staticValue)
+          ? [{ assetId: binding.staticValue, path: [...grant.path, "bindings", bindingIndex, "staticValue"] }]
+          : [],
+      );
+    });
+  }
+
   async inspectFeatures(
     db: AppDatabase,
     assetIds: readonly string[],
@@ -313,19 +303,9 @@ export class FeaturesService {
     return result;
   }
 
-  /**
-   * Lets another module refuse a change of a feature definition, for rules it keeps about the
-   * features it uses (for example species of 2024 rulesets, which may not grant ability score
-   * increases). Runs in the history guard, so on direct changes, undoing and restoring alike, with
-   * the transaction of the change. Throws to reject.
-   */
-  registerChangeGuard(guard: FeatureChangeGuard): void {
-    this.changeGuards.push(guard);
-  }
-
   /** Edit routes for asset-links, for all custom features of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findByAssetIds(db, input.assetIds);
@@ -335,7 +315,7 @@ export class FeaturesService {
         .filter(([, { feature }]) => feature.campaignId === input.campaignId)
         .map(([assetId, { feature }]) => [
           assetId,
-          `/campaigns/${input.campaignId}/features/${feature.id}`,
+          `${editRoutePrefix(input.campaignId)}/features/${feature.id}`,
         ]),
     );
   }
@@ -353,13 +333,7 @@ export class FeaturesService {
     campaignId: string | null,
     db: AppDatabase,
   ): Promise<string> {
-    if (campaignId === null) {
-      this.assets.assertCanManage(context);
-    } else {
-      await this.assets.assertCanEditCampaignContent(context, campaignId, db);
-    }
-
-    return this.assets.assertAuthenticated(context);
+    return this.assets.assertCanWrite(context, "EDIT", campaignId, db);
   }
 
   /** Id of the acting user, after `assertCanWrite` checked the rights. */
@@ -412,9 +386,6 @@ export class FeaturesService {
       supersedes: input.supersedes,
     };
 
-    // Creating runs no history guard, so the references are checked here.
-    await this.assertReferencesValid(scope.tx, { assetId: asset.id, campaignId: params.campaignId }, graph);
-
     const feature = await this.withConstraintErrors(() =>
       scope.create(this.trackedFeature, {
         campaignId: params.campaignId,
@@ -432,8 +403,7 @@ export class FeaturesService {
 
   /**
    * Asset fields first, then the feature. `merged` names the fields of both that kept a newer value
-   * from somebody else. When the rulesets change, the references are checked again, because the
-   * history guard only runs when the feature row itself changes.
+   * from somebody else. References are checked at the end of the action (`verifyContent`).
    */
   async updateFeature(
     scope: ActionScope,
@@ -471,7 +441,6 @@ export class FeaturesService {
           value !== undefined && !(ASSET_FIELDS as readonly string[]).includes(key),
       ),
     );
-    let featureChanged = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.withConstraintErrors(() =>
@@ -481,15 +450,10 @@ export class FeaturesService {
         })),
       );
 
-      featureChanged = result.changed;
-      merged.push(...result.merged);
+            merged.push(...result.merged);
     }
 
     const found = await this.requireFeature(scope.tx, feature.id);
-
-    if (!featureChanged && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.assertReferencesValid(scope.tx, found.feature, parseFeatureGraph(found.feature));
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -552,22 +516,60 @@ export class FeaturesService {
     return this.loadRecord(scope.tx, await this.requireFeature(scope.tx, params.found.feature.id));
   }
 
+  /** What the stored definition refers to, for the reference index; nothing if it no longer parses. */
+  async listContentReferences(
+    asset: AssetRow,
+    db: AppDatabase,
+  ): Promise<ContentReference[] | null> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
+    }
+
+    try {
+      return collectAssetReferences(parseFeatureGraph(found.feature)).map((reference) => ({
+        assetId: reference.assetId,
+        path: reference.path,
+        kind: reference.kind,
+      }));
+    } catch {
+      // Unknown for now; the stored references stay.
+      return null;
+    }
+  }
+
   /**
-   * Runs when a feature asset leaves ARCHIVED, through the restore route, undoing or restoring a
-   * version. While archived, the feature kept nothing from being archived, so its references are
-   * checked again.
+   * The content check of a feature at the end of every action that touched it (see
+   * `ContentTypeDefinition.verify`): its references, on the state the action leaves behind. What
+   * referring content forbids is checked by the kernel against `listContentProperties`.
    */
-  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType !== "FEATURE") {
+  async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
       return;
     }
 
+    await this.assertReferencesValid(db, found.feature, parseFeatureGraph(found.feature));
+  }
+
+  /** What the stored definition does that referring content may forbid; see `FEATURE_PROPERTIES`. */
+  async listContentProperties(asset: AssetRow, db: AppDatabase): Promise<ContentProperty[]> {
     const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
-    if (found) {
-      await this.assertReferencesValid(db, found.feature, parseFeatureGraph(found.feature));
+    if (!found) {
+      return [];
     }
+
+    const graph = parseFeatureGraph(found.feature);
+
+    return [
+      ...(raisesAbilityScore(graph) ? [FEATURE_PROPERTIES.raisesAbilityScore] : []),
+      ...(usesClassLevel(graph) ? [FEATURE_PROPERTIES.usesClassLevel] : []),
+    ];
   }
+
 
   // ---------------------------------------------------------------------------
   // Rules that need the database
@@ -783,8 +785,7 @@ export class FeaturesService {
   async resolveFeature(
     found: FeatureWithAsset,
     input: {
-      viewer: CampaignAssetViewer;
-      visibleAssetIds: ReadonlySet<string>;
+      access: ContentAccess;
       bindings: FeatureBindings;
       actor: ActorSnapshot;
       db?: AppDatabase | undefined;
@@ -797,7 +798,7 @@ export class FeaturesService {
       assetId: found.asset.id,
       version: found.feature.version,
       assetVersion: found.asset.version,
-      rulesetId: input.viewer.rulesetId,
+      rulesetId: input.access.viewer.rulesetId,
       bindings: input.bindings,
       actor: input.actor,
       // What a viewer may choose differs, e.g. between GM and player, so it is part of the key.
@@ -853,8 +854,7 @@ export class FeaturesService {
   private async checkAssetSelections(
     graph: FeatureGraph,
     input: {
-      viewer: CampaignAssetViewer;
-      visibleAssetIds: ReadonlySet<string>;
+      access: ContentAccess;
       bindings: FeatureBindings;
       db?: AppDatabase | undefined;
     },
@@ -882,49 +882,20 @@ export class FeaturesService {
     // Entries are option codes or asset ids; free text is no asset and must not reach the uuid column.
     const entries = [...candidates.keys()].filter((entry) => UUID_PATTERN.test(entry));
     const assets = await this.assets.findMany(entries, db);
+    // Newly chosen: active, of an allowed type and in what the campaign may use.
     const eligible = [...assets.values()].filter(
-      (asset) =>
-        candidates.get(asset.id)?.has(asset.assetType) === true &&
-        asset.status === "ACTIVE" &&
-        !(asset.scope === "CAMPAIGN" && asset.campaignId !== input.viewer.campaignId) &&
-        !(input.viewer.view === "PLAYER" && !this.assets.isVisibleToPlayer(asset, input.visibleAssetIds)),
-    );
-    // One query for the ruleset check of all of them.
-    const allowed = await this.assets.repository.listCompatibleIds(
-      db,
-      eligible.map((asset) => asset.id),
-      input.viewer.rulesetId,
+      (asset) => candidates.get(asset.id)?.has(asset.assetType) === true && asset.status === "ACTIVE",
     );
 
-    return allowed;
+    return input.access.readableIds("CATALOG", eligible, db);
   }
 
   // ---------------------------------------------------------------------------
   // Usages
   // ---------------------------------------------------------------------------
 
-  /** Features whose definitions refer to the asset, as typed usages for asset-links. */
-  async listUsages(
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]> {
-    const rows = await this.repository.listReferencing(db, input);
-
-    return rows.map((row) => ({
-      id: row.featureId,
-      type: `FEATURE_${row.kinds[0] ?? "REFERENCE"}`,
-      label: row.asset.title,
-      assetId: row.asset.id,
-      assetType: "FEATURE",
-      editRoute:
-        row.campaignId === null
-          ? `/features/${row.featureId}`
-          : `/campaigns/${row.campaignId}/features/${row.featureId}`,
-    }));
-  }
-
-  async getUsages(viewer: CampaignAssetViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
-    return this.links.getUsages(viewer, assetId, visibleAssetIds);
+  async getUsages(access: ContentAccess, assetId: string) {
+    return this.links.getUsages(access, assetId);
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

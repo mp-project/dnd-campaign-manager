@@ -27,6 +27,8 @@ import { RestoreAssetController } from "#src/modules/assets/http/controller/Rest
 
 export const ASSETS_MODULE_DEPENDENCIES = "assets.module.dependencies";
 
+const REFERENCE_INDEX_RETRY_MS = 30_000;
+
 /**
  * Public port of the assets module. Domain modules use `service` (createBase, updateMetadata,
  * archiveBase, restoreBase, get, assertAvailable, assertSameCampaign, resolveVariant) inside
@@ -74,10 +76,30 @@ async function registerAssetsModule(
       findCampaignRole: (campaignId, actorId, db) =>
         campaignsDependencies.service.findCampaignRole(campaignId, actorId, db),
     },
-    app.log,
   );
 
   history.register(service.trackedAsset);
+  history.registerVerifier(service.contentVerifier);
+  // Once all modules registered their content types: bring the reference index up to date. A
+  // database that isn't reachable or migrated yet must not stop the app from starting (`/ready`
+  // reports it), so a failed attempt is logged and tried again until it succeeds.
+  let retry: NodeJS.Timeout | undefined;
+  const ensureReferenceIndex = async (): Promise<void> => {
+    try {
+      if (await service.ensureReferenceIndex()) {
+        app.log.info("Content reference index rebuilt");
+      }
+    } catch (err) {
+      app.log.error({ err }, "Content reference index could not be built; trying again");
+      retry = setTimeout(() => void ensureReferenceIndex(), REFERENCE_INDEX_RETRY_MS);
+      retry.unref();
+    }
+  };
+
+  app.addHook("onReady", ensureReferenceIndex);
+  app.addHook("onClose", async () => {
+    clearTimeout(retry);
+  });
 
   const listCampaignAssetsUseCase = new ListCampaignAssetsUseCase(service);
   const getAssetByIdUseCase = new GetAssetByIdUseCase(service);

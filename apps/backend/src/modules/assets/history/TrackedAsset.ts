@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError, ValidationError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { AssetBaseSchema } from "#src/modules/assets/domain/dto/BaseAssetDto";
 import { assets } from "#src/modules/assets/domain/entities/AssetsTable";
 import type {
@@ -20,8 +18,8 @@ export const ASSET_ACTIONS = {
   restore: "asset.restore",
 } as const;
 
-/** The only changes a GM may make directly, so also the only ones a GM may undo. */
-export const GM_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
+/** The only asset changes the campaign makes directly, so also the only ones it may undo. */
+export const CAMPAIGN_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
   ASSET_ACTIONS.archive,
   ASSET_ACTIONS.restore,
 ];
@@ -32,28 +30,26 @@ type TrackedAssetDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
-  assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
-  /** Runs when the asset leaves `ACTIVE`, after the archive check. */
+  ): Promise<CampaignRole | null>;
+  /** Runs when the asset leaves `ACTIVE`; the archive check follows at the end of the action. */
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
-  /** Runs when the asset leaves `ARCHIVED`, so its owner can check that it is still consistent. */
-  onReactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
-  gmRevertibleActions: ReadonlySet<string>;
+  campaignRevertibleActions: ReadonlySet<string>;
   /** Whether custom assets of this type may be released to players. */
   isReleasable(assetType: AssetRow["assetType"]): boolean;
 };
 
 /**
- * History rules of an asset. Only people who may change an asset see its history: the GM of its
- * campaign and administrators. A right to undo must not go beyond the right to change directly: GMs
- * may archive and restore assets of their campaign, everything else is left to administrators.
+ * History rules of an asset. Only people who may change an asset see its history: owner and
+ * editors of its campaign and administrators (`decideContentWrite`). A right to undo must not go
+ * beyond the right to change directly: in the campaign, archiving, restoring and the actions of the
+ * modules that change assets (`revertibleActions` of their content type) may be undone; everything else, and restoring
+ * versions, is left to administrators.
  */
 export function createTrackedAsset(deps: TrackedAssetDeps) {
   const campaignAccess = campaignHistoryAccess<AssetRow>({
     campaignId: (row) => row.campaignId as string,
     resolveRole: deps.resolveRole,
-    editRoles: ["GM"],
   });
 
   return defineTrackedEntity({
@@ -71,8 +67,8 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       revert: async (context, row, change, db) =>
         row.campaignId !== null &&
         context.actorId !== null &&
-        deps.gmRevertibleActions.has(change.action) &&
-        (await deps.resolveRole(row.campaignId, context.actorId, db)) === "GM",
+        deps.campaignRevertibleActions.has(change.action) &&
+        ((await campaignAccess.revert?.(context, row, change, db)) ?? false),
     },
     fields: {
       title: field.value(),
@@ -116,18 +112,11 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       }
     },
     // Here and not in `archiveBase`, because undoing a restore archives an asset as well, and undoing
-    // or restoring can turn an active asset into a draft.
+    // or restoring can turn an active asset into a draft. Whether it may be archived is checked at
+    // the end of the action (`AssetsService.contentVerifier`).
     guard: async (next, current, db) => {
-      if (next.status === "ARCHIVED" && current.status !== "ARCHIVED") {
-        await deps.assertCanArchive(next, db);
-      }
-
       if (current.status === "ACTIVE" && next.status !== "ACTIVE") {
         await deps.onDeactivate(next, db);
-      }
-
-      if (current.status === "ARCHIVED" && next.status !== "ARCHIVED") {
-        await deps.onReactivate(next, db);
       }
     },
   });

@@ -2,7 +2,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseSpeciesVariantDto,
   type ResponseSpeciesVariantListDto,
-  toSpeciesVariantGmResponse,
+  toSpeciesVariantFullResponse,
   toSpeciesVariantPlayerResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesVariantDto";
 import type { SpeciesVariantsService } from "#src/modules/species/service/SpeciesVariantsService";
@@ -19,10 +19,10 @@ async function toResponses(
   readable: ReadableSpecies,
   variants: readonly ReadableVariant[],
 ): Promise<ResponseSpeciesVariantDto[]> {
-  if (readable.view === "GM") {
+  if (readable.view === "FULL") {
     const records = await variantsService.loadRecords(variantsService.db, variants);
 
-    return records.map(toSpeciesVariantGmResponse);
+    return records.map(toSpeciesVariantFullResponse);
   }
 
   const isVisible = await reader.visibility(readable, variants);

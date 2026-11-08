@@ -23,7 +23,6 @@ const FAMILY_ID = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 
 const db = {} as AppDatabase;
 const transactionManager = {} as TransactionManager;
-const logger = { error: jest.fn() };
 
 function createAssetRow(overrides: Partial<AssetRow> = {}): AssetRow {
   const now = new Date("2026-01-01T00:00:00.000Z");
@@ -95,7 +94,7 @@ describe("AssetsService", () => {
     it("derives campaign scope, origin and campaign ruleset for restricted homebrew", async () => {
       const fake = createFakeRepository();
       const { scope, created } = createFakeScope();
-      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"), logger);
+      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"));
 
       const result = await service.createBase(
         scope,
@@ -115,7 +114,7 @@ describe("AssetsService", () => {
     it("creates system defaults with explicit rulesets", async () => {
       const fake = createFakeRepository();
       const { scope, created } = createFakeScope();
-      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess(null), logger);
+      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess(null));
 
       await service.createBase(
         scope,
@@ -135,7 +134,7 @@ describe("AssetsService", () => {
     it("rejects free ruleset ids on campaign assets", async () => {
       const fake = createFakeRepository();
       const { scope, created } = createFakeScope();
-      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"), logger);
+      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"));
 
       await expect(
         service.createBase(
@@ -150,7 +149,7 @@ describe("AssetsService", () => {
     it("rejects neutral assets with rulesets and restricted system assets without rulesets", async () => {
       const fake = createFakeRepository();
       const { scope } = createFakeScope();
-      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess(null), logger);
+      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess(null));
 
       await expect(
         service.createBase(
@@ -172,7 +171,7 @@ describe("AssetsService", () => {
     it("rejects families of another asset type and unknown campaigns", async () => {
       const fake = createFakeRepository();
       const { scope } = createFakeScope();
-      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"), logger);
+      const service = new AssetsService(db, transactionManager, fake.repository, createCampaignAccess("EDITOR"));
 
       await expect(
         service.createBase(
@@ -194,11 +193,11 @@ describe("AssetsService", () => {
 
   describe("resolveCampaignViewer", () => {
     it.each([
-      ["EDITOR", "USER", "GM"],
+      ["EDITOR", "USER", "FULL"],
       ["PLAYER", "USER", "PLAYER"],
-      [null, "ADMIN", "GM"],
+      [null, "ADMIN", "FULL"],
     ] as const)("maps campaign role %s with system role %s to %s view", async (role, systemRole, view) => {
-      const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(role), logger);
+      const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(role));
 
       await expect(
         service.resolveCampaignViewer({ actorId: ACTOR_ID, systemRole }, CAMPAIGN_ID),
@@ -206,7 +205,7 @@ describe("AssetsService", () => {
     });
 
     it("hides campaigns from non-members and requires authentication", async () => {
-      const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(null), logger);
+      const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(null));
 
       await expect(
         service.resolveCampaignViewer({ actorId: ACTOR_ID, systemRole: "USER" }, CAMPAIGN_ID),
@@ -218,7 +217,7 @@ describe("AssetsService", () => {
   });
 
   it("rejects assets of another campaign but accepts system assets", () => {
-    const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(null), logger);
+    const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(null));
 
     expect(() => service.assertSameCampaign(createAssetRow(), OTHER_CAMPAIGN_ID)).toThrow(NotFoundError);
     expect(() =>
@@ -230,7 +229,7 @@ describe("AssetsService", () => {
   });
 
   it("merges visibility providers and rejects duplicate provider names", async () => {
-    const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess("PLAYER"), logger);
+    const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess("PLAYER"));
     const viewer = { actorId: ACTOR_ID, campaignId: CAMPAIGN_ID, rulesetId: RULESET_ID, view: "PLAYER" as const };
 
     expect(await service.listVisibleAssetIds(viewer)).toEqual([]);
@@ -252,7 +251,6 @@ describe("releasing assets to players", () => {
       transactionManager,
       {} as AssetsRepository,
       { findCampaignRole: async () => null } as AssetCampaignAccessPort,
-      logger,
     );
 
   it("only knows types that a module registered", () => {
@@ -260,16 +258,18 @@ describe("releasing assets to players", () => {
 
     expect(assets.isReleasable("FEATURE")).toBe(false);
 
-    assets.registerReleasableType("FEATURE");
+    assets.registerContentType({ assetType: "FEATURE", kind: "RULE", editRoutes: () => new Map() });
 
     expect(assets.isReleasable("FEATURE")).toBe(true);
-    expect(() => assets.registerReleasableType("FEATURE")).toThrow("already releasable");
+    expect(() => assets.registerContentType({ assetType: "FEATURE", kind: "RULE", editRoutes: () => new Map() })).toThrow(
+      "already registered",
+    );
   });
 
   it("refuses releases of global content and of types nobody registered", () => {
     const assets = service();
 
-    assets.registerReleasableType("FEATURE");
+    assets.registerContentType({ assetType: "FEATURE", kind: "RULE", editRoutes: () => new Map() });
 
     const validate = assets.trackedAsset.validate!;
     const current = { ...createAssetRow({ assetType: "FEATURE" }), rulesetIds: [] };
@@ -287,57 +287,3 @@ describe("releasing assets to players", () => {
   });
 });
 
-describe("assets in use", () => {
-  const service = () => {
-    logger.error.mockClear();
-
-    return new AssetsService(
-      db,
-      transactionManager,
-      {} as AssetsRepository,
-      { findCampaignRole: async () => null } as AssetCampaignAccessPort,
-      logger,
-    );
-  };
-  const failing = (error: unknown) => ({
-    name: "failing",
-    listInUseAssetIds: async () => {
-      throw error;
-    },
-  });
-  const working = { name: "working", listInUseAssetIds: async () => ["a", "b"] };
-
-  it("logs a failing provider with its error and keeps the others", async () => {
-    const assets = service();
-    const error = new Error("broken");
-
-    assets.registerInUseProvider(working);
-    assets.registerInUseProvider(failing(error));
-
-    expect([...(await assets.listInUseAssetIds(CAMPAIGN_ID))]).toEqual(["a", "b"]);
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ err: error, provider: "failing", campaignId: CAMPAIGN_ID }),
-      "Asset in-use provider failed",
-    );
-  });
-
-  it("throws when the database is busy, so the request answers 503", async () => {
-    const assets = service();
-    const busy = Object.assign(new Error("lock timeout"), { code: "55P03" });
-
-    assets.registerInUseProvider(working);
-    assets.registerInUseProvider(failing(busy));
-
-    await expect(assets.listInUseAssetIds(CAMPAIGN_ID)).rejects.toBe(busy);
-    expect(logger.error).not.toHaveBeenCalled();
-  });
-
-  it("throws inside a transaction, which a failed query has aborted anyway", async () => {
-    const assets = service();
-    const error = new Error("broken");
-
-    assets.registerInUseProvider(failing(error));
-
-    await expect(assets.listInUseAssetIds(CAMPAIGN_ID, {} as AppDatabase)).rejects.toBe(error);
-  });
-});

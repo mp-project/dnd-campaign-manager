@@ -1,9 +1,7 @@
 import type { AppDatabase } from "#core/db/pool";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { AssetLinkBaseSchema } from "#src/modules/asset-links/domain/dto/BaseAssetLinkDto";
 import { assetLinks } from "#src/modules/asset-links/domain/entities/AssetLinksTable";
 import type { AssetLinkRow } from "#src/modules/asset-links/domain/repository/AssetLinksRepository";
@@ -22,7 +20,7 @@ type TrackedAssetLinkDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /** Old values must still fit the relation when they are written back. */
   parseMetadata(relationType: string, metadata: unknown): unknown;
   /** Undoing and restoring must not change links of archived assets either. */
@@ -41,6 +39,8 @@ export function createTrackedAssetLink(deps: TrackedAssetLinkDeps) {
     baseSchema: AssetLinkBaseSchema,
     campaignId: (row) => row.campaignId,
     root: (row) => ({ type: ASSET_ENTITY_TYPE, id: row.sourceAssetId }),
+    // Hangs off the asset; changing it doesn't change the asset's content.
+    contentOfRoot: false,
     access: campaignHistoryAccess<AssetLinkRow>({
       campaignId: (row) => row.campaignId,
       resolveRole: deps.resolveRole,

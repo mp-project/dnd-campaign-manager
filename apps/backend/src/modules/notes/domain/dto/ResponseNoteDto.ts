@@ -13,7 +13,7 @@ const contentHtmlDto = z.string();
  * View for GMs and editors. `version` and the audit fields belong to the note, `assetVersion` to
  * its asset; changes send both back.
  */
-export const ResponseNoteGmSchema = baseEntityResponseDto
+export const ResponseNoteFullSchema = baseEntityResponseDto
   .extend(
     NoteBaseSchema.pick({
       assetId: true,
@@ -30,13 +30,13 @@ export const ResponseNoteGmSchema = baseEntityResponseDto
     }).shape,
   )
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     assetVersion: z.number().int().positive(),
     contentHtml: contentHtmlDto,
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateNoteSchema = ResponseNoteGmSchema.extend({
+export const ResponseUpdateNoteSchema = ResponseNoteFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -58,12 +58,12 @@ export const ResponseNotePlayerSchema = NoteBaseSchema.pick({
 });
 
 export const ResponseNoteSchema = z.discriminatedUnion("view", [
-  ResponseNoteGmSchema,
+  ResponseNoteFullSchema,
   ResponseNotePlayerSchema,
 ]);
 
 /** List entry for GMs and editors: everything to sort and pick a note, but no text. */
-export const ResponseNoteListItemGmSchema = ResponseNoteGmSchema.omit({
+export const ResponseNoteListItemFullSchema = ResponseNoteFullSchema.omit({
   content: true,
   contentHtml: true,
   gmNotes: true,
@@ -76,20 +76,20 @@ export const ResponseNoteListItemPlayerSchema = ResponseNotePlayerSchema.omit({
 });
 
 export const ResponseNoteListSchema = standardListResponseDto(
-  z.discriminatedUnion("view", [ResponseNoteListItemGmSchema, ResponseNoteListItemPlayerSchema]),
+  z.discriminatedUnion("view", [ResponseNoteListItemFullSchema, ResponseNoteListItemPlayerSchema]),
 );
 
-export type ResponseNoteGmDto = z.infer<typeof ResponseNoteGmSchema>;
+export type ResponseNoteFullDto = z.infer<typeof ResponseNoteFullSchema>;
 export type ResponseUpdateNoteDto = z.infer<typeof ResponseUpdateNoteSchema>;
 export type ResponseNotePlayerDto = z.infer<typeof ResponseNotePlayerSchema>;
 export type ResponseNoteDto = z.infer<typeof ResponseNoteSchema>;
-export type ResponseNoteListItemGmDto = z.infer<typeof ResponseNoteListItemGmSchema>;
+export type ResponseNoteListItemFullDto = z.infer<typeof ResponseNoteListItemFullSchema>;
 export type ResponseNoteListItemPlayerDto = z.infer<typeof ResponseNoteListItemPlayerSchema>;
 export type ResponseNoteListDto = z.infer<typeof ResponseNoteListSchema>;
 
-export function toNoteGmResponse({ note, asset, tagIds }: NoteRecord): ResponseNoteGmDto {
+export function toNoteFullResponse({ note, asset, tagIds }: NoteRecord): ResponseNoteFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: note.id,
     version: note.version,
     createdAt: note.createdAt.toISOString(),
@@ -113,11 +113,11 @@ export function toNoteGmResponse({ note, asset, tagIds }: NoteRecord): ResponseN
   };
 }
 
-export function toNoteListItemGmResponse(record: NoteRecord): ResponseNoteListItemGmDto {
+export function toNoteListItemFullResponse(record: NoteRecord): ResponseNoteListItemFullDto {
   const { note, asset, tagIds } = record;
 
   return {
-    view: "GM",
+    view: "FULL",
     id: note.id,
     version: note.version,
     createdAt: note.createdAt.toISOString(),

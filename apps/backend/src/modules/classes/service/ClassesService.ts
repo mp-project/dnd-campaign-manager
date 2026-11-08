@@ -1,16 +1,19 @@
+import type { ContentReadPurpose } from "#core/content/access";
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
-import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
   type AssetReference,
   type AssetRow,
   type AssetsService,
-  type CampaignAssetViewer,
+  type ContentAccess,
+  type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
 import type { ClassDefinition } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
@@ -85,20 +88,14 @@ export class ClassesService {
     private readonly campaignAccess: ClassCampaignAccessPort,
   ) {
     this.trackedClass = createTrackedClass({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
-      assertConsistent: async (row, tx) => {
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
+      assertChangeable: async (row, tx) => {
         const asset = await assets.requireAsset(tx, row.assetId);
 
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived classes cannot be modified", { assetId: asset.id });
         }
-
-        await this.assertSystemCodeFree(tx, row);
-        await this.assertReferencesValid(tx, row, row.definition);
       },
     });
   }
@@ -143,71 +140,41 @@ export class ClassesService {
   }
 
   /**
-   * A class available in the campaign: its own, or a global one for the campaign ruleset. Global
-   * drafts only exist for administrators. Archived classes only stay while the campaign still uses
-   * them (`inUseAssetIds`), so characters that have one keep seeing it; `archived: "always"` is for
-   * GMs managing their own classes and for the selection check, which answers 409 instead.
-   * Players only see what `isVisibleToPlayerInCampaign` allows.
+   * A class of the campaign the viewer may read for this purpose (`ContentReadPurpose`): `MANAGE`
+   * for the routes of the campaign's own classes, `CATALOG` for what the campaign may choose.
+   * Archived classes stay in the catalog while the campaign still uses them.
    */
-  async requireCatalogClass(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+  async requireReadableClass(
+    access: ContentAccess,
     classId: string,
-    access: {
-      visibleAssetIds: ReadonlySet<string>;
-      inUseAssetIds: ReadonlySet<string>;
-      archived: "always" | "ifInUse";
-    },
+    purpose: ContentReadPurpose,
   ): Promise<ClassWithAsset> {
     const found = await this.requireClass(this.db, classId);
-    const { characterClass, asset } = found;
-    const missing = new NotFoundError("Class not found");
 
-    if (characterClass.campaignId !== null && characterClass.campaignId !== viewer.campaignId) {
-      throw missing;
-    }
-
-    if (characterClass.campaignId === null) {
-      if (asset.status === "DRAFT" && !viewer.isAdmin) {
-        throw missing;
-      }
-
-      if (!(await this.assets.repository.isCompatible(this.db, asset.id, viewer.rulesetId))) {
-        throw missing;
-      }
-    }
-
-    if (
-      asset.status === "ARCHIVED" &&
-      (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
-      !access.inUseAssetIds.has(asset.id)
-    ) {
-      throw missing;
-    }
-
-    if (
-      viewer.view === "PLAYER" &&
-      !this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
-    ) {
-      throw missing;
-    }
+    await access.require(purpose, found.asset, "Class not found");
 
     return found;
   }
 
   /**
-   * A class that may be newly chosen in the campaign, for actor progression: available in the
-   * catalog and active. Archived classes in use stay readable but cannot be chosen again (409).
+   * A class that may be newly chosen in the campaign, for actor progression: in the catalog and
+   * active. A class the viewer can read but that isn't active (archived, or a global draft for an
+   * administrator) exists but can't be chosen (409); one the viewer can't read is missing (404).
    */
   async requireSelectableClass(
-    viewer: CampaignAssetViewer & { isAdmin: boolean },
+    access: ContentAccess,
     classId: string,
-    visibleAssetIds: ReadonlySet<string>,
   ): Promise<ClassWithAsset & { definition: ClassDefinition }> {
-    const found = await this.requireCatalogClass(viewer, classId, {
-      visibleAssetIds,
-      inUseAssetIds: await this.assets.listInUseAssetIds(viewer.campaignId),
-      archived: "always",
-    });
+    const found = await this.requireClass(this.db, classId);
+
+    if (found.asset.status !== "ACTIVE" && (await access.allows("READ", found.asset))) {
+      throw new ConflictError("Only active classes can be chosen", {
+        classId,
+        status: found.asset.status,
+      });
+    }
+
+    await access.require("CATALOG", found.asset, "Class not found");
 
     if (found.asset.status !== "ACTIVE") {
       throw new ConflictError("Only active classes can be chosen", {
@@ -235,15 +202,13 @@ export class ClassesService {
   }
 
   /**
-   * Which referenced assets of these classes a player may see: active global assets, campaign
-   * assets visible to the player and archived ones the campaign still uses. Used to strip hidden
-   * references from the player view.
+   * Which referenced assets of these classes the viewer may read; used to strip hidden references
+   * from the player view. Without access (outside a campaign) only active global assets count.
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     items: readonly ClassWithAsset[],
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
+    access: ContentAccess | null,
   ): Promise<(assetId: string) => boolean> {
     const ids = items.flatMap(({ characterClass }) => {
       const definition = parseClassDefinition(characterClass);
@@ -253,16 +218,7 @@ export class ClassesService {
         ...this.staticAssetValues(definition),
       ];
     });
-    const referenced = await this.assets.findMany(ids, db);
-
-    return (assetId) => {
-      const asset = referenced.get(assetId);
-
-      return (
-        asset !== undefined &&
-        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
-      );
-    };
+    return this.assets.referenceVisibility(access, ids, db);
   }
 
   /**
@@ -285,7 +241,7 @@ export class ClassesService {
 
   /** Edit routes for asset-links, for all custom classes of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findByAssetIds(db, input.assetIds);
@@ -295,7 +251,7 @@ export class ClassesService {
         .filter(([, { characterClass }]) => characterClass.campaignId === input.campaignId)
         .map(([assetId, { characterClass }]) => [
           assetId,
-          `/campaigns/${input.campaignId}/classes/${characterClass.id}`,
+          `${editRoutePrefix(input.campaignId)}/classes/${characterClass.id}`,
         ]),
     );
   }
@@ -313,13 +269,7 @@ export class ClassesService {
     campaignId: string | null,
     db: AppDatabase,
   ): Promise<string> {
-    if (campaignId === null) {
-      this.assets.assertCanManage(context);
-    } else {
-      await this.assets.assertCanEditCampaignContent(context, campaignId, db);
-    }
-
-    return this.assets.assertAuthenticated(context);
+    return this.assets.assertCanWrite(context, "EDIT", campaignId, db);
   }
 
   /** Id of the acting user, after `assertCanWrite` checked the rights. */
@@ -386,10 +336,6 @@ export class ClassesService {
       ...definition,
     };
 
-    // Creating runs no history guard, so code and references are checked here.
-    await this.assertSystemCodeFree(scope.tx, { ...row, id: null });
-    await this.assertReferencesValid(scope.tx, row, definition);
-
     const created = await this.withConstraintErrors(() =>
       scope.create(this.trackedClass, row),
     );
@@ -438,7 +384,6 @@ export class ClassesService {
           value !== undefined && !(ASSET_FIELDS as readonly string[]).includes(key),
       ),
     );
-    let classChanged = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.withConstraintErrors(() =>
@@ -448,20 +393,10 @@ export class ClassesService {
         })),
       );
 
-      classChanged = result.changed;
       merged.push(...result.merged);
     }
 
     const found = await this.requireClass(scope.tx, characterClass.id);
-
-    if (!classChanged && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.assertSystemCodeFree(scope.tx, found.characterClass);
-      await this.assertReferencesValid(
-        scope.tx,
-        found.characterClass,
-        parseClassDefinition(found.characterClass),
-      );
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -521,7 +456,6 @@ export class ClassesService {
       expectedVersion: params.expectedAssetVersion,
     });
 
-    // Code and references are checked by `assertReactivatable`, on every path that unarchives.
     return this.loadRecord(
       scope.tx,
       await this.requireClass(scope.tx, params.found.characterClass.id),
@@ -529,15 +463,46 @@ export class ClassesService {
   }
 
   /**
-   * Runs when a class asset leaves ARCHIVED, through the restore route, undoing or restoring a
-   * version. While archived, the class kept nothing from being archived and another global class
-   * may have taken its code, so both are checked again.
+   * What the stored definition refers to, for the reference index: the referenced assets and the
+   * bound values that are asset ids. Nothing if the definition no longer parses.
    */
-  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType !== "CLASS") {
-      return;
+  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[] | null> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
     }
 
+    let definition: ClassDefinition;
+
+    try {
+      definition = parseClassDefinition(found.characterClass);
+    } catch {
+      // Unknown for now; the stored references stay.
+      return null;
+    }
+
+    const bound = await this.features.collectBoundAssetReferences(
+      db,
+      listGrants(definition).map(({ levelIndex, grantIndex, grant }) => ({
+        ...grant,
+        path: ["levels", levelIndex, "featureGrants", grantIndex],
+      })),
+    );
+
+    return [...collectClassReferences(definition), ...bound].map((reference) => ({
+      assetId: reference.assetId,
+      path: reference.path,
+      kind: "DEFINITION",
+    }));
+  }
+
+  /**
+   * The content check of a class at the end of every action that touched it (see
+   * `ContentTypeDefinition.verify`): its global code per ruleset and its references, on the state
+   * the action leaves behind, so creating, changing rulesets, undoing and restoring all count.
+   */
+  async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
     const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
     if (!found) {
@@ -549,6 +514,7 @@ export class ClassesService {
     await this.assertSystemCodeFree(db, row);
     await this.assertReferencesValid(db, row, parseClassDefinition(row));
   }
+
 
   // ---------------------------------------------------------------------------
   // Rules that need the database
@@ -778,28 +744,8 @@ export class ClassesService {
   // Usages
   // ---------------------------------------------------------------------------
 
-  /** Classes whose definitions refer to the asset, as typed usages for asset-links. */
-  async listUsages(
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]> {
-    const rows = await this.repository.listReferencing(db, input);
-
-    return rows.map(({ characterClass, asset }) => ({
-      id: characterClass.id,
-      type: "CLASS_DEFINITION",
-      label: asset.title,
-      assetId: asset.id,
-      assetType: "CLASS",
-      editRoute:
-        characterClass.campaignId === null
-          ? `/classes/${characterClass.id}`
-          : `/campaigns/${characterClass.campaignId}/classes/${characterClass.id}`,
-    }));
-  }
-
-  async getUsages(viewer: CampaignAssetViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
-    return this.links.getUsages(viewer, assetId, visibleAssetIds);
+  async getUsages(access: ContentAccess, assetId: string) {
+    return this.links.getUsages(access, assetId);
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

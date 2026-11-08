@@ -30,12 +30,16 @@ export {
   AssetsService,
   type AssetArchiveGuard,
   type AssetDeactivateHook,
-  type AssetInUseProvider,
-  type AssetReactivateHook,
   type AssetReference,
   type AssetReferenceIssue,
+  type ContentEditRoutes,
+  type ContentKind,
+  type ContentPlayerView,
+  type ContentProperty,
+  type ContentReference,
+  type ContentTypeDefinition,
   type AssetVisibilityProvider,
-  type CampaignAssetViewer,
 } from "#src/modules/assets/service/AssetsService";
 export { ASSET_ENTITY_TYPE } from "#src/modules/assets/history/TrackedAsset";
+export { ContentAccess } from "#src/modules/assets/service/ContentAccess";
 export { slugify } from "#src/modules/assets/domain/slugify";

@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseSpeciesGmDto,
-  toSpeciesGmResponse,
+  type ResponseSpeciesFullDto,
+  toSpeciesFullResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import type { SpeciesLifecycleCommandDto } from "#src/modules/species/domain/dto/UpdateSpeciesDto";
 import { SPECIES_ACTIONS } from "#src/modules/species/history/TrackedSpecies";
@@ -18,7 +18,7 @@ export type RestoreSpeciesInput = {
 };
 
 /** Restores an archived species, including a release it had. */
-export class RestoreSpeciesUseCase extends MutationUseCase<RestoreSpeciesInput, ResponseSpeciesGmDto> {
+export class RestoreSpeciesUseCase extends MutationUseCase<RestoreSpeciesInput, ResponseSpeciesFullDto> {
   protected readonly action = SPECIES_ACTIONS.restore;
 
   constructor(
@@ -42,10 +42,10 @@ export class RestoreSpeciesUseCase extends MutationUseCase<RestoreSpeciesInput, 
     scope: ActionScope,
     _context: RequestContext,
     input: RestoreSpeciesInput,
-  ): Promise<ResponseSpeciesGmDto> {
+  ): Promise<ResponseSpeciesFullDto> {
     const found = await this.speciesService.requireForWrite(scope.tx, input);
 
-    return toSpeciesGmResponse(
+    return toSpeciesFullResponse(
       await this.speciesService.restoreSpecies(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

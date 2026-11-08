@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseClassGmDto,
-  toClassGmResponse,
+  type ResponseClassFullDto,
+  toClassFullResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
 import type { ClassLifecycleCommandDto } from "#src/modules/classes/domain/dto/UpdateClassDto";
 import { CLASS_ACTIONS } from "#src/modules/classes/history/TrackedClass";
@@ -18,7 +18,7 @@ export type RestoreClassInput = {
 };
 
 /** Restores an archived class, including a release it had. */
-export class RestoreClassUseCase extends MutationUseCase<RestoreClassInput, ResponseClassGmDto> {
+export class RestoreClassUseCase extends MutationUseCase<RestoreClassInput, ResponseClassFullDto> {
   protected readonly action = CLASS_ACTIONS.restore;
 
   constructor(
@@ -42,10 +42,10 @@ export class RestoreClassUseCase extends MutationUseCase<RestoreClassInput, Resp
     scope: ActionScope,
     _context: RequestContext,
     input: RestoreClassInput,
-  ): Promise<ResponseClassGmDto> {
+  ): Promise<ResponseClassFullDto> {
     const found = await this.classesService.requireForWrite(scope.tx, input);
 
-    return toClassGmResponse(
+    return toClassFullResponse(
       await this.classesService.restoreClass(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

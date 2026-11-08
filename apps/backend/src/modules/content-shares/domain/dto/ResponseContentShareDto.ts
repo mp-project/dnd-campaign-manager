@@ -6,24 +6,24 @@ import { AssetBaseSchema, type AssetRow } from "#src/modules/assets/index";
 import { ContentShareBaseSchema } from "#src/modules/content-shares/domain/dto/BaseContentShareDto";
 import type { ContentShareRow } from "#src/modules/content-shares/domain/repository/ContentSharesRepository";
 
-const SharedAssetGmSchema = AssetBaseSchema.pick({
+const SharedAssetFullSchema = AssetBaseSchema.pick({
   id: true,
   assetType: true,
   title: true,
   status: true,
 });
 
-const SharedAssetPlayerSchema = SharedAssetGmSchema.omit({ status: true });
+const SharedAssetPlayerSchema = SharedAssetFullSchema.omit({ status: true });
 
 /** Full view for people who manage shares. Only active players are listed as recipients. */
-export const ResponseContentShareGmSchema = ContentShareBaseSchema.extend({
-  view: z.literal("GM"),
+export const ResponseContentShareFullSchema = ContentShareBaseSchema.extend({
+  view: z.literal("FULL"),
   version: z.number().int().positive(),
   createdAt: isoDateTimeDto,
   updatedAt: isoDateTimeDto,
   createdBy: uuidDto,
   updatedBy: uuidDto.nullable(),
-  asset: SharedAssetGmSchema,
+  asset: SharedAssetFullSchema,
 });
 
 /**
@@ -41,7 +41,7 @@ export const ResponseContentSharePlayerSchema = ContentShareBaseSchema.pick({
 });
 
 export const ResponseContentShareSchema = z.discriminatedUnion("view", [
-  ResponseContentShareGmSchema,
+  ResponseContentShareFullSchema,
   ResponseContentSharePlayerSchema,
 ]);
 
@@ -61,18 +61,18 @@ export type ResponseSharedContentDto = z.infer<typeof ResponseSharedContentSchem
 
 export const ResponseContentShareListSchema = standardListResponseDto(ResponseContentShareSchema);
 
-export type ResponseContentShareGmDto = z.infer<typeof ResponseContentShareGmSchema>;
+export type ResponseContentShareFullDto = z.infer<typeof ResponseContentShareFullSchema>;
 export type ResponseContentSharePlayerDto = z.infer<typeof ResponseContentSharePlayerSchema>;
 export type ResponseContentShareDto = z.infer<typeof ResponseContentShareSchema>;
 export type ResponseContentShareListDto = z.infer<typeof ResponseContentShareListSchema>;
 
-export function toContentShareGmResponse(
+export function toContentShareFullResponse(
   share: ContentShareRow,
   recipientMemberIds: readonly string[],
   asset: AssetRow,
-): ResponseContentShareGmDto {
+): ResponseContentShareFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: share.id,
     version: share.version,
     createdAt: share.createdAt.toISOString(),

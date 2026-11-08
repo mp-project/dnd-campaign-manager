@@ -130,6 +130,13 @@ export type TrackedEntity<T extends TrackedTable = TrackedTable> = {
   groups?: readonly (readonly string[])[];
   campaignId?(row: T["$inferSelect"]): string | null;
   root?(row: T["$inferSelect"]): { type: string; id: string } | null;
+  /**
+   * Whether the row is part of the content of its root (a class row of its asset), so that a
+   * change of it has the root's content checked again at the end of the action. False for rows that
+   * only hang off the root, such as links and attached media. Defaults to true when there is a
+   * root.
+   */
+  contentOfRoot?: boolean;
   /** Rules across fields; throws an AppError when the merged state is invalid. */
   validate?(
     next: T["$inferSelect"] & Record<string, unknown>,
@@ -281,9 +288,33 @@ export type GetEntityVersionParams = {
   version: number;
 };
 
+/** A row an action created or changed, with the root it belongs to (e.g. its asset). */
+export type TouchedEntity = {
+  entityType: string;
+  entityId: string;
+  root: { type: string; id: string } | null;
+  /** Whether the row is part of its root's content, see `TrackedEntity.contentOfRoot`. */
+  contentOfRoot: boolean;
+  /** Created by the action, or else the fields it changed (lists included). */
+  created: boolean;
+  fields: readonly string[];
+};
+
+/**
+ * Checks what an action changed, once at its end: after all its writes, before the commit, in its
+ * transaction. Rules that span several rows belong here instead of into a `guard`, because a guard
+ * only sees its own row and runs while the other rows of the action may not be written yet. Throws
+ * an AppError to reject the whole action. Runs for every action, undoing and restoring included.
+ */
+export type ActionVerifier = {
+  name: string;
+  verify(touched: readonly TouchedEntity[], db: AppDatabase): Promise<void>;
+};
+
 /** Public port of the history module, available as `container.ports.history`. */
 export type HistoryPort = {
   register<T extends TrackedTable>(entity: TrackedEntity<T>): void;
+  registerVerifier(verifier: ActionVerifier): void;
   /** Everything registered so far, so tests can check that nothing is forgotten. */
   listEntities(): readonly TrackedEntity[];
   subscribe(pattern: string, handler: HistoryEventHandler): void;

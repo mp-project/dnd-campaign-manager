@@ -34,9 +34,8 @@ import { UpdateContentShareUseCase } from "#src/modules/content-shares/useCase/U
 export const CONTENT_SHARES_MODULE_DEPENDENCIES = "content-shares.module.dependencies";
 
 /**
- * Public port of the content-shares module. A module makes its asset type shareable with
- * `service.registerShareableType`, including how its player view is loaded; until then nothing of
- * that type can be shared.
+ * Public port of the content-shares module. Content types of `kind: "STORY"` (registered with
+ * `AssetsService.registerContentType`, with their player view) can be shared; nothing else.
  */
 export type ContentSharesModuleDependencies = {
   service: ContentSharesService;
@@ -95,6 +94,16 @@ async function registerContentSharesModule(
   assetsService.registerVisibilityProvider({
     name: "content-shares",
     listVisibleAssetIds: (input, db) => service.listVisibleAssetIds(input, db),
+  });
+
+  // Content that leaves ACTIVE (draft or archive, on every path) ends its shares for good.
+  assetsService.registerDeactivateHook({
+    name: "content-shares",
+    onDeactivate: async (asset, db) => {
+      if (service.isShareable(asset.assetType)) {
+        await service.endSharesOfAsset(db, asset.id);
+      }
+    },
   });
 
   // A share does not block archiving: an archived asset is hidden from players anyway.

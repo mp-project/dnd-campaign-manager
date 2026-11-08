@@ -15,15 +15,13 @@ export class RevokeContentShareUseCase {
     this.assetsService.assertAuthenticated(context);
 
     // Checked first, so nobody outside the campaign triggers the cleanup.
-    await this.assetsService.assertCanEditCampaignContent(
-      context,
-      input.campaignId,
+    await this.assetsService.assertCanWrite(context, "SHARE", input.campaignId,
       this.sharesService.db,
     );
     await this.sharesService.deleteExpired(input.campaignId);
 
     return this.sharesService.transactionManager.inTransaction(async (tx) => {
-      await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, tx);
+      await this.assetsService.assertCanWrite(context, "SHARE", input.campaignId, tx);
 
       await this.sharesService.revokeShare(tx, input);
     });

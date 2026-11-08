@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseFeatureGmDto,
-  toFeatureGmResponse,
+  type ResponseFeatureFullDto,
+  toFeatureFullResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
 import type { FeatureLifecycleCommandDto } from "#src/modules/features/domain/dto/UpdateFeatureDto";
 import { FEATURE_ACTIONS } from "#src/modules/features/history/TrackedFeature";
@@ -18,7 +18,7 @@ export type RestoreFeatureInput = {
 };
 
 /** Restores an archived feature, including a release it had. */
-export class RestoreFeatureUseCase extends MutationUseCase<RestoreFeatureInput, ResponseFeatureGmDto> {
+export class RestoreFeatureUseCase extends MutationUseCase<RestoreFeatureInput, ResponseFeatureFullDto> {
   protected readonly action = FEATURE_ACTIONS.restore;
 
   constructor(
@@ -42,10 +42,10 @@ export class RestoreFeatureUseCase extends MutationUseCase<RestoreFeatureInput, 
     scope: ActionScope,
     _context: RequestContext,
     input: RestoreFeatureInput,
-  ): Promise<ResponseFeatureGmDto> {
+  ): Promise<ResponseFeatureFullDto> {
     const found = await this.featuresService.requireForWrite(scope.tx, input);
 
-    return toFeatureGmResponse(
+    return toFeatureFullResponse(
       await this.featuresService.restoreFeature(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

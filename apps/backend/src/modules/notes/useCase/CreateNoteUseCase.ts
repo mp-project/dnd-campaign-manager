@@ -6,15 +6,15 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { CreateNoteDto } from "#src/modules/notes/domain/dto/CreateNoteDto";
 import {
-  type ResponseNoteGmDto,
-  toNoteGmResponse,
+  type ResponseNoteFullDto,
+  toNoteFullResponse,
 } from "#src/modules/notes/domain/dto/ResponseNoteDto";
 import { NOTE_ACTIONS } from "#src/modules/notes/history/TrackedNote";
 import { NotesService } from "#src/modules/notes/service/NotesService";
 
 export type CreateNoteInput = { campaignId: string; command: CreateNoteDto };
 
-export class CreateNoteUseCase extends MutationUseCase<CreateNoteInput, ResponseNoteGmDto> {
+export class CreateNoteUseCase extends MutationUseCase<CreateNoteInput, ResponseNoteFullDto> {
   protected readonly action = NOTE_ACTIONS.create;
 
   constructor(
@@ -30,7 +30,7 @@ export class CreateNoteUseCase extends MutationUseCase<CreateNoteInput, Response
     input: CreateNoteInput,
     db: AppDatabase,
   ): Promise<Authorization> {
-    await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, db);
+    await this.assetsService.assertCanWrite(context, "EDIT", input.campaignId, db);
 
     return authorized();
   }
@@ -39,8 +39,8 @@ export class CreateNoteUseCase extends MutationUseCase<CreateNoteInput, Response
     scope: ActionScope,
     context: RequestContext,
     input: CreateNoteInput,
-  ): Promise<ResponseNoteGmDto> {
-    return toNoteGmResponse(
+  ): Promise<ResponseNoteFullDto> {
+    return toNoteFullResponse(
       await this.notesService.createNote(
         scope,
         {

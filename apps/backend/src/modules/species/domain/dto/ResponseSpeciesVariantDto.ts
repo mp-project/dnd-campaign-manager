@@ -30,7 +30,7 @@ const coreShape = SpeciesVariantBaseSchema.pick({
  * View for those who may change the variant. `version` and the audit fields belong to the variant,
  * `assetVersion` to its asset; changes send both back.
  */
-export const ResponseSpeciesVariantGmSchema = baseEntityResponseDto
+export const ResponseSpeciesVariantFullSchema = baseEntityResponseDto
   .extend(
     SpeciesVariantBaseSchema.pick({
       assetId: true,
@@ -49,13 +49,13 @@ export const ResponseSpeciesVariantGmSchema = baseEntityResponseDto
   )
   .extend(coreShape)
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     assetVersion: z.number().int().positive(),
     descriptionHtml: htmlDto.nullable(),
     selectable: selectableDto,
   });
 
-export const ResponseUpdateSpeciesVariantSchema = ResponseSpeciesVariantGmSchema.extend({
+export const ResponseUpdateSpeciesVariantSchema = ResponseSpeciesVariantFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -79,7 +79,7 @@ export const ResponseSpeciesVariantPlayerSchema = SpeciesVariantBaseSchema.pick(
   });
 
 export const ResponseSpeciesVariantSchema = z.discriminatedUnion("view", [
-  ResponseSpeciesVariantGmSchema,
+  ResponseSpeciesVariantFullSchema,
   ResponseSpeciesVariantPlayerSchema,
 ]);
 
@@ -87,7 +87,7 @@ export const ResponseSpeciesVariantListSchema = z.strictObject({
   data: z.array(ResponseSpeciesVariantSchema),
 });
 
-export type ResponseSpeciesVariantGmDto = z.infer<typeof ResponseSpeciesVariantGmSchema>;
+export type ResponseSpeciesVariantFullDto = z.infer<typeof ResponseSpeciesVariantFullSchema>;
 export type ResponseUpdateSpeciesVariantDto = z.infer<typeof ResponseUpdateSpeciesVariantSchema>;
 export type ResponseSpeciesVariantPlayerDto = z.infer<typeof ResponseSpeciesVariantPlayerSchema>;
 export type ResponseSpeciesVariantDto = z.infer<typeof ResponseSpeciesVariantSchema>;
@@ -112,11 +112,11 @@ function coreOf({ variant, speciesAssetId }: SpeciesVariantWithAsset) {
   };
 }
 
-export function toSpeciesVariantGmResponse(record: SpeciesVariantRecord): ResponseSpeciesVariantGmDto {
+export function toSpeciesVariantFullResponse(record: SpeciesVariantRecord): ResponseSpeciesVariantFullDto {
   const { variant, asset, rulesetIds } = record;
 
   return {
-    view: "GM",
+    view: "FULL",
     id: variant.id,
     version: variant.version,
     createdAt: variant.createdAt.toISOString(),

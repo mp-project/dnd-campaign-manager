@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { CreateAssetLinkDto } from "#src/modules/asset-links/domain/dto/CreateAssetLinkDto";
 import {
-  type ResponseAssetLinkGmDto,
-  toAssetLinkGmResponse,
+  type ResponseAssetLinkFullDto,
+  toAssetLinkFullResponse,
 } from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
 import { ASSET_LINK_ACTIONS } from "#src/modules/asset-links/history/TrackedAssetLink";
 import { AssetLinksService } from "#src/modules/asset-links/service/AssetLinksService";
@@ -20,7 +20,7 @@ export type CreateAssetLinkInput = {
 
 export class CreateAssetLinkUseCase extends MutationUseCase<
   CreateAssetLinkInput,
-  ResponseAssetLinkGmDto
+  ResponseAssetLinkFullDto
 > {
   protected readonly action = ASSET_LINK_ACTIONS.create;
 
@@ -37,7 +37,7 @@ export class CreateAssetLinkUseCase extends MutationUseCase<
     input: CreateAssetLinkInput,
     db: AppDatabase,
   ): Promise<Authorization> {
-    await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, db);
+    await this.assetsService.assertCanWrite(context, "EDIT", input.campaignId, db);
 
     return authorized();
   }
@@ -46,7 +46,7 @@ export class CreateAssetLinkUseCase extends MutationUseCase<
     scope: ActionScope,
     context: RequestContext,
     input: CreateAssetLinkInput,
-  ): Promise<ResponseAssetLinkGmDto> {
+  ): Promise<ResponseAssetLinkFullDto> {
     const { link, target } = await this.linksService.createLink(
       scope,
       {
@@ -57,6 +57,6 @@ export class CreateAssetLinkUseCase extends MutationUseCase<
       input.command,
     );
 
-    return toAssetLinkGmResponse(link, "outgoing", target);
+    return toAssetLinkFullResponse(link, "outgoing", target);
   }
 }

@@ -57,6 +57,7 @@ export {
   assetFamilies,
   assetOriginEnum,
   assetRulesetPolicyEnum,
+  assetReferences,
   assetRulesets,
   assetScopeEnum,
   assetStatusEnum,

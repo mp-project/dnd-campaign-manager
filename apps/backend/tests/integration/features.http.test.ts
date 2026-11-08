@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
+  assetReferences,
   assetRulesets,
   assets,
   campaignMemberships,
@@ -14,23 +15,26 @@ import {
 import {
   ASSETS_MODULE_DEPENDENCIES,
   type AssetsModuleDependencies,
+  type AssetsService,
 } from "#src/modules/assets/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 
 /** Stands in for the character modules: assets the campaign still uses. */
 const inUseAssetIds = new Set<string>();
+let assetsService: AssetsService;
 
 const inUseModule: AppModule = {
   name: "test-features-in-use",
   dependencies: ["assets"],
   register: (_app, container) => {
-    container.dependencies
-      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
-      .service.registerInUseProvider({
-        name: "test-characters",
-        listInUseAssetIds: async () => [...inUseAssetIds],
-      });
+    assetsService = container.dependencies.require<AssetsModuleDependencies>(
+      ASSETS_MODULE_DEPENDENCIES,
+    ).service;
+    assetsService.registerInUseProvider({
+      name: "test-characters",
+      listInUseAssetIds: async () => [...inUseAssetIds],
+    });
   },
 };
 
@@ -511,6 +515,33 @@ describe("features", () => {
 
       expect(response.statusCode).toBe(409);
       expect(JSON.stringify(response.json())).toContain("cycle");
+    });
+
+    it("keeps the reference index in step with the stored content", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+      const stored = async () =>
+        (await db.select().from(assetReferences))
+          .map((row) => `${row.sourceAssetId}>${row.targetAssetId}@${row.path}:${row.kind}`)
+          .sort();
+      const maintained = await stored();
+
+      expect(maintained).toEqual([
+        `${improved.assetId}>${base.assetId}@supersedes.0.targetAssetId:SUPERSEDES`,
+      ]);
+
+      // Built again from the stored content, the index is the same.
+      await db.delete(assetReferences);
+      await assetsService.rebuildReferences();
+
+      expect(await stored()).toEqual(maintained);
+
+      // A change replaces the references of its asset.
+      expect((await update(improved, { supersedes: [] })).statusCode).toBe(200);
+      expect(await stored()).toEqual([]);
     });
 
     it("keeps referenced assets from being archived and lists the usage", async () => {

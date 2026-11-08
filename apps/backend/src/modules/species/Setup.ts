@@ -160,10 +160,12 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
   );
   assetsService.registerContentType({
     assetType: "SPECIES",
+    references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetsService.registerContentType({
     assetType: "SPECIES_VARIANT",
+    references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("SPECIES", (input, db) => service.findEditRoutes(input, db));

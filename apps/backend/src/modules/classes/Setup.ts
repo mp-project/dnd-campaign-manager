@@ -135,6 +135,7 @@ async function registerClassesModule(
   // Archived classes keep nothing from being archived, so coming back needs the checks again.
   assetsService.registerContentType({
     assetType: "CLASS",
+    references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("CLASS", (input, db) => service.findEditRoutes(input, db));

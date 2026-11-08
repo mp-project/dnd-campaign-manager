@@ -11,6 +11,7 @@ import {
   type AssetRow,
   type AssetsService,
   type ContentAccess,
+  type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
@@ -500,6 +501,25 @@ export class FeaturesService {
     });
 
     return this.loadRecord(scope.tx, await this.requireFeature(scope.tx, params.found.feature.id));
+  }
+
+  /** What the stored definition refers to, for the reference index; nothing if it no longer parses. */
+  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
+    }
+
+    try {
+      return collectAssetReferences(parseFeatureGraph(found.feature)).map((reference) => ({
+        assetId: reference.assetId,
+        path: reference.path,
+        kind: reference.kind,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   /**

@@ -5,6 +5,7 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
+import { UUID_PATTERN } from "#core/uuid";
 import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
@@ -12,6 +13,7 @@ import {
   type AssetRow,
   type AssetsService,
   type ContentAccess,
+  type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -501,6 +503,64 @@ export class SpeciesService {
     });
 
     return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, params.found.species.id));
+  }
+
+  /**
+   * What a stored species or variant refers to, for the reference index: granted and targeted
+   * features, bound asset ids, and for a variant its species. Nothing if the definition no longer
+   * parses.
+   */
+  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+    const fromGrants = (grants: readonly SpeciesFeatureGrant[]): ContentReference[] => [
+      ...collectGrantReferences(grants).map((reference) => ({
+        assetId: reference.assetId,
+        path: reference.path,
+        kind: "DEFINITION",
+      })),
+      ...grants.flatMap((grant, grantIndex) =>
+        grant.bindings.flatMap((binding, bindingIndex) =>
+          binding.bindingSource === "STATIC" &&
+          typeof binding.staticValue === "string" &&
+          UUID_PATTERN.test(binding.staticValue)
+            ? [
+                {
+                  assetId: binding.staticValue,
+                  path: ["featureGrants", grantIndex, "bindings", bindingIndex, "staticValue"],
+                  kind: "DEFINITION",
+                },
+              ]
+            : [],
+        ),
+      ),
+    ];
+
+    if (asset.assetType === "SPECIES") {
+      const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+      if (!found) {
+        return [];
+      }
+
+      try {
+        return fromGrants(parseSpeciesDefinition(found.species).featureGrants);
+      } catch {
+        return [];
+      }
+    }
+
+    const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
+    }
+
+    const species = await this.repository.findById(db, found.variant.speciesId);
+    const grants = tryParseVariantGrants(found.variant) ?? [];
+
+    return [
+      ...(species ? [{ assetId: species.asset.id, path: ["species"], kind: "DEFINITION" }] : []),
+      ...fromGrants(grants),
+    ];
   }
 
   /**

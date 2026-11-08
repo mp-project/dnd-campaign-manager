@@ -116,6 +116,7 @@ async function registerFeaturesModule(
   // Archived features keep nothing from being archived, so coming back needs the check again.
   assetsService.registerContentType({
     assetType: "FEATURE",
+    references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("FEATURE", (input, db) =>

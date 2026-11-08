@@ -33,6 +33,7 @@ export {
   type AssetInUseProvider,
   type AssetReference,
   type AssetReferenceIssue,
+  type ContentReference,
   type ContentTypeDefinition,
   type AssetVisibilityProvider,
 } from "#src/modules/assets/service/AssetsService";

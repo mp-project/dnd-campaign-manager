@@ -13,6 +13,7 @@ import {
   type AssetRow,
   type AssetsService,
   type ContentAccess,
+  type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
 import type { ClassDefinition } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
@@ -458,6 +459,49 @@ export class ClassesService {
       scope.tx,
       await this.requireClass(scope.tx, params.found.characterClass.id),
     );
+  }
+
+  /**
+   * What the stored definition refers to, for the reference index: the referenced assets and the
+   * bound values that are asset ids. Nothing if the definition no longer parses.
+   */
+  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
+      return [];
+    }
+
+    let definition: ClassDefinition;
+
+    try {
+      definition = parseClassDefinition(found.characterClass);
+    } catch {
+      return [];
+    }
+
+    return [
+      ...collectClassReferences(definition).map((reference) => ({
+        assetId: reference.assetId,
+        path: reference.path,
+        kind: "DEFINITION",
+      })),
+      ...listGrants(definition).flatMap(({ levelIndex, grantIndex, grant }) =>
+        grant.bindings.flatMap((binding, bindingIndex) =>
+          binding.bindingSource === "STATIC" &&
+          typeof binding.staticValue === "string" &&
+          UUID_PATTERN.test(binding.staticValue)
+            ? [
+                {
+                  assetId: binding.staticValue,
+                  path: ["levels", levelIndex, "featureGrants", grantIndex, "bindings", bindingIndex, "staticValue"],
+                  kind: "DEFINITION",
+                },
+              ]
+            : [],
+        ),
+      ),
+    ];
   }
 
   /**

@@ -104,8 +104,25 @@ export type AssetDeactivateHook = {
  * What the module owning an asset type tells the content kernel about it. Only what cannot be
  * derived from elsewhere belongs here (tables, routes and rights already say the rest).
  */
+/** A place in stored content that refers to another asset. */
+export type ContentReference = {
+  assetId: string;
+  path: readonly (string | number)[];
+  /** What kind of reference, e.g. `SUPERSEDES`; usages show it as `<source type>_<kind>`. */
+  kind: string;
+  /** Properties the target must not have (see `ContentTypeDefinition.properties`). */
+  forbids?: readonly string[] | undefined;
+};
+
 export type ContentTypeDefinition = {
   assetType: AssetRow["assetType"];
+  /**
+   * The assets the stored content refers to, for archived content as well. The kernel keeps them
+   * in `asset_references` at the end of every action, so usages, archive blocking and what is in
+   * use come from one query instead of searches in every module. Only real references: values
+   * that merely look like ids are no references.
+   */
+  references?(asset: AssetRow, db: AppDatabase): Promise<readonly ContentReference[]>;
   /**
    * Checks the content as it is at the end of an action that touched it (its asset or any row
    * whose history root is the asset), in the transaction of the action: references, unique codes
@@ -260,6 +277,50 @@ export class AssetsService {
     return ids;
   }
 
+  /**
+   * Builds `asset_references` again from the stored content of every registered type, e.g. after
+   * a migration or to repair it. Returns how many assets were read.
+   */
+  async rebuildReferences(): Promise<number> {
+    const assetTypes = [...this.contentTypes.values()]
+      .filter((type) => type.references)
+      .map((type) => type.assetType);
+    const ids = await this.repository.listIdsOfTypes(this.db, assetTypes);
+
+    for (const id of ids) {
+      await this.transactionManager.inTransaction(async (tx) => {
+        const asset = await this.repository.findById(tx, id);
+
+        if (asset) {
+          await this.storeReferences(asset, tx);
+        }
+      });
+    }
+
+    return ids.length;
+  }
+
+  private async storeReferences(asset: AssetRow, db: AppDatabase): Promise<void> {
+    const type = this.contentTypes.get(asset.assetType);
+
+    if (!type?.references) {
+      return;
+    }
+
+    const references = await type.references(asset, db);
+
+    await this.repository.replaceReferences(
+      db,
+      asset.id,
+      references.map((reference) => ({
+        targetAssetId: reference.assetId,
+        path: reference.path.join("."),
+        kind: reference.kind,
+        forbids: reference.forbids ?? [],
+      })),
+    );
+  }
+
   registerContentType(type: ContentTypeDefinition): void {
     if (this.contentTypes.has(type.assetType)) {
       throw new Error(`Content type '${type.assetType}' is already registered`);
@@ -289,10 +350,22 @@ export class AssetsService {
         a.id.localeCompare(b.id),
       );
 
+      const existing = new Set(touchedAssets.map((asset) => asset.id));
+
+      // Deleted assets refer to nothing any more.
+      await this.repository.deleteReferences(
+        db,
+        [...assetIds].filter((id) => !existing.has(id)),
+      );
+
       for (const asset of touchedAssets) {
+        const type = this.contentTypes.get(asset.assetType);
+
         if (asset.status !== "ARCHIVED") {
-          await this.contentTypes.get(asset.assetType)?.verify?.(asset, db);
+          await type?.verify?.(asset, db);
         }
+
+        await this.storeReferences(asset, db);
       }
     },
   };

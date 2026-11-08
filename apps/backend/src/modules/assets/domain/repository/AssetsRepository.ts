@@ -17,6 +17,7 @@ import type { AppDatabase } from "#core/db/pool";
 import { decodePaginationCursor } from "#core/http/listResponse";
 import {
   assetFamilies,
+  assetReferences,
   assetRulesets,
   assets,
 } from "#src/modules/assets/domain/entities/AssetsTable";
@@ -59,6 +60,14 @@ export type AssetCatalogFilter = PageInput & {
 function containsPattern(search: string): string {
   return `%${search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 }
+
+/** One row of `asset_references`. */
+export type StoredAssetReference = {
+  targetAssetId: string;
+  path: string;
+  kind: string;
+  forbids: readonly string[];
+};
 
 export class AssetsRepository {
   async findById(db: AppDatabase, assetId: string): Promise<AssetRow | null> {
@@ -289,6 +298,68 @@ export class AssetsRepository {
           isNull(assets.deletedAt),
         ),
       );
+
+    return rows.map((row) => row.id);
+  }
+
+  /** Replaces what the stored content of the asset refers to. */
+  async replaceReferences(
+    db: AppDatabase,
+    sourceAssetId: string,
+    references: readonly StoredAssetReference[],
+  ): Promise<void> {
+    await db.delete(assetReferences).where(eq(assetReferences.sourceAssetId, sourceAssetId));
+
+    if (references.length > 0) {
+      await db.insert(assetReferences).values(
+        references.map((reference) => ({
+          sourceAssetId,
+          targetAssetId: reference.targetAssetId,
+          path: reference.path,
+          kind: reference.kind,
+          forbids: [...reference.forbids],
+        })),
+      );
+    }
+  }
+
+  async deleteReferences(db: AppDatabase, sourceAssetIds: readonly string[]): Promise<void> {
+    if (sourceAssetIds.length > 0) {
+      await db
+        .delete(assetReferences)
+        .where(inArray(assetReferences.sourceAssetId, [...sourceAssetIds]));
+    }
+  }
+
+  /** Existing assets whose stored content refers to the target, with how; ordered by source. */
+  async listReferencing(
+    db: AppDatabase,
+    targetAssetId: string,
+  ): Promise<{ source: AssetRow; reference: StoredAssetReference }[]> {
+    const rows = await db
+      .select({ source: assets, reference: assetReferences })
+      .from(assetReferences)
+      .innerJoin(
+        assets,
+        and(eq(assets.id, assetReferences.sourceAssetId), isNull(assets.deletedAt)),
+      )
+      .where(eq(assetReferences.targetAssetId, targetAssetId))
+      .orderBy(asc(assets.title), asc(assets.id), asc(assetReferences.path));
+
+    return rows.map(({ source, reference }) => ({ source, reference }));
+  }
+
+  /** Assets of these types, archived ones included, for rebuilding the references. */
+  async listIdsOfTypes(db: AppDatabase, assetTypes: readonly AssetType[]): Promise<string[]> {
+    if (assetTypes.length === 0) {
+      return [];
+    }
+
+    const rows = await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(isNull(assets.deletedAt), inArray(assets.assetType, [...assetTypes])))
+      .orderBy(asc(assets.id));
 
     return rows.map((row) => row.id);
   }

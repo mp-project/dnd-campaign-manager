@@ -15,9 +15,9 @@ import {
   users,
 } from "#core/db/schema";
 import {
-  CONTENT_SHARES_MODULE_DEPENDENCIES,
-  type ContentSharesModuleDependencies,
-} from "#src/modules/content-shares/index";
+  ASSETS_MODULE_DEPENDENCIES,
+  type AssetsModuleDependencies,
+} from "#src/modules/assets/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 
@@ -69,32 +69,38 @@ const ADMIN = actor(ID.admin, "ADMIN");
 /** Stands in for the modules that own quests and locations; NPCs stay unshareable. */
 const shareableModule: AppModule = {
   name: "test-shareable-types",
-  dependencies: ["content-shares"],
+  dependencies: ["assets"],
   register: (_app, container) => {
-    const { service } = container.dependencies.require<ContentSharesModuleDependencies>(
-      CONTENT_SHARES_MODULE_DEPENDENCIES,
+    const { service } = container.dependencies.require<AssetsModuleDependencies>(
+      ASSETS_MODULE_DEPENDENCIES,
     );
 
     // Loads more than players may see; the schema decides what leaves the server.
-    service.registerShareableType({
+    service.registerContentType({
       assetType: "QUEST",
-      playerContentSchema: z.object({ title: z.string(), content: z.string() }),
-      loadPlayerContent: async ({ assetId }) => ({
-        title: assetId === ID.globalNote ? "Rules" : "Note",
-        content: `Content of ${assetId}`,
-        gmNotes: "The baron lies",
-      }),
+      kind: "STORY",
+      playerView: {
+        schema: z.object({ title: z.string(), content: z.string() }),
+        load: async ({ assetId }) => ({
+          title: assetId === ID.globalNote ? "Rules" : "Note",
+          content: `Content of ${assetId}`,
+          gmNotes: "The baron lies",
+        }),
+      },
     });
-    service.registerShareableType({
+    service.registerContentType({
       assetType: "LOCATION",
+      kind: "STORY",
       assertShareable: async (asset) => {
         if (asset.title === "Locked") {
           throw new ConflictError("This location is not ready to be shared");
         }
       },
       // Strict: a module that returns more than it declares fails instead of leaking it.
-      playerContentSchema: z.strictObject({ name: z.string() }),
-      loadPlayerContent: async () => ({ name: "Inn", secretExit: "Cellar" }),
+      playerView: {
+        schema: z.strictObject({ name: z.string() }),
+        load: async () => ({ name: "Inn", secretExit: "Cellar" }),
+      },
     });
   },
 };

@@ -258,16 +258,18 @@ describe("releasing assets to players", () => {
 
     expect(assets.isReleasable("FEATURE")).toBe(false);
 
-    assets.registerReleasableType("FEATURE");
+    assets.registerContentType({ assetType: "FEATURE", kind: "RULE" });
 
     expect(assets.isReleasable("FEATURE")).toBe(true);
-    expect(() => assets.registerReleasableType("FEATURE")).toThrow("already releasable");
+    expect(() => assets.registerContentType({ assetType: "FEATURE", kind: "RULE" })).toThrow(
+      "already registered",
+    );
   });
 
   it("refuses releases of global content and of types nobody registered", () => {
     const assets = service();
 
-    assets.registerReleasableType("FEATURE");
+    assets.registerContentType({ assetType: "FEATURE", kind: "RULE" });
 
     const validate = assets.trackedAsset.validate!;
     const current = { ...createAssetRow({ assetType: "FEATURE" }), rulesetIds: [] };

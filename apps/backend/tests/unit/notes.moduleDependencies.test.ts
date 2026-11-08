@@ -46,7 +46,6 @@ describe("notes module dependency injection", () => {
         "assets",
         "asset-links",
         "tags",
-        "content-shares",
       ]);
 
       const note = container.ports.history?.listEntities().find((item) => item.type === "note");

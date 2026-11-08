@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 
 import type { AppModule } from "#core/app/moduleSystem";
 import type { AppDatabase } from "#core/db/pool";
@@ -25,7 +26,12 @@ export function createContentUse(db: AppDatabase) {
         ASSETS_MODULE_DEPENDENCIES,
       );
 
-      service.registerContentType({ assetType: "NPC", usesContent: true });
+      service.registerContentType({
+        assetType: "NPC",
+        kind: "STORY",
+        usesContent: true,
+        playerView: { schema: z.object({}), load: async () => ({}) },
+      });
       service.registerVisibilityProvider({
         name: "test-content-use",
         listVisibleAssetIds: async ({ campaignId }, tx) =>

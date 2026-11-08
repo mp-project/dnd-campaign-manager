@@ -1,4 +1,5 @@
 import type { SQL } from "drizzle-orm";
+import type { ZodType } from "zod";
 import type { ContentReadPurpose } from "#core/content/access";
 import { type ContentWriteAction, decideContentWrite } from "#core/content/writeAccess";
 import {
@@ -109,8 +110,48 @@ export type ContentProperty = {
   phrase: string;
 };
 
-export type ContentTypeDefinition = {
+/** How a module shows its content to players: for shares and previews. */
+export type ContentPlayerView = {
+  /** Player response of the module; use `z.object` to drop extra fields, `z.strictObject` to fail. */
+  schema: ZodType;
+  load(
+    input: { campaignId: string; assetId: string; actorId: string },
+    db: AppDatabase,
+  ): Promise<unknown>;
+};
+
+/**
+ * Builds the edit routes of assets of the type, for all assets of one request at once, so the
+ * module can look up its own ids in one query. `campaignId` null asks for global content (see
+ * `editRoutePrefix` of asset-links). Assets without a route are left out.
+ */
+export type ContentEditRoutes = (
+  input: { campaignId: string | null; assetIds: readonly string[] },
+  db: AppDatabase,
+) => ReadonlyMap<string, string> | Promise<ReadonlyMap<string, string>>;
+
+/**
+ * How players get content of the type. `RULE` (features, classes, spells …): global content is
+ * there for every campaign of a fitting ruleset, custom content once released to the players of
+ * its campaign. `STORY` (notes, locations, NPCs …): revealed through content shares, so it needs a
+ * player view; `assertShareable` may refuse single assets.
+ */
+export type ContentKind =
+  | { kind: "RULE"; playerView?: ContentPlayerView }
+  | {
+      kind: "STORY";
+      playerView: ContentPlayerView;
+      assertShareable?(asset: AssetRow, db: AppDatabase): Promise<void>;
+    };
+
+export type ContentTypeDefinition = ContentKind & {
   assetType: AssetRow["assetType"];
+  editRoutes?: ContentEditRoutes;
+  /**
+   * Actions of the module that change the asset (its name, status …). Those who may change the
+   * content may also undo them in the history of the asset, next to archiving and restoring.
+   */
+  revertibleActions?: readonly string[];
   /**
    * The assets the stored content refers to, for archived content as well. The kernel keeps them
    * in `asset_references` at the end of every action, so usages, archive blocking and what is in
@@ -193,16 +234,8 @@ export class AssetsService {
     });
   }
 
-  /**
-   * Rule content modules (features, classes, spells …) register their type, so custom assets of it
-   * can be released to the players of their campaign. Released active assets are visible to every
-   * player of the campaign; story content uses content shares instead.
-   */
-  registerReleasableType(assetType: AssetRow["assetType"]): void {
-    if (this.releasableTypes.has(assetType)) {
-      throw new Error(`Asset type '${assetType}' is already releasable`);
-    }
-
+  /** Released active custom rule content is visible to every player of its campaign. */
+  private enableRelease(assetType: AssetRow["assetType"]): void {
     if (this.releasableTypes.size === 0) {
       this.registerVisibilityProvider({
         name: "released",
@@ -329,9 +362,26 @@ export class AssetsService {
     );
   }
 
+  /**
+   * The one registration of a content type: what the module tells the kernel about it (see
+   * `ContentTypeDefinition`). Release, shares, edit routes, undo rights, references and checks all
+   * read it from here.
+   */
+  getContentType(assetType: AssetRow["assetType"]): ContentTypeDefinition | undefined {
+    return this.contentTypes.get(assetType);
+  }
+
   registerContentType(type: ContentTypeDefinition): void {
     if (this.contentTypes.has(type.assetType)) {
       throw new Error(`Content type '${type.assetType}' is already registered`);
+    }
+
+    if (type.kind === "RULE") {
+      this.enableRelease(type.assetType);
+    }
+
+    for (const action of type.revertibleActions ?? []) {
+      this.campaignRevertibleActions.add(action);
     }
 
     this.contentTypes.set(type.assetType, type);
@@ -380,15 +430,7 @@ export class AssetsService {
   };
 
 
-  /**
-   * For domain modules whose owners and editors change assets through their own actions: they may
-   * undo these actions on the asset as well, next to archiving and restoring.
-   */
-  allowCampaignRevert(actions: readonly string[]): void {
-    for (const action of actions) {
-      this.campaignRevertibleActions.add(action);
-    }
-  }
+
 
   /**
    * Adds a list that another module stores for each asset, tracked as a field of the asset. GMs may

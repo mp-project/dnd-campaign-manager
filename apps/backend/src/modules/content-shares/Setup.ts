@@ -97,6 +97,16 @@ async function registerContentSharesModule(
     listVisibleAssetIds: (input, db) => service.listVisibleAssetIds(input, db),
   });
 
+  // Content that leaves ACTIVE (draft or archive, on every path) ends its shares for good.
+  assetsService.registerDeactivateHook({
+    name: "content-shares",
+    onDeactivate: async (asset, db) => {
+      if (service.isShareable(asset.assetType)) {
+        await service.endSharesOfAsset(db, asset.id);
+      }
+    },
+  });
+
   // A share does not block archiving: an archived asset is hidden from players anyway.
   assetLinksDependencies.service.registerUsageProvider({
     name: "content-shares",

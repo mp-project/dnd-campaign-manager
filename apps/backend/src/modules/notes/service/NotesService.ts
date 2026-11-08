@@ -4,13 +4,7 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
-import {
-  type AssetRow,
-  type AssetsService,
-  type ContentAccess,
-  slugify,
-} from "#src/modules/assets/index";
-import type { ContentSharesService } from "#src/modules/content-shares/index";
+import { type AssetsService, type ContentAccess, slugify } from "#src/modules/assets/index";
 import type { TagsService } from "#src/modules/tags/index";
 import type { CreateNoteDto } from "#src/modules/notes/domain/dto/CreateNoteDto";
 import type { UpdateNoteDto } from "#src/modules/notes/domain/dto/UpdateNoteDto";
@@ -49,7 +43,6 @@ export class NotesService {
     private readonly assets: AssetsService,
     private readonly tags: TagsService,
     private readonly links: AssetLinksService,
-    private readonly shares: ContentSharesService,
     campaignAccess: NoteCampaignAccessPort,
   ) {
     this.trackedNote = createTrackedNote({
@@ -288,16 +281,6 @@ export class NotesService {
     });
 
     return this.loadRecord(scope.tx, await this.requireNote(scope.tx, params));
-  }
-
-  /**
-   * Registered as deactivate hook: a note that was hidden as draft or archived must not be revealed
-   * again when it becomes active, so the GM has to share it anew.
-   */
-  async endSharesOfHiddenNote(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType === "NOTE") {
-      await this.shares.endSharesOfAsset(db, asset.id);
-    }
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

@@ -145,29 +145,28 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
 
   history.register(service.trackedSpecies);
   history.register(service.trackedVariant);
-  assetsService.allowCampaignRevert(SPECIES_ASSET_ACTIONS);
-  // Custom species and variants reach players through a release, not through content shares.
-  assetsService.registerReleasableType("SPECIES");
-  assetsService.registerReleasableType("SPECIES_VARIANT");
   // Custom features of a released species or variant become visible with it.
   assetsService.registerVisibilityProvider({
     name: "species-features",
     listVisibleAssetIds: (input, db) => service.listReleasedFeatureIds(input, db),
   });
+  // Custom species and variants reach players through a release, not through content shares.
   assetsService.registerContentType({
     assetType: "SPECIES",
+    kind: "RULE",
+    editRoutes: (input, db) => service.findEditRoutes(input, db),
+    revertibleActions: SPECIES_ASSET_ACTIONS,
     references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetsService.registerContentType({
     assetType: "SPECIES_VARIANT",
+    kind: "RULE",
+    editRoutes: (input, db) => service.findVariantEditRoutes(input, db),
+    revertibleActions: SPECIES_ASSET_ACTIONS,
     references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
-  assetLinks.service.registerEditRoute("SPECIES", (input, db) => service.findEditRoutes(input, db));
-  assetLinks.service.registerEditRoute("SPECIES_VARIANT", (input, db) =>
-    service.findVariantEditRoutes(input, db),
-  );
 
   container.dependencies.set<SpeciesModuleDependencies>(SPECIES_MODULE_DEPENDENCIES, {
     service,

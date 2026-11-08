@@ -1,4 +1,3 @@
-import type { z } from "zod";
 
 import type { ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
@@ -42,23 +41,6 @@ export type ShareMembershipPort = {
   ): Promise<{ id: string; role: "EDITOR" | "PLAYER" }[]>;
 };
 
-/**
- * Registered by the module that owns an asset type. Only these types can be shared, and the module
- * may refuse single assets, for example while they are incomplete. What a player then sees of the
- * content is decided by the module as well: `loadPlayerContent` returns its player view, and only
- * what `playerContentSchema` describes reaches the player.
- */
-export type ShareableAssetType = {
-  assetType: AssetType;
-  assertShareable?(asset: AssetRow, db: AppDatabase): Promise<void>;
-  /** Player response of the module; use `z.object` to drop extra fields, `z.strictObject` to fail. */
-  playerContentSchema: z.ZodType;
-  loadPlayerContent(
-    input: { campaignId: string; assetId: string; actorId: string },
-    db: AppDatabase,
-  ): Promise<unknown>;
-};
-
 type SharePath = { campaignId: string; shareId: string };
 
 /**
@@ -66,8 +48,6 @@ type SharePath = { campaignId: string; shareId: string };
  * share that ends is deleted.
  */
 export class ContentSharesService {
-  private readonly shareableTypes = new Map<AssetType, ShareableAssetType>();
-
   constructor(
     public readonly db: AppDatabase,
     public readonly transactionManager: TransactionManager,
@@ -76,16 +56,19 @@ export class ContentSharesService {
     private readonly memberships: ShareMembershipPort,
   ) {}
 
-  registerShareableType(definition: ShareableAssetType): void {
-    if (this.shareableTypes.has(definition.assetType)) {
-      throw new Error(`Asset type '${definition.assetType}' is already shareable`);
-    }
-
-    this.shareableTypes.set(definition.assetType, definition);
+  /**
+   * Story content can be shared (`kind: "STORY"` in its content type, with its player view);
+   * nothing else. The module decides what players see: only what its player view schema describes
+   * reaches them.
+   */
+  isShareable(assetType: AssetType): boolean {
+    return this.storyType(assetType) !== undefined;
   }
 
-  isShareable(assetType: AssetType): boolean {
-    return this.shareableTypes.has(assetType);
+  private storyType(assetType: AssetType) {
+    const type = this.assets.getContentType(assetType);
+
+    return type?.kind === "STORY" ? type : undefined;
   }
 
   // ---------------------------------------------------------------------------
@@ -220,17 +203,17 @@ export class ContentSharesService {
     const asset = share
       ? (await this.findVisibleAsset(viewer, [share.assetId])).get(share.assetId)
       : undefined;
-    const definition = asset ? this.shareableTypes.get(asset.assetType) : undefined;
+    const definition = asset ? this.storyType(asset.assetType) : undefined;
 
     if (!share || !asset || !definition) {
       throw new NotFoundError("Share not found");
     }
 
-    const loaded = await definition.loadPlayerContent(
+    const loaded = await definition.playerView.load(
       { campaignId: viewer.campaignId, assetId: asset.id, actorId: viewer.actorId },
       this.db,
     );
-    const parsed = definition.playerContentSchema.safeParse(loaded);
+    const parsed = definition.playerView.schema.safeParse(loaded);
 
     // A module error, not a client error; nothing of the loaded content leaves the server.
     if (!parsed.success) {
@@ -379,7 +362,7 @@ export class ContentSharesService {
   // ---------------------------------------------------------------------------
 
   private async assertShareable(asset: AssetRow, db: AppDatabase): Promise<void> {
-    const definition = this.shareableTypes.get(asset.assetType);
+    const definition = this.storyType(asset.assetType);
 
     if (!definition) {
       throw new ConflictError("This content type cannot be shared", {

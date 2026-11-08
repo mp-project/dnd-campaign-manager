@@ -27,6 +27,7 @@ import type {
   AssetsService,
   AssetType,
   ContentAccess,
+  ContentEditRoutes,
 } from "#src/modules/assets/index";
 
 /** Campaign facts the module needs; provided by the campaigns module. */
@@ -66,15 +67,6 @@ export type AssetUsageProvider = {
   ): Promise<AssetUsageItemDto[]>;
 };
 
-/**
- * Builds the routes of the module that edits assets of a type, for all assets of one request at
- * once, so the module can look up its own ids in one query. Assets without a route are left out.
- */
-export type AssetEditRouteBuilder = (
-  input: { campaignId: string | null; assetIds: readonly string[] },
-  db: AppDatabase,
-) => ReadonlyMap<string, string> | Promise<ReadonlyMap<string, string>>;
-
 /** Edit routes of a campaign start with the campaign; those of global content (null) don't. */
 export function editRoutePrefix(campaignId: string | null): string {
   return campaignId === null ? "" : `/campaigns/${campaignId}`;
@@ -93,7 +85,6 @@ type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
  */
 export class AssetLinksService {
   private readonly usageProviders: AssetUsageProvider[] = [];
-  private readonly editRoutes = new Map<AssetType, AssetEditRouteBuilder>();
   public readonly trackedLink: TrackedAssetLink;
 
   constructor(
@@ -128,14 +119,6 @@ export class AssetLinksService {
     }
 
     this.usageProviders.push(provider);
-  }
-
-  registerEditRoute(assetType: AssetType, build: AssetEditRouteBuilder): void {
-    if (this.editRoutes.has(assetType)) {
-      throw new Error(`Edit route for asset type '${assetType}' is already registered`);
-    }
-
-    this.editRoutes.set(assetType, build);
   }
 
   // ---------------------------------------------------------------------------
@@ -459,7 +442,7 @@ export class AssetLinksService {
     >();
 
     for (const { campaignId, assetId, asset } of targets) {
-      if (!asset || !this.editRoutes.has(asset.assetType)) {
+      if (!asset || !this.assets.getContentType(asset.assetType)?.editRoutes) {
         continue;
       }
 
@@ -473,7 +456,7 @@ export class AssetLinksService {
     const routes = new Map<string, string>();
 
     for (const { campaignId, assetType, assetIds } of groups.values()) {
-      const build = this.editRoutes.get(assetType) as AssetEditRouteBuilder;
+      const build = this.assets.getContentType(assetType)?.editRoutes as ContentEditRoutes;
       const built = await build({ campaignId, assetIds: [...assetIds] }, db);
 
       for (const [assetId, route] of built) {

@@ -124,21 +124,20 @@ async function registerClassesModule(
   );
 
   history.register(service.trackedClass);
-  assetsService.allowCampaignRevert(CLASS_ASSET_ACTIONS);
-  // Custom classes reach players through a release, not through content shares.
-  assetsService.registerReleasableType("CLASS");
   // Custom features of a released class become visible with it.
   assetsService.registerVisibilityProvider({
     name: "class-features",
     listVisibleAssetIds: (input, db) => service.listReleasedFeatureIds(input, db),
   });
-  // Archived classes keep nothing from being archived, so coming back needs the checks again.
+  // Custom classes reach players through a release, not through content shares.
   assetsService.registerContentType({
     assetType: "CLASS",
+    kind: "RULE",
+    editRoutes: (input, db) => service.findEditRoutes(input, db),
+    revertibleActions: CLASS_ASSET_ACTIONS,
     references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
-  assetLinks.service.registerEditRoute("CLASS", (input, db) => service.findEditRoutes(input, db));
 
   container.dependencies.set<ClassesModuleDependencies>(CLASSES_MODULE_DEPENDENCIES, {
     service,

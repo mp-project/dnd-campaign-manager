@@ -8,6 +8,10 @@ import {
   type ContentSharesModuleDependencies,
   contentSharesModule,
 } from "#src/modules/content-shares/index";
+import {
+  ASSETS_MODULE_DEPENDENCIES,
+  type AssetsModuleDependencies,
+} from "#src/modules/assets/index";
 import { registerAppModules } from "#src/modules/index";
 import { createTestEnv } from "#test/helpers/testEnv";
 
@@ -29,8 +33,8 @@ async function withContainer(
 
 const quest = {
   assetType: "QUEST" as const,
-  playerContentSchema: z.object({}),
-  loadPlayerContent: async () => ({}),
+  kind: "STORY" as const,
+  playerView: { schema: z.object({}), load: async () => ({}) },
 };
 
 describe("content-shares module dependency injection", () => {
@@ -53,12 +57,12 @@ describe("content-shares module dependency injection", () => {
         "asset-links",
       ]);
 
-      service?.registerShareableType(quest);
+      container.dependencies
+        .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
+        .service.registerContentType(quest);
 
+      // Story content with a player view can be shared.
       expect(service?.isShareable("QUEST")).toBe(true);
-      expect(() => service?.registerShareableType(quest)).toThrow(
-        "already shareable",
-      );
     });
   });
 

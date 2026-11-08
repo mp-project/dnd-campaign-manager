@@ -124,12 +124,16 @@ const testModule: AppModule = {
       allowMultiple: true,
       playerVisible: true,
     });
-    service.registerEditRoute("ITEM", ({ campaignId, assetIds }) =>
-      new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/items/${assetId}`])),
-    );
-    service.registerEditRoute("SPELL", ({ campaignId, assetIds }) =>
-      new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/spells/${assetId}`])),
-    );
+    for (const [assetType, segment] of [["ITEM", "items"], ["SPELL", "spells"]] as const) {
+      assetsService.registerContentType({
+        assetType,
+        kind: "RULE",
+        editRoutes: ({ campaignId, assetIds }) =>
+          new Map(
+            assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/${segment}/${assetId}`]),
+          ),
+      });
+    }
     service.registerUsageProvider({
       name: "test-outline",
       group: "outlinePlacements",

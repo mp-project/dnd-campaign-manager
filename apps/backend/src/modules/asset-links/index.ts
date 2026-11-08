@@ -17,7 +17,6 @@ export {
 export type { AssetUsageItemDto } from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
 export {
   AssetLinksService,
-  type AssetEditRouteBuilder,
   type AssetUsageProvider,
   editRoutePrefix,
 } from "#src/modules/asset-links/service/AssetLinksService";

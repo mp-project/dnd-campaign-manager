@@ -110,19 +110,16 @@ async function registerFeaturesModule(
   history.register(service.trackedFeature);
   // Cached resolutions of a changed feature are no longer needed.
   history.subscribe("*", (event) => service.onHistoryEvent(event));
-  assetsService.allowCampaignRevert(FEATURE_ASSET_ACTIONS);
   // Custom features reach players through a release, not through content shares.
-  assetsService.registerReleasableType("FEATURE");
-  // Archived features keep nothing from being archived, so coming back needs the check again.
   assetsService.registerContentType({
     assetType: "FEATURE",
+    kind: "RULE",
+    editRoutes: (input, db) => service.findEditRoutes(input, db),
+    revertibleActions: FEATURE_ASSET_ACTIONS,
     references: (asset, db) => service.listContentReferences(asset, db),
     properties: (asset, db) => service.listContentProperties(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
   });
-  assetLinks.service.registerEditRoute("FEATURE", (input, db) =>
-    service.findEditRoutes(input, db),
-  );
 
   container.dependencies.set<FeaturesModuleDependencies>(FEATURES_MODULE_DEPENDENCIES, {
     service,

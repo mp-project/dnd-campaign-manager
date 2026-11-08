@@ -15,10 +15,6 @@ import {
   type CampaignsModuleDependencies,
 } from "#src/modules/campaigns/index";
 import {
-  CONTENT_SHARES_MODULE_DEPENDENCIES,
-  type ContentSharesModuleDependencies,
-} from "#src/modules/content-shares/index";
-import {
   ResponseNotePlayerSchema,
   toNotePlayerResponse,
 } from "#src/modules/notes/domain/dto/ResponseNoteDto";
@@ -81,14 +77,6 @@ async function registerNotesModule(app: FastifyInstance, container: AppContainer
     throw new Error("Asset links module dependencies are missing");
   }
 
-  const contentShares = container.dependencies.get<ContentSharesModuleDependencies>(
-    CONTENT_SHARES_MODULE_DEPENDENCIES,
-  );
-
-  if (!contentShares) {
-    throw new Error("Content shares module dependencies are missing");
-  }
-
   const history = container.ports.history;
 
   if (!history) {
@@ -103,7 +91,6 @@ async function registerNotesModule(app: FastifyInstance, container: AppContainer
     assetsService,
     tags.service,
     assetLinks.service,
-    contentShares.service,
     {
       findCampaignRole: (campaignId, actorId, db) =>
         campaigns.service.findCampaignRole(campaignId, actorId, db),
@@ -111,17 +98,16 @@ async function registerNotesModule(app: FastifyInstance, container: AppContainer
   );
 
   history.register(service.trackedNote);
-  assetsService.allowCampaignRevert(NOTE_ASSET_ACTIONS);
-  assetsService.registerDeactivateHook({
-    name: "notes",
-    onDeactivate: (asset, db) => service.endSharesOfHiddenNote(asset, db),
-  });
-  assetLinks.service.registerEditRoute("NOTE", (input, db) => service.findEditRoutes(input, db));
-  contentShares.service.registerShareableType({
+  // Notes reach players through content shares, as their player view.
+  assetsService.registerContentType({
     assetType: "NOTE",
-    playerContentSchema: ResponseNotePlayerSchema,
-    loadPlayerContent: async (input, db) =>
-      toNotePlayerResponse(await service.loadPlayerContent(input, db)),
+    kind: "STORY",
+    editRoutes: (input, db) => service.findEditRoutes(input, db),
+    revertibleActions: NOTE_ASSET_ACTIONS,
+    playerView: {
+      schema: ResponseNotePlayerSchema,
+      load: async (input, db) => toNotePlayerResponse(await service.loadPlayerContent(input, db)),
+    },
   });
 
   container.dependencies.set<NotesModuleDependencies>(NOTES_MODULE_DEPENDENCIES, { service });
@@ -161,7 +147,6 @@ export const notesModule: AppModule = {
     "assets",
     "asset-links",
     "tags",
-    "content-shares",
   ],
   register: registerNotesModule,
 };

@@ -335,20 +335,31 @@ export class AssetLinksService {
       unavailableProviders: provided.failed,
     };
     const isGm = viewer.view === "GM";
+    const offered = await this.listOfferedGlobalIds(viewer, [...relatedAssets.values()]);
+    // Global drafts and content of other rulesets are not part of this campaign; administrators
+    // see them anyway.
+    const isHiddenGlobal = (asset: AssetRow | undefined): boolean =>
+      !viewer.isAdmin && asset?.scope === "SYSTEM" && !offered.has(asset.id);
+    // Only administrators change global content.
+    const mayEdit = (asset: AssetRow | undefined): boolean =>
+      viewer.isAdmin === true || (isGm && asset?.scope !== "SYSTEM");
 
-    const visibleLinks = links.filter((link) =>
-      isGm || this.canPlayerSeeLink(link, relatedAssets.get(otherEndOf(link, assetId)), visibleAssetIds),
+    const visibleLinks = links.filter((link) => {
+      const other = relatedAssets.get(otherEndOf(link, assetId));
+
+      return (
+        !isHiddenGlobal(other) && (isGm || this.canPlayerSeeLink(link, other, visibleAssetIds))
+      );
+    });
+    const editRoutes = await this.resolveEditRoutes(
+      visibleLinks.flatMap((link) => {
+        const otherId = otherEndOf(link, assetId);
+        const other = relatedAssets.get(otherId);
+
+        return mayEdit(other) ? [{ campaignId: viewer.campaignId, assetId: otherId, asset: other }] : [];
+      }),
+      this.db,
     );
-    const editRoutes = isGm
-      ? await this.resolveEditRoutes(
-          visibleLinks.map((link) => {
-            const otherId = otherEndOf(link, assetId);
-
-            return { campaignId: viewer.campaignId, assetId: otherId, asset: relatedAssets.get(otherId) };
-          }),
-          this.db,
-        )
-      : new Map<string, string>();
 
     for (const link of visibleLinks) {
       const otherId = otherEndOf(link, assetId);
@@ -360,21 +371,28 @@ export class AssetLinksService {
       );
     }
 
-    const offered = await this.listOfferedGlobalIds(viewer, [...relatedAssets.values()]);
+    // Archived content the campaign still uses stays visible to players, as in the catalogs.
+    const inUseAssetIds =
+      !isGm && provided.items.some(({ item }) => relatedAssets.get(item.assetId ?? "")?.status === "ARCHIVED")
+        ? await this.assets.listInUseAssetIds(viewer.campaignId)
+        : new Set<string>();
 
     for (const { group, item } of provided.items) {
       const related = item.assetId ? relatedAssets.get(item.assetId) : undefined;
-      const isGlobal = related?.scope === "SYSTEM";
 
-      if (viewer.isAdmin) {
-        usages[group].push(item);
-      } else if (isGlobal && !offered.has(related.id)) {
-        // Global drafts and content of other rulesets are not part of this campaign.
+      if (isHiddenGlobal(related)) {
         continue;
-      } else if (isGm) {
-        // Only administrators change global content.
-        usages[group].push(isGlobal ? { ...item, editRoute: null } : item);
-      } else if (related && this.assets.isVisibleToPlayer(related, visibleAssetIds)) {
+      }
+
+      // An item about the asset itself (a share) edits something of the campaign, not the asset.
+      if (isGm) {
+        usages[group].push(
+          item.assetId === assetId || mayEdit(related) ? item : { ...item, editRoute: null },
+        );
+      } else if (
+        related &&
+        this.assets.isVisibleToPlayerInCampaign(related, visibleAssetIds, inUseAssetIds)
+      ) {
         usages[group].push({ ...item, editRoute: null });
       }
     }
@@ -394,6 +412,11 @@ export class AssetLinksService {
     viewer: UsageViewer,
     related: readonly AssetRow[],
   ): Promise<ReadonlySet<string>> {
+    if (viewer.isAdmin) {
+      // Administrators see every global asset; nothing to look up.
+      return new Set();
+    }
+
     const candidates = related.filter(
       (asset) => asset.scope === "SYSTEM" && asset.status !== "DRAFT",
     );

@@ -17,7 +17,10 @@ import {
   ASSET_LINKS_MODULE_DEPENDENCIES,
   type AssetLinksModuleDependencies,
 } from "#src/modules/asset-links/index";
-import type { AssetRelationDefinition } from "#src/modules/asset-links/index";
+import type {
+  AssetRelationDefinition,
+  AssetUsageItemDto,
+} from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
   ASSETS_MODULE_DEPENDENCIES,
@@ -69,6 +72,9 @@ const ADMIN = actor(ID.admin, "ADMIN");
 let failUsageProvider = false;
 let failBlockingProvider = false;
 let blockingProviderItems: { id: string; type: string; label: string }[] = [];
+let typedUsageItems: AssetUsageItemDto[] = [];
+let inUseAssetIds: string[] = [];
+let inUseError: Error | null = null;
 let registeredRelations: () => readonly AssetRelationDefinition[] = () => [];
 
 const TEST_RELATIONS = ["CONTAINS", "SECRET_OF", "REPEATS"];
@@ -81,13 +87,25 @@ const testModule: AppModule = {
   name: "test-asset-links",
   dependencies: ["assets", "asset-links"],
   register: (_app, container) => {
-    container.dependencies
-      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
-      .service.registerVisibilityProvider({
-        name: "test-shares",
-        listVisibleAssetIds: async ({ actorId }) =>
-          actorId === ID.player ? [ID.location, ID.sharedNote] : [],
-      });
+    const assetsService = container.dependencies.require<AssetsModuleDependencies>(
+      ASSETS_MODULE_DEPENDENCIES,
+    ).service;
+
+    assetsService.registerVisibilityProvider({
+      name: "test-shares",
+      listVisibleAssetIds: async ({ actorId }) =>
+        actorId === ID.player ? [ID.location, ID.sharedNote] : [],
+    });
+    assetsService.registerInUseProvider({
+      name: "test-in-use",
+      listInUseAssetIds: async () => {
+        if (inUseError) {
+          throw inUseError;
+        }
+
+        return inUseAssetIds;
+      },
+    });
 
     const { service } = container.dependencies.require<AssetLinksModuleDependencies>(
       ASSET_LINKS_MODULE_DEPENDENCIES,
@@ -120,6 +138,9 @@ const testModule: AppModule = {
     });
     service.registerEditRoute("ITEM", ({ campaignId, assetIds }) =>
       new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/items/${assetId}`])),
+    );
+    service.registerEditRoute("SPELL", ({ campaignId, assetIds }) =>
+      new Map(assetIds.map((assetId) => [assetId, `/campaigns/${campaignId}/spells/${assetId}`])),
     );
     service.registerUsageProvider({
       name: "test-outline",
@@ -159,7 +180,7 @@ const testModule: AppModule = {
           throw new Error("Provider down");
         }
 
-        return [];
+        return typedUsageItems;
       },
       listBlockingUsages: async () => {
         if (failBlockingProvider) {
@@ -234,6 +255,9 @@ describe("asset links", () => {
     failUsageProvider = false;
     failBlockingProvider = false;
     blockingProviderItems = [];
+    typedUsageItems = [];
+    inUseAssetIds = [];
+    inUseError = null;
 
     await db.insert(rulesets).values(
       [
@@ -739,6 +763,71 @@ describe("asset links", () => {
     it("hides usages from non-members", async () => {
       expect((await usages(ID.location, OUTSIDER)).statusCode).toBe(404);
       expect((await usages(ID.foreignNote)).statusCode).toBe(404);
+    });
+
+    const usageOf = (assetId: string, editRoute: string): AssetUsageItemDto => ({
+      id: `usage-${assetId}`,
+      type: "TEST_USAGE",
+      label: "Typed",
+      assetId,
+      assetType: "SPELL",
+      editRoute,
+    });
+    const setStatus = (id: string, status: "DRAFT" | "ARCHIVED") =>
+      db.update(assets).set({ status }).where(eq(assets.id, id));
+
+    it("hides links to global drafts from GMs, not from administrators", async () => {
+      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await setStatus(ID.systemSpell, "DRAFT");
+
+      expect((await usages(ID.location)).json().outgoing).toEqual([]);
+      expect((await usages(ID.location, ADMIN)).json().outgoing).toEqual([
+        expect.objectContaining({ assetId: ID.systemSpell }),
+      ]);
+    });
+
+    it("gives only administrators edit routes to global content", async () => {
+      await createOk(ID.location, relatedTo(ID.systemSpell));
+      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
+
+      const asGm = (await usages(ID.location)).json();
+      const asAdmin = (await usages(ID.location, ADMIN)).json();
+
+      expect(asGm.outgoing).toEqual([expect.objectContaining({ assetId: ID.systemSpell, editRoute: null })]);
+      expect(asGm.typedUsages).toEqual([expect.objectContaining({ editRoute: null })]);
+      expect(asAdmin.outgoing).toEqual([
+        expect.objectContaining({ editRoute: `/campaigns/${ID.campaign}/spells/${ID.systemSpell}` }),
+      ]);
+      expect(asAdmin.typedUsages).toEqual([expect.objectContaining({ editRoute: "/spells/edit" })]);
+    });
+
+    it("keeps the edit route of items about the global asset itself, such as its share", async () => {
+      typedUsageItems = [usageOf(ID.systemSpell, `/campaigns/${ID.campaign}/shares/1`)];
+
+      expect((await usages(ID.systemSpell)).json().typedUsages).toEqual([
+        expect.objectContaining({ editRoute: `/campaigns/${ID.campaign}/shares/1` }),
+      ]);
+    });
+
+    it("shows players archived global content only while the campaign uses it", async () => {
+      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
+      await setStatus(ID.systemSpell, "ARCHIVED");
+
+      expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([]);
+
+      inUseAssetIds = [ID.systemSpell];
+
+      expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([
+        expect.objectContaining({ assetId: ID.systemSpell, editRoute: null }),
+      ]);
+    });
+
+    it("answers 503 when the database is too busy to tell what is in use", async () => {
+      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
+      await setStatus(ID.systemSpell, "ARCHIVED");
+      inUseError = Object.assign(new Error("lock timeout"), { code: "55P03" });
+
+      expect((await usages(ID.location, PLAYER)).statusCode).toBe(503);
     });
   });
 

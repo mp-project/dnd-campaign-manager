@@ -137,7 +137,9 @@ export type TrackedEntity<T extends TrackedTable = TrackedTable> = {
   ): void;
   /**
    * Rules that need the database. Runs for every change, also when undoing and restoring, with the
-   * row locked. Only use `db`; throws an AppError to reject the change.
+   * row locked, after the row and its lists are written: reads through `db` see the new state of
+   * this entity (other entities of the same action may not be written yet). Only use `db`; throws an
+   * AppError to reject the change, which rolls back the whole action.
    */
   guard?(
     next: T["$inferSelect"] & Record<string, unknown>,

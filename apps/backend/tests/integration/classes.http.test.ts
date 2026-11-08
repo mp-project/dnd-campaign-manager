@@ -752,6 +752,24 @@ describe("classes", () => {
       expect((await get(`${systemUrl}?rulesetId=${ID.otherRuleset}`, PLAYER)).json().data).toHaveLength(1);
     });
 
+    it("checks the code against the restored rulesets when an archived class comes back", async () => {
+      const first = await createSystem();
+      const moved = (await update(first, { rulesetIds: [ID.otherRuleset] }, ADMIN)).json() as ClassBody;
+
+      expect((await remove(moved, ADMIN)).statusCode).toBe(200);
+      await createSystem();
+
+      // Version 1 was active for the ruleset the second class uses now.
+      const restored = await session.injectAs(ADMIN, {
+        method: "POST",
+        url: `/api/v1/history/asset/${first.assetId}/versions/1/restore`,
+        payload: {},
+      });
+
+      expect(restored.statusCode).toBe(409);
+      expect(restored.json().error.message).toBe("Class code is already used for one of these rulesets");
+    });
+
     it("hides global classes of another ruleset from the campaign", async () => {
       const other = await createSystem({}, [ID.otherRuleset]);
 

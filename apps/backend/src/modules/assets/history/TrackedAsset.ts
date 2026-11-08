@@ -31,8 +31,7 @@ type TrackedAssetDeps = {
     actorId: string,
     db: AppDatabase,
   ): Promise<CampaignRole | null>;
-  assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
-  /** Runs when the asset leaves `ACTIVE`, after the archive check. */
+  /** Runs when the asset leaves `ACTIVE`; the archive check follows at the end of the action. */
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
   campaignRevertibleActions: ReadonlySet<string>;
@@ -113,12 +112,9 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       }
     },
     // Here and not in `archiveBase`, because undoing a restore archives an asset as well, and undoing
-    // or restoring can turn an active asset into a draft.
+    // or restoring can turn an active asset into a draft. Whether it may be archived is checked at
+    // the end of the action (`AssetsService.contentVerifier`).
     guard: async (next, current, db) => {
-      if (next.status === "ARCHIVED" && current.status !== "ARCHIVED") {
-        await deps.assertCanArchive(next, db);
-      }
-
       if (current.status === "ACTIVE" && next.status !== "ACTIVE") {
         await deps.onDeactivate(next, db);
       }

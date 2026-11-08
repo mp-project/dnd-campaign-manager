@@ -18,20 +18,33 @@ import {
   type AssetsModuleDependencies,
   type AssetsService,
 } from "#src/modules/assets/index";
+import type { HistoryPort } from "#core/history/types";
+import {
+  FEATURES_MODULE_DEPENDENCIES,
+  type FeaturesModuleDependencies,
+  type FeaturesService,
+} from "#src/modules/features/index";
 import { defaultAppModules } from "#src/modules/index";
+import { authorized } from "#core/history/authorization";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { createContentUse } from "#test/helpers/contentUse";
 
 let assetsService: AssetsService;
+let featuresService: FeaturesService;
+let history: HistoryPort;
 
-/** Hands out the assets service, for rebuilding the reference index. */
+/** Hands out services, for the reference index and for actions no route makes. */
 const assetsModule: AppModule = {
   name: "test-features-assets",
-  dependencies: ["assets"],
+  dependencies: ["assets", "features"],
   register: (_app, container) => {
     assetsService = container.dependencies.require<AssetsModuleDependencies>(
       ASSETS_MODULE_DEPENDENCIES,
     ).service;
+    featuresService = container.dependencies.require<FeaturesModuleDependencies>(
+      FEATURES_MODULE_DEPENDENCIES,
+    ).service;
+    history = container.ports.history as HistoryPort;
   },
 };
 
@@ -562,6 +575,43 @@ describe("features", () => {
       expect((await get(`${campaignUrl()}/${base.id}/usages`)).json().typedUsages).toEqual([
         expect.objectContaining({ type: "FEATURE_SUPERSEDES" }),
       ]);
+    });
+
+    it("judges archiving on the final state when one action also drops the reference", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+      const action = (dropReference: boolean) =>
+        history.runAction(
+          { action: "test.retire", context: GM, authorize: async () => authorized() },
+          async (scope) => {
+            if (dropReference) {
+              await featuresService.updateFeature(scope, {
+                found: await featuresService.requireFeature(scope.tx, improved.id),
+                actorId: ID.gm,
+                command: {
+                  expectedVersion: improved.version,
+                  expectedAssetVersion: improved.assetVersion,
+                  supersedes: [],
+                },
+              });
+            }
+
+            await assetsService.archiveBase(scope, {
+              assetId: base.assetId,
+              expectedVersion: base.assetVersion,
+            });
+          },
+        );
+
+      await session.app.ready();
+
+      // Still referred to: refused, and nothing of the action stays.
+      await expect(action(false)).rejects.toMatchObject({ statusCode: 409 });
+      // The same action drops the reference first: allowed, judged after all its writes.
+      await expect(action(true)).resolves.toBeUndefined();
     });
 
     it("keeps the references of a definition that no longer parses", async () => {

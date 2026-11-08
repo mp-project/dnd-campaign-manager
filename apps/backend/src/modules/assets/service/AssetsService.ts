@@ -76,8 +76,10 @@ export type AssetVisibilityProvider = {
 };
 
 /**
- * Lets other modules forbid archiving, for example while an asset is still in use. Runs in the
- * transaction with the asset locked, so it may only use `db`. Throws to reject.
+ * Lets other modules forbid archiving, for example while an asset is still in use. Runs at the end
+ * of every action that archived the asset (undoing and restoring included), after the reference
+ * index holds the action's final state, in its transaction; it may only use `db`. Throws to
+ * reject the whole action.
  */
 export type AssetArchiveGuard = {
   name: string;
@@ -87,8 +89,8 @@ export type AssetArchiveGuard = {
 /**
  * Lets the module owning an asset type clean up when one of its assets stops being active, by draft
  * or by archive, for example by ending what only makes sense for active content. Runs in the same
- * transaction with the asset locked, after the archive guards, on every path: direct changes,
- * undoing and restoring. May only use `db`.
+ * transaction with the asset locked, on every path: direct changes, undoing and restoring; the archive
+ * guards follow at the end of the action and roll it back if they refuse. May only use `db`.
  */
 export type AssetDeactivateHook = {
   name: string;
@@ -252,11 +254,6 @@ export class AssetsService {
         campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       campaignRevertibleActions: this.campaignRevertibleActions,
       isReleasable: (assetType) => this.releasableTypes.has(assetType),
-      assertCanArchive: async (asset, db) => {
-        for (const guard of this.archiveGuards) {
-          await guard.assertCanArchive(asset, db);
-        }
-      },
       onDeactivate: async (asset, db) => {
         for (const hook of this.deactivateHooks) {
           await hook.onDeactivate(asset, db);
@@ -474,10 +471,24 @@ export class AssetsService {
         await this.storeReferences(asset, db);
       }
 
+      const archived = new Set(
+        touched
+          .filter(
+            (item) => item.entityType === ASSET_ENTITY_TYPE && item.fields.includes("status"),
+          )
+          .map((item) => item.entityId),
+      );
+
       for (const asset of changed) {
         if (asset.status !== "ARCHIVED") {
           await this.contentTypes.get(asset.assetType)?.verify?.(asset, db);
           await this.assertAllowedByReferrers(asset, db);
+        } else if (archived.has(asset.id)) {
+          // Archived by this action (an archived asset can't change otherwise): nothing that is
+          // still active may need it, judged on the final state of everything the action changed.
+          for (const guard of this.archiveGuards) {
+            await guard.assertCanArchive(asset, db);
+          }
         }
       }
     },

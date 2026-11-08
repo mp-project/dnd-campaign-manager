@@ -258,10 +258,10 @@ describe("releasing assets to players", () => {
 
     expect(assets.isReleasable("FEATURE")).toBe(false);
 
-    assets.registerContentType({ assetType: "FEATURE", kind: "RULE" });
+    assets.registerContentType({ assetType: "FEATURE", kind: "RULE", editRoutes: () => new Map() });
 
     expect(assets.isReleasable("FEATURE")).toBe(true);
-    expect(() => assets.registerContentType({ assetType: "FEATURE", kind: "RULE" })).toThrow(
+    expect(() => assets.registerContentType({ assetType: "FEATURE", kind: "RULE", editRoutes: () => new Map() })).toThrow(
       "already registered",
     );
   });
@@ -269,7 +269,7 @@ describe("releasing assets to players", () => {
   it("refuses releases of global content and of types nobody registered", () => {
     const assets = service();
 
-    assets.registerContentType({ assetType: "FEATURE", kind: "RULE" });
+    assets.registerContentType({ assetType: "FEATURE", kind: "RULE", editRoutes: () => new Map() });
 
     const validate = assets.trackedAsset.validate!;
     const current = { ...createAssetRow({ assetType: "FEATURE" }), rulesetIds: [] };

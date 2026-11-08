@@ -34,6 +34,7 @@ async function withContainer(
 const quest = {
   assetType: "QUEST" as const,
   kind: "STORY" as const,
+  editRoutes: () => new Map<string, string>(),
   playerView: { schema: z.object({}), load: async () => ({}) },
 };
 

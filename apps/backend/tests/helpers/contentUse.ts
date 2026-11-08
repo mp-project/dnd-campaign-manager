@@ -29,6 +29,7 @@ export function createContentUse(db: AppDatabase) {
       service.registerContentType({
         assetType: "NPC",
         kind: "STORY",
+        editRoutes: () => new Map(),
         usesContent: true,
         playerView: { schema: z.object({}), load: async () => ({}) },
       });

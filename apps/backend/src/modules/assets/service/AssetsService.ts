@@ -146,7 +146,7 @@ export type ContentKind =
 
 export type ContentTypeDefinition = ContentKind & {
   assetType: AssetRow["assetType"];
-  editRoutes?: ContentEditRoutes;
+  editRoutes: ContentEditRoutes;
   /**
    * Actions of the module that change the asset (its name, status …). Those who may change the
    * content may also undo them in the history of the asset, next to archiving and restoring.

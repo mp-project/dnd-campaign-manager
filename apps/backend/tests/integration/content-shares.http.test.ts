@@ -79,6 +79,7 @@ const shareableModule: AppModule = {
     service.registerContentType({
       assetType: "QUEST",
       kind: "STORY",
+      editRoutes: () => new Map(),
       playerView: {
         schema: z.object({ title: z.string(), content: z.string() }),
         load: async ({ assetId }) => ({
@@ -91,6 +92,7 @@ const shareableModule: AppModule = {
     service.registerContentType({
       assetType: "LOCATION",
       kind: "STORY",
+      editRoutes: () => new Map(),
       assertShareable: async (asset) => {
         if (asset.title === "Locked") {
           throw new ConflictError("This location is not ready to be shared");

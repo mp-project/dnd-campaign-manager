@@ -4,6 +4,7 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -165,6 +166,8 @@ export const assetReferences = pgTable(
     path: varchar("path", { length: 500 }).notNull(),
     /** What kind of reference, e.g. `SUPERSEDES` or `DEFINITION`. */
     kind: varchar("kind", { length: 60 }).notNull(),
+    /** Order in which the module reports its references; the first one names a usage. */
+    position: integer("position").notNull(),
     /** Properties the target must not have (see `ContentTypeDefinition.properties`). */
     forbids: text("forbids").array().notNull().default(sql`'{}'::text[]`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

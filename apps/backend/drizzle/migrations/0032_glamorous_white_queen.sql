@@ -3,6 +3,7 @@ CREATE TABLE "asset_references" (
 	"target_asset_id" uuid NOT NULL,
 	"path" varchar(500) NOT NULL,
 	"kind" varchar(60) NOT NULL,
+	"position" integer NOT NULL,
 	"forbids" text[] DEFAULT '{}'::text[] NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "asset_references_pk" PRIMARY KEY("source_asset_id","path")

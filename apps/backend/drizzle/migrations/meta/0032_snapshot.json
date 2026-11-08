@@ -1,5 +1,5 @@
 {
-  "id": "2e140131-d229-4c2c-9b19-c2be3cc85977",
+  "id": "dc5d982e-09ab-4d59-9ec4-01e351d2c386",
   "prevId": "65fbc2c9-62dc-4bde-a4b2-e25abe2b34cf",
   "version": "7",
   "dialect": "postgresql",
@@ -655,6 +655,12 @@
         "kind": {
           "name": "kind",
           "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },

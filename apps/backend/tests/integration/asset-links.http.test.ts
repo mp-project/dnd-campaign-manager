@@ -160,7 +160,7 @@ const testModule: AppModule = {
           label: "Without asset",
           assetId: null,
           assetType: null,
-          editRoute: null,
+          editRoute: "/campaigns/x/outline/3",
         },
       ],
     });
@@ -709,6 +709,10 @@ describe("asset links", () => {
         expect.objectContaining({ label: "Hidden", assetId: ID.hiddenNote, editRoute: null }),
       ]);
       expect(body.outlinePlacements).toHaveLength(3);
+      // An entry without an asset belongs to the campaign; its provider decides the route.
+      expect(body.outlinePlacements).toContainEqual(
+        expect.objectContaining({ id: "outline-3", editRoute: "/campaigns/x/outline/3" }),
+      );
       expect(body.shares).toEqual([]);
       expect(body.unavailableProviders).toEqual([]);
     });
@@ -874,6 +878,7 @@ describe("asset links", () => {
         targetAssetId: ID.item,
         path: "loot.0",
         kind: "LOOT",
+        position: 0,
       });
 
       const blocked = await archive(ID.item);

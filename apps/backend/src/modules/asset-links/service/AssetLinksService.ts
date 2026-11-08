@@ -348,7 +348,9 @@ export class AssetLinksService {
       }
 
       // An item about the asset itself (a share) edits something of the campaign, not the asset.
-      const keepsRoute = access.isFullView && (item.assetId === assetId || mayEdit(related));
+      // Items without an asset belong to the campaign (an outline entry); their provider decides.
+      const keepsRoute =
+        access.isFullView && (related === undefined || item.assetId === assetId || mayEdit(related));
 
       usages[group].push(keepsRoute ? item : { ...item, editRoute: null });
     }
@@ -362,7 +364,7 @@ export class AssetLinksService {
 
   /**
    * Usages from the reference index: one item per asset whose stored content refers to this one,
-   * typed `<source type>_<kind of its first reference>`, after `sources` filtered them. Edit
+   * typed `<source type>_<kind of its first reference>` in the order the module reports them, after `sources` filtered them. Edit
    * routes only where `mayEdit` allows them.
    */
   private async referenceUsages(

@@ -72,6 +72,7 @@ export function createContentUse(db: AppDatabase) {
         targetAssetId,
         path: "uses.0",
         kind: "USES",
+        position: 0,
       });
 
       return npc!.id;

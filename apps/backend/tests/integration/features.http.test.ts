@@ -550,6 +550,20 @@ describe("features", () => {
       expect(await stored()).toEqual([]);
     });
 
+    it("names a usage after the first reference the definition makes", async () => {
+      const base = await createOk({ code: "base" });
+
+      await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+        ...option(base.assetId),
+      });
+
+      expect((await get(`${campaignUrl()}/${base.id}/usages`)).json().typedUsages).toEqual([
+        expect.objectContaining({ type: "FEATURE_SUPERSEDES" }),
+      ]);
+    });
+
     it("keeps the references of a definition that no longer parses", async () => {
       const base = await createOk({ code: "base" });
       const improved = await createOk({

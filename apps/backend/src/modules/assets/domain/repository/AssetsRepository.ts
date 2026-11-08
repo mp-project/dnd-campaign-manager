@@ -325,8 +325,9 @@ export class AssetsRepository {
 
     if (references.length > 0) {
       await db.insert(assetReferences).values(
-        references.map((reference) => ({
+        references.map((reference, position) => ({
           sourceAssetId,
+          position,
           targetAssetId: reference.targetAssetId,
           path: reference.path,
           kind: reference.kind,
@@ -368,7 +369,7 @@ export class AssetsRepository {
             : undefined,
         ),
       )
-      .orderBy(asc(assets.title), asc(assets.id), asc(assetReferences.path));
+      .orderBy(asc(assets.title), asc(assets.id), asc(assetReferences.position));
 
     return rows.map(({ source, reference }) => ({ source, reference }));
   }

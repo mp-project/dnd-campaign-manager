@@ -218,16 +218,7 @@ export class ClassesService {
         ...this.staticAssetValues(definition),
       ];
     });
-    const referenced = [...(await this.assets.findMany(ids, db)).values()];
-    const readable = access
-      ? await access.readableIds("READ", referenced, db)
-      : new Set(
-          referenced
-            .filter((asset) => asset.scope === "SYSTEM" && asset.status === "ACTIVE")
-            .map((asset) => asset.id),
-        );
-
-    return (assetId) => readable.has(assetId);
+    return this.assets.referenceVisibility(access, ids, db);
   }
 
   /**

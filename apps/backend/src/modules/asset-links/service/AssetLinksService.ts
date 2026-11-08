@@ -225,8 +225,9 @@ export class AssetLinksService {
   }
 
   /**
-   * Rejects archiving with 409 and the list of what stands in the way. Providers run one after the
-   * other because they share the transaction, and a failing provider rejects the archiving.
+   * Rejects archiving with 409 and the list of what stands in the way: links of relations that
+   * block their target, and non-archived content that refers to the asset (`asset_references`).
+   * Runs in the transaction of the archiving.
    */
   async assertNoBlockingUsages(asset: AssetRow, db: AppDatabase): Promise<void> {
     const links = await this.repository.listIncomingOfTypes(

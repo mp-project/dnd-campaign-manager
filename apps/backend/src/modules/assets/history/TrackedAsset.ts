@@ -44,7 +44,7 @@ type TrackedAssetDeps = {
  * History rules of an asset. Only people who may change an asset see its history: owner and
  * editors of its campaign and administrators (`decideContentWrite`). A right to undo must not go
  * beyond the right to change directly: in the campaign, archiving, restoring and the actions of the
- * modules that change assets (`allowCampaignRevert`) may be undone; everything else, and restoring
+ * modules that change assets (`revertibleActions` of their content type) may be undone; everything else, and restoring
  * versions, is left to administrators.
  */
 export function createTrackedAsset(deps: TrackedAssetDeps) {

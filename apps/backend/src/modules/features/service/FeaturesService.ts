@@ -191,38 +191,21 @@ export class FeaturesService {
   }
 
   /**
-   * Which referenced assets of these features the viewer may read; used to strip hidden references
-   * from the player view.
+   * Which referenced assets of these features the viewer may see, for the player view; outside a
+   * campaign (`access` null) only active global ones (`AssetsService.referenceVisibility`).
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     items: readonly FeatureWithAsset[],
-    access: ContentAccess,
+    access: ContentAccess | null,
   ): Promise<(assetId: string) => boolean> {
     const ids = items.flatMap(({ feature }) =>
       collectAssetReferences(parseFeatureGraph(feature)).map((reference) => reference.assetId),
     );
-    const readable = await access.readableIds("READ", [...(await this.assets.findMany(ids, db)).values()], db);
 
-    return (assetId) => readable.has(assetId);
+    return this.assets.referenceVisibility(access, ids, db);
   }
 
-  /** Outside a campaign, references are visible if they point to active global assets. */
-  async globalReferenceVisibility(
-    db: AppDatabase,
-    items: readonly FeatureWithAsset[],
-  ): Promise<(assetId: string) => boolean> {
-    const ids = items.flatMap(({ feature }) =>
-      collectAssetReferences(parseFeatureGraph(feature)).map((reference) => reference.assetId),
-    );
-    const referenced = await this.assets.findMany(ids, db);
-
-    return (assetId) => {
-      const asset = referenced.get(assetId);
-
-      return asset?.scope === "SYSTEM" && asset.status === "ACTIVE";
-    };
-  }
 
   /**
    * Parameters of the features behind these assets, for source modules that bind them. Assets

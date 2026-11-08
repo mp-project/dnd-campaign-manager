@@ -315,14 +315,12 @@ export class AssetsRepository {
     return rows.map((row) => row.id);
   }
 
-  /** Replaces what the stored content of the asset refers to. */
-  async replaceReferences(
+  /** Adds what the stored content of the asset refers to, in the order the module reported it. */
+  async createReferences(
     db: AppDatabase,
     sourceAssetId: string,
     references: readonly StoredAssetReference[],
   ): Promise<void> {
-    await db.delete(assetReferences).where(eq(assetReferences.sourceAssetId, sourceAssetId));
-
     if (references.length > 0) {
       await db.insert(assetReferences).values(
         references.map((reference, position) => ({

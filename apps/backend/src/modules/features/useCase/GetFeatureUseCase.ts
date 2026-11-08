@@ -67,9 +67,7 @@ export class GetFeatureUseCase {
   private async toPlayer(found: FeatureWithAsset, access: ContentAccess | null) {
     return toFeaturePlayerResponse(
       found,
-      access
-        ? await this.featuresService.playerReferenceVisibility(this.featuresService.db, [found], access)
-        : await this.featuresService.globalReferenceVisibility(this.featuresService.db, [found]),
+      await this.featuresService.playerReferenceVisibility(this.featuresService.db, [found], access),
     );
   }
 }

@@ -410,7 +410,8 @@ export class AssetsService {
       return;
     }
 
-    await this.repository.replaceReferences(
+    await this.repository.deleteReferences(db, [asset.id]);
+    await this.repository.createReferences(
       db,
       asset.id,
       references.map((reference) => ({
@@ -928,6 +929,28 @@ export class AssetsService {
     }
 
     return actorId;
+  }
+
+  /**
+   * Which of the assets that content refers to the viewer may see, to strip hidden references from
+   * player views. In a campaign the access session decides (`READ`); outside of one (`access`
+   * null) only active global assets count.
+   */
+  async referenceVisibility(
+    access: ContentAccess | null,
+    assetIds: readonly string[],
+    db: AppDatabase = this.db,
+  ): Promise<(assetId: string) => boolean> {
+    const referenced = [...(await this.findMany(assetIds, db)).values()];
+    const visible = access
+      ? await access.readableIds("READ", referenced, db)
+      : new Set(
+          referenced
+            .filter((asset) => asset.scope === "SYSTEM" && asset.status === "ACTIVE")
+            .map((asset) => asset.id),
+        );
+
+    return (assetId) => visible.has(assetId);
   }
 
   /** Loads an asset requested in a campaign; what the viewer may not read is reported as 404. */

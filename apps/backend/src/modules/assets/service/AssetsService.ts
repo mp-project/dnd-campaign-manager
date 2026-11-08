@@ -1024,26 +1024,39 @@ export class AssetsService {
    * what an NPC only the game master knows uses.
    */
   async accessFor(viewer: ContentViewer, db: AppDatabase = this.db): Promise<ContentAccess> {
-    const deps = { db: this.db, repository: this.repository };
+    // The session keeps the handle, so its later reads stay in the caller's transaction.
+    const deps = { db, repository: this.repository };
     const [visibleIds, uses] = await Promise.all([
       viewer.view === "PLAYER" ? this.listVisibleAssetIds(viewer, db) : [],
-      this.repository.listUsedTargets(db, viewer.campaignId, [...this.usingTypes()]),
+      this.repository.listUses(db, viewer.campaignId, [...this.usingTypes()]),
     ]);
     const visibleAssetIds = new Set(visibleIds);
-    const readableUsers =
-      viewer.view === "FULL"
-        ? new Set(uses.map(({ source }) => source.id))
-        : await new ContentAccess(viewer, visibleAssetIds, new Set(), deps).readableIds(
-            "READ",
-            uses.map(({ source }) => source),
-            db,
-          );
+    let readableUsers: ReadonlySet<string>;
+
+    if (viewer.view === "FULL") {
+      readableUsers = new Set(uses.map(({ sourceAssetId }) => sourceAssetId));
+    } else {
+      // Only players need the users themselves, to see which of them they may read.
+      const users = await this.repository.findByIds(db, [
+        ...new Set(uses.map(({ sourceAssetId }) => sourceAssetId)),
+      ]);
+
+      readableUsers = await new ContentAccess(viewer, visibleAssetIds, new Set(), deps).readableIds(
+        "READ",
+        users,
+        db,
+      );
+    }
+
     const inUseAssetIds = new Set(
-      uses.filter(({ source }) => readableUsers.has(source.id)).map(({ targetAssetId }) => targetAssetId),
+      uses
+        .filter(({ sourceAssetId }) => readableUsers.has(sourceAssetId))
+        .map(({ targetAssetId }) => targetAssetId),
     );
 
     return new ContentAccess(viewer, visibleAssetIds, inUseAssetIds, deps);
   }
+
 
   /** Types whose references keep archived content in use. */
   private usingTypes(): Set<AssetRow["assetType"]> {

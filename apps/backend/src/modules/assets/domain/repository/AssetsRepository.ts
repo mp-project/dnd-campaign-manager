@@ -344,10 +344,14 @@ export class AssetsRepository {
     }
   }
 
-  /** Existing assets whose stored content refers to the target, with how; ordered by source. */
+  /**
+   * Existing assets whose stored content refers to the target, with how; ordered by source. With
+   * `campaignId` only global ones and those of that campaign.
+   */
   async listReferencing(
     db: AppDatabase,
     targetAssetId: string,
+    filter: { campaignId?: string | undefined } = {},
   ): Promise<{ source: AssetRow; reference: StoredAssetReference }[]> {
     const rows = await db
       .select({ source: assets, reference: assetReferences })
@@ -356,24 +360,34 @@ export class AssetsRepository {
         assets,
         and(eq(assets.id, assetReferences.sourceAssetId), isNull(assets.deletedAt)),
       )
-      .where(eq(assetReferences.targetAssetId, targetAssetId))
+      .where(
+        and(
+          eq(assetReferences.targetAssetId, targetAssetId),
+          filter.campaignId
+            ? or(isNull(assets.campaignId), eq(assets.campaignId, filter.campaignId))
+            : undefined,
+        ),
+      )
       .orderBy(asc(assets.title), asc(assets.id), asc(assetReferences.path));
 
     return rows.map(({ source, reference }) => ({ source, reference }));
   }
 
-  /** What non-archived content of these types in the campaign refers to, with the user. */
-  async listUsedTargets(
+  /** What non-archived content of these types in the campaign refers to: pairs of ids only. */
+  async listUses(
     db: AppDatabase,
     campaignId: string,
     sourceTypes: readonly AssetType[],
-  ): Promise<{ source: AssetRow; targetAssetId: string }[]> {
+  ): Promise<{ sourceAssetId: string; targetAssetId: string }[]> {
     if (sourceTypes.length === 0) {
       return [];
     }
 
     return db
-      .select({ source: assets, targetAssetId: assetReferences.targetAssetId })
+      .selectDistinct({
+        sourceAssetId: assetReferences.sourceAssetId,
+        targetAssetId: assetReferences.targetAssetId,
+      })
       .from(assetReferences)
       .innerJoin(assets, eq(assets.id, assetReferences.sourceAssetId))
       .where(
@@ -385,6 +399,7 @@ export class AssetsRepository {
         ),
       );
   }
+
 
   /** Serializes rebuilding the reference index across app instances, until the transaction ends. */
   async lockReferenceIndex(db: AppDatabase): Promise<void> {

@@ -333,6 +333,7 @@ export class AssetLinksService {
 
     usages.typedUsages.push(
       ...(await this.referenceUsages(assetId, this.db, {
+        campaignId: viewer.campaignId,
         sources: (sources) => access.filter("READ", sources),
         mayEdit,
       })),
@@ -368,13 +369,19 @@ export class AssetLinksService {
     assetId: string,
     db: AppDatabase,
     options: {
+      /** Only referrers of this campaign and global ones; all of them without it. */
+      campaignId?: string;
       sources(sources: AssetRow[]): Promise<AssetRow[]>;
       mayEdit(source: AssetRow): boolean;
     },
   ): Promise<AssetUsageItemDto[]> {
     const firstKind = new Map<string, { source: AssetRow; kind: string }>();
 
-    for (const { source, reference } of await this.assets.repository.listReferencing(db, assetId)) {
+    const rows = await this.assets.repository.listReferencing(db, assetId, {
+      campaignId: options.campaignId,
+    });
+
+    for (const { source, reference } of rows) {
       if (!firstKind.has(source.id)) {
         firstKind.set(source.id, { source, kind: reference.kind });
       }

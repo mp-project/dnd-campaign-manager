@@ -122,14 +122,6 @@ async function registerFeaturesModule(
   assetLinks.service.registerEditRoute("FEATURE", (input, db) =>
     service.findEditRoutes(input, db),
   );
-  // Definitions that refer to an asset keep it from being archived; archived ones don't.
-  assetLinks.service.registerUsageProvider({
-    name: "features",
-    group: "typedUsages",
-    listUsages: (input, db) => service.listUsages({ ...input, includeArchived: true }, db),
-    listBlockingUsages: (input, db) =>
-      service.listUsages({ ...input, includeArchived: false }, db),
-  });
 
   container.dependencies.set<FeaturesModuleDependencies>(FEATURES_MODULE_DEPENDENCIES, {
     service,

@@ -1,4 +1,4 @@
-import { and, type AnyColumn, asc, eq, gt, ilike, inArray, isNull, ne, or, type SQL, sql } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, inArray, isNull, ne, or, type SQL, sql } from "drizzle-orm";
 
 import { escapeLike } from "#core/db/escapeLike";
 import type { AppDatabase } from "#core/db/pool";
@@ -95,46 +95,6 @@ export class ClassesRepository {
       .limit(filter.limit + 1);
 
     return { items: rows.slice(0, filter.limit), hasMore: rows.length > filter.limit };
-  }
-
-  /**
-   * Classes whose definition refers to the asset: grants, upgrade targets, static bound values,
-   * choice options, equipment, proficiency options and spell lists. Only these paths count, so text
-   * that happens to look like the id is no usage. `campaignId` limits them to global classes and
-   * those of the campaign; null searches everywhere, for global assets. Archived classes only with
-   * `includeArchived`.
-   */
-  async listReferencing(
-    db: AppDatabase,
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-  ): Promise<ClassWithAsset[]> {
-    const vars = sql`jsonb_build_object('id', ${input.assetId}::text)`;
-    const at = (column: AnyColumn, path: string) =>
-      sql`jsonb_path_exists(${column}, ${path}::jsonpath, ${vars})`;
-
-    return this.selectWithAsset(db)
-      .where(
-        and(
-          isNull(classes.deletedAt),
-          input.campaignId
-            ? or(isNull(classes.campaignId), eq(classes.campaignId, input.campaignId))
-            : undefined,
-          input.includeArchived ? undefined : sql`${assets.status} <> 'ARCHIVED'`,
-          or(
-            at(classes.proficiencies, "$[*].options[*].assetId ? (@ == $id)"),
-            at(classes.startingEquipment, "$[*].entries[*].itemAssetId ? (@ == $id)"),
-            at(classes.levels, "$[*].featureGrants[*].featureAssetId ? (@ == $id)"),
-            at(classes.levels, "$[*].featureGrants[*].targetFeatureAssetId ? (@ == $id)"),
-            at(
-              classes.levels,
-              '$[*].featureGrants[*].bindings[*] ? (@.bindingSource == "STATIC" && @.staticValue == $id)',
-            ),
-            at(classes.choices, "$[*].options[*].linkedAssetId ? (@ == $id)"),
-            at(classes.spellcasting, "$.spellListAssetId ? (@ == $id)"),
-          ),
-        ),
-      )
-      .orderBy(asc(classes.code), asc(classes.id));
   }
 
   /**

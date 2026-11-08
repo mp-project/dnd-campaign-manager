@@ -172,14 +172,6 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
   assetLinks.service.registerEditRoute("SPECIES_VARIANT", (input, db) =>
     service.findVariantEditRoutes(input, db),
   );
-  // Definitions that refer to an asset keep it from being archived, and so do the variants of a
-  // species; archived ones don't.
-  assetLinks.service.registerUsageProvider({
-    name: "species",
-    group: "typedUsages",
-    listUsages: (input, db) => service.listUsages({ ...input, includeArchived: true }, db),
-    listBlockingUsages: (input, db) => service.listUsages({ ...input, includeArchived: false }, db),
-  });
 
   container.dependencies.set<SpeciesModuleDependencies>(SPECIES_MODULE_DEPENDENCIES, {
     service,

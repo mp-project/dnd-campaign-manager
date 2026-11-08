@@ -6,7 +6,7 @@ import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/
 import type { ActionScope, HistoryEvent } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
-import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   type AssetRow,
   type AssetsService,
@@ -292,7 +292,7 @@ export class FeaturesService {
 
   /** Edit routes for asset-links, for all custom features of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findByAssetIds(db, input.assetIds);
@@ -302,7 +302,7 @@ export class FeaturesService {
         .filter(([, { feature }]) => feature.campaignId === input.campaignId)
         .map(([assetId, { feature }]) => [
           assetId,
-          `/campaigns/${input.campaignId}/features/${feature.id}`,
+          `${editRoutePrefix(input.campaignId)}/features/${feature.id}`,
         ]),
     );
   }
@@ -866,26 +866,6 @@ export class FeaturesService {
   // ---------------------------------------------------------------------------
   // Usages
   // ---------------------------------------------------------------------------
-
-  /** Features whose definitions refer to the asset, as typed usages for asset-links. */
-  async listUsages(
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]> {
-    const rows = await this.repository.listReferencing(db, input);
-
-    return rows.map((row) => ({
-      id: row.featureId,
-      type: `FEATURE_${row.kinds[0] ?? "REFERENCE"}`,
-      label: row.asset.title,
-      assetId: row.asset.id,
-      assetType: "FEATURE",
-      editRoute:
-        row.campaignId === null
-          ? `/features/${row.featureId}`
-          : `/campaigns/${row.campaignId}/features/${row.featureId}`,
-    }));
-  }
 
   async getUsages(access: ContentAccess, assetId: string) {
     return this.links.getUsages(access, assetId);

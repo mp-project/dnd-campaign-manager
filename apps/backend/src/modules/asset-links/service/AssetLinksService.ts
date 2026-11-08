@@ -64,14 +64,6 @@ export type AssetUsageProvider = {
     input: { assetId: string; campaignId: string; actorId: string },
     db: AppDatabase,
   ): Promise<AssetUsageItemDto[]>;
-  /**
-   * Usages that forbid archiving. Runs in the transaction of the archiving, so it may only use
-   * `db`. `campaignId` is null for global assets, which can be used in every campaign.
-   */
-  listBlockingUsages?(
-    input: { assetId: string; campaignId: string | null },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]>;
 };
 
 /**
@@ -79,12 +71,17 @@ export type AssetUsageProvider = {
  * once, so the module can look up its own ids in one query. Assets without a route are left out.
  */
 export type AssetEditRouteBuilder = (
-  input: { campaignId: string; assetIds: readonly string[] },
+  input: { campaignId: string | null; assetIds: readonly string[] },
   db: AppDatabase,
 ) => ReadonlyMap<string, string> | Promise<ReadonlyMap<string, string>>;
 
-/** A link end that may get an edit route. */
-type EditTarget = { campaignId: string; assetId: string; asset: AssetRow | undefined };
+/** Edit routes of a campaign start with the campaign; those of global content (null) don't. */
+export function editRoutePrefix(campaignId: string | null): string {
+  return campaignId === null ? "" : `/campaigns/${campaignId}`;
+}
+
+/** An asset that may get an edit route, in a campaign or (null) as global content. */
+type EditTarget = { campaignId: string | null; assetId: string; asset: AssetRow | undefined };
 
 type LinkPath = { campaignId: string; sourceAssetId: string; linkId: string };
 
@@ -272,14 +269,13 @@ export class AssetLinksService {
       }),
     );
 
-    for (const provider of this.usageProviders) {
-      blocking.push(
-        ...((await provider.listBlockingUsages?.(
-          { assetId: asset.id, campaignId: asset.campaignId },
-          db,
-        )) ?? []),
-      );
-    }
+    // Content that refers to the asset keeps it, unless that content is archived itself.
+    blocking.push(
+      ...(await this.referenceUsages(asset.id, db, {
+        sources: async (sources) => sources.filter((source) => source.status !== "ARCHIVED"),
+        mayEdit: () => true,
+      })),
+    );
 
     if (blocking.length > 0) {
       throw new ConflictError("The asset is still in use", {
@@ -352,6 +348,13 @@ export class AssetLinksService {
       );
     }
 
+    usages.typedUsages.push(
+      ...(await this.referenceUsages(assetId, this.db, {
+        sources: (sources) => access.filter("READ", sources),
+        mayEdit,
+      })),
+    );
+
     for (const { group, item } of provided.items) {
       const related = item.assetId ? providedAssets.get(item.assetId) : undefined;
 
@@ -372,6 +375,45 @@ export class AssetLinksService {
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
+
+  /**
+   * Usages from the reference index: one item per asset whose stored content refers to this one,
+   * typed `<source type>_<kind of its first reference>`, after `sources` filtered them. Edit
+   * routes only where `mayEdit` allows them.
+   */
+  private async referenceUsages(
+    assetId: string,
+    db: AppDatabase,
+    options: {
+      sources(sources: AssetRow[]): Promise<AssetRow[]>;
+      mayEdit(source: AssetRow): boolean;
+    },
+  ): Promise<AssetUsageItemDto[]> {
+    const firstKind = new Map<string, { source: AssetRow; kind: string }>();
+
+    for (const { source, reference } of await this.assets.repository.listReferencing(db, assetId)) {
+      if (!firstKind.has(source.id)) {
+        firstKind.set(source.id, { source, kind: reference.kind });
+      }
+    }
+
+    const sources = await options.sources([...firstKind.values()].map(({ source }) => source));
+    const editRoutes = await this.resolveEditRoutes(
+      sources
+        .filter((source) => options.mayEdit(source))
+        .map((source) => ({ campaignId: source.campaignId, assetId: source.id, asset: source })),
+      db,
+    );
+
+    return sources.map((source) => ({
+      id: source.id,
+      type: `${source.assetType}_${firstKind.get(source.id)?.kind ?? "REFERENCE"}`,
+      label: source.title,
+      assetId: source.id,
+      assetType: source.assetType,
+      editRoute: editRoutes.get(editRouteKey(source.campaignId, source.id)) ?? null,
+    }));
+  }
 
   /** One failing provider leaves its group incomplete; the answer says which one it was. */
   private async collectProvidedUsages(viewer: ContentViewer, assetId: string) {
@@ -411,7 +453,10 @@ export class AssetLinksService {
     targets: readonly EditTarget[],
     db: AppDatabase,
   ): Promise<Map<string, string>> {
-    const groups = new Map<string, { campaignId: string; assetType: AssetType; assetIds: Set<string> }>();
+    const groups = new Map<
+      string,
+      { campaignId: string | null; assetType: AssetType; assetIds: Set<string> }
+    >();
 
     for (const { campaignId, assetId, asset } of targets) {
       if (!asset || !this.editRoutes.has(asset.assetType)) {
@@ -483,8 +528,8 @@ export class AssetLinksService {
   }
 }
 
-function editRouteKey(campaignId: string, assetId: string): string {
-  return `${campaignId}:${assetId}`;
+function editRouteKey(campaignId: string | null, assetId: string): string {
+  return `${campaignId ?? "global"}:${assetId}`;
 }
 
 export function otherEndOf(link: AssetLinkRow, assetId: string): string {

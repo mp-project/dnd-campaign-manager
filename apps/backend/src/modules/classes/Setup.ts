@@ -139,14 +139,6 @@ async function registerClassesModule(
     verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("CLASS", (input, db) => service.findEditRoutes(input, db));
-  // Definitions that refer to an asset keep it from being archived; archived ones don't.
-  assetLinks.service.registerUsageProvider({
-    name: "classes",
-    group: "typedUsages",
-    listUsages: (input, db) => service.listUsages({ ...input, includeArchived: true }, db),
-    listBlockingUsages: (input, db) =>
-      service.listUsages({ ...input, includeArchived: false }, db),
-  });
 
   container.dependencies.set<ClassesModuleDependencies>(CLASSES_MODULE_DEPENDENCIES, {
     service,

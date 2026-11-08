@@ -5,6 +5,7 @@ import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   assetLinks,
+  assetReferences,
   assetRulesets,
   assets,
   campaignMemberships,
@@ -70,8 +71,6 @@ const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
 
 let failUsageProvider = false;
-let failBlockingProvider = false;
-let blockingProviderItems: { id: string; type: string; label: string }[] = [];
 let typedUsageItems: AssetUsageItemDto[] = [];
 let inUseAssetIds: string[] = [];
 let inUseError: Error | null = null;
@@ -182,18 +181,6 @@ const testModule: AppModule = {
 
         return typedUsageItems;
       },
-      listBlockingUsages: async () => {
-        if (failBlockingProvider) {
-          throw new Error("Provider down");
-        }
-
-        return blockingProviderItems.map((item) => ({
-          ...item,
-          assetId: null,
-          assetType: null,
-          editRoute: null,
-        }));
-      },
     });
   },
 };
@@ -253,8 +240,6 @@ describe("asset links", () => {
     session = buildTestApp({ modules: [...defaultAppModules, testModule] });
     await session.app.ready();
     failUsageProvider = false;
-    failBlockingProvider = false;
-    blockingProviderItems = [];
     typedUsageItems = [];
     inUseAssetIds = [];
     inUseError = null;
@@ -897,28 +882,25 @@ describe("asset links", () => {
       expect((await archive(ID.sharedNote)).statusCode).toBe(200);
     });
 
-    it("also takes blocking usages of providers into account", async () => {
-      blockingProviderItems = [{ id: "share-1", type: "SHARE", label: "Shared with party" }];
+    it("also counts content that refers to the asset, unless that content is archived", async () => {
+      // As the content kernel stores it for definitions that refer to the item.
+      await db.insert(assetReferences).values({
+        sourceAssetId: ID.location,
+        targetAssetId: ID.item,
+        path: "loot.0",
+        kind: "LOOT",
+      });
 
       const blocked = await archive(ID.item);
 
       expect(blocked.statusCode).toBe(409);
       expect(blocked.json().error.details.blockingUsages).toEqual([
-        expect.objectContaining({ id: "share-1" }),
+        expect.objectContaining({ id: ID.location, assetId: ID.location, type: "LOCATION_LOOT" }),
       ]);
-    });
 
-    it("rolls back when a provider fails, because the result is unknown", async () => {
-      failBlockingProvider = true;
+      await db.update(assets).set({ status: "ARCHIVED" }).where(eq(assets.id, ID.location));
 
-      expect((await archive(ID.item)).statusCode).toBe(500);
-
-      const [row] = await db.select().from(assets).where(eq(assets.id, ID.item));
-
-      expect(row!.status).toBe("ACTIVE");
-      expect(
-        await db.select().from(entityChangeEvents).where(eq(entityChangeEvents.entityId, ID.item)),
-      ).toEqual([]);
+      expect((await archive(ID.item)).statusCode).toBe(200);
     });
 
     it("cannot be bypassed by undoing a restore", async () => {

@@ -6,7 +6,7 @@ import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
-import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
   type AssetReference,
@@ -274,7 +274,7 @@ export class SpeciesService {
 
   /** Edit routes for asset-links, for all custom species of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findByAssetIds(db, input.assetIds);
@@ -284,14 +284,14 @@ export class SpeciesService {
         .filter(([, item]) => item.species.campaignId === input.campaignId)
         .map(([assetId, item]) => [
           assetId,
-          `/campaigns/${input.campaignId}/species/${item.species.id}`,
+          `${editRoutePrefix(input.campaignId)}/species/${item.species.id}`,
         ]),
     );
   }
 
   /** Edit routes of custom variants, for asset-links. */
   async findVariantEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findVariantsByAssetIds(db, input.assetIds);
@@ -301,7 +301,7 @@ export class SpeciesService {
         .filter(([, item]) => item.variant.campaignId === input.campaignId)
         .map(([assetId, item]) => [
           assetId,
-          `/campaigns/${input.campaignId}/species/${item.variant.speciesId}/variants/${item.variant.id}`,
+          `${editRoutePrefix(input.campaignId)}/species/${item.variant.speciesId}/variants/${item.variant.id}`,
         ]),
     );
   }
@@ -1172,38 +1172,6 @@ export class SpeciesService {
   // ---------------------------------------------------------------------------
   // Usages
   // ---------------------------------------------------------------------------
-
-  /** Species and variants whose definitions refer to the asset, as typed usages for asset-links. */
-  async listUsages(
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]> {
-    const speciesRows = await this.repository.listReferencing(db, input);
-    const variantRows = await this.repository.listVariantsReferencing(db, input);
-
-    return [
-      ...speciesRows.map(({ species: row, asset }) => ({
-        id: row.id,
-        type: "SPECIES_DEFINITION",
-        label: asset.title,
-        assetId: asset.id,
-        assetType: "SPECIES" as const,
-        editRoute:
-          row.campaignId === null ? `/species/${row.id}` : `/campaigns/${row.campaignId}/species/${row.id}`,
-      })),
-      ...variantRows.map(({ variant, asset }) => ({
-        id: variant.id,
-        type: "SPECIES_VARIANT_DEFINITION",
-        label: asset.title,
-        assetId: asset.id,
-        assetType: "SPECIES_VARIANT" as const,
-        editRoute:
-          variant.campaignId === null
-            ? `/species/${variant.speciesId}/variants/${variant.id}`
-            : `/campaigns/${variant.campaignId}/species/${variant.speciesId}/variants/${variant.id}`,
-      })),
-    ];
-  }
 
   async getUsages(access: ContentAccess, assetId: string) {
     return this.links.getUsages(access, assetId);

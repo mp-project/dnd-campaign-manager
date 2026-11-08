@@ -3,7 +3,7 @@ import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
-import type { AssetLinksService } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   type AssetRow,
   type AssetsService,
@@ -120,15 +120,19 @@ export class NotesService {
 
   /** Edit routes for asset-links, for all notes of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
+    if (input.campaignId === null) {
+      return new Map();
+    }
+
     const noteIds = await this.repository.findIdsByAssetIds(db, input.assetIds);
 
     return new Map(
       [...noteIds].map(([assetId, noteId]) => [
         assetId,
-        `/campaigns/${input.campaignId}/notes/${noteId}`,
+        `${editRoutePrefix(input.campaignId)}/notes/${noteId}`,
       ]),
     );
   }

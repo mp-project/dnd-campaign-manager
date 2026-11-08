@@ -19,5 +19,6 @@ export {
   AssetLinksService,
   type AssetEditRouteBuilder,
   type AssetUsageProvider,
+  editRoutePrefix,
 } from "#src/modules/asset-links/service/AssetLinksService";
 export type { AssetRelationDefinition } from "#src/modules/asset-links/service/AssetRelationRegistry";

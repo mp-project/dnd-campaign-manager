@@ -6,7 +6,7 @@ import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
-import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
+import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
   type AssetReference,
@@ -240,7 +240,7 @@ export class ClassesService {
 
   /** Edit routes for asset-links, for all custom classes of one request in one query. */
   async findEditRoutes(
-    input: { campaignId: string; assetIds: readonly string[] },
+    input: { campaignId: string | null; assetIds: readonly string[] },
     db: AppDatabase,
   ): Promise<Map<string, string>> {
     const found = await this.repository.findByAssetIds(db, input.assetIds);
@@ -250,7 +250,7 @@ export class ClassesService {
         .filter(([, { characterClass }]) => characterClass.campaignId === input.campaignId)
         .map(([assetId, { characterClass }]) => [
           assetId,
-          `/campaigns/${input.campaignId}/classes/${characterClass.id}`,
+          `${editRoutePrefix(input.campaignId)}/classes/${characterClass.id}`,
         ]),
     );
   }
@@ -750,26 +750,6 @@ export class ClassesService {
   // ---------------------------------------------------------------------------
   // Usages
   // ---------------------------------------------------------------------------
-
-  /** Classes whose definitions refer to the asset, as typed usages for asset-links. */
-  async listUsages(
-    input: { assetId: string; campaignId: string | null; includeArchived: boolean },
-    db: AppDatabase,
-  ): Promise<AssetUsageItemDto[]> {
-    const rows = await this.repository.listReferencing(db, input);
-
-    return rows.map(({ characterClass, asset }) => ({
-      id: characterClass.id,
-      type: "CLASS_DEFINITION",
-      label: asset.title,
-      assetId: asset.id,
-      assetType: "CLASS",
-      editRoute:
-        characterClass.campaignId === null
-          ? `/classes/${characterClass.id}`
-          : `/campaigns/${characterClass.campaignId}/classes/${characterClass.id}`,
-    }));
-  }
 
   async getUsages(access: ContentAccess, assetId: string) {
     return this.links.getUsages(access, assetId);

@@ -613,7 +613,7 @@ describe("classes", () => {
       const usages = await get(`/api/v1/campaigns/${ID.campaign}/features/${feature.id}/usages`);
 
       expect(usages.json().typedUsages).toEqual([
-        expect.objectContaining({ id: item.id, type: "CLASS_DEFINITION", assetType: "CLASS" }),
+        expect.objectContaining({ id: item.assetId, type: "CLASS_DEFINITION", assetType: "CLASS" }),
       ]);
 
       // Once the class is archived, the feature may go as well.
@@ -676,9 +676,9 @@ describe("classes", () => {
       const asGm = (await get(usagesUrl)).json().typedUsages as { id: string; editRoute: string | null }[];
       const asAdmin = (await get(usagesUrl, ADMIN)).json().typedUsages as { id: string }[];
 
-      expect(asGm.map((usage) => usage.id).sort()).toEqual([active.id, elsewhere.id].sort());
+      expect(asGm.map((usage) => usage.id).sort()).toEqual([active.assetId, elsewhere.assetId].sort());
       expect(asGm.every((usage) => usage.editRoute === null)).toBe(true);
-      expect(asAdmin.map((usage) => usage.id)).toEqual(expect.arrayContaining([draft.id, active.id]));
+      expect(asAdmin.map((usage) => usage.id)).toEqual(expect.arrayContaining([draft.assetId, active.assetId]));
 
       await db
         .update(assets)
@@ -690,7 +690,7 @@ describe("classes", () => {
 
       const afterMove = (await get(usagesUrl)).json().typedUsages as { id: string }[];
 
-      expect(afterMove.map((usage) => usage.id)).toEqual([active.id]);
+      expect(afterMove.map((usage) => usage.id)).toEqual([active.assetId]);
     });
 
     it("counts only real references as usages, not text that looks like an id", async () => {

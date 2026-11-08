@@ -557,7 +557,7 @@ describe("features", () => {
       expect(blocked.statusCode).toBe(409);
       expect(blocked.json().error.details.blockingUsages).toEqual([
         expect.objectContaining({
-          id: improved.id,
+          id: improved.assetId,
           type: "FEATURE_SUPERSEDES",
           editRoute: `/campaigns/${ID.campaign}/features/${improved.id}`,
         }),
@@ -567,7 +567,7 @@ describe("features", () => {
 
       expect(usages.statusCode).toBe(200);
       expect(usages.json().typedUsages).toEqual([
-        expect.objectContaining({ id: improved.id, assetId: improved.assetId }),
+        expect.objectContaining({ id: improved.assetId, assetId: improved.assetId }),
       ]);
 
       expect((await remove(improved)).statusCode).toBe(200);

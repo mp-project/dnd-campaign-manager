@@ -247,6 +247,46 @@ export class FeaturesService {
    * features stay locked (shared) until the transaction ends, so a concurrent change or archive
    * waits instead of slipping past the caller's checks. Missing ids are missing from the result.
    */
+  /**
+   * Asset ids bound statically to `ASSET_REF` parameters of granted features, for the reference
+   * index of the modules that grant them (classes, species …). Values bound to other parameters
+   * are no references, even when they look like ids. Grants of features whose stored definition no
+   * longer parses report nothing.
+   */
+  async collectBoundAssetReferences(
+    db: AppDatabase,
+    grants: readonly {
+      featureAssetId: string;
+      bindings: readonly { parameterKey: string; bindingSource: string; staticValue?: unknown }[];
+      path: readonly (string | number)[];
+    }[],
+  ): Promise<{ assetId: string; path: (string | number)[] }[]> {
+    const inspected = await this.inspectFeatures(
+      db,
+      grants.map((grant) => grant.featureAssetId),
+    );
+
+    return grants.flatMap((grant) => {
+      const feature = inspected.get(grant.featureAssetId);
+      const assetParameters = new Set(
+        feature?.valid
+          ? feature.parameters
+              .filter((parameter) => parameter.valueType === "ASSET_REF")
+              .map((parameter) => parameter.key)
+          : [],
+      );
+
+      return grant.bindings.flatMap((binding, bindingIndex) =>
+        binding.bindingSource === "STATIC" &&
+        assetParameters.has(binding.parameterKey) &&
+        typeof binding.staticValue === "string" &&
+        UUID_PATTERN.test(binding.staticValue)
+          ? [{ assetId: binding.staticValue, path: [...grant.path, "bindings", bindingIndex, "staticValue"] }]
+          : [],
+      );
+    });
+  }
+
   async inspectFeatures(
     db: AppDatabase,
     assetIds: readonly string[],
@@ -494,7 +534,10 @@ export class FeaturesService {
   }
 
   /** What the stored definition refers to, for the reference index; nothing if it no longer parses. */
-  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+  async listContentReferences(
+    asset: AssetRow,
+    db: AppDatabase,
+  ): Promise<ContentReference[] | null> {
     const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
     if (!found) {
@@ -508,7 +551,8 @@ export class FeaturesService {
         kind: reference.kind,
       }));
     } catch {
-      return [];
+      // Unknown for now; the stored references stay.
+      return null;
     }
   }
 

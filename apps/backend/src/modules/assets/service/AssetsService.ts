@@ -161,10 +161,11 @@ export type ContentTypeDefinition = ContentKind & {
   /**
    * The assets the stored content refers to, for archived content as well. The kernel keeps them
    * in `asset_references` at the end of every action, so usages, archive blocking and what is in
-   * use come from one query instead of searches in every module. Only real references: values
+   * use come from one query instead of searches in every module. Null when the stored content
+   * no longer parses: the index then keeps its rows. Only real references: values
    * that merely look like ids are no references.
    */
-  references?(asset: AssetRow, db: AppDatabase): Promise<readonly ContentReference[]>;
+  references?(asset: AssetRow, db: AppDatabase): Promise<readonly ContentReference[] | null>;
   /**
    * Content of this type uses what it refers to, like a character its class: archived content it
    * refers to stays readable in the campaign (for those who may read the user) while the user is
@@ -379,6 +380,11 @@ export class AssetsService {
     }
 
     const references = await type.references(asset, db);
+
+    // A stored definition that no longer parses: keep what the index knew instead of losing it.
+    if (references === null) {
+      return;
+    }
 
     await this.repository.replaceReferences(
       db,

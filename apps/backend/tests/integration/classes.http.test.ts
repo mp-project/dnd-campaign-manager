@@ -692,6 +692,38 @@ describe("classes", () => {
       expect(usages.json().typedUsages).toEqual([]);
     });
 
+    it("counts bound values as usages only for asset parameters", async () => {
+      const feature = await createFeature(GM, undefined, {
+        parameters: [
+          { key: "uses", valueType: "INTEGER", required: true },
+          { key: "label", valueType: "TEXT", required: false },
+          { key: "gear", valueType: "ASSET_REF", required: false },
+        ],
+      });
+      const grant = (parameterKey: string) => ({
+        progressionTracks: [rages],
+        levels: levelsWith({
+          1: [
+            rageGrant(feature.assetId, [
+              usesBinding,
+              { parameterKey, bindingSource: "STATIC", staticValue: ID.systemAxe },
+            ]),
+          ],
+        }),
+      });
+      const usagesOfAxe = async () =>
+        (await get(`/api/v1/campaigns/${ID.campaign}/assets/${ID.systemAxe}/usages`)).json()
+          .typedUsages as { assetId: string }[];
+
+      await createOk({ code: "labelled", name: "Labelled", ...grant("label") });
+
+      expect(await usagesOfAxe()).toEqual([]);
+
+      const equipped = await createOk({ code: "equipped", name: "Equipped", ...grant("gear") });
+
+      expect((await usagesOfAxe()).map((usage) => usage.assetId)).toEqual([equipped.assetId]);
+    });
+
     it("lets only administrators write global classes", async () => {
       const item = await createSystem();
 

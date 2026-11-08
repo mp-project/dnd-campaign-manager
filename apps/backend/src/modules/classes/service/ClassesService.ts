@@ -465,7 +465,7 @@ export class ClassesService {
    * What the stored definition refers to, for the reference index: the referenced assets and the
    * bound values that are asset ids. Nothing if the definition no longer parses.
    */
-  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[] | null> {
     const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
     if (!found) {
@@ -477,31 +477,23 @@ export class ClassesService {
     try {
       definition = parseClassDefinition(found.characterClass);
     } catch {
-      return [];
+      // Unknown for now; the stored references stay.
+      return null;
     }
 
-    return [
-      ...collectClassReferences(definition).map((reference) => ({
-        assetId: reference.assetId,
-        path: reference.path,
-        kind: "DEFINITION",
+    const bound = await this.features.collectBoundAssetReferences(
+      db,
+      listGrants(definition).map(({ levelIndex, grantIndex, grant }) => ({
+        ...grant,
+        path: ["levels", levelIndex, "featureGrants", grantIndex],
       })),
-      ...listGrants(definition).flatMap(({ levelIndex, grantIndex, grant }) =>
-        grant.bindings.flatMap((binding, bindingIndex) =>
-          binding.bindingSource === "STATIC" &&
-          typeof binding.staticValue === "string" &&
-          UUID_PATTERN.test(binding.staticValue)
-            ? [
-                {
-                  assetId: binding.staticValue,
-                  path: ["levels", levelIndex, "featureGrants", grantIndex, "bindings", bindingIndex, "staticValue"],
-                  kind: "DEFINITION",
-                },
-              ]
-            : [],
-        ),
-      ),
-    ];
+    );
+
+    return [...collectClassReferences(definition), ...bound].map((reference) => ({
+      assetId: reference.assetId,
+      path: reference.path,
+      kind: "DEFINITION",
+    }));
   }
 
   /**

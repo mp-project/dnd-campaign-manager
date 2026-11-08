@@ -5,7 +5,6 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
-import { UUID_PATTERN } from "#core/uuid";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
@@ -508,7 +507,10 @@ export class SpeciesService {
    * features, bound asset ids, and for a variant its species. Nothing if the definition no longer
    * parses.
    */
-  async listContentReferences(asset: AssetRow, db: AppDatabase): Promise<ContentReference[]> {
+  async listContentReferences(
+    asset: AssetRow,
+    db: AppDatabase,
+  ): Promise<ContentReference[] | null> {
     // Species grants scale by character level; from 2024 on they raise no ability scores either.
     const owner = { assetId: asset.id, campaignId: asset.campaignId };
     const forbids = [
@@ -517,7 +519,7 @@ export class SpeciesService {
         ? [FEATURE_PROPERTIES.raisesAbilityScore.code]
         : []),
     ];
-    const fromGrants = (grants: readonly SpeciesFeatureGrant[]): ContentReference[] => [
+    const fromGrants = async (grants: readonly SpeciesFeatureGrant[]): Promise<ContentReference[]> => [
       ...collectGrantReferences(grants).map((reference) => ({
         assetId: reference.assetId,
         path: reference.path,
@@ -525,21 +527,12 @@ export class SpeciesService {
         // The rules hold for granted features, not for the targets of upgrades.
         forbids: reference.path.at(-1) === "featureAssetId" ? forbids : [],
       })),
-      ...grants.flatMap((grant, grantIndex) =>
-        grant.bindings.flatMap((binding, bindingIndex) =>
-          binding.bindingSource === "STATIC" &&
-          typeof binding.staticValue === "string" &&
-          UUID_PATTERN.test(binding.staticValue)
-            ? [
-                {
-                  assetId: binding.staticValue,
-                  path: ["featureGrants", grantIndex, "bindings", bindingIndex, "staticValue"],
-                  kind: "DEFINITION",
-                },
-              ]
-            : [],
-        ),
-      ),
+      ...(
+        await this.features.collectBoundAssetReferences(
+          db,
+          grants.map((grant, grantIndex) => ({ ...grant, path: ["featureGrants", grantIndex] })),
+        )
+      ).map((reference) => ({ ...reference, kind: "DEFINITION" })),
     ];
 
     if (asset.assetType === "SPECIES") {
@@ -549,11 +542,16 @@ export class SpeciesService {
         return [];
       }
 
+      let grants: SpeciesFeatureGrant[];
+
       try {
-        return fromGrants(parseSpeciesDefinition(found.species).featureGrants);
+        grants = parseSpeciesDefinition(found.species).featureGrants;
       } catch {
-        return [];
+        // Unknown for now; the stored references stay.
+        return null;
       }
+
+      return fromGrants(grants);
     }
 
     const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
@@ -562,14 +560,20 @@ export class SpeciesService {
       return [];
     }
 
+    const grants = tryParseVariantGrants(found.variant);
+
+    if (grants === null) {
+      return null;
+    }
+
     const species = await this.repository.findById(db, found.variant.speciesId);
-    const grants = tryParseVariantGrants(found.variant) ?? [];
 
     return [
       ...(species ? [{ assetId: species.asset.id, path: ["species"], kind: "DEFINITION" }] : []),
-      ...fromGrants(grants),
+      ...(await fromGrants(grants)),
     ];
   }
+
 
   /**
    * The content check of a species or variant at the end of every action that touched it (see

@@ -550,6 +550,23 @@ describe("features", () => {
       expect(await stored()).toEqual([]);
     });
 
+    it("keeps the references of a definition that no longer parses", async () => {
+      const base = await createOk({ code: "base" });
+      const improved = await createOk({
+        code: "improved",
+        supersedes: [{ targetAssetId: base.assetId, mode: "UPGRADE" }],
+      });
+
+      await db
+        .update(features)
+        .set({ choices: [{ broken: true }] })
+        .where(eq(features.id, improved.id));
+      await assetsService.rebuildReferences();
+
+      // Still known as a usage, so the base can't be archived under it.
+      expect((await remove(base)).statusCode).toBe(409);
+    });
+
     it("keeps referenced assets from being archived and lists the usage", async () => {
       const base = await createOk({ code: "base" });
       const improved = await createOk({

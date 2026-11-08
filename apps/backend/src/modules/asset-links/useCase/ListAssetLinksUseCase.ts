@@ -4,7 +4,7 @@ import {
   type ResponseAssetLinkDto,
   type ResponseAssetLinkListDto,
   toAssetLinkDirection,
-  toAssetLinkGmResponse,
+  toAssetLinkFullResponse,
   toAssetLinkListResponse,
   toAssetLinkPlayerResponse,
 } from "#src/modules/asset-links/domain/dto/ResponseAssetLinkDto";
@@ -58,8 +58,8 @@ export class ListAssetLinksUseCase {
       const other = related.get(otherEndOf(link, input.assetId));
       const direction = toAssetLinkDirection(link, input.assetId);
 
-      if (viewer.view === "GM" && other) {
-        data.push(toAssetLinkGmResponse(link, direction, other));
+      if (viewer.view === "FULL" && other) {
+        data.push(toAssetLinkFullResponse(link, direction, other));
       } else if (
         viewer.view === "PLAYER" &&
         this.linksService.canPlayerSeeLink(link, other, visibleAssetIds)

@@ -3,7 +3,7 @@ import type { AssetsService, AssetStatus } from "#src/modules/assets/index";
 import type { RequestNotesQueryDto } from "#src/modules/notes/domain/dto/RequestNoteDto";
 import {
   type ResponseNoteListDto,
-  toNoteListItemGmResponse,
+  toNoteListItemFullResponse,
   toNoteListItemPlayerResponse,
   toNoteListResponse,
 } from "#src/modules/notes/domain/dto/ResponseNoteDto";
@@ -11,7 +11,7 @@ import type { NoteListFilter } from "#src/modules/notes/domain/repository/NotesR
 import { NotesService } from "#src/modules/notes/service/NotesService";
 import type { TagsService } from "#src/modules/tags/index";
 
-const GM_DEFAULT_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
+const FULL_VIEW_DEFAULT_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
 
 /**
  * GMs and editors see drafts and active notes, archived ones on request. Players see active notes
@@ -41,7 +41,7 @@ export class ListNotesUseCase {
           : []
         : query.status
           ? [query.status]
-          : GM_DEFAULT_STATUSES,
+          : FULL_VIEW_DEFAULT_STATUSES,
       limit: query.limit,
       cursor: query.cursor,
       noteType: query.noteType,
@@ -63,7 +63,7 @@ export class ListNotesUseCase {
 
     return toNoteListResponse({
       page,
-      data: records.map(toNoteListItemGmResponse),
+      data: records.map(toNoteListItemFullResponse),
       limit: query.limit,
     });
   }

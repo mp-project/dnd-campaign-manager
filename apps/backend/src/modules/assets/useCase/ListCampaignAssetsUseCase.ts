@@ -17,9 +17,9 @@ export class ListCampaignAssetsUseCase {
   ): Promise<ResponseAssetListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
     const allowedStatuses = this.assetsService.campaignStatusesFor(viewer.view);
-    const isGm = viewer.view === "GM";
+    const isFullView = viewer.view === "FULL";
 
-    if (query.status && !isGm && !allowedStatuses.includes(query.status)) {
+    if (query.status && !isFullView && !allowedStatuses.includes(query.status)) {
       return toAssetListResponse({
         page: { items: [], hasMore: false },
         view: viewer.view,
@@ -31,8 +31,8 @@ export class ListCampaignAssetsUseCase {
     const filter: CampaignAssetListFilter = {
       campaignId: viewer.campaignId,
       assetType: query.assetType,
-      statuses: query.status ? [query.status] : isGm ? undefined : allowedStatuses,
-      visibleAssetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+      statuses: query.status ? [query.status] : isFullView ? undefined : allowedStatuses,
+      visibleAssetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
       search: query.search,
       limit: query.limit,
       cursor: query.cursor,

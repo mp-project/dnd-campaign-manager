@@ -127,7 +127,7 @@ type AssetCommandInput = {
   expectedVersion: number;
 };
 
-const GM_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
+const FULL_VIEW_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["DRAFT", "ACTIVE"];
 const PLAYER_CAMPAIGN_STATUSES: readonly AssetStatus[] = ["ACTIVE"];
 
 /**
@@ -818,7 +818,7 @@ export class AssetsService {
       actorId,
       campaignId: campaign.campaignId,
       rulesetId: campaign.rulesetId,
-      view: isAdmin || campaign.role === "EDITOR" ? "GM" : "PLAYER",
+      view: isAdmin || campaign.role === "EDITOR" ? "FULL" : "PLAYER",
       isAdmin,
     };
   }
@@ -840,7 +840,7 @@ export class AssetsService {
   }
 
   campaignStatusesFor(view: AssetView): readonly AssetStatus[] {
-    return view === "GM" ? GM_CAMPAIGN_STATUSES : PLAYER_CAMPAIGN_STATUSES;
+    return view === "FULL" ? FULL_VIEW_CAMPAIGN_STATUSES : PLAYER_CAMPAIGN_STATUSES;
   }
 
   async requireAsset(db: AppDatabase, assetId: string): Promise<AssetRow> {

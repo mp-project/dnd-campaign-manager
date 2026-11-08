@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { CreateSpeciesVariantDto } from "#src/modules/species/domain/dto/CreateSpeciesDto";
 import {
-  type ResponseSpeciesVariantGmDto,
-  toSpeciesVariantGmResponse,
+  type ResponseSpeciesVariantFullDto,
+  toSpeciesVariantFullResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesVariantDto";
 import { SPECIES_ACTIONS } from "#src/modules/species/history/TrackedSpecies";
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
@@ -19,7 +19,7 @@ export type CreateSpeciesVariantInput = {
   command: CreateSpeciesVariantDto;
 };
 
-export class CreateSpeciesVariantUseCase extends MutationUseCase<CreateSpeciesVariantInput, ResponseSpeciesVariantGmDto> {
+export class CreateSpeciesVariantUseCase extends MutationUseCase<CreateSpeciesVariantInput, ResponseSpeciesVariantFullDto> {
   protected readonly action = SPECIES_ACTIONS.createVariant;
 
   constructor(
@@ -44,11 +44,11 @@ export class CreateSpeciesVariantUseCase extends MutationUseCase<CreateSpeciesVa
     scope: ActionScope,
     context: RequestContext,
     input: CreateSpeciesVariantInput,
-  ): Promise<ResponseSpeciesVariantGmDto> {
+  ): Promise<ResponseSpeciesVariantFullDto> {
     const actorId = this.speciesService.actorIdOf(context);
     const species = await this.speciesService.requireForWrite(scope.tx, input);
 
-    return toSpeciesVariantGmResponse(
+    return toSpeciesVariantFullResponse(
       await this.variantsService.createVariant(scope, { actorId, species }, input.command),
     );
   }

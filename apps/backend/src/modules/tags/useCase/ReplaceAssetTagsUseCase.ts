@@ -6,7 +6,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseReplaceAssetTagsDto,
-  toTagGmResponse,
+  toTagFullResponse,
 } from "#src/modules/tags/domain/dto/ResponseTagDto";
 import type { ReplaceAssetTagsDto } from "#src/modules/tags/domain/dto/UpdateTagDto";
 import { ASSET_TAGS_ACTION } from "#src/modules/tags/history/TrackedTag";
@@ -61,10 +61,10 @@ export class ReplaceAssetTagsUseCase extends MutationUseCase<
     );
 
     return {
-      view: "GM",
+      view: "FULL",
       assetId: row.id,
       assetVersion: row.version,
-      tags: tags.map((tag) => toTagGmResponse(tag, usage.get(tag.id) ?? 0)),
+      tags: tags.map((tag) => toTagFullResponse(tag, usage.get(tag.id) ?? 0)),
       merged,
     };
   }

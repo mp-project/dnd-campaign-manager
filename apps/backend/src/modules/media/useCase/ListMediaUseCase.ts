@@ -3,7 +3,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import type { RequestMediaQueryDto } from "#src/modules/media/domain/dto/RequestMediaDto";
 import {
   type ResponseMediaListDto,
-  toMediaGmResponse,
+  toMediaFullResponse,
   toMediaListResponse,
   toMediaPlayerResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
@@ -54,7 +54,7 @@ export class ListMediaUseCase {
     return toMediaListResponse({
       page,
       data: page.items.map((file) =>
-        toMediaGmResponse(file, viewer.campaignId, usage.get(file.id) ?? 0),
+        toMediaFullResponse(file, viewer.campaignId, usage.get(file.id) ?? 0),
       ),
       limit,
       storageUsage: await this.quota.findVisibleUsage(context, viewer.campaignId),

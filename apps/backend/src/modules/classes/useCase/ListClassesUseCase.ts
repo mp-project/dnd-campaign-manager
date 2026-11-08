@@ -8,7 +8,7 @@ import type {
 } from "#src/modules/classes/domain/dto/RequestClassDto";
 import {
   type ResponseClassListDto,
-  toClassListItemGmResponse,
+  toClassListItemFullResponse,
   toClassListItemPlayerResponse,
   toClassListResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
@@ -91,10 +91,10 @@ export class ClassListing {
   ): Promise<ResponseClassListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
     const { db, repository } = this.classesService;
-    const isGm = viewer.view === "GM";
+    const isFullView = viewer.view === "FULL";
     // GMs manage their own archived classes in the campaign list; everywhere else archived classes
     // only stay while the campaign still uses them.
-    const managesArchived = isGm && !include.catalog;
+    const managesArchived = isFullView && !include.catalog;
     const inUse =
       !managesArchived && (query.status === undefined || query.status === "ARCHIVED")
         ? [...(await this.assetsService.listInUseAssetIds(viewer.campaignId))]
@@ -114,15 +114,15 @@ export class ClassListing {
           ? undefined
           : {
               campaignId: viewer.campaignId,
-              statuses: statusesFor(isGm, query.status).filter(
+              statuses: statusesFor(isFullView, query.status).filter(
                 (status) => managesArchived || status !== "ARCHIVED",
               ),
-              assetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+              assetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
               archivedAssetIds: inUse,
             },
     };
 
-    return this.toResponse(await repository.listPage(db, filter), isGm, query.limit);
+    return this.toResponse(await repository.listPage(db, filter), isFullView, query.limit);
   }
 
   private baseFilter(query: RequestCampaignClassesQueryDto) {
@@ -150,7 +150,7 @@ export class ClassListing {
 
     const records = await this.classesService.loadRecords(this.classesService.db, page.items);
 
-    return toClassListResponse({ page, data: records.map(toClassListItemGmResponse), limit });
+    return toClassListResponse({ page, data: records.map(toClassListItemFullResponse), limit });
   }
 }
 

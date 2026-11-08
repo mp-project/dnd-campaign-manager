@@ -5,7 +5,7 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseUpdateSpeciesDto,
-  toSpeciesGmResponse,
+  toSpeciesFullResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import type { UpdateSpeciesDto } from "#src/modules/species/domain/dto/UpdateSpeciesDto";
 import { SPECIES_ACTIONS } from "#src/modules/species/history/TrackedSpecies";
@@ -50,6 +50,6 @@ export class UpdateSpeciesUseCase extends MutationUseCase<UpdateSpeciesInput, Re
       command: input.command,
     });
 
-    return { ...toSpeciesGmResponse(record), merged };
+    return { ...toSpeciesFullResponse(record), merged };
   }
 }

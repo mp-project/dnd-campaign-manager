@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AssetLifecycleCommandDto } from "#src/modules/assets/domain/dto/UpdateAssetDto";
 import {
-  type ResponseAssetGmDto,
-  toAssetGmResponse,
+  type ResponseAssetFullDto,
+  toAssetFullResponse,
 } from "#src/modules/assets/domain/dto/ResponseAssetDto";
 import { ASSET_ACTIONS } from "#src/modules/assets/history/TrackedAsset";
 import { AssetsService } from "#src/modules/assets/service/AssetsService";
@@ -19,7 +19,7 @@ export type DeleteAssetInput = {
 /**
  * Archives an asset (status `ARCHIVED`); it stays resolvable and can be restored.
  */
-export class DeleteAssetUseCase extends MutationUseCase<DeleteAssetInput, ResponseAssetGmDto> {
+export class DeleteAssetUseCase extends MutationUseCase<DeleteAssetInput, ResponseAssetFullDto> {
   protected readonly action = ASSET_ACTIONS.archive;
 
   constructor(
@@ -43,8 +43,8 @@ export class DeleteAssetUseCase extends MutationUseCase<DeleteAssetInput, Respon
     scope: ActionScope,
     _context: RequestContext,
     input: DeleteAssetInput,
-  ): Promise<ResponseAssetGmDto> {
-    return toAssetGmResponse(
+  ): Promise<ResponseAssetFullDto> {
+    return toAssetFullResponse(
       await this.assetsService.archiveBase(scope, {
         assetId: input.assetId,
         expectedVersion: input.command.expectedVersion,

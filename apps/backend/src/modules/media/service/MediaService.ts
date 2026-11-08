@@ -105,7 +105,7 @@ export class MediaService {
   ): Promise<MediaFileRow> {
     const file = await this.requireFileInCampaign(viewer.campaignId, mediaId);
 
-    if (viewer.view === "GM") {
+    if (viewer.view === "FULL") {
       return file;
     }
 

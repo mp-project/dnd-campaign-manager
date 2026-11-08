@@ -3,7 +3,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import type { RequestTagsQueryDto } from "#src/modules/tags/domain/dto/RequestTagDto";
 import {
   type ResponseTagListDto,
-  toTagGmResponse,
+  toTagFullResponse,
   toTagListResponse,
   toTagPlayerResponse,
 } from "#src/modules/tags/domain/dto/ResponseTagDto";
@@ -49,7 +49,7 @@ export class ListTagsUseCase {
 
     return toTagListResponse({
       page,
-      data: page.items.map((tag) => toTagGmResponse(tag, usage.get(tag.id) ?? 0)),
+      data: page.items.map((tag) => toTagFullResponse(tag, usage.get(tag.id) ?? 0)),
       limit: input.query.limit,
     });
   }

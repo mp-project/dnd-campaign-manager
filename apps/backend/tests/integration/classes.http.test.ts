@@ -319,7 +319,7 @@ describe("classes", () => {
       const item = await createOk();
 
       expect(item).toMatchObject({
-        view: "GM",
+        view: "FULL",
         scope: "CAMPAIGN",
         campaignId: ID.campaign,
         name: "Barbarian",
@@ -469,7 +469,7 @@ describe("classes", () => {
         const detail = await get(`${catalogUrl()}/${item.id}`, as);
 
         expect(detail.statusCode).toBe(200);
-        expect(detail.json()).toMatchObject({ view: as === GM ? "GM" : "PLAYER", selectable: false });
+        expect(detail.json()).toMatchObject({ view: as === GM ? "FULL" : "PLAYER", selectable: false });
         expect((await get(`${catalogUrl()}/${item.id}/features`, as)).statusCode).toBe(200);
         expect((await get(catalogUrl(), as)).json().data).toEqual([
           expect.objectContaining({ id: item.id, selectable: false }),

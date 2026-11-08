@@ -91,7 +91,7 @@ export const SPECIES_MODULE_DEPENDENCIES = "species.module.dependencies";
  * (`validateSpeciesSelection`, `resolveSpeciesSelection`, `getCreationOptions`). They store the
  * choice themselves, in their own transaction; inside it they pass its handle as `db` to every one
  * of these reads, because a read on the pool would need a second connection while the first is
- * held. Resolve with the GM view (`isVisible` always true): the player view leaves hidden grants
+ * held. Resolve with the full view (`isVisible` always true): the player view leaves hidden grants
  * out entirely and is only a preview. This module changes no actor.
  */
 export type SpeciesModuleDependencies = {

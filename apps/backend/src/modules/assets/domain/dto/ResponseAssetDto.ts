@@ -11,14 +11,14 @@ import type {
 /**
  * Full metadata view for admins and campaign editors (GM).
  */
-export const ResponseAssetGmSchema = baseEntityResponseDto
+export const ResponseAssetFullSchema = baseEntityResponseDto
   .extend(AssetBaseSchema.omit({ id: true }).shape)
-  .extend({ view: z.literal("GM") });
+  .extend({ view: z.literal("FULL") });
 
 /**
  * `merged` lists fields whose newer value from somebody else was kept instead of the sent one.
  */
-export const ResponseUpdateAssetSchema = ResponseAssetGmSchema.extend({
+export const ResponseUpdateAssetSchema = ResponseAssetFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -34,22 +34,22 @@ export const ResponseAssetPlayerSchema = AssetBaseSchema.pick({
 }).extend({ view: z.literal("PLAYER") });
 
 export const ResponseAssetSchema = z.discriminatedUnion("view", [
-  ResponseAssetGmSchema,
+  ResponseAssetFullSchema,
   ResponseAssetPlayerSchema,
 ]);
 
 export const ResponseAssetListSchema = standardListResponseDto(ResponseAssetSchema);
 
-export type ResponseAssetGmDto = z.infer<typeof ResponseAssetGmSchema>;
+export type ResponseAssetFullDto = z.infer<typeof ResponseAssetFullSchema>;
 export type ResponseUpdateAssetDto = z.infer<typeof ResponseUpdateAssetSchema>;
 export type ResponseAssetPlayerDto = z.infer<typeof ResponseAssetPlayerSchema>;
 export type ResponseAssetDto = z.infer<typeof ResponseAssetSchema>;
 export type ResponseAssetListDto = z.infer<typeof ResponseAssetListSchema>;
 export type AssetView = ResponseAssetDto["view"];
 
-export function toAssetGmResponse({ asset, rulesetIds }: AssetRecord): ResponseAssetGmDto {
+export function toAssetFullResponse({ asset, rulesetIds }: AssetRecord): ResponseAssetFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: asset.id,
     version: asset.version,
     createdAt: asset.createdAt.toISOString(),
@@ -76,7 +76,7 @@ export function toAssetGmResponse({ asset, rulesetIds }: AssetRecord): ResponseA
 export function toUpdateAssetResponse(
   record: AssetRecord & { merged: string[] },
 ): ResponseUpdateAssetDto {
-  return { ...toAssetGmResponse(record), merged: record.merged };
+  return { ...toAssetFullResponse(record), merged: record.merged };
 }
 
 export function toAssetPlayerResponse({ asset }: AssetRecord): ResponseAssetPlayerDto {
@@ -91,7 +91,7 @@ export function toAssetPlayerResponse({ asset }: AssetRecord): ResponseAssetPlay
 }
 
 export function toAssetResponse(record: AssetRecord, view: AssetView): ResponseAssetDto {
-  return view === "GM" ? toAssetGmResponse(record) : toAssetPlayerResponse(record);
+  return view === "FULL" ? toAssetFullResponse(record) : toAssetPlayerResponse(record);
 }
 
 export function toAssetListResponse(params: {

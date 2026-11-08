@@ -362,7 +362,7 @@ describe("asset links", () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json()).toMatchObject({
-        view: "GM",
+        view: "FULL",
         campaignId: ID.campaign,
         sourceAssetId: ID.location,
         targetAssetId: ID.item,

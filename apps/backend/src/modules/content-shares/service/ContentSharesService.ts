@@ -211,7 +211,7 @@ export class ContentSharesService {
     shareId: string,
   ): Promise<{ share: ContentShareRow; asset: AssetRow; content: unknown }> {
     const share =
-      viewer.view === "GM"
+      viewer.view === "FULL"
         ? await this.requireShare(this.db, { campaignId: viewer.campaignId, shareId })
         : (await this.listReceived(viewer)).find((item) => item.share.id === shareId)?.share;
     const asset = share

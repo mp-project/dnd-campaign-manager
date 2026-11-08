@@ -301,7 +301,7 @@ describe("features", () => {
       const feature = await createOk(KI);
 
       expect(feature).toMatchObject({
-        view: "GM",
+        view: "FULL",
         scope: "CAMPAIGN",
         campaignId: ID.campaign,
         name: "Ki",
@@ -661,7 +661,7 @@ describe("features", () => {
       expect((await get(`${systemUrl}?status=DRAFT`, ADMIN)).json().data).toHaveLength(1);
       expect((await get(`${systemUrl}?rulesetId=${ID.otherRuleset}`, ADMIN)).json().data).toHaveLength(2);
       expect((await get(`${systemUrl}/${draft.id}`, PLAYER)).statusCode).toBe(404);
-      expect((await get(`${systemUrl}/${draft.id}`, ADMIN)).json().view).toBe("GM");
+      expect((await get(`${systemUrl}/${draft.id}`, ADMIN)).json().view).toBe("FULL");
     });
 
     it("validates stored definitions against changes elsewhere", async () => {

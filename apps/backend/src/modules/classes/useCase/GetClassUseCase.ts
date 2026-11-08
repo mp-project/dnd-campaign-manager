@@ -1,7 +1,7 @@
 import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseClassDto,
-  toClassGmResponse,
+  toClassFullResponse,
   toClassPlayerResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
@@ -25,6 +25,6 @@ export class GetClassUseCase {
       return toClassPlayerResponse(found, isVisible);
     }
 
-    return toClassGmResponse(await this.classesService.loadRecord(this.classesService.db, found));
+    return toClassFullResponse(await this.classesService.loadRecord(this.classesService.db, found));
   }
 }

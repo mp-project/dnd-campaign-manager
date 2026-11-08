@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { CreateClassDto } from "#src/modules/classes/domain/dto/CreateClassDto";
 import {
-  type ResponseClassGmDto,
-  toClassGmResponse,
+  type ResponseClassFullDto,
+  toClassFullResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
 import { CLASS_ACTIONS } from "#src/modules/classes/history/TrackedClass";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
@@ -14,7 +14,7 @@ import { ClassesService } from "#src/modules/classes/service/ClassesService";
 /** `campaignId` null creates a global class, which only administrators may do. */
 export type CreateClassInput = { campaignId: string | null; command: CreateClassDto };
 
-export class CreateClassUseCase extends MutationUseCase<CreateClassInput, ResponseClassGmDto> {
+export class CreateClassUseCase extends MutationUseCase<CreateClassInput, ResponseClassFullDto> {
   protected readonly action = CLASS_ACTIONS.create;
 
   constructor(
@@ -38,10 +38,10 @@ export class CreateClassUseCase extends MutationUseCase<CreateClassInput, Respon
     scope: ActionScope,
     context: RequestContext,
     input: CreateClassInput,
-  ): Promise<ResponseClassGmDto> {
+  ): Promise<ResponseClassFullDto> {
     const actorId = this.classesService.actorIdOf(context);
 
-    return toClassGmResponse(
+    return toClassFullResponse(
       await this.classesService.createClass(
         scope,
         { actorId, campaignId: input.campaignId },

@@ -5,7 +5,7 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseUpdateClassDto,
-  toClassGmResponse,
+  toClassFullResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
 import type { UpdateClassDto } from "#src/modules/classes/domain/dto/UpdateClassDto";
 import { CLASS_ACTIONS } from "#src/modules/classes/history/TrackedClass";
@@ -50,6 +50,6 @@ export class UpdateClassUseCase extends MutationUseCase<UpdateClassInput, Respon
       command: input.command,
     });
 
-    return { ...toClassGmResponse(record), merged };
+    return { ...toClassFullResponse(record), merged };
   }
 }

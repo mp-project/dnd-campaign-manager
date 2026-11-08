@@ -7,7 +7,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import type { UpdateAssetMediaDto } from "#src/modules/media/domain/dto/RequestMediaDto";
 import {
   type ResponseUpdateAssetMediaDto,
-  toAssetMediaGmResponse,
+  toAssetMediaFullResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import type { MediaFileRow } from "#src/modules/media/domain/repository/MediaRepository";
 import { ASSET_MEDIA_ACTIONS } from "#src/modules/media/history/TrackedAssetMedia";
@@ -52,6 +52,6 @@ export class UpdateAssetMediaUseCase extends MutationUseCase<
     const { row, merged } = await this.mediaService.updateAssignment(scope, input);
     const file = await this.mediaService.repository.findFileById(scope.tx, row.mediaId);
 
-    return { ...toAssetMediaGmResponse(row, file as MediaFileRow), merged };
+    return { ...toAssetMediaFullResponse(row, file as MediaFileRow), merged };
   }
 }

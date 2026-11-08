@@ -13,7 +13,7 @@ import type { SpeciesSelectionService } from "#src/modules/species/service/Speci
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
 import type { SpeciesReader } from "#src/modules/species/useCase/SpeciesReader";
 
-const header = (readable: { found: { species: { id: string }; asset: { id: string } }; view: "GM" | "PLAYER" }) => ({
+const header = (readable: { found: { species: { id: string }; asset: { id: string } }; view: "FULL" | "PLAYER" }) => ({
   speciesId: readable.found.species.id,
   assetId: readable.found.asset.id,
   view: readable.view,

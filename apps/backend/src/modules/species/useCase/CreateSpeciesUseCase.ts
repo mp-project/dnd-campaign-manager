@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { CreateSpeciesDto } from "#src/modules/species/domain/dto/CreateSpeciesDto";
 import {
-  type ResponseSpeciesGmDto,
-  toSpeciesGmResponse,
+  type ResponseSpeciesFullDto,
+  toSpeciesFullResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import { SPECIES_ACTIONS } from "#src/modules/species/history/TrackedSpecies";
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
@@ -14,7 +14,7 @@ import type { SpeciesService } from "#src/modules/species/service/SpeciesService
 /** `campaignId` null creates a global species, which only administrators may do. */
 export type CreateSpeciesInput = { campaignId: string | null; command: CreateSpeciesDto };
 
-export class CreateSpeciesUseCase extends MutationUseCase<CreateSpeciesInput, ResponseSpeciesGmDto> {
+export class CreateSpeciesUseCase extends MutationUseCase<CreateSpeciesInput, ResponseSpeciesFullDto> {
   protected readonly action = SPECIES_ACTIONS.create;
 
   constructor(
@@ -38,10 +38,10 @@ export class CreateSpeciesUseCase extends MutationUseCase<CreateSpeciesInput, Re
     scope: ActionScope,
     context: RequestContext,
     input: CreateSpeciesInput,
-  ): Promise<ResponseSpeciesGmDto> {
+  ): Promise<ResponseSpeciesFullDto> {
     const actorId = this.speciesService.actorIdOf(context);
 
-    return toSpeciesGmResponse(
+    return toSpeciesFullResponse(
       await this.speciesService.createSpecies(
         scope,
         { actorId, campaignId: input.campaignId },

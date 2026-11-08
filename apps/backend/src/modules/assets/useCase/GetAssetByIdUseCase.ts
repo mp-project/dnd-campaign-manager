@@ -3,7 +3,7 @@ import { NotFoundError } from "#core/error/http/index";
 import { isSysAdminRole } from "#core/permissions/roles";
 import {
   type ResponseAssetDto,
-  toAssetGmResponse,
+  toAssetFullResponse,
   toAssetPlayerResponse,
 } from "#src/modules/assets/domain/dto/ResponseAssetDto";
 import { AssetsService } from "#src/modules/assets/service/AssetsService";
@@ -20,7 +20,7 @@ export class GetAssetByIdUseCase {
     const record = await this.assetsService.toRecord(this.assetsService.db, asset);
 
     if (isSysAdminRole(context.systemRole)) {
-      return toAssetGmResponse(record);
+      return toAssetFullResponse(record);
     }
 
     if (asset.scope === "SYSTEM") {
@@ -37,8 +37,8 @@ export class GetAssetByIdUseCase {
         throw error instanceof NotFoundError ? new NotFoundError("Asset not found") : error;
       });
 
-    if (viewer.view === "GM") {
-      return toAssetGmResponse(record);
+    if (viewer.view === "FULL") {
+      return toAssetFullResponse(record);
     }
 
     const visibleAssetIds = await this.assetsService.listVisibleAssetIds(viewer);

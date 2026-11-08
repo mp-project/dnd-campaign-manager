@@ -17,7 +17,7 @@ export class ListCampaignCatalogUseCase {
     query: RequestAssetDto["campaignCatalogQuery"],
   ): Promise<ResponseAssetListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
-    const isGm = viewer.view === "GM";
+    const isFullView = viewer.view === "FULL";
 
     const page = await this.assetsService.repository.listCatalog(this.assetsService.db, {
       assetType,
@@ -25,7 +25,7 @@ export class ListCampaignCatalogUseCase {
       campaign: {
         campaignId: viewer.campaignId,
         statuses: this.assetsService.campaignStatusesFor(viewer.view),
-        visibleAssetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+        visibleAssetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
       },
       search: query.search,
       limit: query.limit,

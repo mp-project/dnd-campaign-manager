@@ -145,7 +145,7 @@ export class SpeciesSelectionService {
     found: SpeciesWithAsset,
     input: {
       viewer: CampaignAssetViewer;
-      view: "GM" | "PLAYER";
+      view: "FULL" | "PLAYER";
       visibleAssetIds: ReadonlySet<string>;
       isVisible: (assetId: string) => boolean;
       offered: readonly OfferedVariant[];

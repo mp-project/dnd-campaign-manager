@@ -41,7 +41,7 @@ const graphResponseShape = {
  * View for those who may change the feature, and for GMs reading global features. `version` and
  * the audit fields belong to the feature, `assetVersion` to its asset; changes send both back.
  */
-export const ResponseFeatureGmSchema = baseEntityResponseDto
+export const ResponseFeatureFullSchema = baseEntityResponseDto
   .extend(
     FeatureBaseSchema.pick({
       assetId: true,
@@ -63,13 +63,13 @@ export const ResponseFeatureGmSchema = baseEntityResponseDto
   )
   .extend(graphResponseShape)
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     assetVersion: z.number().int().positive(),
     descriptionHtml: htmlDto.nullable(),
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateFeatureSchema = ResponseFeatureGmSchema.extend({
+export const ResponseUpdateFeatureSchema = ResponseFeatureFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -97,12 +97,12 @@ export const ResponseFeaturePlayerSchema = FeatureBaseSchema.pick({
   });
 
 export const ResponseFeatureSchema = z.discriminatedUnion("view", [
-  ResponseFeatureGmSchema,
+  ResponseFeatureFullSchema,
   ResponseFeaturePlayerSchema,
 ]);
 
 /** List entry for GMs and editors: everything to sort and pick a feature, but no definition. */
-export const ResponseFeatureListItemGmSchema = ResponseFeatureGmSchema.pick({
+export const ResponseFeatureListItemFullSchema = ResponseFeatureFullSchema.pick({
   id: true,
   version: true,
   createdAt: true,
@@ -141,7 +141,7 @@ export const ResponseFeatureListItemPlayerSchema = ResponseFeaturePlayerSchema.p
 
 export const ResponseFeatureListSchema = standardListResponseDto(
   z.discriminatedUnion("view", [
-    ResponseFeatureListItemGmSchema,
+    ResponseFeatureListItemFullSchema,
     ResponseFeatureListItemPlayerSchema,
   ]),
 );
@@ -246,12 +246,12 @@ export const ResponseResolvedFeatureSchema = z.strictObject({
   reasons: z.array(z.string()),
 });
 
-export type ResponseFeatureGmDto = z.infer<typeof ResponseFeatureGmSchema>;
+export type ResponseFeatureFullDto = z.infer<typeof ResponseFeatureFullSchema>;
 export type ResponseUpdateFeatureDto = z.infer<typeof ResponseUpdateFeatureSchema>;
 export type ResponseFeaturePlayerDto = z.infer<typeof ResponseFeaturePlayerSchema>;
 export type ResponseFeatureDto = z.infer<typeof ResponseFeatureSchema>;
 export type ResponseFeatureListDto = z.infer<typeof ResponseFeatureListSchema>;
-export type ResponseFeatureListItemGmDto = z.infer<typeof ResponseFeatureListItemGmSchema>;
+export type ResponseFeatureListItemFullDto = z.infer<typeof ResponseFeatureListItemFullSchema>;
 export type ResponseFeatureListItemPlayerDto = z.infer<typeof ResponseFeatureListItemPlayerSchema>;
 export type ResponseFeatureValidationDto = z.infer<typeof ResponseFeatureValidationSchema>;
 export type ResponseResolvedFeatureDto = z.infer<typeof ResponseResolvedFeatureSchema>;
@@ -277,9 +277,9 @@ function toGraphResponse(graph: FeatureGraph) {
   };
 }
 
-export function toFeatureGmResponse({ feature, asset, rulesetIds }: FeatureRecord): ResponseFeatureGmDto {
+export function toFeatureFullResponse({ feature, asset, rulesetIds }: FeatureRecord): ResponseFeatureFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: feature.id,
     version: feature.version,
     createdAt: feature.createdAt.toISOString(),
@@ -350,13 +350,13 @@ export function toFeaturePlayerResponse(
   };
 }
 
-export function toFeatureListItemGmResponse({
+export function toFeatureListItemFullResponse({
   feature,
   asset,
   rulesetIds,
-}: FeatureRecord): ResponseFeatureListItemGmDto {
+}: FeatureRecord): ResponseFeatureListItemFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: feature.id,
     version: feature.version,
     createdAt: feature.createdAt.toISOString(),

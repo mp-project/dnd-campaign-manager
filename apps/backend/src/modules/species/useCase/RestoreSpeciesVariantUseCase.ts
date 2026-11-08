@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseSpeciesVariantGmDto,
-  toSpeciesVariantGmResponse,
+  type ResponseSpeciesVariantFullDto,
+  toSpeciesVariantFullResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesVariantDto";
 import type { SpeciesLifecycleCommandDto } from "#src/modules/species/domain/dto/UpdateSpeciesDto";
 import { SPECIES_ACTIONS } from "#src/modules/species/history/TrackedSpecies";
@@ -20,7 +20,7 @@ export type RestoreSpeciesVariantInput = {
 };
 
 /** Restores an archived variant; its species must not be archived. */
-export class RestoreSpeciesVariantUseCase extends MutationUseCase<RestoreSpeciesVariantInput, ResponseSpeciesVariantGmDto> {
+export class RestoreSpeciesVariantUseCase extends MutationUseCase<RestoreSpeciesVariantInput, ResponseSpeciesVariantFullDto> {
   protected readonly action = SPECIES_ACTIONS.restoreVariant;
 
   constructor(
@@ -45,7 +45,7 @@ export class RestoreSpeciesVariantUseCase extends MutationUseCase<RestoreSpecies
     scope: ActionScope,
     _context: RequestContext,
     input: RestoreSpeciesVariantInput,
-  ): Promise<ResponseSpeciesVariantGmDto> {
+  ): Promise<ResponseSpeciesVariantFullDto> {
     const species = await this.speciesService.requireForWrite(scope.tx, input);
     const found = await this.variantsService.requireVariantOf(
       scope.tx,
@@ -53,7 +53,7 @@ export class RestoreSpeciesVariantUseCase extends MutationUseCase<RestoreSpecies
       input.variantId,
     );
 
-    return toSpeciesVariantGmResponse(
+    return toSpeciesVariantFullResponse(
       await this.variantsService.restoreVariant(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

@@ -4,7 +4,7 @@ import { isSysAdminRole } from "#core/permissions/roles";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseFeatureDto,
-  toFeatureGmResponse,
+  toFeatureFullResponse,
   toFeaturePlayerResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
 import type { FeatureWithAsset } from "#src/modules/features/domain/repository/FeaturesRepository";
@@ -40,7 +40,7 @@ export class GetFeatureUseCase {
       const found = await this.featuresService.requireSystemFeature(db, input.featureId);
 
       if (isSysAdminRole(context.systemRole)) {
-        return toFeatureGmResponse(await this.featuresService.loadRecord(db, found));
+        return toFeatureFullResponse(await this.featuresService.loadRecord(db, found));
       }
 
       if (found.asset.status !== "ACTIVE") {
@@ -77,7 +77,7 @@ export class GetFeatureUseCase {
       return this.toPlayer(found, visibleAssetIds, inUseAssetIds);
     }
 
-    return toFeatureGmResponse(await this.featuresService.loadRecord(db, found));
+    return toFeatureFullResponse(await this.featuresService.loadRecord(db, found));
   }
 
   private async toPlayer(

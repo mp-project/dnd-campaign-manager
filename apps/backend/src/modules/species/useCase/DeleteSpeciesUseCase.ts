@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseSpeciesGmDto,
-  toSpeciesGmResponse,
+  type ResponseSpeciesFullDto,
+  toSpeciesFullResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import type { SpeciesLifecycleCommandDto } from "#src/modules/species/domain/dto/UpdateSpeciesDto";
 import { SPECIES_ACTIONS } from "#src/modules/species/history/TrackedSpecies";
@@ -18,7 +18,7 @@ export type DeleteSpeciesInput = {
 };
 
 /** Archives the species; it can be restored. Fails while variants or other definitions refer to it. */
-export class DeleteSpeciesUseCase extends MutationUseCase<DeleteSpeciesInput, ResponseSpeciesGmDto> {
+export class DeleteSpeciesUseCase extends MutationUseCase<DeleteSpeciesInput, ResponseSpeciesFullDto> {
   protected readonly action = SPECIES_ACTIONS.delete;
 
   constructor(
@@ -42,10 +42,10 @@ export class DeleteSpeciesUseCase extends MutationUseCase<DeleteSpeciesInput, Re
     scope: ActionScope,
     _context: RequestContext,
     input: DeleteSpeciesInput,
-  ): Promise<ResponseSpeciesGmDto> {
+  ): Promise<ResponseSpeciesFullDto> {
     const found = await this.speciesService.requireForWrite(scope.tx, input);
 
-    return toSpeciesGmResponse(
+    return toSpeciesFullResponse(
       await this.speciesService.archiveSpecies(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

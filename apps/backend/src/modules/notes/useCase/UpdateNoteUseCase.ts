@@ -6,7 +6,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseUpdateNoteDto,
-  toNoteGmResponse,
+  toNoteFullResponse,
 } from "#src/modules/notes/domain/dto/ResponseNoteDto";
 import type { UpdateNoteDto } from "#src/modules/notes/domain/dto/UpdateNoteDto";
 import { NOTE_ACTIONS } from "#src/modules/notes/history/TrackedNote";
@@ -45,6 +45,6 @@ export class UpdateNoteUseCase extends MutationUseCase<UpdateNoteInput, Response
       actorId: this.assetsService.assertAuthenticated(context),
     });
 
-    return { ...toNoteGmResponse(record), merged };
+    return { ...toNoteFullResponse(record), merged };
   }
 }

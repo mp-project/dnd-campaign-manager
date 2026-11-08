@@ -6,7 +6,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseUpdateTagDto,
-  toTagGmResponse,
+  toTagFullResponse,
 } from "#src/modules/tags/domain/dto/ResponseTagDto";
 import type { UpdateTagDto } from "#src/modules/tags/domain/dto/UpdateTagDto";
 import { TAG_ACTIONS } from "#src/modules/tags/history/TrackedTag";
@@ -43,6 +43,6 @@ export class UpdateTagUseCase extends MutationUseCase<UpdateTagInput, ResponseUp
     const { row, merged } = await this.tagsService.updateTag(scope, input);
     const usageCount = await this.tagsService.getUsageCount(row.id, scope.tx);
 
-    return { ...toTagGmResponse(row, usageCount), merged };
+    return { ...toTagFullResponse(row, usageCount), merged };
   }
 }

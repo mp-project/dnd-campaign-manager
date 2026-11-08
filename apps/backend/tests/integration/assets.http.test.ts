@@ -224,7 +224,7 @@ describe("assets HTTP routes", () => {
       const body = response.json();
       expect(titles(body)).toEqual(["Ember Lance", "Mira", "Secret Draft"]);
       expect(body.pageInfo.total).toBe(3);
-      expect(body.data[0]).toMatchObject({ view: "GM", status: "ACTIVE", slug: "ember-lance" });
+      expect(body.data[0]).toMatchObject({ view: "FULL", status: "ACTIVE", slug: "ember-lance" });
     });
 
     it("shows players only shared active assets without GM metadata", async () => {
@@ -313,7 +313,7 @@ describe("assets HTTP routes", () => {
     it("returns role-dependent views and hides unshared or foreign assets", async () => {
       const gm = await injectAs(GM, { method: "GET", url: `/api/v1/assets/${ID.campaignDraft}` });
       expect(gm.statusCode).toBe(200);
-      expect(gm.json()).toMatchObject({ view: "GM", status: "DRAFT", rulesetIds: [] });
+      expect(gm.json()).toMatchObject({ view: "FULL", status: "DRAFT", rulesetIds: [] });
 
       const shared = await injectAs(PLAYER, { method: "GET", url: `/api/v1/assets/${ID.campaignSpell}` });
       expect(shared.statusCode).toBe(200);
@@ -358,7 +358,7 @@ describe("assets HTTP routes", () => {
       });
       expect(ownList.statusCode).toBe(200);
       expect(titles(ownList.json())).toEqual(["Ember Lance", "Mira", "Secret Draft"]);
-      expect(ownList.json().data.every((item: { view: string }) => item.view === "GM")).toBe(true);
+      expect(ownList.json().data.every((item: { view: string }) => item.view === "FULL")).toBe(true);
 
       const foreignList = await injectAs(ADMIN, {
         method: "GET",
@@ -377,11 +377,11 @@ describe("assets HTTP routes", () => {
       for (const assetId of [ID.campaignDraft, ID.foreignSpell, ID.systemDraft, ID.systemArchived]) {
         const response = await injectAs(ADMIN, { method: "GET", url: `/api/v1/assets/${assetId}` });
         expect(response.statusCode).toBe(200);
-        expect(response.json()).toMatchObject({ view: "GM", id: assetId });
+        expect(response.json()).toMatchObject({ view: "FULL", id: assetId });
       }
 
       const globalCatalog = await injectAs(ADMIN, { method: "GET", url: "/api/v1/catalog/SPELL" });
-      expect(globalCatalog.json().data.every((item: { view: string }) => item.view === "GM")).toBe(
+      expect(globalCatalog.json().data.every((item: { view: string }) => item.view === "FULL")).toBe(
         true,
       );
     });

@@ -226,7 +226,7 @@ describe("tags", () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json()).toMatchObject({
-        view: "GM",
+        view: "FULL",
         campaignId: ID.campaign,
         name: "Boss Fight",
         color: "#7a1f2b",

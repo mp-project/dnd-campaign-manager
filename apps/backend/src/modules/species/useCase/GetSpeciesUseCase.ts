@@ -1,7 +1,7 @@
 import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseSpeciesDto,
-  toSpeciesGmResponse,
+  toSpeciesFullResponse,
   toSpeciesPlayerResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
@@ -25,7 +25,7 @@ export class GetSpeciesUseCase {
       return toSpeciesPlayerResponse(readable.found, await this.reader.visibility(readable, []));
     }
 
-    return toSpeciesGmResponse(
+    return toSpeciesFullResponse(
       await this.speciesService.loadRecord(this.speciesService.db, readable.found),
     );
   }

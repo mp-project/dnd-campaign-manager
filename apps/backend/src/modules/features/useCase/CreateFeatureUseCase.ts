@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
 import {
-  type ResponseFeatureGmDto,
-  toFeatureGmResponse,
+  type ResponseFeatureFullDto,
+  toFeatureFullResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
 import { FEATURE_ACTIONS } from "#src/modules/features/history/TrackedFeature";
 import { FeaturesService } from "#src/modules/features/service/FeaturesService";
@@ -14,7 +14,7 @@ import { FeaturesService } from "#src/modules/features/service/FeaturesService";
 /** `campaignId` null creates a global feature, which only administrators may do. */
 export type CreateFeatureInput = { campaignId: string | null; command: CreateFeatureDto };
 
-export class CreateFeatureUseCase extends MutationUseCase<CreateFeatureInput, ResponseFeatureGmDto> {
+export class CreateFeatureUseCase extends MutationUseCase<CreateFeatureInput, ResponseFeatureFullDto> {
   protected readonly action = FEATURE_ACTIONS.create;
 
   constructor(
@@ -38,10 +38,10 @@ export class CreateFeatureUseCase extends MutationUseCase<CreateFeatureInput, Re
     scope: ActionScope,
     context: RequestContext,
     input: CreateFeatureInput,
-  ): Promise<ResponseFeatureGmDto> {
+  ): Promise<ResponseFeatureFullDto> {
     const actorId = this.featuresService.actorIdOf(context);
 
-    return toFeatureGmResponse(
+    return toFeatureFullResponse(
       await this.featuresService.createFeature(
         scope,
         { actorId, campaignId: input.campaignId },

@@ -5,7 +5,7 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
   type ResponseUpdateFeatureDto,
-  toFeatureGmResponse,
+  toFeatureFullResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
 import type { UpdateFeatureDto } from "#src/modules/features/domain/dto/UpdateFeatureDto";
 import { FEATURE_ACTIONS } from "#src/modules/features/history/TrackedFeature";
@@ -53,6 +53,6 @@ export class UpdateFeatureUseCase extends MutationUseCase<
       command: input.command,
     });
 
-    return { ...toFeatureGmResponse(record), merged };
+    return { ...toFeatureFullResponse(record), merged };
   }
 }

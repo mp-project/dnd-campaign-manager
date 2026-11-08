@@ -81,7 +81,7 @@ const playerDefinitionShape = {
  * View for those who may change the class, and for GMs reading global classes. `version` and the
  * audit fields belong to the class, `assetVersion` to its asset; changes send both back.
  */
-export const ResponseClassGmSchema = baseEntityResponseDto
+export const ResponseClassFullSchema = baseEntityResponseDto
   .extend(
     ClassBaseSchema.pick({
       assetId: true,
@@ -100,14 +100,14 @@ export const ResponseClassGmSchema = baseEntityResponseDto
   .extend(coreShape)
   .extend(definitionShape)
   .extend({
-    view: z.literal("GM"),
+    view: z.literal("FULL"),
     assetVersion: z.number().int().positive(),
     descriptionHtml: htmlDto.nullable(),
     selectable: selectableDto,
   });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateClassSchema = ResponseClassGmSchema.extend({
+export const ResponseUpdateClassSchema = ResponseClassFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -131,14 +131,14 @@ export const ResponseClassPlayerSchema = ClassBaseSchema.pick({
   });
 
 export const ResponseClassSchema = z.discriminatedUnion("view", [
-  ResponseClassGmSchema,
+  ResponseClassFullSchema,
   ResponseClassPlayerSchema,
 ]);
 
 const castingTypeDto = SpellcastingProfileSchema.shape.castingType;
 
 /** List entry for GMs and editors: everything to sort and pick a class, but no definition. */
-export const ResponseClassListItemGmSchema = ResponseClassGmSchema.pick({
+export const ResponseClassListItemFullSchema = ResponseClassFullSchema.pick({
   id: true,
   version: true,
   createdAt: true,
@@ -180,7 +180,7 @@ export const ResponseClassListItemPlayerSchema = ResponseClassPlayerSchema.pick(
 }).extend({ spellcastingType: castingTypeDto });
 
 export const ResponseClassListSchema = standardListResponseDto(
-  z.discriminatedUnion("view", [ResponseClassListItemGmSchema, ResponseClassListItemPlayerSchema]),
+  z.discriminatedUnion("view", [ResponseClassListItemFullSchema, ResponseClassListItemPlayerSchema]),
 );
 
 export const ResponseClassValidationSchema = z.strictObject({
@@ -201,7 +201,7 @@ export const ResponseClassValidationSchema = z.strictObject({
 const sectionHeader = {
   classId: uuidDto,
   assetId: uuidDto,
-  view: z.enum(["GM", "PLAYER"]),
+  view: z.enum(["FULL", "PLAYER"]),
 };
 
 
@@ -273,12 +273,12 @@ export type ResponseClassSectionDto = z.infer<
   (typeof ResponseClassSectionSchemas)[ClassSection]
 >;
 
-export type ResponseClassGmDto = z.infer<typeof ResponseClassGmSchema>;
+export type ResponseClassFullDto = z.infer<typeof ResponseClassFullSchema>;
 export type ResponseUpdateClassDto = z.infer<typeof ResponseUpdateClassSchema>;
 export type ResponseClassPlayerDto = z.infer<typeof ResponseClassPlayerSchema>;
 export type ResponseClassDto = z.infer<typeof ResponseClassSchema>;
 export type ResponseClassListDto = z.infer<typeof ResponseClassListSchema>;
-export type ResponseClassListItemGmDto = z.infer<typeof ResponseClassListItemGmSchema>;
+export type ResponseClassListItemFullDto = z.infer<typeof ResponseClassListItemFullSchema>;
 export type ResponseClassListItemPlayerDto = z.infer<typeof ResponseClassListItemPlayerSchema>;
 export type ResponseClassValidationDto = z.infer<typeof ResponseClassValidationSchema>;
 
@@ -392,9 +392,9 @@ export function toPlayerDefinition(
   };
 }
 
-export function toClassGmResponse({ characterClass, asset, rulesetIds }: ClassRecord): ResponseClassGmDto {
+export function toClassFullResponse({ characterClass, asset, rulesetIds }: ClassRecord): ResponseClassFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: characterClass.id,
     version: characterClass.version,
     createdAt: characterClass.createdAt.toISOString(),
@@ -437,13 +437,13 @@ export function toClassPlayerResponse(
   };
 }
 
-export function toClassListItemGmResponse({
+export function toClassListItemFullResponse({
   characterClass,
   asset,
   rulesetIds,
-}: ClassRecord): ResponseClassListItemGmDto {
+}: ClassRecord): ResponseClassListItemFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: characterClass.id,
     version: characterClass.version,
     createdAt: characterClass.createdAt.toISOString(),
@@ -515,7 +515,7 @@ export function toClassListResponse(params: {
 export function toClassSectionResponse(
   section: ClassSection,
   found: ClassWithAsset,
-  view: "GM" | "PLAYER",
+  view: "FULL" | "PLAYER",
   definition: ReturnType<typeof toPlayerDefinition>,
 ): ResponseClassSectionDto {
   const header = { classId: found.characterClass.id, assetId: found.asset.id, view };

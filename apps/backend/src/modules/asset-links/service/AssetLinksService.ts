@@ -332,7 +332,7 @@ export class AssetLinksService {
       typedUsages: [],
       unavailableProviders: provided.failed,
     };
-    const isGm = viewer.view === "GM";
+    const isFullView = viewer.view === "FULL";
     const offered = await this.listOfferedGlobalIds(viewer, [...relatedAssets.values()]);
     // Global drafts and content of other rulesets are not part of this campaign; administrators
     // see them anyway.
@@ -340,13 +340,13 @@ export class AssetLinksService {
       !viewer.isAdmin && asset?.scope === "SYSTEM" && !offered.has(asset.id);
     // Only administrators change global content.
     const mayEdit = (asset: AssetRow | undefined): boolean =>
-      viewer.isAdmin === true || (isGm && asset?.scope !== "SYSTEM");
+      viewer.isAdmin === true || (isFullView && asset?.scope !== "SYSTEM");
 
     const visibleLinks = links.filter((link) => {
       const other = relatedAssets.get(otherEndOf(link, assetId));
 
       return (
-        !isHiddenGlobal(other) && (isGm || this.canPlayerSeeLink(link, other, visibleAssetIds))
+        !isHiddenGlobal(other) && (isFullView || this.canPlayerSeeLink(link, other, visibleAssetIds))
       );
     });
     const editRoutes = await this.resolveEditRoutes(
@@ -371,7 +371,7 @@ export class AssetLinksService {
 
     // Archived content the campaign still uses stays visible to players, as in the catalogs.
     const inUseAssetIds =
-      !isGm && provided.items.some(({ item }) => relatedAssets.get(item.assetId ?? "")?.status === "ARCHIVED")
+      !isFullView && provided.items.some(({ item }) => relatedAssets.get(item.assetId ?? "")?.status === "ARCHIVED")
         ? await this.assets.listInUseAssetIds(viewer.campaignId)
         : new Set<string>();
 
@@ -383,7 +383,7 @@ export class AssetLinksService {
       }
 
       // An item about the asset itself (a share) edits something of the campaign, not the asset.
-      if (isGm) {
+      if (isFullView) {
         usages[group].push(
           item.assetId === assetId || mayEdit(related) ? item : { ...item, editRoute: null },
         );

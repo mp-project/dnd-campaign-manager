@@ -33,7 +33,7 @@ const htmlDto = z.string();
  */
 const selectableDto = z.boolean();
 
-const viewDto = z.enum(["GM", "PLAYER"]);
+const viewDto = z.enum(["FULL", "PLAYER"]);
 
 const coreShape = SpeciesBaseSchema.pick({
   code: true,
@@ -67,7 +67,7 @@ const renderedShape = {
  * View for those who may change the species, and for GMs reading global species. `version` and the
  * audit fields belong to the species, `assetVersion` to its asset; changes send both back.
  */
-export const ResponseSpeciesGmSchema = baseEntityResponseDto
+export const ResponseSpeciesFullSchema = baseEntityResponseDto
   .extend(
     SpeciesBaseSchema.pick({
       assetId: true,
@@ -85,10 +85,10 @@ export const ResponseSpeciesGmSchema = baseEntityResponseDto
   )
   .extend(coreShape)
   .extend(definitionShape)
-  .extend({ view: z.literal("GM"), assetVersion: z.number().int().positive(), ...renderedShape });
+  .extend({ view: z.literal("FULL"), assetVersion: z.number().int().positive(), ...renderedShape });
 
 /** `merged` lists fields whose newer value from somebody else was kept instead of the sent one. */
-export const ResponseUpdateSpeciesSchema = ResponseSpeciesGmSchema.extend({
+export const ResponseUpdateSpeciesSchema = ResponseSpeciesFullSchema.extend({
   merged: z.array(z.string()),
 });
 
@@ -112,7 +112,7 @@ export const ResponseSpeciesPlayerSchema = SpeciesBaseSchema.pick({
   });
 
 export const ResponseSpeciesSchema = z.discriminatedUnion("view", [
-  ResponseSpeciesGmSchema,
+  ResponseSpeciesFullSchema,
   ResponseSpeciesPlayerSchema,
 ]);
 
@@ -123,7 +123,7 @@ const listSummaryShape = {
 };
 
 /** List entry for GMs and editors: everything to sort and pick a species, but no definition. */
-export const ResponseSpeciesListItemGmSchema = ResponseSpeciesGmSchema.pick({
+export const ResponseSpeciesListItemFullSchema = ResponseSpeciesFullSchema.pick({
   id: true,
   version: true,
   createdAt: true,
@@ -163,7 +163,7 @@ export const ResponseSpeciesListItemPlayerSchema = ResponseSpeciesPlayerSchema.p
 }).extend(listSummaryShape);
 
 export const ResponseSpeciesListSchema = standardListResponseDto(
-  z.discriminatedUnion("view", [ResponseSpeciesListItemGmSchema, ResponseSpeciesListItemPlayerSchema]),
+  z.discriminatedUnion("view", [ResponseSpeciesListItemFullSchema, ResponseSpeciesListItemPlayerSchema]),
 );
 
 export const ResponseValidationSchema = z.strictObject({
@@ -264,12 +264,12 @@ export const ResponseSpeciesSelectionSchema = z.strictObject({
   }),
 });
 
-export type ResponseSpeciesGmDto = z.infer<typeof ResponseSpeciesGmSchema>;
+export type ResponseSpeciesFullDto = z.infer<typeof ResponseSpeciesFullSchema>;
 export type ResponseUpdateSpeciesDto = z.infer<typeof ResponseUpdateSpeciesSchema>;
 export type ResponseSpeciesPlayerDto = z.infer<typeof ResponseSpeciesPlayerSchema>;
 export type ResponseSpeciesDto = z.infer<typeof ResponseSpeciesSchema>;
 export type ResponseSpeciesListDto = z.infer<typeof ResponseSpeciesListSchema>;
-export type ResponseSpeciesListItemGmDto = z.infer<typeof ResponseSpeciesListItemGmSchema>;
+export type ResponseSpeciesListItemFullDto = z.infer<typeof ResponseSpeciesListItemFullSchema>;
 export type ResponseSpeciesListItemPlayerDto = z.infer<typeof ResponseSpeciesListItemPlayerSchema>;
 export type ResponseValidationDto = z.infer<typeof ResponseValidationSchema>;
 export type ResponseSpeciesFeaturesDto = z.infer<typeof ResponseSpeciesFeaturesSchema>;
@@ -311,11 +311,11 @@ function listSummaryOf(row: SpeciesRow) {
   return { sizes, speed: typeof base?.distanceFeet === "number" ? base.distanceFeet : null };
 }
 
-export function toSpeciesGmResponse({ species: row, asset, rulesetIds }: SpeciesRecord): ResponseSpeciesGmDto {
+export function toSpeciesFullResponse({ species: row, asset, rulesetIds }: SpeciesRecord): ResponseSpeciesFullDto {
   const definition = readSpeciesDefinition(row);
 
   return {
-    view: "GM",
+    view: "FULL",
     id: row.id,
     version: row.version,
     createdAt: row.createdAt.toISOString(),
@@ -361,13 +361,13 @@ export function toSpeciesPlayerResponse(
   };
 }
 
-export function toSpeciesListItemGmResponse({
+export function toSpeciesListItemFullResponse({
   species: row,
   asset,
   rulesetIds,
-}: SpeciesRecord): ResponseSpeciesListItemGmDto {
+}: SpeciesRecord): ResponseSpeciesListItemFullDto {
   return {
-    view: "GM",
+    view: "FULL",
     id: row.id,
     version: row.version,
     createdAt: row.createdAt.toISOString(),

@@ -194,9 +194,9 @@ describe("AssetsService", () => {
 
   describe("resolveCampaignViewer", () => {
     it.each([
-      ["EDITOR", "USER", "GM"],
+      ["EDITOR", "USER", "FULL"],
       ["PLAYER", "USER", "PLAYER"],
-      [null, "ADMIN", "GM"],
+      [null, "ADMIN", "FULL"],
     ] as const)("maps campaign role %s with system role %s to %s view", async (role, systemRole, view) => {
       const service = new AssetsService(db, transactionManager, createFakeRepository().repository, createCampaignAccess(role), logger);
 

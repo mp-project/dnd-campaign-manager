@@ -5,7 +5,7 @@ import type { AssetsService } from "#src/modules/assets/index";
 import type { RequestContentSharesQueryDto } from "#src/modules/content-shares/domain/dto/RequestContentShareDto";
 import {
   type ResponseContentShareListDto,
-  toContentShareGmResponse,
+  toContentShareFullResponse,
   toContentShareListResponse,
   toContentSharePlayerResponse,
 } from "#src/modules/content-shares/domain/dto/ResponseContentShareDto";
@@ -53,7 +53,7 @@ export class ListContentSharesUseCase {
         const asset = assets.get(share.assetId);
 
         return asset
-          ? [toContentShareGmResponse(share, recipients.get(share.id) ?? [], asset)]
+          ? [toContentShareFullResponse(share, recipients.get(share.id) ?? [], asset)]
           : [];
       }),
       last: last ? { sortValue: last.sharedAt, id: last.id } : undefined,

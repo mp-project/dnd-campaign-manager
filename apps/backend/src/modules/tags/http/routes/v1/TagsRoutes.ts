@@ -13,7 +13,7 @@ import {
 import {
   ResponseAssetTagsSchema,
   ResponseReplaceAssetTagsSchema,
-  ResponseTagGmSchema,
+  ResponseTagFullSchema,
   ResponseTagListSchema,
   ResponseUpdateTagSchema,
 } from "#src/modules/tags/domain/dto/ResponseTagDto";
@@ -93,7 +93,7 @@ export function registerTagsRoutes(
         params: RequestTagsParamsSchema,
         body: CreateTagSchema,
         response: {
-          201: ResponseTagGmSchema,
+          201: ResponseTagFullSchema,
           ...writeErrorResponses,
         },
       },

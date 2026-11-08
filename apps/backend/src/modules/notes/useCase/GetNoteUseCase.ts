@@ -2,7 +2,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseNoteDto,
-  toNoteGmResponse,
+  toNoteFullResponse,
   toNotePlayerResponse,
 } from "#src/modules/notes/domain/dto/ResponseNoteDto";
 import { NotesService } from "#src/modules/notes/service/NotesService";
@@ -30,7 +30,7 @@ export class GetNoteUseCase {
 
     const { db } = this.notesService;
 
-    return toNoteGmResponse(
+    return toNoteFullResponse(
       await this.notesService.loadRecord(db, await this.notesService.requireNote(db, input)),
     );
   }

@@ -26,7 +26,7 @@ export type ReadableVariant = SpeciesVariantWithAsset & { featureGrants: Species
 export type ReadableSpecies = {
   found: SpeciesWithAsset;
   mode: SpeciesReadMode;
-  view: "GM" | "PLAYER";
+  view: "FULL" | "PLAYER";
   isAdmin: boolean;
   /** Set inside a campaign; null for global species read outside of one. */
   campaign: {
@@ -67,7 +67,7 @@ export class SpeciesReader {
         throw new NotFoundError("Species not found");
       }
 
-      return { found, mode, view: isAdmin ? "GM" : "PLAYER", isAdmin, campaign: null };
+      return { found, mode, view: isAdmin ? "FULL" : "PLAYER", isAdmin, campaign: null };
     }
 
     const resolved = await this.assetsService.resolveCampaignViewer(
@@ -146,7 +146,7 @@ export class SpeciesReader {
     readable: ReadableSpecies,
     variants: readonly ReadableVariant[],
   ): Promise<(assetId: string) => boolean> {
-    if (readable.view === "GM") {
+    if (readable.view === "FULL") {
       return () => true;
     }
 

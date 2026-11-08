@@ -2,7 +2,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseMediaDto,
-  toMediaGmResponse,
+  toMediaFullResponse,
   toMediaPlayerResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import { MediaService } from "#src/modules/media/service/MediaService";
@@ -27,6 +27,6 @@ export class GetMediaUseCase {
     const { db, repository } = this.mediaService;
     const usage = await repository.countAssignments(db, [file.id]);
 
-    return toMediaGmResponse(file, viewer.campaignId, usage.get(file.id) ?? 0);
+    return toMediaFullResponse(file, viewer.campaignId, usage.get(file.id) ?? 0);
   }
 }

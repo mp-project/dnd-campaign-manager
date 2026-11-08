@@ -13,7 +13,7 @@ export type ClassReadMode = "campaign" | "catalog" | "system";
 
 export type ReadableClass = {
   found: ClassWithAsset;
-  view: "GM" | "PLAYER";
+  view: "FULL" | "PLAYER";
   /** For the player view; always true for GMs. */
   isVisible: (assetId: string) => boolean;
 };
@@ -43,7 +43,7 @@ export class ClassReader {
       const found = await this.classesService.requireSystemClass(db, input.classId);
 
       if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "GM", isVisible: () => true };
+        return { found, view: "FULL", isVisible: () => true };
       }
 
       if (found.asset.status !== "ACTIVE") {
@@ -80,8 +80,8 @@ export class ClassReader {
       throw new NotFoundError("Class not found");
     }
 
-    if (viewer.view === "GM") {
-      return { found, view: "GM", isVisible: () => true };
+    if (viewer.view === "FULL") {
+      return { found, view: "FULL", isVisible: () => true };
     }
 
     return {

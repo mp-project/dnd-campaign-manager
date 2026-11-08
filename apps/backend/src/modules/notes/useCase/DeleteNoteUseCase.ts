@@ -5,8 +5,8 @@ import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
-  type ResponseNoteGmDto,
-  toNoteGmResponse,
+  type ResponseNoteFullDto,
+  toNoteFullResponse,
 } from "#src/modules/notes/domain/dto/ResponseNoteDto";
 import type { NoteLifecycleCommandDto } from "#src/modules/notes/domain/dto/UpdateNoteDto";
 import { NOTE_ACTIONS } from "#src/modules/notes/history/TrackedNote";
@@ -19,7 +19,7 @@ export type DeleteNoteInput = {
 };
 
 /** Archives the note; it can be restored. Its shares end and don't come back. */
-export class DeleteNoteUseCase extends MutationUseCase<DeleteNoteInput, ResponseNoteGmDto> {
+export class DeleteNoteUseCase extends MutationUseCase<DeleteNoteInput, ResponseNoteFullDto> {
   protected readonly action = NOTE_ACTIONS.delete;
 
   constructor(
@@ -44,8 +44,8 @@ export class DeleteNoteUseCase extends MutationUseCase<DeleteNoteInput, Response
     scope: ActionScope,
     _context: RequestContext,
     input: DeleteNoteInput,
-  ): Promise<ResponseNoteGmDto> {
-    return toNoteGmResponse(
+  ): Promise<ResponseNoteFullDto> {
+    return toNoteFullResponse(
       await this.notesService.archiveNote(scope, {
         campaignId: input.campaignId,
         noteId: input.noteId,

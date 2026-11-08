@@ -8,7 +8,7 @@ import type {
 } from "#src/modules/features/domain/dto/RequestFeatureDto";
 import {
   type ResponseFeatureListDto,
-  toFeatureListItemGmResponse,
+  toFeatureListItemFullResponse,
   toFeatureListItemPlayerResponse,
   toFeatureListResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
@@ -88,10 +88,10 @@ export class FeatureListing {
   ): Promise<ResponseFeatureListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
     const { db, repository } = this.featuresService;
-    const isGm = viewer.view === "GM";
+    const isFullView = viewer.view === "FULL";
     // GMs manage their own archived features in the campaign list; everywhere else archived
     // features only stay while the campaign still uses them.
-    const managesArchived = isGm && !include.catalog;
+    const managesArchived = isFullView && !include.catalog;
     const inUse =
       !managesArchived && (query.status === undefined || query.status === "ARCHIVED")
         ? [...(await this.assetsService.listInUseAssetIds(viewer.campaignId))]
@@ -111,15 +111,15 @@ export class FeatureListing {
           ? undefined
           : {
               campaignId: viewer.campaignId,
-              statuses: statusesFor(isGm, query.status).filter(
+              statuses: statusesFor(isFullView, query.status).filter(
                 (status) => managesArchived || status !== "ARCHIVED",
               ),
-              assetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+              assetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
               archivedAssetIds: inUse,
             },
     };
 
-    return this.toResponse(await repository.listPage(db, filter), isGm, query.limit);
+    return this.toResponse(await repository.listPage(db, filter), isFullView, query.limit);
   }
 
   private baseFilter(query: RequestCampaignFeaturesQueryDto) {
@@ -146,7 +146,7 @@ export class FeatureListing {
 
     const records = await this.featuresService.loadRecords(this.featuresService.db, page.items);
 
-    return toFeatureListResponse({ page, data: records.map(toFeatureListItemGmResponse), limit });
+    return toFeatureListResponse({ page, data: records.map(toFeatureListItemFullResponse), limit });
   }
 }
 

@@ -2,7 +2,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseCompleteMediaUploadDto,
-  toMediaGmResponse,
+  toMediaFullResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import type { MediaQuotaService } from "#src/modules/media/service/MediaQuotaService";
 import { MediaUploadService } from "#src/modules/media/service/MediaUploadService";
@@ -31,7 +31,7 @@ export class CompleteMediaUploadUseCase {
     const file = await this.uploadService.complete(upload);
 
     return {
-      ...toMediaGmResponse(file, input.campaignId, 0),
+      ...toMediaFullResponse(file, input.campaignId, 0),
       storageUsage: await this.quota.findVisibleUsage(context, input.campaignId),
     };
   }

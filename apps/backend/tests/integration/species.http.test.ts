@@ -225,7 +225,7 @@ describe("species", () => {
       const item = await createOk();
 
       expect(item).toMatchObject({
-        view: "GM",
+        view: "FULL",
         scope: "CAMPAIGN",
         campaignId: ID.campaign,
         name: "Elf",
@@ -337,7 +337,7 @@ describe("species", () => {
       const drow = await createVariantOk(item, { description: "Of the *Underdark*" });
 
       expect(drow).toMatchObject({
-        view: "GM",
+        view: "FULL",
         speciesId: item.id,
         campaignId: ID.campaign,
         scope: "CAMPAIGN",

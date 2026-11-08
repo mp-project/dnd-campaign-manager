@@ -238,7 +238,7 @@ describe("notes", () => {
       });
 
       expect(note).toMatchObject({
-        view: "GM",
+        view: "FULL",
         name: "The Baron's Letter",
         summary: "A letter",
         status: "ACTIVE",
@@ -426,7 +426,7 @@ describe("notes", () => {
       const [gmItem] = (await list(GM)).data;
       const [playerItem] = (await list(PLAYER)).data;
 
-      expect(gmItem).toMatchObject({ view: "GM", id: note.id, name: note.name, tagIds: [ID.tag] });
+      expect(gmItem).toMatchObject({ view: "FULL", id: note.id, name: note.name, tagIds: [ID.tag] });
       expect(playerItem).toEqual({
         view: "PLAYER",
         id: note.id,

@@ -9,7 +9,7 @@ import {
   RequestNotesQuerySchema,
 } from "#src/modules/notes/domain/dto/RequestNoteDto";
 import {
-  ResponseNoteGmSchema,
+  ResponseNoteFullSchema,
   ResponseNoteListSchema,
   ResponseNoteSchema,
   ResponseUpdateNoteSchema,
@@ -89,7 +89,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         params: RequestNotesParamsSchema,
         body: CreateNoteSchema,
         response: {
-          201: ResponseNoteGmSchema,
+          201: ResponseNoteFullSchema,
           ...writeErrorResponses,
         },
       },
@@ -156,7 +156,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         params: RequestNoteItemParamsSchema,
         querystring: NoteLifecycleCommandSchema,
         response: {
-          200: ResponseNoteGmSchema,
+          200: ResponseNoteFullSchema,
           ...writeErrorResponses,
         },
       },
@@ -177,7 +177,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         params: RequestNoteItemParamsSchema,
         body: NoteLifecycleCommandSchema,
         response: {
-          200: ResponseNoteGmSchema,
+          200: ResponseNoteFullSchema,
           ...writeErrorResponses,
         },
       },

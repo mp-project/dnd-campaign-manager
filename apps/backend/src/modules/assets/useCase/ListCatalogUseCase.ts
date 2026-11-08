@@ -29,7 +29,7 @@ export class ListCatalogUseCase {
 
     return toAssetListResponse({
       page,
-      view: isSysAdminRole(context.systemRole) ? "GM" : "PLAYER",
+      view: isSysAdminRole(context.systemRole) ? "FULL" : "PLAYER",
       limit: query.limit,
     });
   }

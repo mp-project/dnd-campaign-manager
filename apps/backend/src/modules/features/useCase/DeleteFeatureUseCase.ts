@@ -4,8 +4,8 @@ import { MutationUseCase } from "#core/history/MutationUseCase";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import {
-  type ResponseFeatureGmDto,
-  toFeatureGmResponse,
+  type ResponseFeatureFullDto,
+  toFeatureFullResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
 import type { FeatureLifecycleCommandDto } from "#src/modules/features/domain/dto/UpdateFeatureDto";
 import { FEATURE_ACTIONS } from "#src/modules/features/history/TrackedFeature";
@@ -18,7 +18,7 @@ export type DeleteFeatureInput = {
 };
 
 /** Archives the feature; it can be restored. Fails while other definitions refer to it. */
-export class DeleteFeatureUseCase extends MutationUseCase<DeleteFeatureInput, ResponseFeatureGmDto> {
+export class DeleteFeatureUseCase extends MutationUseCase<DeleteFeatureInput, ResponseFeatureFullDto> {
   protected readonly action = FEATURE_ACTIONS.delete;
 
   constructor(
@@ -42,10 +42,10 @@ export class DeleteFeatureUseCase extends MutationUseCase<DeleteFeatureInput, Re
     scope: ActionScope,
     _context: RequestContext,
     input: DeleteFeatureInput,
-  ): Promise<ResponseFeatureGmDto> {
+  ): Promise<ResponseFeatureFullDto> {
     const found = await this.featuresService.requireForWrite(scope.tx, input);
 
-    return toFeatureGmResponse(
+    return toFeatureFullResponse(
       await this.featuresService.archiveFeature(scope, {
         found,
         expectedAssetVersion: input.command.expectedAssetVersion,

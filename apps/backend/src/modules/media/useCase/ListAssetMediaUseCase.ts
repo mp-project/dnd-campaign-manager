@@ -2,7 +2,7 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseAssetMediaListDto,
-  toAssetMediaGmResponse,
+  toAssetMediaFullResponse,
   toAssetMediaPlayerResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import { MediaService } from "#src/modules/media/service/MediaService";
@@ -45,7 +45,7 @@ export class ListAssetMediaUseCase {
     }
 
     return {
-      data: rows.map(({ assignment, file }) => toAssetMediaGmResponse(assignment, file)),
+      data: rows.map(({ assignment, file }) => toAssetMediaFullResponse(assignment, file)),
     };
   }
 }

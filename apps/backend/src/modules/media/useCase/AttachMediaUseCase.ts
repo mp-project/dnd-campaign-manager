@@ -6,8 +6,8 @@ import type { RequestContext } from "#core/http/requestContext";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { AttachMediaDto } from "#src/modules/media/domain/dto/RequestMediaDto";
 import {
-  type ResponseAssetMediaGmDto,
-  toAssetMediaGmResponse,
+  type ResponseAssetMediaFullDto,
+  toAssetMediaFullResponse,
 } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import { ASSET_MEDIA_ACTIONS } from "#src/modules/media/history/TrackedAssetMedia";
 import { MediaService } from "#src/modules/media/service/MediaService";
@@ -18,7 +18,7 @@ export type AttachMediaInput = {
   command: AttachMediaDto;
 };
 
-export class AttachMediaUseCase extends MutationUseCase<AttachMediaInput, ResponseAssetMediaGmDto> {
+export class AttachMediaUseCase extends MutationUseCase<AttachMediaInput, ResponseAssetMediaFullDto> {
   protected readonly action = ASSET_MEDIA_ACTIONS.attach;
 
   constructor(
@@ -43,13 +43,13 @@ export class AttachMediaUseCase extends MutationUseCase<AttachMediaInput, Respon
     scope: ActionScope,
     _context: RequestContext,
     input: AttachMediaInput,
-  ): Promise<ResponseAssetMediaGmDto> {
+  ): Promise<ResponseAssetMediaFullDto> {
     const { assignment, file } = await this.mediaService.attach(
       scope,
       { campaignId: input.campaignId, assetId: input.assetId },
       input.command,
     );
 
-    return toAssetMediaGmResponse(assignment, file);
+    return toAssetMediaFullResponse(assignment, file);
   }
 }

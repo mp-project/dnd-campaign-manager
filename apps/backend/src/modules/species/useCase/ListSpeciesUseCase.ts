@@ -8,7 +8,7 @@ import type {
 } from "#src/modules/species/domain/dto/RequestSpeciesDto";
 import {
   type ResponseSpeciesListDto,
-  toSpeciesListItemGmResponse,
+  toSpeciesListItemFullResponse,
   toSpeciesListItemPlayerResponse,
   toSpeciesListResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
@@ -91,10 +91,10 @@ export class SpeciesListing {
   ): Promise<ResponseSpeciesListDto> {
     const viewer = await this.assetsService.resolveCampaignViewer(context, campaignId);
     const { db, repository } = this.speciesService;
-    const isGm = viewer.view === "GM";
+    const isFullView = viewer.view === "FULL";
     // GMs manage their own archived species in the campaign list; everywhere else archived species
     // only stay while the campaign still uses them.
-    const managesArchived = isGm && !include.catalog;
+    const managesArchived = isFullView && !include.catalog;
     const inUse =
       !managesArchived && (query.status === undefined || query.status === "ARCHIVED")
         ? [...(await this.assetsService.listInUseAssetIds(viewer.campaignId))]
@@ -114,15 +114,15 @@ export class SpeciesListing {
           ? undefined
           : {
               campaignId: viewer.campaignId,
-              statuses: statusesFor(isGm, query.status).filter(
+              statuses: statusesFor(isFullView, query.status).filter(
                 (status) => managesArchived || status !== "ARCHIVED",
               ),
-              assetIds: isGm ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
+              assetIds: isFullView ? undefined : await this.assetsService.listVisibleAssetIds(viewer),
               archivedAssetIds: inUse,
             },
     };
 
-    return this.toResponse(await repository.listPage(db, filter), isGm, query.limit);
+    return this.toResponse(await repository.listPage(db, filter), isFullView, query.limit);
   }
 
   private baseFilter(query: RequestCampaignSpeciesQueryDto) {
@@ -150,7 +150,7 @@ export class SpeciesListing {
 
     const records = await this.speciesService.loadRecords(this.speciesService.db, page.items);
 
-    return toSpeciesListResponse({ page, data: records.map(toSpeciesListItemGmResponse), limit });
+    return toSpeciesListResponse({ page, data: records.map(toSpeciesListItemFullResponse), limit });
   }
 }
 

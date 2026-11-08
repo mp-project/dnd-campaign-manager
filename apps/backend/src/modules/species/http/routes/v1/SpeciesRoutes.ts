@@ -20,7 +20,7 @@ import {
 import {
   ResponseSpeciesCreationOptionsSchema,
   ResponseSpeciesFeaturesSchema,
-  ResponseSpeciesGmSchema,
+  ResponseSpeciesFullSchema,
   ResponseSpeciesListSchema,
   ResponseSpeciesSchema,
   ResponseSpeciesSelectionSchema,
@@ -28,7 +28,7 @@ import {
   ResponseValidationSchema,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import {
-  ResponseSpeciesVariantGmSchema,
+  ResponseSpeciesVariantFullSchema,
   ResponseSpeciesVariantListSchema,
   ResponseSpeciesVariantSchema,
   ResponseUpdateSpeciesVariantSchema,
@@ -220,7 +220,7 @@ export function registerSpeciesRoutes(app: FastifyInstance, controllers: Species
       permission: write(SPECIES_PERMISSIONS.create),
       params: scope.listParams,
       body: CreateSpeciesSchema,
-      success: [201, ResponseSpeciesGmSchema],
+      success: [201, ResponseSpeciesFullSchema],
       write: true,
       handler: controllers.createSpeciesController.handle,
     });
@@ -251,7 +251,7 @@ export function registerSpeciesRoutes(app: FastifyInstance, controllers: Species
       permission: write(SPECIES_PERMISSIONS.delete),
       params: scope.params,
       querystring: SpeciesLifecycleCommandSchema,
-      success: [200, ResponseSpeciesGmSchema],
+      success: [200, ResponseSpeciesFullSchema],
       write: true,
       handler: controllers.deleteSpeciesController.handle,
     });
@@ -262,7 +262,7 @@ export function registerSpeciesRoutes(app: FastifyInstance, controllers: Species
       permission: write(SPECIES_PERMISSIONS.restore),
       params: scope.params,
       body: SpeciesLifecycleCommandSchema,
-      success: [200, ResponseSpeciesGmSchema],
+      success: [200, ResponseSpeciesFullSchema],
       write: true,
       handler: controllers.restoreSpeciesController.handle,
     });
@@ -304,7 +304,7 @@ export function registerSpeciesRoutes(app: FastifyInstance, controllers: Species
       permission: write(SPECIES_PERMISSIONS.create),
       params: scope.params,
       body: CreateSpeciesVariantSchema,
-      success: [201, ResponseSpeciesVariantGmSchema],
+      success: [201, ResponseSpeciesVariantFullSchema],
       write: true,
       handler: controllers.createVariantController.handle,
     });
@@ -335,7 +335,7 @@ export function registerSpeciesRoutes(app: FastifyInstance, controllers: Species
       permission: write(SPECIES_PERMISSIONS.delete),
       params: scope.variantParams,
       querystring: SpeciesLifecycleCommandSchema,
-      success: [200, ResponseSpeciesVariantGmSchema],
+      success: [200, ResponseSpeciesVariantFullSchema],
       write: true,
       handler: controllers.deleteVariantController.handle,
     });
@@ -346,7 +346,7 @@ export function registerSpeciesRoutes(app: FastifyInstance, controllers: Species
       permission: write(SPECIES_PERMISSIONS.restore),
       params: scope.variantParams,
       body: SpeciesLifecycleCommandSchema,
-      success: [200, ResponseSpeciesVariantGmSchema],
+      success: [200, ResponseSpeciesVariantFullSchema],
       write: true,
       handler: controllers.restoreVariantController.handle,
     });

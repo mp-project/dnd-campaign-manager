@@ -286,7 +286,7 @@ describe("content shares", () => {
       const created = await shareToAll();
 
       expect(created).toMatchObject({
-        view: "GM",
+        view: "FULL",
         audience: "ALL_PLAYERS",
         recipientMemberIds: [],
         expiresAt: null,
@@ -634,7 +634,7 @@ describe("content shares", () => {
 
       const listed = all.data.find((item) => item.id === selected.id)!;
 
-      expect(listed.view).toBe("GM");
+      expect(listed.view).toBe("FULL");
       expect([...(listed.recipientMemberIds as string[])].sort()).toEqual([
         ID.playerMember,
         ID.otherPlayerMember,

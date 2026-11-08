@@ -25,6 +25,7 @@ import type {
   AssetRow,
   AssetsService,
   AssetType,
+  ContentAccess,
 } from "#src/modules/assets/index";
 
 /** Campaign facts the module needs; provided by the campaigns module. */
@@ -287,35 +288,42 @@ export class AssetLinksService {
     }
   }
 
-  /** Players see a link if the relation allows it and they may see the other end as well. */
-  canPlayerSeeLink(
-    link: AssetLinkRow,
-    other: AssetRow | undefined,
-    visibleAssetIds: ReadonlySet<string>,
-  ): other is AssetRow {
-    return (
-      other !== undefined &&
-      (this.relations.find(link.relationType)?.playerVisible ?? false) &&
-      this.assets.isVisibleToPlayer(other, visibleAssetIds)
-    );
+  /**
+   * The links of the asset the viewer may see, with their other ends: the other end must be
+   * readable (`READ`), and players only see relations marked as visible to them. Links and usages
+   * use this one rule.
+   */
+  async readableLinks(
+    access: ContentAccess,
+    links: readonly AssetLinkRow[],
+    assetId: string,
+  ): Promise<{ link: AssetLinkRow; other: AssetRow }[]> {
+    const related = await this.assets.findMany(links.map((link) => otherEndOf(link, assetId)), this.db);
+    const readable = await access.readableIds("READ", [...related.values()]);
+
+    return links.flatMap((link) => {
+      const other = related.get(otherEndOf(link, assetId));
+      const visibleRelation =
+        access.isFullView || (this.relations.find(link.relationType)?.playerVisible ?? false);
+
+      return other && readable.has(other.id) && visibleRelation ? [{ link, other }] : [];
+    });
   }
 
-  async getUsages(
-    viewer: ContentViewer,
-    assetId: string,
-    visibleAssetIds: ReadonlySet<string>,
-  ): Promise<ResponseAssetUsagesDto> {
+  async getUsages(access: ContentAccess, assetId: string): Promise<ResponseAssetUsagesDto> {
+    const { viewer } = access;
     const [links, provided] = await Promise.all([
       this.repository.listForAsset(this.db, { campaignId: viewer.campaignId, assetId }),
       this.collectProvidedUsages(viewer, assetId),
     ]);
-    const relatedAssets = await this.assets.findMany(
-      [
-        ...links.map((link) => otherEndOf(link, assetId)),
-        ...provided.items.flatMap(({ item }) => (item.assetId ? [item.assetId] : [])),
-      ],
-      this.db,
-    );
+    const [visibleLinks, providedAssets] = await Promise.all([
+      this.readableLinks(access, links, assetId),
+      this.assets.findMany(
+        provided.items.flatMap(({ item }) => (item.assetId ? [item.assetId] : [])),
+        this.db,
+      ),
+    ]);
+    const readable = await access.readableIds("READ", [...providedAssets.values()]);
     const usages: ResponseAssetUsagesDto = {
       assetId,
       view: viewer.view,
@@ -326,67 +334,36 @@ export class AssetLinksService {
       typedUsages: [],
       unavailableProviders: provided.failed,
     };
-    const isFullView = viewer.view === "FULL";
-    const offered = await this.listOfferedGlobalIds(viewer, [...relatedAssets.values()]);
-    // Global drafts and content of other rulesets are not part of this campaign; administrators
-    // see them anyway.
-    const isHiddenGlobal = (asset: AssetRow | undefined): boolean =>
-      !viewer.isAdmin && asset?.scope === "SYSTEM" && !offered.has(asset.id);
     // Only administrators change global content.
     const mayEdit = (asset: AssetRow | undefined): boolean =>
-      viewer.isAdmin || (isFullView && asset?.scope !== "SYSTEM");
-
-    const visibleLinks = links.filter((link) => {
-      const other = relatedAssets.get(otherEndOf(link, assetId));
-
-      return (
-        !isHiddenGlobal(other) && (isFullView || this.canPlayerSeeLink(link, other, visibleAssetIds))
-      );
-    });
+      viewer.isAdmin || (access.isFullView && asset?.scope !== "SYSTEM");
     const editRoutes = await this.resolveEditRoutes(
-      visibleLinks.flatMap((link) => {
-        const otherId = otherEndOf(link, assetId);
-        const other = relatedAssets.get(otherId);
-
-        return mayEdit(other) ? [{ campaignId: viewer.campaignId, assetId: otherId, asset: other }] : [];
-      }),
+      visibleLinks.flatMap(({ other }) =>
+        mayEdit(other) ? [{ campaignId: viewer.campaignId, assetId: other.id, asset: other }] : [],
+      ),
       this.db,
     );
 
-    for (const link of visibleLinks) {
-      const otherId = otherEndOf(link, assetId);
-
+    for (const { link, other } of visibleLinks) {
       usages[toAssetLinkDirection(link, assetId)].push(
-        this.toLinkUsageItem(link, relatedAssets.get(otherId), otherId, {
-          editRoute: editRoutes.get(editRouteKey(viewer.campaignId, otherId)) ?? null,
+        this.toLinkUsageItem(link, other, other.id, {
+          editRoute: editRoutes.get(editRouteKey(viewer.campaignId, other.id)) ?? null,
         }),
       );
     }
 
-    // Archived content the campaign still uses stays visible to players, as in the catalogs.
-    const inUseAssetIds =
-      !isFullView && provided.items.some(({ item }) => relatedAssets.get(item.assetId ?? "")?.status === "ARCHIVED")
-        ? await this.assets.listInUseAssetIds(viewer.campaignId)
-        : new Set<string>();
-
     for (const { group, item } of provided.items) {
-      const related = item.assetId ? relatedAssets.get(item.assetId) : undefined;
+      const related = item.assetId ? providedAssets.get(item.assetId) : undefined;
 
-      if (isHiddenGlobal(related)) {
+      // Items without an asset only go to the full view.
+      if (related ? !readable.has(related.id) : !access.isFullView) {
         continue;
       }
 
       // An item about the asset itself (a share) edits something of the campaign, not the asset.
-      if (isFullView) {
-        usages[group].push(
-          item.assetId === assetId || mayEdit(related) ? item : { ...item, editRoute: null },
-        );
-      } else if (
-        related &&
-        this.assets.isVisibleToPlayerInCampaign(related, visibleAssetIds, inUseAssetIds)
-      ) {
-        usages[group].push({ ...item, editRoute: null });
-      }
+      const keepsRoute = access.isFullView && (item.assetId === assetId || mayEdit(related));
+
+      usages[group].push(keepsRoute ? item : { ...item, editRoute: null });
     }
 
     return usages;
@@ -395,30 +372,6 @@ export class AssetLinksService {
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
-
-  /**
-   * Global assets among these that the campaign is offered: not drafts, and fitting its ruleset.
-   * Archived ones stay, because they may still be in use.
-   */
-  private async listOfferedGlobalIds(
-    viewer: ContentViewer,
-    related: readonly AssetRow[],
-  ): Promise<ReadonlySet<string>> {
-    if (viewer.isAdmin) {
-      // Administrators see every global asset; nothing to look up.
-      return new Set();
-    }
-
-    const candidates = related.filter(
-      (asset) => asset.scope === "SYSTEM" && asset.status !== "DRAFT",
-    );
-
-    return this.assets.repository.listCompatibleIds(
-      this.db,
-      candidates.map((asset) => asset.id),
-      viewer.rulesetId,
-    );
-  }
 
   /** One failing provider leaves its group incomplete; the answer says which one it was. */
   private async collectProvidedUsages(viewer: ContentViewer, assetId: string) {

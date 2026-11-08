@@ -54,46 +54,25 @@ export class ClassReader {
       return {
         found,
         view: "PLAYER",
-        isVisible: await this.classesService.playerReferenceVisibility(db, [found], new Set()),
+        isVisible: await this.classesService.playerReferenceVisibility(db, [found], null),
       };
     }
 
-    const viewer = await this.assetsService.resolveCampaignViewer(
-      context,
-      input.campaignId as string,
-    );
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
-    const found = await this.classesService.requireCatalogClass(
-      viewer,
+    const access = await this.assetsService.access(context, input.campaignId as string);
+    const found = await this.classesService.requireReadableClass(
+      access,
       input.classId,
-      {
-        visibleAssetIds,
-        inUseAssetIds,
-        // GMs manage their own archived classes; the catalog only keeps those still in use.
-        archived: mode === "campaign" ? "always" : "ifInUse",
-      },
+      mode === "campaign" ? "MANAGE" : "CATALOG",
     );
 
-    if (mode === "campaign" && found.characterClass.campaignId !== viewer.campaignId) {
-      throw new NotFoundError("Class not found");
-    }
-
-    if (viewer.view === "FULL") {
+    if (access.isFullView) {
       return { found, view: "FULL", isVisible: () => true };
     }
 
     return {
       found,
       view: "PLAYER",
-      isVisible: await this.classesService.playerReferenceVisibility(
-        db,
-        [found],
-        visibleAssetIds,
-        inUseAssetIds,
-      ),
+      isVisible: await this.classesService.playerReferenceVisibility(db, [found], access),
     };
   }
 }

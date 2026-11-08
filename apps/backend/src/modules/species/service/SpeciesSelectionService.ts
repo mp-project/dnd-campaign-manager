@@ -1,4 +1,3 @@
-import type { ContentView, ContentViewer } from "#core/content/viewer";
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError } from "#core/error/http/index";
 import {
@@ -7,6 +6,7 @@ import {
   type ResolvedFeatureGraph,
   toResolvedFeatureResponse,
 } from "#src/modules/features/index";
+import type { ContentAccess } from "#src/modules/assets/index";
 import type { SpeciesSelectionDto } from "#src/modules/species/domain/dto/RequestSpeciesDto";
 import type { ResponseSpeciesSelectionDto } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
 import type { SpeciesFeatureGrant } from "#src/modules/species/domain/dto/SpeciesDefinitionDto";
@@ -144,9 +144,7 @@ export class SpeciesSelectionService {
   async resolveSpeciesSelection(
     found: SpeciesWithAsset,
     input: {
-      viewer: ContentViewer;
-      view: ContentView;
-      visibleAssetIds: ReadonlySet<string>;
+      access: ContentAccess;
       isVisible: (assetId: string) => boolean;
       offered: readonly OfferedVariant[];
       selection: SpeciesSelectionDto;
@@ -191,8 +189,7 @@ export class SpeciesSelectionService {
       resolvedByIndex.set(
         index,
         await this.features.resolveFeature(feature, {
-          viewer: input.viewer,
-          visibleAssetIds: input.visibleAssetIds,
+          access: input.access,
           bindings: {
             parameters: bindingParameters(item.grant, actor),
             choices: Object.fromEntries(
@@ -249,7 +246,7 @@ export class SpeciesSelectionService {
           status: evaluatedStatus.get(index) ?? item.status,
           resolved:
             resolved && feature
-              ? toResolvedFeatureResponse(feature, input.viewer.rulesetId, resolved)
+              ? toResolvedFeatureResponse(feature, input.access.viewer.rulesetId, resolved)
               : null,
         };
       }),

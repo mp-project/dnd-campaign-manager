@@ -1,4 +1,5 @@
 import type { FastifyBaseLogger } from "fastify";
+import type { ContentReadPurpose } from "#core/content/access";
 import {
   campaignRoleOf,
   type ContentView,
@@ -722,30 +723,13 @@ export class AssetsService {
     }
   }
 
-  /**
-   * Loads an asset requested in a campaign; what the viewer may not see is reported as 404. Archived
-   * global assets stay readable for existing usages, drafts only for administrators.
-   */
-  async requireReadableInCampaign(
-    context: RequestContext,
-    viewer: ContentViewer,
+  /** Loads an asset requested in a campaign; what the viewer may not read is reported as 404. */
+  async requireReadable(
+    access: ContentAccess,
     assetId: string,
-    visibleAssetIds: ReadonlySet<string>,
+    purpose: ContentReadPurpose = "READ",
   ): Promise<AssetRow> {
-    const asset = await this.requireAsset(this.db, assetId);
-
-    this.assertSameCampaign(asset, viewer.campaignId);
-
-    const hiddenDraft =
-      asset.scope === "SYSTEM" && asset.status === "DRAFT" && !isSysAdminRole(context.systemRole);
-    const hiddenFromPlayer =
-      viewer.view === "PLAYER" && !this.isVisibleToPlayer(asset, visibleAssetIds);
-
-    if (hiddenDraft || hiddenFromPlayer) {
-      throw new NotFoundError("Asset not found");
-    }
-
-    return asset;
+    return access.require(purpose, await this.repository.findById(this.db, assetId));
   }
 
   /** `visibleAssetIds` comes from `listVisibleAssetIds`; active global assets are always visible. */

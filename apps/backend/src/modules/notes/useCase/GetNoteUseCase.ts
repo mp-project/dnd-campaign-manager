@@ -18,20 +18,13 @@ export class GetNoteUseCase {
     context: RequestContext,
     input: { campaignId: string; noteId: string },
   ): Promise<ResponseNoteDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const found = await this.notesService.requireReadableNote(access, input);
 
-    if (viewer.view === "PLAYER") {
-      const visibleAssetIds = new Set(await this.assetsService.listVisibleAssetIds(viewer));
-
-      return toNotePlayerResponse(
-        await this.notesService.requireVisibleToPlayer(input, visibleAssetIds),
-      );
+    if (!access.isFullView) {
+      return toNotePlayerResponse(found);
     }
 
-    const { db } = this.notesService;
-
-    return toNoteFullResponse(
-      await this.notesService.loadRecord(db, await this.notesService.requireNote(db, input)),
-    );
+    return toNoteFullResponse(await this.notesService.loadRecord(this.notesService.db, found));
   }
 }

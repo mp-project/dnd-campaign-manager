@@ -4,7 +4,12 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { AssetLinksService } from "#src/modules/asset-links/index";
-import { type AssetRow, type AssetsService, slugify } from "#src/modules/assets/index";
+import {
+  type AssetRow,
+  type AssetsService,
+  type ContentAccess,
+  slugify,
+} from "#src/modules/assets/index";
 import type { ContentSharesService } from "#src/modules/content-shares/index";
 import type { TagsService } from "#src/modules/tags/index";
 import type { CreateNoteDto } from "#src/modules/notes/domain/dto/CreateNoteDto";
@@ -88,18 +93,13 @@ export class NotesService {
   }
 
   /**
-   * Notes reach players only through shares, and only while active. Everything else is reported as
-   * missing, so ids don't leak. `visibleAssetIds` comes from `AssetsService.listVisibleAssetIds`.
+   * A note of the campaign the viewer may read: the full view gets every note, players only active
+   * notes shared with them. Everything else is reported as missing, so ids don't leak.
    */
-  async requireVisibleToPlayer(
-    path: NotePath,
-    visibleAssetIds: ReadonlySet<string>,
-  ): Promise<NoteWithAsset> {
+  async requireReadableNote(access: ContentAccess, path: NotePath): Promise<NoteWithAsset> {
     const found = await this.requireNote(this.db, path);
 
-    if (!this.assets.isVisibleToPlayer(found.asset, visibleAssetIds)) {
-      throw new NotFoundError("Note not found");
-    }
+    await access.require("MANAGE", found.asset, "Note not found");
 
     return found;
   }

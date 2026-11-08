@@ -1,5 +1,4 @@
 import type { RequestContext } from "#core/http/requestContext";
-import { NotFoundError } from "#core/error/http/index";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
 import type { AssetsService } from "#src/modules/assets/index";
 import { FeaturesService } from "#src/modules/features/service/FeaturesService";
@@ -18,24 +17,13 @@ export class GetFeatureUsagesUseCase {
     context: RequestContext,
     input: { campaignId: string; featureId: string },
   ): Promise<ResponseAssetUsagesDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const { feature, asset } = await this.featuresService.requireCatalogFeature(
-      viewer,
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { asset } = await this.featuresService.requireReadableFeature(
+      access,
       input.featureId,
-      {
-        visibleAssetIds,
-        inUseAssetIds: await this.assetsService.listInUseAssetIds(viewer.campaignId),
-        archived: "always",
-      },
+      "MANAGE",
     );
 
-    if (feature.campaignId !== viewer.campaignId) {
-      throw new NotFoundError("Feature not found");
-    }
-
-    return this.featuresService.getUsages(viewer, asset.id, visibleAssetIds);
+    return this.featuresService.getUsages(access, asset.id);
   }
 }

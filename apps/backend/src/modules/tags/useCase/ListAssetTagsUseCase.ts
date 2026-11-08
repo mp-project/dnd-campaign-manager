@@ -17,20 +17,12 @@ export class ListAssetTagsUseCase {
     context: RequestContext,
     input: { campaignId: string; assetId: string },
   ): Promise<ResponseAssetTagsDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const asset = await this.assetsService.requireReadableInCampaign(
-      context,
-      viewer,
-      input.assetId,
-      visibleAssetIds,
-    );
+    const access = await this.assetsService.access(context, input.campaignId);
+    const asset = await this.assetsService.requireReadable(access, input.assetId);
     const { db, repository } = this.tagsService;
     const tags = await repository.listForAsset(db, asset.id);
 
-    if (viewer.view === "PLAYER") {
+    if (!access.isFullView) {
       return { view: "PLAYER", assetId: asset.id, tags: tags.map(toTagPlayerResponse) };
     }
 

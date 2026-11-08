@@ -1,4 +1,5 @@
-import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
+import type { ContentReadPurpose } from "#core/content/access";
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -9,6 +10,7 @@ import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-li
 import {
   type AssetRow,
   type AssetsService,
+  type ContentAccess,
   slugify,
 } from "#src/modules/assets/index";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
@@ -163,52 +165,17 @@ export class FeaturesService {
   }
 
   /**
-   * A feature available in the campaign: its own, or a global one for the campaign ruleset. Global
-   * drafts only exist for administrators. Archived features only stay while the campaign still uses
-   * them (`inUseAssetIds`); `archived: "always"` is for GMs managing their own features. Players
-   * only see what `isVisibleToPlayerInCampaign` allows.
+   * A feature of the campaign the viewer may read for this purpose (`ContentReadPurpose`): `MANAGE`
+   * for the routes of the campaign's own features, `CATALOG` for what the campaign may use.
    */
-  async requireCatalogFeature(
-    viewer: ContentViewer,
+  async requireReadableFeature(
+    access: ContentAccess,
     featureId: string,
-    access: {
-      visibleAssetIds: ReadonlySet<string>;
-      inUseAssetIds: ReadonlySet<string>;
-      archived: "always" | "ifInUse";
-    },
+    purpose: ContentReadPurpose,
   ): Promise<FeatureWithAsset> {
     const found = await this.requireFeature(this.db, featureId);
-    const { feature, asset } = found;
-    const missing = new NotFoundError("Feature not found");
 
-    if (feature.campaignId !== null && feature.campaignId !== viewer.campaignId) {
-      throw missing;
-    }
-
-    if (feature.campaignId === null) {
-      if (asset.status === "DRAFT" && !viewer.isAdmin) {
-        throw missing;
-      }
-
-      if (!(await this.assets.repository.isCompatible(this.db, asset.id, viewer.rulesetId))) {
-        throw missing;
-      }
-    }
-
-    if (
-      asset.status === "ARCHIVED" &&
-      (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
-      !access.inUseAssetIds.has(asset.id)
-    ) {
-      throw missing;
-    }
-
-    if (
-      viewer.view === "PLAYER" &&
-      !this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
-    ) {
-      throw missing;
-    }
+    await access.require(purpose, found.asset, "Feature not found");
 
     return found;
   }
@@ -229,15 +196,26 @@ export class FeaturesService {
   }
 
   /**
-   * Which referenced assets of these features a player may see: active global assets, campaign
-   * assets visible to the player and archived ones the campaign still uses. Used to strip hidden
-   * references from the player view.
+   * Which referenced assets of these features the viewer may read; used to strip hidden references
+   * from the player view.
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     items: readonly FeatureWithAsset[],
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
+    access: ContentAccess,
+  ): Promise<(assetId: string) => boolean> {
+    const ids = items.flatMap(({ feature }) =>
+      collectAssetReferences(parseFeatureGraph(feature)).map((reference) => reference.assetId),
+    );
+    const readable = await access.readableIds("READ", [...(await this.assets.findMany(ids, db)).values()], db);
+
+    return (assetId) => readable.has(assetId);
+  }
+
+  /** Outside a campaign, references are visible if they point to active global assets. */
+  async globalReferenceVisibility(
+    db: AppDatabase,
+    items: readonly FeatureWithAsset[],
   ): Promise<(assetId: string) => boolean> {
     const ids = items.flatMap(({ feature }) =>
       collectAssetReferences(parseFeatureGraph(feature)).map((reference) => reference.assetId),
@@ -247,10 +225,7 @@ export class FeaturesService {
     return (assetId) => {
       const asset = referenced.get(assetId);
 
-      return (
-        asset !== undefined &&
-        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
-      );
+      return asset?.scope === "SYSTEM" && asset.status === "ACTIVE";
     };
   }
 
@@ -780,8 +755,7 @@ export class FeaturesService {
   async resolveFeature(
     found: FeatureWithAsset,
     input: {
-      viewer: ContentViewer;
-      visibleAssetIds: ReadonlySet<string>;
+      access: ContentAccess;
       bindings: FeatureBindings;
       actor: ActorSnapshot;
       db?: AppDatabase | undefined;
@@ -794,7 +768,7 @@ export class FeaturesService {
       assetId: found.asset.id,
       version: found.feature.version,
       assetVersion: found.asset.version,
-      rulesetId: input.viewer.rulesetId,
+      rulesetId: input.access.viewer.rulesetId,
       bindings: input.bindings,
       actor: input.actor,
       // What a viewer may choose differs, e.g. between GM and player, so it is part of the key.
@@ -850,8 +824,7 @@ export class FeaturesService {
   private async checkAssetSelections(
     graph: FeatureGraph,
     input: {
-      viewer: ContentViewer;
-      visibleAssetIds: ReadonlySet<string>;
+      access: ContentAccess;
       bindings: FeatureBindings;
       db?: AppDatabase | undefined;
     },
@@ -879,21 +852,12 @@ export class FeaturesService {
     // Entries are option codes or asset ids; free text is no asset and must not reach the uuid column.
     const entries = [...candidates.keys()].filter((entry) => UUID_PATTERN.test(entry));
     const assets = await this.assets.findMany(entries, db);
+    // Newly chosen: active, of an allowed type and in what the campaign may use.
     const eligible = [...assets.values()].filter(
-      (asset) =>
-        candidates.get(asset.id)?.has(asset.assetType) === true &&
-        asset.status === "ACTIVE" &&
-        !(asset.scope === "CAMPAIGN" && asset.campaignId !== input.viewer.campaignId) &&
-        !(input.viewer.view === "PLAYER" && !this.assets.isVisibleToPlayer(asset, input.visibleAssetIds)),
-    );
-    // One query for the ruleset check of all of them.
-    const allowed = await this.assets.repository.listCompatibleIds(
-      db,
-      eligible.map((asset) => asset.id),
-      input.viewer.rulesetId,
+      (asset) => candidates.get(asset.id)?.has(asset.assetType) === true && asset.status === "ACTIVE",
     );
 
-    return allowed;
+    return input.access.readableIds("CATALOG", eligible, db);
   }
 
   // ---------------------------------------------------------------------------
@@ -920,8 +884,8 @@ export class FeaturesService {
     }));
   }
 
-  async getUsages(viewer: ContentViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
-    return this.links.getUsages(viewer, assetId, visibleAssetIds);
+  async getUsages(access: ContentAccess, assetId: string) {
+    return this.links.getUsages(access, assetId);
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

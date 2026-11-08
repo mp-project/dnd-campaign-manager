@@ -1,7 +1,7 @@
 import type { RequestContext } from "#core/http/requestContext";
 import { NotFoundError } from "#core/error/http/index";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import type { AssetsService, ContentAccess } from "#src/modules/assets/index";
 import {
   type ResponseFeatureDto,
   toFeatureFullResponse,
@@ -47,52 +47,29 @@ export class GetFeatureUseCase {
         throw new NotFoundError("Feature not found");
       }
 
-      return this.toPlayer(found, new Set());
+      return this.toPlayer(found, null);
     }
 
-    const viewer = await this.assetsService.resolveCampaignViewer(
-      context,
-      input.campaignId as string,
-    );
-    const visibleAssetIds = new Set(
-      viewer.view === "PLAYER" ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const inUseAssetIds = await this.assetsService.listInUseAssetIds(viewer.campaignId);
-    const found = await this.featuresService.requireCatalogFeature(
-      viewer,
+    const access = await this.assetsService.access(context, input.campaignId as string);
+    const found = await this.featuresService.requireReadableFeature(
+      access,
       input.featureId,
-      {
-        visibleAssetIds,
-        inUseAssetIds,
-        // GMs manage their own archived features; the catalog only keeps those still in use.
-        archived: this.mode === "campaign" ? "always" : "ifInUse",
-      },
+      this.mode === "campaign" ? "MANAGE" : "CATALOG",
     );
 
-    if (this.mode === "campaign" && found.feature.campaignId !== viewer.campaignId) {
-      throw new NotFoundError("Feature not found");
-    }
-
-    if (viewer.view === "PLAYER") {
-      return this.toPlayer(found, visibleAssetIds, inUseAssetIds);
+    if (!access.isFullView) {
+      return this.toPlayer(found, access);
     }
 
     return toFeatureFullResponse(await this.featuresService.loadRecord(db, found));
   }
 
-  private async toPlayer(
-    found: FeatureWithAsset,
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
-  ) {
+  private async toPlayer(found: FeatureWithAsset, access: ContentAccess | null) {
     return toFeaturePlayerResponse(
       found,
-      await this.featuresService.playerReferenceVisibility(
-        this.featuresService.db,
-        [found],
-        visibleAssetIds,
-        inUseAssetIds,
-      ),
+      access
+        ? await this.featuresService.playerReferenceVisibility(this.featuresService.db, [found], access)
+        : await this.featuresService.globalReferenceVisibility(this.featuresService.db, [found]),
     );
   }
 }

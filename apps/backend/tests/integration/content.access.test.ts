@@ -105,7 +105,7 @@ const MATRIX: [string, ContentViewer, Record<ContentReadPurpose, Name[]>][] = [
   [
     "player",
     viewer("PLAYER", false, PLAYER),
-    { READ: PLAYER_SEES, CATALOG: PLAYER_SEES, MANAGE: [] },
+    { READ: PLAYER_SEES, CATALOG: PLAYER_SEES, MANAGE: ["ownActiveShared", "ownArchivedInUse"] },
   ],
 ];
 

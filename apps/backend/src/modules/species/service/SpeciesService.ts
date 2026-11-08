@@ -1,4 +1,5 @@
-import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
+import type { ContentReadPurpose } from "#core/content/access";
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -10,6 +11,7 @@ import {
   type AssetReference,
   type AssetRow,
   type AssetsService,
+  type ContentAccess,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -95,13 +97,6 @@ type VariantCheckRow = Pick<
   SpeciesVariantRow,
   "assetId" | "campaignId" | "speciesId" | "variantGroupCode"
 > & { featureGrants: SpeciesFeatureGrant[] };
-
-/** What a viewer may see of the catalog; see `SpeciesService.isAvailableInCatalog`. */
-export type CatalogAccess = {
-  visibleAssetIds: ReadonlySet<string>;
-  inUseAssetIds: ReadonlySet<string>;
-  archived: "always" | "ifInUse";
-};
 
 /**
  * Species definitions: global ones, maintained by administrators per ruleset and usable by every
@@ -207,74 +202,20 @@ export class SpeciesService {
   }
 
   /**
-   * Whether an asset (species or variant) is available in the campaign: its own, or a global one
-   * for the campaign ruleset. Global drafts only exist for administrators. Archived assets only
-   * stay while the campaign still uses them (`inUseAssetIds`), so characters that have one keep
-   * seeing it; `archived: "always"` is for GMs managing their own content and for the selection
-   * check, which answers 409 instead. Players only see what `isVisibleToPlayerInCampaign` allows.
-   * Callers inside a transaction pass its handle as `db`.
+   * A species of the campaign the viewer may read for this purpose (`ContentReadPurpose`): `MANAGE`
+   * for the routes of the campaign's own species, `CATALOG` for what the campaign may choose.
+   * Archived species stay in the catalog while the campaign still uses them. Callers inside a
+   * transaction pass its handle as `db`.
    */
-  async isAvailableInCatalog(
-    viewer: ContentViewer,
-    asset: AssetRow,
-    access: CatalogAccess,
-    db: AppDatabase = this.db,
-  ): Promise<boolean> {
-    return (await this.filterAvailableInCatalog(viewer, [asset], access, db)).has(asset.id);
-  }
-
-  /** Ids of those assets that `isAvailableInCatalog` accepts, with one ruleset query for all. */
-  async filterAvailableInCatalog(
-    viewer: ContentViewer,
-    candidates: readonly AssetRow[],
-    access: CatalogAccess,
-    db: AppDatabase = this.db,
-  ): Promise<Set<string>> {
-    const global = candidates.filter(
-      (asset) => asset.campaignId === null && (asset.status !== "DRAFT" || viewer.isAdmin),
-    );
-    const compatible = await this.assets.repository.listCompatibleIds(
-      db,
-      global.map((asset) => asset.id),
-      viewer.rulesetId,
-    );
-
-    return new Set(
-      candidates
-        .filter((asset) => {
-          if (asset.campaignId === null ? !compatible.has(asset.id) : asset.campaignId !== viewer.campaignId) {
-            return false;
-          }
-
-          if (
-            asset.status === "ARCHIVED" &&
-            (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
-            !access.inUseAssetIds.has(asset.id)
-          ) {
-            return false;
-          }
-
-          return (
-            viewer.view !== "PLAYER" ||
-            this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
-          );
-        })
-        .map((asset) => asset.id),
-    );
-  }
-
-  /** A species available in the campaign, see `isAvailableInCatalog`; otherwise 404. */
-  async requireCatalogSpecies(
-    viewer: ContentViewer,
+  async requireReadableSpecies(
+    access: ContentAccess,
     speciesId: string,
-    access: CatalogAccess,
+    purpose: ContentReadPurpose,
     db: AppDatabase = this.db,
   ): Promise<SpeciesWithAsset> {
     const found = await this.requireSpecies(db, speciesId);
 
-    if (!(await this.isAvailableInCatalog(viewer, found.asset, access, db))) {
-      throw new NotFoundError("Species not found");
-    }
+    await access.require(purpose, found.asset, "Species not found", db);
 
     return found;
   }
@@ -295,30 +236,28 @@ export class SpeciesService {
   }
 
   /**
-   * Which assets these grants refer to a player may see: active global assets, campaign assets
-   * visible to the player and archived ones the campaign still uses. Used to strip hidden
-   * references from the player view.
+   * Which assets these grants refer to the viewer may read; used to strip hidden references from
+   * the player view. Without access (outside a campaign) only active global assets count.
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     grantLists: readonly (readonly SpeciesFeatureGrant[])[],
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
+    access: ContentAccess | null,
   ): Promise<(assetId: string) => boolean> {
     const ids = grantLists.flatMap((grants) => [
       ...collectGrantReferences(grants).map((item) => item.assetId),
       ...staticBindingValues(grants),
     ]);
-    const referenced = await this.assets.findMany(ids, db);
+    const referenced = [...(await this.assets.findMany(ids, db)).values()];
+    const readable = access
+      ? await access.readableIds("READ", referenced, db)
+      : new Set(
+          referenced
+            .filter((asset) => asset.scope === "SYSTEM" && asset.status === "ACTIVE")
+            .map((asset) => asset.id),
+        );
 
-    return (assetId) => {
-      const asset = referenced.get(assetId);
-
-      return (
-        asset !== undefined &&
-        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
-      );
-    };
+    return (assetId) => readable.has(assetId);
   }
 
   /**
@@ -1233,8 +1172,8 @@ export class SpeciesService {
     ];
   }
 
-  async getUsages(viewer: ContentViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
-    return this.links.getUsages(viewer, assetId, visibleAssetIds);
+  async getUsages(access: ContentAccess, assetId: string) {
+    return this.links.getUsages(access, assetId);
   }
 
   async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

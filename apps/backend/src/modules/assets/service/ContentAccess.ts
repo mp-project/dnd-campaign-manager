@@ -95,18 +95,21 @@ export class ContentAccess {
     const archivedInUse = and(eq(assets.status, "ARCHIVED"), inUse) as SQL;
     const offered = this.deps.repository.compatibleWith(db, this.viewer.rulesetId);
 
-    if (purpose === "MANAGE") {
-      return this.isFullView ? (own as SQL) : NEVER;
-    }
-
     if (!this.isFullView) {
       const visible = and(eq(assets.status, "ACTIVE"), this.idsIn(this.visibleAssetIds));
+      const ownForPlayer = and(own, or(visible, archivedInUse)) as SQL;
+
+      if (purpose === "MANAGE") {
+        return ownForPlayer;
+      }
+
       const globalActive = and(eq(assets.status, "ACTIVE"), offered);
 
-      return or(
-        and(own, or(visible, archivedInUse)),
-        and(global, or(globalActive, and(archivedInUse, offered))),
-      ) as SQL;
+      return or(ownForPlayer, and(global, or(globalActive, and(archivedInUse, offered)))) as SQL;
+    }
+
+    if (purpose === "MANAGE") {
+      return own as SQL;
     }
 
     if (purpose === "CATALOG") {
@@ -131,8 +134,8 @@ export class ContentAccess {
       return false;
     }
 
-    if (purpose === "MANAGE") {
-      return this.isFullView && asset.scope === "CAMPAIGN";
+    if (purpose === "MANAGE" && asset.scope !== "CAMPAIGN") {
+      return false;
     }
 
     if (asset.scope === "SYSTEM" && this.needsRulesetCheck(purpose, asset)) {

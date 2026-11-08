@@ -17,17 +17,9 @@ export class ListAssetMediaUseCase {
     context: RequestContext,
     input: { campaignId: string; assetId: string },
   ): Promise<ResponseAssetMediaListDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const isPlayer = viewer.view === "PLAYER";
-    const visibleAssetIds = new Set(
-      isPlayer ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const asset = await this.assetsService.requireReadableInCampaign(
-      context,
-      viewer,
-      input.assetId,
-      visibleAssetIds,
-    );
+    const access = await this.assetsService.access(context, input.campaignId);
+    const isPlayer = !access.isFullView;
+    const asset = await this.assetsService.requireReadable(access, input.assetId);
     const rows = await this.mediaService.repository.listAssignmentsOfAsset(
       this.mediaService.db,
       asset.id,

@@ -18,15 +18,9 @@ export class GetNoteUsagesUseCase {
     context: RequestContext,
     input: { campaignId: string; noteId: string },
   ): Promise<ResponseAssetUsagesDto> {
-    const viewer = await this.assetsService.resolveCampaignViewer(context, input.campaignId);
-    const isPlayer = viewer.view === "PLAYER";
-    const visibleAssetIds = new Set(
-      isPlayer ? await this.assetsService.listVisibleAssetIds(viewer) : [],
-    );
-    const { asset } = isPlayer
-      ? await this.notesService.requireVisibleToPlayer(input, visibleAssetIds)
-      : await this.notesService.requireNote(this.notesService.db, input);
+    const access = await this.assetsService.access(context, input.campaignId);
+    const { asset } = await this.notesService.requireReadableNote(access, input);
 
-    return this.linksService.getUsages(viewer, asset.id, visibleAssetIds);
+    return this.linksService.getUsages(access, asset.id);
   }
 }

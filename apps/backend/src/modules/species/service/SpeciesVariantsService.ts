@@ -1,8 +1,8 @@
-import type { ContentViewer } from "#core/content/viewer";
+import type { ContentReadPurpose } from "#core/content/access";
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
-import { slugify } from "#src/modules/assets/index";
+import { type ContentAccess, slugify } from "#src/modules/assets/index";
 import type { CreateSpeciesVariantDto } from "#src/modules/species/domain/dto/CreateSpeciesDto";
 import type { UpdateSpeciesVariantDto } from "#src/modules/species/domain/dto/UpdateSpeciesDto";
 import type {
@@ -11,11 +11,7 @@ import type {
   SpeciesWithAsset,
 } from "#src/modules/species/domain/repository/SpeciesRepository";
 import { parseVariantGrants } from "#src/modules/species/history/TrackedSpecies";
-import {
-  type CatalogAccess,
-  rowFields,
-  type SpeciesService,
-} from "#src/modules/species/service/SpeciesService";
+import { rowFields, type SpeciesService } from "#src/modules/species/service/SpeciesService";
 
 /**
  * Variants of a species (subraces, lineages, legacies, ancestries). Each is an asset of type
@@ -45,25 +41,23 @@ export class SpeciesVariantsService {
   }
 
   /**
-   * Variants of a species a viewer may see in the campaign: available like the species itself (see
-   * `SpeciesService.isAvailableInCatalog`). GMs managing their own species also see archived ones.
-   * Callers inside a transaction pass its handle as `db`.
+   * Variants of a species the viewer may read in the campaign for this purpose, like the species
+   * itself. Callers inside a transaction pass its handle as `db`.
    */
-  async listAvailable(
-    viewer: ContentViewer,
+  async listReadable(
+    access: ContentAccess,
     speciesId: string,
-    access: CatalogAccess,
+    purpose: ContentReadPurpose,
     db: AppDatabase = this.db,
   ): Promise<SpeciesVariantWithAsset[]> {
     const variants = await this.speciesService.repository.listVariants(db, speciesId);
-    const available = await this.speciesService.filterAvailableInCatalog(
-      viewer,
+    const readable = await access.readableIds(
+      purpose,
       variants.map(({ asset }) => asset),
-      access,
       db,
     );
 
-    return variants.filter(({ asset }) => available.has(asset.id));
+    return variants.filter(({ asset }) => readable.has(asset.id));
   }
 
   /** Variants of a global species outside a campaign: all for administrators, else active ones. */

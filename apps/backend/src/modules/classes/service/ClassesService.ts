@@ -1,4 +1,5 @@
-import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
+import type { ContentReadPurpose } from "#core/content/access";
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -11,6 +12,7 @@ import {
   type AssetReference,
   type AssetRow,
   type AssetsService,
+  type ContentAccess,
   slugify,
 } from "#src/modules/assets/index";
 import type { ClassDefinition } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
@@ -140,71 +142,31 @@ export class ClassesService {
   }
 
   /**
-   * A class available in the campaign: its own, or a global one for the campaign ruleset. Global
-   * drafts only exist for administrators. Archived classes only stay while the campaign still uses
-   * them (`inUseAssetIds`), so characters that have one keep seeing it; `archived: "always"` is for
-   * GMs managing their own classes and for the selection check, which answers 409 instead.
-   * Players only see what `isVisibleToPlayerInCampaign` allows.
+   * A class of the campaign the viewer may read for this purpose (`ContentReadPurpose`): `MANAGE`
+   * for the routes of the campaign's own classes, `CATALOG` for what the campaign may choose.
+   * Archived classes stay in the catalog while the campaign still uses them.
    */
-  async requireCatalogClass(
-    viewer: ContentViewer,
+  async requireReadableClass(
+    access: ContentAccess,
     classId: string,
-    access: {
-      visibleAssetIds: ReadonlySet<string>;
-      inUseAssetIds: ReadonlySet<string>;
-      archived: "always" | "ifInUse";
-    },
+    purpose: ContentReadPurpose,
   ): Promise<ClassWithAsset> {
     const found = await this.requireClass(this.db, classId);
-    const { characterClass, asset } = found;
-    const missing = new NotFoundError("Class not found");
 
-    if (characterClass.campaignId !== null && characterClass.campaignId !== viewer.campaignId) {
-      throw missing;
-    }
-
-    if (characterClass.campaignId === null) {
-      if (asset.status === "DRAFT" && !viewer.isAdmin) {
-        throw missing;
-      }
-
-      if (!(await this.assets.repository.isCompatible(this.db, asset.id, viewer.rulesetId))) {
-        throw missing;
-      }
-    }
-
-    if (
-      asset.status === "ARCHIVED" &&
-      (access.archived === "ifInUse" || viewer.view === "PLAYER") &&
-      !access.inUseAssetIds.has(asset.id)
-    ) {
-      throw missing;
-    }
-
-    if (
-      viewer.view === "PLAYER" &&
-      !this.assets.isVisibleToPlayerInCampaign(asset, access.visibleAssetIds, access.inUseAssetIds)
-    ) {
-      throw missing;
-    }
+    await access.require(purpose, found.asset, "Class not found");
 
     return found;
   }
 
   /**
-   * A class that may be newly chosen in the campaign, for actor progression: available in the
-   * catalog and active. Archived classes in use stay readable but cannot be chosen again (409).
+   * A class that may be newly chosen in the campaign, for actor progression: in the catalog and
+   * active. Archived classes in use stay readable but cannot be chosen again (409).
    */
   async requireSelectableClass(
-    viewer: ContentViewer,
+    access: ContentAccess,
     classId: string,
-    visibleAssetIds: ReadonlySet<string>,
   ): Promise<ClassWithAsset & { definition: ClassDefinition }> {
-    const found = await this.requireCatalogClass(viewer, classId, {
-      visibleAssetIds,
-      inUseAssetIds: await this.assets.listInUseAssetIds(viewer.campaignId),
-      archived: "always",
-    });
+    const found = await this.requireReadableClass(access, classId, "CATALOG");
 
     if (found.asset.status !== "ACTIVE") {
       throw new ConflictError("Only active classes can be chosen", {
@@ -232,15 +194,13 @@ export class ClassesService {
   }
 
   /**
-   * Which referenced assets of these classes a player may see: active global assets, campaign
-   * assets visible to the player and archived ones the campaign still uses. Used to strip hidden
-   * references from the player view.
+   * Which referenced assets of these classes the viewer may read; used to strip hidden references
+   * from the player view. Without access (outside a campaign) only active global assets count.
    */
   async playerReferenceVisibility(
     db: AppDatabase,
     items: readonly ClassWithAsset[],
-    visibleAssetIds: ReadonlySet<string>,
-    inUseAssetIds: ReadonlySet<string> = new Set(),
+    access: ContentAccess | null,
   ): Promise<(assetId: string) => boolean> {
     const ids = items.flatMap(({ characterClass }) => {
       const definition = parseClassDefinition(characterClass);
@@ -250,16 +210,16 @@ export class ClassesService {
         ...this.staticAssetValues(definition),
       ];
     });
-    const referenced = await this.assets.findMany(ids, db);
+    const referenced = [...(await this.assets.findMany(ids, db)).values()];
+    const readable = access
+      ? await access.readableIds("READ", referenced, db)
+      : new Set(
+          referenced
+            .filter((asset) => asset.scope === "SYSTEM" && asset.status === "ACTIVE")
+            .map((asset) => asset.id),
+        );
 
-    return (assetId) => {
-      const asset = referenced.get(assetId);
-
-      return (
-        asset !== undefined &&
-        this.assets.isVisibleToPlayerInCampaign(asset, visibleAssetIds, inUseAssetIds)
-      );
-    };
+    return (assetId) => readable.has(assetId);
   }
 
   /**
@@ -795,8 +755,8 @@ export class ClassesService {
     }));
   }
 
-  async getUsages(viewer: ContentViewer, assetId: string, visibleAssetIds: ReadonlySet<string>) {
-    return this.links.getUsages(viewer, assetId, visibleAssetIds);
+  async getUsages(access: ContentAccess, assetId: string) {
+    return this.links.getUsages(access, assetId);
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

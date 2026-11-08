@@ -5,7 +5,8 @@
  *   campaign and global content offered to it (administrators: all global content).
  * - `CATALOG`: what the campaign may use. Global drafts and global content of other rulesets are
  *   never offered, also not to administrators; archived content only while the campaign uses it.
- * - `MANAGE`: owner and editors managing the campaign's own content, archived included.
+ * - `MANAGE`: the campaign's own content, as its management routes show it: the full view gets
+ *   all of it, archived included; players what `READ` shows them of it.
  *
  * Players never see drafts; they see active content granted to them (global content of the
  * campaign ruleset, shares, releases) and archived content the campaign still uses.

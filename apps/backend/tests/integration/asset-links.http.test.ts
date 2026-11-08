@@ -822,6 +822,40 @@ describe("asset links", () => {
       ]);
     });
 
+    it("shows the same link ends in links and usages", async () => {
+      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await createOk(ID.location, relatedTo(ID.item));
+      // The global spell moves to another ruleset: no longer part of this campaign.
+      await db.update(assets).set({ rulesetPolicy: "RESTRICTED" }).where(eq(assets.id, ID.systemSpell));
+      await db.insert(assetRulesets).values({ assetId: ID.systemSpell, rulesetId: ID.otherRuleset });
+
+      const listed = (await list(ID.location)).json().data as { relatedAsset: { id: string } }[];
+      const used = (await usages(ID.location)).json().outgoing as { assetId: string }[];
+
+      expect(listed.map((link) => link.relatedAsset.id)).toEqual([ID.item]);
+      expect(used.map((item) => item.assetId)).toEqual([ID.item]);
+      expect((await usages(ID.systemSpell)).statusCode).toBe(404);
+      expect((await usages(ID.systemSpell, ADMIN)).statusCode).toBe(200);
+    });
+
+    it("shows players archived content the campaign uses in links and its own usages", async () => {
+      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await setStatus(ID.systemSpell, "ARCHIVED");
+
+      const linkedIds = async () =>
+        ((await list(ID.location, PLAYER)).json().data as { relatedAsset: { id: string } }[]).map(
+          (link) => link.relatedAsset.id,
+        );
+
+      expect(await linkedIds()).toEqual([]);
+      expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(404);
+
+      inUseAssetIds = [ID.systemSpell];
+
+      expect(await linkedIds()).toEqual([ID.systemSpell]);
+      expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(200);
+    });
+
     it("answers 503 when the database is too busy to tell what is in use", async () => {
       typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
       await setStatus(ID.systemSpell, "ARCHIVED");

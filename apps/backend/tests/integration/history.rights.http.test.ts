@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, mediaFiles, notes, rulesets, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, mediaFiles, notes, rulesets, species, speciesVariants, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -34,6 +34,10 @@ const ID = {
   feature: "f0000000-0000-4000-8000-00000000000f",
   classAsset: "d0000000-0000-4000-8000-00000000000e",
   class: "f0000000-0000-4000-8000-000000000010",
+  speciesAsset: "d0000000-0000-4000-8000-00000000000f",
+  species: "f0000000-0000-4000-8000-000000000011",
+  variantAsset: "d0000000-0000-4000-8000-000000000010",
+  variant: "f0000000-0000-4000-8000-000000000012",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -61,6 +65,8 @@ const assetLinkUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/links/
 const noteUrl = `/api/v1/campaigns/${ID.campaign}/notes/${ID.note}`;
 const featureUrl = `/api/v1/campaigns/${ID.campaign}/features/${ID.feature}`;
 const classUrl = `/api/v1/campaigns/${ID.campaign}/classes/${ID.class}`;
+const speciesUrl = `/api/v1/campaigns/${ID.campaign}/species/${ID.species}`;
+const variantUrl = `${speciesUrl}/variants/${ID.variant}`;
 
 type Inject = ReturnType<typeof buildTestApp>["injectAs"];
 type Response = Awaited<ReturnType<Inject>>;
@@ -93,7 +99,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof species | typeof speciesVariants | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -278,6 +284,50 @@ describe("history rights of every tracked entity", () => {
           description: "Taken over",
           expectedVersion: await rowVersion(classes, ID.class),
           expectedAssetVersion: await rowVersion(assets, ID.classAsset),
+        }),
+    },
+    species: {
+      id: ID.species,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", speciesUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(species, ID.species),
+            expectedAssetVersion: await rowVersion(assets, ID.speciesAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, speciesUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(species, ID.species),
+          expectedAssetVersion: await rowVersion(assets, ID.speciesAsset),
+        }),
+    },
+    speciesVariant: {
+      id: ID.variant,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", variantUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(speciesVariants, ID.variant),
+            expectedAssetVersion: await rowVersion(assets, ID.variantAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, variantUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(speciesVariants, ID.variant),
+          expectedAssetVersion: await rowVersion(assets, ID.variantAsset),
         }),
     },
     feature: {
@@ -517,6 +567,46 @@ describe("history rights of every tracked entity", () => {
         },
       ],
       multiclass: { combinationMode: "ALL", abilityRequirements: [] },
+    });
+    await db.insert(assets).values(
+      [
+        { id: ID.speciesAsset, title: "Elf", slug: "elf", assetType: "SPECIES" as const },
+        { id: ID.variantAsset, title: "Drow", slug: "drow", assetType: "SPECIES_VARIANT" as const },
+      ].map((asset) => ({
+        ...asset,
+        scope: "CAMPAIGN" as const,
+        origin: "CUSTOM" as const,
+        campaignId: ID.campaign,
+        status: "ACTIVE" as const,
+      })),
+    );
+    await db.insert(species).values({
+      id: ID.species,
+      campaignId: ID.campaign,
+      assetId: ID.speciesAsset,
+      code: "elf",
+      creatureType: "HUMANOID",
+      lifespanMode: "RULESET_DEFAULT",
+      sizeOptions: [{ size: "MEDIUM", isDefault: true, displayOrder: 0 }],
+      movementModes: [{ mode: "WALK", distanceFeet: 30, isBase: true }],
+      variantGroups: [
+        {
+          code: "lineage",
+          name: "Lineage",
+          minimumSelections: 1,
+          maximumSelections: 1,
+          required: true,
+          displayOrder: 0,
+        },
+      ],
+    });
+    await db.insert(speciesVariants).values({
+      id: ID.variant,
+      campaignId: ID.campaign,
+      assetId: ID.variantAsset,
+      speciesId: ID.species,
+      variantGroupCode: "lineage",
+      code: "drow",
     });
     await db.insert(mediaFiles).values({
       id: ID.media,

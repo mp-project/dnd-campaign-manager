@@ -1,7 +1,7 @@
 import { SYSTEM_USER_ID } from "#core/db/schemaHelpers";
+import { RFC_UUID_PATTERN } from "#core/uuid";
 
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = RFC_UUID_PATTERN;
 
 /**
  * Value for `createdBy`/`updatedBy`: the actor if it is a valid UUID, otherwise the system user.

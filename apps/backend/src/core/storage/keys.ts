@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import { StorageError } from "#core/storage/errors";
+import { RFC_UUID_PATTERN } from "#core/uuid";
 
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = RFC_UUID_PATTERN;
 
 /**
  * Validates UUID format for key-building inputs.

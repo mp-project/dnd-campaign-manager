@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import {
@@ -41,6 +41,20 @@ export class CampaignsRepository {
       .from(campaigns)
       .where(and(eq(campaigns.id, campaignId), isNull(campaigns.deletedAt)))
       .for("update");
+  }
+
+  /** Ruleset of each campaign in one query; unknown and deleted campaigns are missing. */
+  async listRulesetIds(db: AppDatabase, campaignIds: readonly string[]): Promise<Map<string, string | null>> {
+    if (campaignIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await db
+      .select({ id: campaigns.id, rulesetId: campaigns.rulesetId })
+      .from(campaigns)
+      .where(and(inArray(campaigns.id, [...new Set(campaignIds)]), isNull(campaigns.deletedAt)));
+
+    return new Map(rows.map((row) => [row.id, row.rulesetId]));
   }
 
   async findById(db: AppDatabase, campaignId: string): Promise<CampaignRow | null> {

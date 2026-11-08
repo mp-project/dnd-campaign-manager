@@ -3,6 +3,7 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope, HistoryEvent } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
+import { UUID_PATTERN } from "#core/uuid";
 import type { AssetLinksService, AssetUsageItemDto } from "#src/modules/asset-links/index";
 import {
   type AssetRow,
@@ -16,6 +17,8 @@ import type { UpdateFeatureDto } from "#src/modules/features/domain/dto/UpdateFe
 import {
   collectAssetReferences,
   type DefinitionIssue,
+  raisesAbilityScore,
+  usesClassLevel,
 } from "#src/modules/features/domain/FeatureDefinition";
 import {
   type ActorSnapshot,
@@ -66,6 +69,22 @@ const ASSET_FIELDS = [
 /** Upper bound of supersede steps followed when looking for cycles. */
 const MAX_SUPERSEDE_CHAIN = 200;
 
+/** See `FeaturesService.inspectFeatures`. */
+export type FeatureInspection =
+  | {
+      valid: true;
+      parameters: FeatureGraph["parameters"];
+      raisesAbilityScore: boolean;
+      usesClassLevel: boolean;
+    }
+  | { valid: false };
+
+/** See `FeaturesService.registerChangeGuard`. */
+export type FeatureChangeGuard = (
+  change: { assetId: string; campaignId: string | null; graph: FeatureGraph },
+  db: AppDatabase,
+) => Promise<void>;
+
 /**
  * Feature definitions: global ones, maintained by administrators per ruleset, and custom ones of a
  * campaign. Each feature is an asset of type `FEATURE`; the asset holds name, summary, status and
@@ -75,6 +94,7 @@ const MAX_SUPERSEDE_CHAIN = 200;
 export class FeaturesService {
   public readonly trackedFeature: TrackedFeature;
   public readonly cache = new FeatureResolutionCache();
+  private readonly changeGuards: FeatureChangeGuard[] = [];
 
   constructor(
     public readonly db: AppDatabase,
@@ -98,6 +118,10 @@ export class FeaturesService {
         }
 
         await this.assertReferencesValid(tx, row, row.graph);
+
+        for (const guard of this.changeGuards) {
+          await guard({ assetId: row.assetId, campaignId: row.campaignId, graph: row.graph }, tx);
+        }
       },
     });
   }
@@ -246,6 +270,57 @@ export class FeaturesService {
     return new Map(
       [...found].map(([assetId, { feature }]) => [assetId, parseFeatureGraph(feature).parameters]),
     );
+  }
+
+  /**
+   * What source modules need to know about features they grant, from one query that parses each
+   * graph once: the parameters, whether the effects raise an ability score (`raisesAbilityScore`)
+   * and whether the definition depends on a class level (`usesClassLevel`). A stored graph that no
+   * longer parses is reported as invalid instead of failing the caller. With `lock: true` the
+   * features stay locked (shared) until the transaction ends, so a concurrent change or archive
+   * waits instead of slipping past the caller's checks. Missing ids are missing from the result.
+   */
+  async inspectFeatures(
+    db: AppDatabase,
+    assetIds: readonly string[],
+    options: { lock?: boolean } = {},
+  ): Promise<Map<string, FeatureInspection>> {
+    const found = await this.repository.findByAssetIds(
+      db,
+      assetIds,
+      options.lock ? { lock: "share" } : {},
+    );
+    const result = new Map<string, FeatureInspection>();
+
+    for (const [assetId, { feature }] of found) {
+      let graph: FeatureGraph;
+
+      try {
+        graph = parseFeatureGraph(feature);
+      } catch {
+        result.set(assetId, { valid: false });
+        continue;
+      }
+
+      result.set(assetId, {
+        valid: true,
+        parameters: graph.parameters,
+        raisesAbilityScore: raisesAbilityScore(graph),
+        usesClassLevel: usesClassLevel(graph),
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Lets another module refuse a change of a feature definition, for rules it keeps about the
+   * features it uses (for example species of 2024 rulesets, which may not grant ability score
+   * increases). Runs in the history guard, so on direct changes, undoing and restoring alike, with
+   * the transaction of the change. Throws to reject.
+   */
+  registerChangeGuard(guard: FeatureChangeGuard): void {
+    this.changeGuards.push(guard);
   }
 
   /** Edit routes for asset-links, for all custom features of one request in one query. */
@@ -702,7 +777,8 @@ export class FeaturesService {
   /**
    * Binds parameters, choices and scaling for one actor. Assets chosen through a filter must be of
    * an allowed type and available in the campaign; players may only choose what they can see.
-   * Results are cached by feature version, ruleset, bindings and actor.
+   * Results are cached by feature version, ruleset, bindings and actor. Callers inside a
+   * transaction pass its handle as `db`.
    */
   async resolveFeature(
     found: FeatureWithAsset,
@@ -711,6 +787,7 @@ export class FeaturesService {
       visibleAssetIds: ReadonlySet<string>;
       bindings: FeatureBindings;
       actor: ActorSnapshot;
+      db?: AppDatabase | undefined;
     },
   ): Promise<ResolvedFeatureGraph> {
     const graph = parseFeatureGraph(found.feature);
@@ -779,8 +856,10 @@ export class FeaturesService {
       viewer: CampaignAssetViewer;
       visibleAssetIds: ReadonlySet<string>;
       bindings: FeatureBindings;
+      db?: AppDatabase | undefined;
     },
   ): Promise<Set<string>> {
+    const db = input.db ?? this.db;
     const candidates = new Map<string, Set<string>>();
 
     for (const choice of graph.choices) {
@@ -800,28 +879,22 @@ export class FeaturesService {
       }
     }
 
-    const uuids = [...candidates.keys()].filter((id) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id),
+    // Entries are option codes or asset ids; free text is no asset and must not reach the uuid column.
+    const entries = [...candidates.keys()].filter((entry) => UUID_PATTERN.test(entry));
+    const assets = await this.assets.findMany(entries, db);
+    const eligible = [...assets.values()].filter(
+      (asset) =>
+        candidates.get(asset.id)?.has(asset.assetType) === true &&
+        asset.status === "ACTIVE" &&
+        !(asset.scope === "CAMPAIGN" && asset.campaignId !== input.viewer.campaignId) &&
+        !(input.viewer.view === "PLAYER" && !this.assets.isVisibleToPlayer(asset, input.visibleAssetIds)),
     );
-    const assets = await this.assets.findMany(uuids, this.db);
-    const allowed = new Set<string>();
-
-    for (const id of uuids) {
-      const asset = assets.get(id);
-
-      if (
-        !asset ||
-        !candidates.get(id)?.has(asset.assetType) ||
-        asset.status !== "ACTIVE" ||
-        (asset.scope === "CAMPAIGN" && asset.campaignId !== input.viewer.campaignId) ||
-        (input.viewer.view === "PLAYER" && !this.assets.isVisibleToPlayer(asset, input.visibleAssetIds)) ||
-        !(await this.assets.repository.isCompatible(this.db, asset.id, input.viewer.rulesetId))
-      ) {
-        continue;
-      }
-
-      allowed.add(id);
-    }
+    // One query for the ruleset check of all of them.
+    const allowed = await this.assets.repository.listCompatibleIds(
+      db,
+      eligible.map((asset) => asset.id),
+      input.viewer.rulesetId,
+    );
 
     return allowed;
   }

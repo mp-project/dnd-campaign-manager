@@ -17,7 +17,13 @@ import {
 } from "#core/error/http/index";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
-import type { ActionScope, ActionVerifier, ChangeResult, ListFieldRule } from "#core/history/types";
+import type {
+  ActionScope,
+  ActionVerifier,
+  ChangeResult,
+  ListFieldRule,
+  TouchedEntity,
+} from "#core/history/types";
 import type { CampaignRole, RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import {
@@ -93,6 +99,24 @@ export type AssetDeactivateHook = {
  * What the module owning an asset type tells the content kernel about it. Only what cannot be
  * derived from elsewhere belongs here (tables, routes and rights already say the rest).
  */
+/** Asset fields that change what content is valid: status and the rulesets it is for. */
+const CONTENT_ASSET_FIELDS = new Set(["status", "rulesetIds", "rulesetPolicy"]);
+
+/**
+ * The asset whose content a touched row changed, if any: a created asset, a changed status or
+ * rulesets, or a row that is part of the asset's content (not links, media, tags or a new name,
+ * which leave the content as it is).
+ */
+function contentChangeOf(item: TouchedEntity): string[] {
+  if (item.entityType === ASSET_ENTITY_TYPE) {
+    return item.created || item.fields.some((field) => CONTENT_ASSET_FIELDS.has(field))
+      ? [item.entityId]
+      : [];
+  }
+
+  return item.contentOfRoot && item.root?.type === ASSET_ENTITY_TYPE ? [item.root.id] : [];
+}
+
 /**
  * Version of the rules behind `asset_references`. Raise it when a content type changes what it
  * reports as references; the app then rebuilds the index once when it starts.
@@ -430,40 +454,34 @@ export class AssetsService {
   readonly contentVerifier: ActionVerifier = {
     name: "content",
     verify: async (touched, db) => {
-      const assetIds = new Set(
-        touched.flatMap((item) => {
-          if (item.entityType === ASSET_ENTITY_TYPE) {
-            return [item.entityId];
-          }
-
-          return item.root?.type === ASSET_ENTITY_TYPE ? [item.root.id] : [];
-        }),
-      );
+      const assetIds = [...new Set(touched.flatMap(contentChangeOf))];
       // Sorted, so concurrent actions take the locks of the checks in the same order.
-      const touchedAssets = (await this.repository.findByIds(db, [...assetIds])).sort((a, b) =>
+      const changed = (await this.repository.findByIds(db, assetIds)).sort((a, b) =>
         a.id.localeCompare(b.id),
       );
-
-      const existing = new Set(touchedAssets.map((asset) => asset.id));
+      const existing = new Set(changed.map((asset) => asset.id));
 
       // Deleted assets refer to nothing any more.
       await this.repository.deleteReferences(
         db,
-        [...assetIds].filter((id) => !existing.has(id)),
+        assetIds.filter((id) => !existing.has(id)),
       );
 
-      for (const asset of touchedAssets) {
-        const type = this.contentTypes.get(asset.assetType);
+      // All references first, so every check below sees the state the action leaves behind,
+      // also of the other assets it changed.
+      for (const asset of changed) {
+        await this.storeReferences(asset, db);
+      }
 
+      for (const asset of changed) {
         if (asset.status !== "ARCHIVED") {
-          await type?.verify?.(asset, db);
+          await this.contentTypes.get(asset.assetType)?.verify?.(asset, db);
           await this.assertAllowedByReferrers(asset, db);
         }
-
-        await this.storeReferences(asset, db);
       }
     },
   };
+
 
 
 

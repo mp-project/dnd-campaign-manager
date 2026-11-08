@@ -39,6 +39,8 @@ export function createTrackedAssetLink(deps: TrackedAssetLinkDeps) {
     baseSchema: AssetLinkBaseSchema,
     campaignId: (row) => row.campaignId,
     root: (row) => ({ type: ASSET_ENTITY_TYPE, id: row.sourceAssetId }),
+    // Hangs off the asset; changing it doesn't change the asset's content.
+    contentOfRoot: false,
     access: campaignHistoryAccess<AssetLinkRow>({
       campaignId: (row) => row.campaignId,
       resolveRole: deps.resolveRole,

@@ -692,6 +692,26 @@ describe("classes", () => {
       expect(usages.json().typedUsages).toEqual([]);
     });
 
+    it("checks the content only when it changes, not on a release or a new name", async () => {
+      const feature = await createSystemFeature();
+      const item = await createOk({
+        progressionTracks: [rages],
+        levels: levelsWith({ 1: [rageGrant(feature.assetId)] }),
+      });
+
+      // The global feature goes back to draft meanwhile: no longer valid as a grant.
+      await db.update(assets).set({ status: "DRAFT" }).where(eq(assets.id, feature.assetId));
+
+      const released = await update(item, { releasedToPlayers: true, name: "Berserker" });
+
+      expect(released.statusCode).toBe(200);
+
+      // A change of the definition is checked again.
+      const body = released.json() as ClassBody;
+
+      expect((await update(body, { hitDie: "D10" })).statusCode).toBe(404);
+    });
+
     it("counts bound values as usages only for asset parameters", async () => {
       const feature = await createFeature(GM, undefined, {
         parameters: [

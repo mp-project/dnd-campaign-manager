@@ -131,7 +131,7 @@ export class HistoryActionScope implements ActionScope {
     });
 
     await this.saveLists(erased, row.id, listValues);
-    this.touch(erased, row);
+    this.touch(erased, row, { created: true, fields: Object.keys(values) });
     await this.writeEvent(
       erased,
       row,
@@ -297,7 +297,7 @@ export class HistoryActionScope implements ActionScope {
         updatedAt: new Date(),
       });
 
-      this.touch(erased, row);
+      this.touch(erased, row, { created: false, fields: Object.keys(update) });
       await erased.guard?.(next, current, this.tx);
 
       return { row, changed: true, merged };
@@ -312,7 +312,7 @@ export class HistoryActionScope implements ActionScope {
     });
 
     await this.saveLists(erased, id, update);
-    this.touch(erased, row);
+    this.touch(erased, row, { created: false, fields: Object.keys(update) });
     // After writing row and lists, so whatever the guard reads from the database is the new state.
     // A rejection rolls the whole action back.
     await erased.guard?.(next, current, this.tx);
@@ -516,8 +516,20 @@ export class HistoryActionScope implements ActionScope {
     );
   }
 
-  private touch(entity: TrackedEntity, row: TrackedRow): void {
-    this.touched.push({ entityType: entity.type, entityId: row.id, root: entity.root?.(row) ?? null });
+  private touch(
+    entity: TrackedEntity,
+    row: TrackedRow,
+    change: { created: boolean; fields: readonly string[] },
+  ): void {
+    const root = entity.root?.(row) ?? null;
+
+    this.touched.push({
+      entityType: entity.type,
+      entityId: row.id,
+      root,
+      contentOfRoot: root !== null && (entity.contentOfRoot ?? true),
+      ...change,
+    });
   }
 
   private async writeEvent(

@@ -49,6 +49,8 @@ export function createTrackedAssetMedia(deps: TrackedAssetMediaDeps) {
     baseSchema: AssetMediaBaseSchema,
     campaignId: (row) => row.campaignId,
     root: (row) => ({ type: ASSET_ENTITY_TYPE, id: row.assetId }),
+    // Hangs off the asset; changing it doesn't change the asset's content.
+    contentOfRoot: false,
     groups: [["visibility", "altText"]],
     access: campaignHistoryAccess<AssetMediaRow>({
       campaignId: (row) => row.campaignId,

@@ -130,6 +130,13 @@ export type TrackedEntity<T extends TrackedTable = TrackedTable> = {
   groups?: readonly (readonly string[])[];
   campaignId?(row: T["$inferSelect"]): string | null;
   root?(row: T["$inferSelect"]): { type: string; id: string } | null;
+  /**
+   * Whether the row is part of the content of its root (a class row of its asset), so that a
+   * change of it has the root's content checked again at the end of the action. False for rows that
+   * only hang off the root, such as links and attached media. Defaults to true when there is a
+   * root.
+   */
+  contentOfRoot?: boolean;
   /** Rules across fields; throws an AppError when the merged state is invalid. */
   validate?(
     next: T["$inferSelect"] & Record<string, unknown>,
@@ -286,6 +293,11 @@ export type TouchedEntity = {
   entityType: string;
   entityId: string;
   root: { type: string; id: string } | null;
+  /** Whether the row is part of its root's content, see `TrackedEntity.contentOfRoot`. */
+  contentOfRoot: boolean;
+  /** Created by the action, or else the fields it changed (lists included). */
+  created: boolean;
+  fields: readonly string[];
 };
 
 /**

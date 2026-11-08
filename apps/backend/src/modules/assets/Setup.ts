@@ -74,7 +74,6 @@ async function registerAssetsModule(
       findCampaignRole: (campaignId, actorId, db) =>
         campaignsDependencies.service.findCampaignRole(campaignId, actorId, db),
     },
-    app.log,
   );
 
   history.register(service.trackedAsset);

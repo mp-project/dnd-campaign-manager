@@ -349,6 +349,30 @@ export class AssetsRepository {
     return rows.map(({ source, reference }) => ({ source, reference }));
   }
 
+  /** What non-archived content of these types in the campaign refers to, with the user. */
+  async listUsedTargets(
+    db: AppDatabase,
+    campaignId: string,
+    sourceTypes: readonly AssetType[],
+  ): Promise<{ source: AssetRow; targetAssetId: string }[]> {
+    if (sourceTypes.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ source: assets, targetAssetId: assetReferences.targetAssetId })
+      .from(assetReferences)
+      .innerJoin(assets, eq(assets.id, assetReferences.sourceAssetId))
+      .where(
+        and(
+          isNull(assets.deletedAt),
+          eq(assets.campaignId, campaignId),
+          inArray(assets.assetType, [...sourceTypes]),
+          sql`${assets.status} <> 'ARCHIVED'`,
+        ),
+      );
+  }
+
   /** Assets of these types, archived ones included, for rebuilding the references. */
   async listIdsOfTypes(db: AppDatabase, assetTypes: readonly AssetType[]): Promise<string[]> {
     if (assetTypes.length === 0) {

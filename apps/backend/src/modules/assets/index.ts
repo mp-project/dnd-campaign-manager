@@ -30,7 +30,6 @@ export {
   AssetsService,
   type AssetArchiveGuard,
   type AssetDeactivateHook,
-  type AssetInUseProvider,
   type AssetReference,
   type AssetReferenceIssue,
   type ContentReference,

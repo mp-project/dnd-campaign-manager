@@ -30,6 +30,7 @@ import {
 } from "#src/modules/assets/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { createContentUse } from "#test/helpers/contentUse";
 
 const TEST_DB_URL =
   process.env.TEST_DATABASE_URL ??
@@ -72,8 +73,6 @@ const ADMIN = actor(ID.admin, "ADMIN");
 
 let failUsageProvider = false;
 let typedUsageItems: AssetUsageItemDto[] = [];
-let inUseAssetIds: string[] = [];
-let inUseError: Error | null = null;
 let registeredRelations: () => readonly AssetRelationDefinition[] = () => [];
 
 const TEST_RELATIONS = ["CONTAINS", "SECRET_OF", "REPEATS"];
@@ -94,16 +93,6 @@ const testModule: AppModule = {
       name: "test-shares",
       listVisibleAssetIds: async ({ actorId }) =>
         actorId === ID.player ? [ID.location, ID.sharedNote] : [],
-    });
-    assetsService.registerInUseProvider({
-      name: "test-in-use",
-      listInUseAssetIds: async () => {
-        if (inUseError) {
-          throw inUseError;
-        }
-
-        return inUseAssetIds;
-      },
     });
 
     const { service } = container.dependencies.require<AssetLinksModuleDependencies>(
@@ -188,6 +177,7 @@ const testModule: AppModule = {
 describe("asset links", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
+  const contentUse = createContentUse(db);
   // A new app per test, because one test can send more requests than one route allows in its window.
   let session: ReturnType<typeof buildTestApp>;
 
@@ -237,12 +227,11 @@ describe("asset links", () => {
     });
 
   beforeEach(async () => {
-    session = buildTestApp({ modules: [...defaultAppModules, testModule] });
+    session = buildTestApp({ modules: [...defaultAppModules, testModule, contentUse.module] });
     await session.app.ready();
     failUsageProvider = false;
     typedUsageItems = [];
-    inUseAssetIds = [];
-    inUseError = null;
+    contentUse.reset();
 
     await db.insert(rulesets).values(
       [
@@ -800,7 +789,7 @@ describe("asset links", () => {
 
       expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([]);
 
-      inUseAssetIds = [ID.systemSpell];
+      await contentUse.use(ID.campaign, ID.systemSpell);
 
       expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([
         expect.objectContaining({ assetId: ID.systemSpell, editRoute: null }),
@@ -835,18 +824,10 @@ describe("asset links", () => {
       expect(await linkedIds()).toEqual([]);
       expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(404);
 
-      inUseAssetIds = [ID.systemSpell];
+      await contentUse.use(ID.campaign, ID.systemSpell);
 
       expect(await linkedIds()).toEqual([ID.systemSpell]);
       expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(200);
-    });
-
-    it("answers 503 when the database is too busy to tell what is in use", async () => {
-      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
-      await setStatus(ID.systemSpell, "ARCHIVED");
-      inUseError = Object.assign(new Error("lock timeout"), { code: "55P03" });
-
-      expect((await usages(ID.location, PLAYER)).statusCode).toBe(503);
     });
   });
 

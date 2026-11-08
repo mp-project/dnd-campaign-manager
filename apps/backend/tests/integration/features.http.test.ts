@@ -19,22 +19,18 @@ import {
 } from "#src/modules/assets/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { createContentUse } from "#test/helpers/contentUse";
 
-/** Stands in for the character modules: assets the campaign still uses. */
-const inUseAssetIds = new Set<string>();
 let assetsService: AssetsService;
 
-const inUseModule: AppModule = {
-  name: "test-features-in-use",
+/** Hands out the assets service, for rebuilding the reference index. */
+const assetsModule: AppModule = {
+  name: "test-features-assets",
   dependencies: ["assets"],
   register: (_app, container) => {
     assetsService = container.dependencies.require<AssetsModuleDependencies>(
       ASSETS_MODULE_DEPENDENCIES,
     ).service;
-    assetsService.registerInUseProvider({
-      name: "test-characters",
-      listInUseAssetIds: async () => [...inUseAssetIds],
-    });
   },
 };
 
@@ -135,6 +131,7 @@ const KI = {
 describe("features", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
+  const contentUse = createContentUse(db);
   let session: ReturnType<typeof buildTestApp>;
 
   const campaignUrl = (campaignId: string = ID.campaign) =>
@@ -210,8 +207,8 @@ describe("features", () => {
     (await db.select().from(assets).where(eq(assets.assetType, "FEATURE"))).length;
 
   beforeEach(async () => {
-    inUseAssetIds.clear();
-    session = buildTestApp({ modules: [...defaultAppModules, inUseModule] });
+    contentUse.reset();
+    session = buildTestApp({ modules: [...defaultAppModules, assetsModule, contentUse.module] });
 
     await db.insert(rulesets).values(
       [
@@ -443,7 +440,7 @@ describe("features", () => {
       expect((await get(`${catalogUrl()}/${feature.id}`)).statusCode).toBe(404);
       expect((await get(`${campaignUrl()}/${feature.id}`)).statusCode).toBe(200);
 
-      inUseAssetIds.add(feature.assetId);
+      await contentUse.use(ID.campaign, feature.assetId);
 
       for (const as of [GM, PLAYER]) {
         expect((await get(`${catalogUrl()}/${feature.id}`, as)).statusCode).toBe(200);

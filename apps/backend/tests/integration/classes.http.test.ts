@@ -1,6 +1,5 @@
 import { eq, sql } from "drizzle-orm";
 
-import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import {
   assets,
@@ -10,12 +9,9 @@ import {
   rulesets,
   users,
 } from "#core/db/schema";
-import {
-  ASSETS_MODULE_DEPENDENCIES,
-  type AssetsModuleDependencies,
-} from "#src/modules/assets/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { createContentUse } from "#test/helpers/contentUse";
 
 const TEST_DB_URL =
   process.env.TEST_DATABASE_URL ??
@@ -50,22 +46,6 @@ const PLAYER = actor(ID.player);
 const OUTSIDER = actor(ID.outsider);
 const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
-
-/** Stands in for the character modules: assets the campaign still uses. */
-const inUseAssetIds = new Set<string>();
-
-const inUseModule: AppModule = {
-  name: "test-classes-in-use",
-  dependencies: ["assets"],
-  register: (_app, container) => {
-    container.dependencies
-      .require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
-      .service.registerInUseProvider({
-        name: "test-characters",
-        listInUseAssetIds: async () => [...inUseAssetIds],
-      });
-  },
-};
 
 type ClassBody = {
   view: string;
@@ -141,6 +121,7 @@ const rages = {
 describe("classes", () => {
   const pool = createPgPool(TEST_DB_URL);
   const db = createDrizzleDb(pool);
+  const contentUse = createContentUse(db);
   let session: ReturnType<typeof buildTestApp>;
 
   const campaignUrl = (campaignId: string = ID.campaign) =>
@@ -225,8 +206,8 @@ describe("classes", () => {
     (await db.select().from(assets).where(eq(assets.assetType, "CLASS"))).length;
 
   beforeEach(async () => {
-    inUseAssetIds.clear();
-    session = buildTestApp({ modules: [...defaultAppModules, inUseModule] });
+    contentUse.reset();
+    session = buildTestApp({ modules: [...defaultAppModules, contentUse.module] });
 
     await db.insert(rulesets).values(
       [
@@ -463,7 +444,7 @@ describe("classes", () => {
 
       expect((await remove(item)).statusCode).toBe(200);
 
-      inUseAssetIds.add(item.assetId);
+      const npc = await contentUse.use(ID.campaign, item.assetId);
 
       for (const as of [GM, PLAYER]) {
         const detail = await get(`${catalogUrl()}/${item.id}`, as);
@@ -478,11 +459,17 @@ describe("classes", () => {
         expect((await get(`${catalogUrl()}?status=ARCHIVED`, as)).json().data).toHaveLength(1);
       }
 
-      // Once nobody uses it any more, it leaves the catalog.
-      inUseAssetIds.clear();
+      // Players only see the use if they may read the NPC that uses the class.
+      contentUse.showToPlayers(false);
 
       expect((await get(`${catalogUrl()}/${item.id}`, PLAYER)).statusCode).toBe(404);
-      expect((await get(catalogUrl(), PLAYER)).json().data).toEqual([]);
+      expect((await get(`${catalogUrl()}/${item.id}`, GM)).statusCode).toBe(200);
+
+      // Once nobody uses it any more, it leaves the catalog.
+      await db.update(assets).set({ status: "ARCHIVED" }).where(eq(assets.id, npc));
+
+      expect((await get(`${catalogUrl()}/${item.id}`, GM)).statusCode).toBe(404);
+      expect((await get(catalogUrl(), GM)).json().data).toEqual([]);
     });
 
     it("checks references again when an archived class comes back, on every path", async () => {

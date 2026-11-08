@@ -1,5 +1,4 @@
 import type { SQL } from "drizzle-orm";
-import type { FastifyBaseLogger } from "fastify";
 import type { ContentReadPurpose } from "#core/content/access";
 import { type ContentWriteAction, decideContentWrite } from "#core/content/writeAccess";
 import {
@@ -16,7 +15,6 @@ import {
   VersionConflictError,
 } from "#core/error/http/index";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
-import { isDatabaseBusyError } from "#core/error/databaseBusy";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { ActionScope, ActionVerifier, ChangeResult, ListFieldRule } from "#core/history/types";
 import type { CampaignRole, RequestContext } from "#core/http/requestContext";
@@ -71,16 +69,6 @@ export type AssetVisibilityProvider = {
 };
 
 /**
- * Supplies the assets a campaign still uses, e.g. the classes and features its characters have.
- * Archived content stays readable in the campaign while it is in use (but cannot be chosen anew);
- * otherwise it leaves the catalog. Nothing is in use unless a provider says so.
- */
-export type AssetInUseProvider = {
-  name: string;
-  listInUseAssetIds(input: { campaignId: string }, db: AppDatabase): Promise<string[]>;
-};
-
-/**
  * Lets other modules forbid archiving, for example while an asset is still in use. Runs in the
  * transaction with the asset locked, so it may only use `db`. Throws to reject.
  */
@@ -124,6 +112,12 @@ export type ContentTypeDefinition = {
    */
   references?(asset: AssetRow, db: AppDatabase): Promise<readonly ContentReference[]>;
   /**
+   * Content of this type uses what it refers to, like a character its class: archived content it
+   * refers to stays readable in the campaign (for those who may read the user) while the user is
+   * not archived. Rule content that merely refers to other rules does not count.
+   */
+  usesContent?: boolean;
+  /**
    * Checks the content as it is at the end of an action that touched it (its asset or any row
    * whose history root is the asset), in the transaction of the action: references, unique codes
    * and every other rule that spans several rows. Runs for every action, undoing and restoring
@@ -157,7 +151,6 @@ export class AssetsService {
   private readonly archiveGuards: AssetArchiveGuard[] = [];
   private readonly deactivateHooks: AssetDeactivateHook[] = [];
   private readonly contentTypes = new Map<AssetRow["assetType"], ContentTypeDefinition>();
-  private readonly inUseProviders: AssetInUseProvider[] = [];
   private readonly campaignRevertibleActions = new Set<string>(CAMPAIGN_REVERTIBLE_ASSET_ACTIONS);
   private readonly releasableTypes = new Set<AssetRow["assetType"]>();
   public readonly trackedAsset: TrackedAsset;
@@ -167,7 +160,6 @@ export class AssetsService {
     public readonly transactionManager: TransactionManager,
     public readonly repository: AssetsRepository,
     private readonly campaignAccess: AssetCampaignAccessPort,
-    private readonly logger: Pick<FastifyBaseLogger, "error">,
   ) {
     this.trackedAsset = createTrackedAsset({
       repository,
@@ -235,46 +227,6 @@ export class AssetsService {
     }
 
     this.deactivateHooks.push(hook);
-  }
-
-  registerInUseProvider(provider: AssetInUseProvider): void {
-    if (this.inUseProviders.some((existing) => existing.name === provider.name)) {
-      throw new Error(`Asset in-use provider '${provider.name}' is already registered`);
-    }
-
-    this.inUseProviders.push(provider);
-  }
-
-  /**
-   * Assets the campaign still uses, see `AssetInUseProvider`. A provider that fails on its own is
-   * logged and counts as "nothing in use", so its archived content is hidden instead of every read
-   * failing; that never shows more than before. A busy database (503) and every failure inside a
-   * transaction, which Postgres would abort anyway, are thrown.
-   */
-  async listInUseAssetIds(campaignId: string, db: AppDatabase = this.db): Promise<Set<string>> {
-    const results = await Promise.allSettled(
-      this.inUseProviders.map((provider) => provider.listInUseAssetIds({ campaignId }, db)),
-    );
-    const ids = new Set<string>();
-
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        result.value.forEach((id) => ids.add(id));
-
-        return;
-      }
-
-      if (db !== this.db || isDatabaseBusyError(result.reason)) {
-        throw result.reason;
-      }
-
-      this.logger.error(
-        { err: result.reason, provider: this.inUseProviders[index]?.name, campaignId },
-        "Asset in-use provider failed",
-      );
-    });
-
-    return ids;
   }
 
   /**
@@ -912,17 +864,39 @@ export class AssetsService {
   /**
    * `access` for a viewer that is already resolved. Inside a transaction, pass its handle: the
    * grants are then read in it, and a failing provider fails the transaction.
+   *
+   * Archived content stays readable while the campaign uses it: while content of a type that
+   * `usesContent` (characters, NPCs) and is not archived refers to it. The viewer must be able to
+   * read that content too, so a player sees the archived class of a character they see, but not
+   * what an NPC only the game master knows uses.
    */
   async accessFor(viewer: ContentViewer, db: AppDatabase = this.db): Promise<ContentAccess> {
-    const [visibleAssetIds, inUseAssetIds] = await Promise.all([
+    const deps = { db: this.db, repository: this.repository };
+    const [visibleIds, uses] = await Promise.all([
       viewer.view === "PLAYER" ? this.listVisibleAssetIds(viewer, db) : [],
-      this.listInUseAssetIds(viewer.campaignId, db),
+      this.repository.listUsedTargets(db, viewer.campaignId, [...this.usingTypes()]),
     ]);
+    const visibleAssetIds = new Set(visibleIds);
+    const readableUsers =
+      viewer.view === "FULL"
+        ? new Set(uses.map(({ source }) => source.id))
+        : await new ContentAccess(viewer, visibleAssetIds, new Set(), deps).readableIds(
+            "READ",
+            uses.map(({ source }) => source),
+            db,
+          );
+    const inUseAssetIds = new Set(
+      uses.filter(({ source }) => readableUsers.has(source.id)).map(({ targetAssetId }) => targetAssetId),
+    );
 
-    return new ContentAccess(viewer, new Set(visibleAssetIds), inUseAssetIds, {
-      db: this.db,
-      repository: this.repository,
-    });
+    return new ContentAccess(viewer, visibleAssetIds, inUseAssetIds, deps);
+  }
+
+  /** Types whose references keep archived content in use. */
+  private usingTypes(): Set<AssetRow["assetType"]> {
+    return new Set(
+      [...this.contentTypes.values()].filter((type) => type.usesContent).map((type) => type.assetType),
+    );
   }
 
   async listVisibleAssetIds(

@@ -37,6 +37,7 @@ import {
   OWNER_REVERTIBLE_ASSET_ACTIONS,
   type TrackedAsset,
 } from "#src/modules/assets/history/TrackedAsset";
+import { ContentAccess } from "#src/modules/assets/service/ContentAccess";
 
 /**
  * Campaign facts the asset module needs; provided by the campaigns module.
@@ -816,6 +817,30 @@ export class AssetsService {
       campaignRole,
       view: contentViewOf({ isAdmin, campaignRole }),
     };
+  }
+
+  /**
+   * The read access of the actor in the campaign for this request; see `ContentAccess`. Non-members
+   * get 404. Load it once per request and pass it on instead of loading grants again.
+   */
+  async access(context: RequestContext, campaignId: string): Promise<ContentAccess> {
+    return this.accessFor(await this.resolveCampaignViewer(context, campaignId));
+  }
+
+  /**
+   * `access` for a viewer that is already resolved. Inside a transaction, pass its handle: the
+   * grants are then read in it, and a failing provider fails the transaction.
+   */
+  async accessFor(viewer: ContentViewer, db: AppDatabase = this.db): Promise<ContentAccess> {
+    const [visibleAssetIds, inUseAssetIds] = await Promise.all([
+      viewer.view === "PLAYER" ? this.listVisibleAssetIds(viewer, db) : [],
+      this.listInUseAssetIds(viewer.campaignId, db),
+    ]);
+
+    return new ContentAccess(viewer, new Set(visibleAssetIds), inUseAssetIds, {
+      db: this.db,
+      repository: this.repository,
+    });
   }
 
   async listVisibleAssetIds(

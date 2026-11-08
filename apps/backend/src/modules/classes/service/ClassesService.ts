@@ -89,15 +89,12 @@ export class ClassesService {
     this.trackedClass = createTrackedClass({
       resolveRole: async (campaignId, actorId, tx) =>
         campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
-      assertConsistent: async (row, tx) => {
+      assertChangeable: async (row, tx) => {
         const asset = await assets.requireAsset(tx, row.assetId);
 
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived classes cannot be modified", { assetId: asset.id });
         }
-
-        await this.assertSystemCodeFree(tx, row);
-        await this.assertReferencesValid(tx, row, row.definition);
       },
     });
   }
@@ -337,10 +334,6 @@ export class ClassesService {
       ...definition,
     };
 
-    // Creating runs no history guard, so code and references are checked here.
-    await this.assertSystemCodeFree(scope.tx, { ...row, id: null });
-    await this.assertReferencesValid(scope.tx, row, definition);
-
     const created = await this.withConstraintErrors(() =>
       scope.create(this.trackedClass, row),
     );
@@ -389,7 +382,6 @@ export class ClassesService {
           value !== undefined && !(ASSET_FIELDS as readonly string[]).includes(key),
       ),
     );
-    let classChanged = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.withConstraintErrors(() =>
@@ -399,20 +391,10 @@ export class ClassesService {
         })),
       );
 
-      classChanged = result.changed;
       merged.push(...result.merged);
     }
 
     const found = await this.requireClass(scope.tx, characterClass.id);
-
-    if (!classChanged && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.assertSystemCodeFree(scope.tx, found.characterClass);
-      await this.assertReferencesValid(
-        scope.tx,
-        found.characterClass,
-        parseClassDefinition(found.characterClass),
-      );
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -472,7 +454,6 @@ export class ClassesService {
       expectedVersion: params.expectedAssetVersion,
     });
 
-    // Code and references are checked by `assertReactivatable`, on every path that unarchives.
     return this.loadRecord(
       scope.tx,
       await this.requireClass(scope.tx, params.found.characterClass.id),
@@ -480,15 +461,11 @@ export class ClassesService {
   }
 
   /**
-   * Runs when a class asset leaves ARCHIVED, through the restore route, undoing or restoring a
-   * version. While archived, the class kept nothing from being archived and another global class
-   * may have taken its code, so both are checked again.
+   * The content check of a class at the end of every action that touched it (see
+   * `ContentTypeDefinition.verify`): its global code per ruleset and its references, on the state
+   * the action leaves behind, so creating, changing rulesets, undoing and restoring all count.
    */
-  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType !== "CLASS") {
-      return;
-    }
-
+  async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
     const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
     if (!found) {
@@ -500,6 +477,7 @@ export class ClassesService {
     await this.assertSystemCodeFree(db, row);
     await this.assertReferencesValid(db, row, parseClassDefinition(row));
   }
+
 
   // ---------------------------------------------------------------------------
   // Rules that need the database

@@ -84,16 +84,15 @@ type TrackedSpeciesDeps = {
     db: AppDatabase,
   ): Promise<CampaignRole | null>;
   /**
-   * Checks referenced features, the 2024 ability rule, the code and the groups variants use, and
-   * that the asset may still change. Runs for every change, so undoing and restoring cannot bring
-   * back an unavailable target.
+   * Refuses changes to a species whose asset is archived. Code, grants, variants and the other
+   * rules across rows are checked at the end of the action (`SpeciesService.verifyContent`).
    */
-  assertSpeciesConsistent(
+  assertSpeciesChangeable(
     row: SpeciesRow & { definition: SpeciesDefinition },
     db: AppDatabase,
   ): Promise<void>;
-  /** The same for variants, against their species. */
-  assertVariantConsistent(
+  /** The same for variants. */
+  assertVariantChangeable(
     row: SpeciesVariantRow & { featureGrants: SpeciesFeatureGrant[] },
     db: AppDatabase,
   ): Promise<void>;
@@ -236,7 +235,7 @@ export function createTrackedSpecies(deps: TrackedSpeciesDeps) {
       parseSpeciesDefinition(next);
     },
     guard: async (next, _current, db) => {
-      await deps.assertSpeciesConsistent({ ...next, definition: parseSpeciesDefinition(next) }, db);
+      await deps.assertSpeciesChangeable({ ...next, definition: parseSpeciesDefinition(next) }, db);
     },
   });
 }
@@ -265,7 +264,7 @@ export function createTrackedSpeciesVariant(deps: TrackedSpeciesDeps) {
       parseVariantGrants(next);
     },
     guard: async (next, _current, db) => {
-      await deps.assertVariantConsistent({ ...next, featureGrants: parseVariantGrants(next) }, db);
+      await deps.assertVariantChangeable({ ...next, featureGrants: parseVariantGrants(next) }, db);
     },
   });
 }

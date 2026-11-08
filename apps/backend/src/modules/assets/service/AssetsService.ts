@@ -18,7 +18,7 @@ import {
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { isDatabaseBusyError } from "#core/error/databaseBusy";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
-import type { ActionScope, ChangeResult, ListFieldRule } from "#core/history/types";
+import type { ActionScope, ActionVerifier, ChangeResult, ListFieldRule } from "#core/history/types";
 import type { CampaignRole, RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import {
@@ -34,6 +34,7 @@ import type {
   AssetsRepository,
 } from "#src/modules/assets/domain/repository/AssetsRepository";
 import {
+  ASSET_ENTITY_TYPE,
   assertReleasable,
   createTrackedAsset,
   CAMPAIGN_REVERTIBLE_ASSET_ACTIONS,
@@ -100,15 +101,18 @@ export type AssetDeactivateHook = {
 };
 
 /**
- * Lets the module owning an asset type check that an asset may come back when it leaves `ARCHIVED`
- * (to draft or active), for example that the assets its definition refers to are still available:
- * archived content does not keep its targets from being archived. Runs in the same transaction with
- * the asset locked, on every path: restore routes, undoing and restoring versions. May only use
- * `db`. Throws to reject.
+ * What the module owning an asset type tells the content kernel about it. Only what cannot be
+ * derived from elsewhere belongs here (tables, routes and rights already say the rest).
  */
-export type AssetReactivateHook = {
-  name: string;
-  onReactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
+export type ContentTypeDefinition = {
+  assetType: AssetRow["assetType"];
+  /**
+   * Checks the content as it is at the end of an action that touched it (its asset or any row
+   * whose history root is the asset), in the transaction of the action: references, unique codes
+   * and every other rule that spans several rows. Runs for every action, undoing and restoring
+   * included, and not for archived content, which keeps nothing from changing. Throws an AppError.
+   */
+  verify?(asset: AssetRow, db: AppDatabase): Promise<void>;
 };
 
 /** An asset a definition (class, species …) refers to, with where and which types are allowed. */
@@ -135,7 +139,7 @@ export class AssetsService {
   private readonly visibilityProviders: AssetVisibilityProvider[] = [];
   private readonly archiveGuards: AssetArchiveGuard[] = [];
   private readonly deactivateHooks: AssetDeactivateHook[] = [];
-  private readonly reactivateHooks: AssetReactivateHook[] = [];
+  private readonly contentTypes = new Map<AssetRow["assetType"], ContentTypeDefinition>();
   private readonly inUseProviders: AssetInUseProvider[] = [];
   private readonly campaignRevertibleActions = new Set<string>(CAMPAIGN_REVERTIBLE_ASSET_ACTIONS);
   private readonly releasableTypes = new Set<AssetRow["assetType"]>();
@@ -162,11 +166,6 @@ export class AssetsService {
       onDeactivate: async (asset, db) => {
         for (const hook of this.deactivateHooks) {
           await hook.onDeactivate(asset, db);
-        }
-      },
-      onReactivate: async (asset, db) => {
-        for (const hook of this.reactivateHooks) {
-          await hook.onReactivate(asset, db);
         }
       },
     });
@@ -261,13 +260,43 @@ export class AssetsService {
     return ids;
   }
 
-  registerReactivateHook(hook: AssetReactivateHook): void {
-    if (this.reactivateHooks.some((existing) => existing.name === hook.name)) {
-      throw new Error(`Asset reactivate hook '${hook.name}' is already registered`);
+  registerContentType(type: ContentTypeDefinition): void {
+    if (this.contentTypes.has(type.assetType)) {
+      throw new Error(`Content type '${type.assetType}' is already registered`);
     }
 
-    this.reactivateHooks.push(hook);
+    this.contentTypes.set(type.assetType, type);
   }
+
+  /**
+   * Verifies the content an action touched, once at its end (see `ContentTypeDefinition.verify`).
+   * Registered with the history as an action verifier by the assets module.
+   */
+  readonly contentVerifier: ActionVerifier = {
+    name: "content",
+    verify: async (touched, db) => {
+      const assetIds = new Set(
+        touched.flatMap((item) => {
+          if (item.entityType === ASSET_ENTITY_TYPE) {
+            return [item.entityId];
+          }
+
+          return item.root?.type === ASSET_ENTITY_TYPE ? [item.root.id] : [];
+        }),
+      );
+      // Sorted, so concurrent actions take the locks of the checks in the same order.
+      const touchedAssets = (await this.repository.findByIds(db, [...assetIds])).sort((a, b) =>
+        a.id.localeCompare(b.id),
+      );
+
+      for (const asset of touchedAssets) {
+        if (asset.status !== "ARCHIVED") {
+          await this.contentTypes.get(asset.assetType)?.verify?.(asset, db);
+        }
+      }
+    },
+  };
+
 
   /**
    * For domain modules whose owners and editors change assets through their own actions: they may

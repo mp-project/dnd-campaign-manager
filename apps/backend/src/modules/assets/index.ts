@@ -31,9 +31,9 @@ export {
   type AssetArchiveGuard,
   type AssetDeactivateHook,
   type AssetInUseProvider,
-  type AssetReactivateHook,
   type AssetReference,
   type AssetReferenceIssue,
+  type ContentTypeDefinition,
   type AssetVisibilityProvider,
 } from "#src/modules/assets/service/AssetsService";
 export { ASSET_ENTITY_TYPE } from "#src/modules/assets/history/TrackedAsset";

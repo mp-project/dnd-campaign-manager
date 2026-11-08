@@ -114,9 +114,9 @@ async function registerFeaturesModule(
   // Custom features reach players through a release, not through content shares.
   assetsService.registerReleasableType("FEATURE");
   // Archived features keep nothing from being archived, so coming back needs the check again.
-  assetsService.registerReactivateHook({
-    name: "features",
-    onReactivate: (asset, db) => service.assertReactivatable(asset, db),
+  assetsService.registerContentType({
+    assetType: "FEATURE",
+    verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("FEATURE", (input, db) =>
     service.findEditRoutes(input, db),

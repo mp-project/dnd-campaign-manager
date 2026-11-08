@@ -158,10 +158,13 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
   features.service.registerChangeGuard((change, db) =>
     service.assertFeatureChangeAllowed(change, db),
   );
-  // Archived content keeps nothing from being archived, so coming back needs the checks again.
-  assetsService.registerReactivateHook({
-    name: "species",
-    onReactivate: (asset, db) => service.assertReactivatable(asset, db),
+  assetsService.registerContentType({
+    assetType: "SPECIES",
+    verify: (asset, db) => service.verifyContent(asset, db),
+  });
+  assetsService.registerContentType({
+    assetType: "SPECIES_VARIANT",
+    verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("SPECIES", (input, db) => service.findEditRoutes(input, db));
   assetLinks.service.registerEditRoute("SPECIES_VARIANT", (input, db) =>

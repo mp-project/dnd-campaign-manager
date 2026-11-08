@@ -10,7 +10,6 @@ import type {
   SpeciesVariantWithAsset,
   SpeciesWithAsset,
 } from "#src/modules/species/domain/repository/SpeciesRepository";
-import { parseVariantGrants } from "#src/modules/species/history/TrackedSpecies";
 import { rowFields, type SpeciesService } from "#src/modules/species/service/SpeciesService";
 
 /**
@@ -139,9 +138,6 @@ export class SpeciesVariantsService {
       featureGrants: input.featureGrants,
     };
 
-    // Creating runs no history guard, so the rules are checked here.
-    await this.speciesService.assertVariantValid(scope.tx, row);
-
     const created = await this.speciesService.withConstraintErrors(() =>
       scope.create(this.speciesService.trackedVariant, row),
     );
@@ -168,7 +164,6 @@ export class SpeciesVariantsService {
       fields,
     });
     const set = rowFields(fields);
-    let changed = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.speciesService.withConstraintErrors(() =>
@@ -178,18 +173,10 @@ export class SpeciesVariantsService {
         })),
       );
 
-      changed = result.changed;
       merged.push(...result.merged);
     }
 
     const found = await this.requireVariantOf(scope.tx, variant.speciesId, variant.id);
-
-    if (!changed && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.speciesService.assertVariantValid(scope.tx, {
-        ...found.variant,
-        featureGrants: parseVariantGrants(found.variant),
-      });
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -209,7 +196,7 @@ export class SpeciesVariantsService {
     );
   }
 
-  /** The species must not be archived; checked by `SpeciesService.assertReactivatable`. */
+  /** The species must not be archived; checked by `SpeciesService.verifyContent`. */
   async restoreVariant(
     scope: ActionScope,
     params: { found: SpeciesVariantWithAsset; expectedAssetVersion: number },

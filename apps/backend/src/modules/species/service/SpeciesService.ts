@@ -122,7 +122,7 @@ export class SpeciesService {
     const deps = {
       resolveRole: async (campaignId: string, actorId: string, tx: AppDatabase) =>
         campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
-      assertSpeciesConsistent: async (
+      assertSpeciesChangeable: async (
         row: SpeciesRow & { definition: SpeciesDefinition },
         tx: AppDatabase,
       ) => {
@@ -131,10 +131,8 @@ export class SpeciesService {
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived species cannot be modified", { assetId: asset.id });
         }
-
-        await this.assertSpeciesValid(tx, row, row.definition);
       },
-      assertVariantConsistent: async (
+      assertVariantChangeable: async (
         row: SpeciesVariantRow & { featureGrants: SpeciesFeatureGrant[] },
         tx: AppDatabase,
       ) => {
@@ -143,8 +141,6 @@ export class SpeciesService {
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived variants cannot be modified", { assetId: asset.id });
         }
-
-        await this.assertVariantValid(tx, row);
       },
     };
 
@@ -374,9 +370,6 @@ export class SpeciesService {
       ...definition,
     };
 
-    // Creating runs no history guard, so code and references are checked here.
-    await this.assertSpeciesValid(scope.tx, { ...row, id: null }, definition);
-
     const created = await this.withConstraintErrors(() => scope.create(this.trackedSpecies, row));
 
     return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, created.id));
@@ -384,8 +377,7 @@ export class SpeciesService {
 
   /**
    * Asset fields first, then the species. `merged` names the fields of both that kept a newer
-   * value from somebody else. When the rulesets change, the rules are checked again, because the
-   * history guard only runs when the species row itself changes.
+   * value from somebody else. The rules are checked at the end of the action (`verifyContent`).
    */
   async updateSpecies(
     scope: ActionScope,
@@ -405,7 +397,6 @@ export class SpeciesService {
       fields,
     });
     const set = rowFields(fields);
-    let changed = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.withConstraintErrors(() =>
@@ -415,19 +406,10 @@ export class SpeciesService {
         })),
       );
 
-      changed = result.changed;
       merged.push(...result.merged);
     }
 
     const found = await this.requireSpecies(scope.tx, row.id);
-
-    if (!changed && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.assertSpeciesValid(
-        scope.tx,
-        found.species,
-        parseSpeciesDefinition(found.species),
-      );
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -518,17 +500,15 @@ export class SpeciesService {
       expectedVersion: params.expectedAssetVersion,
     });
 
-    // The rules are checked by `assertReactivatable`, on every path that unarchives.
     return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, params.found.species.id));
   }
 
   /**
-   * Runs when a species or variant asset leaves ARCHIVED, through the restore route, undoing or
-   * restoring a version. While archived it kept nothing from being archived, another global
-   * species may have taken its code, and a variant's species may have changed, so the rules are
-   * checked again.
+   * The content check of a species or variant at the end of every action that touched it (see
+   * `ContentTypeDefinition.verify`), on the state the action leaves behind: creating, changing
+   * rulesets, undoing and restoring all count.
    */
-  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
+  async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
     if (asset.assetType === "SPECIES") {
       const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
 
@@ -539,17 +519,16 @@ export class SpeciesService {
       return;
     }
 
-    if (asset.assetType === "SPECIES_VARIANT") {
-      const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
+    const found = (await this.repository.findVariantsByAssetIds(db, [asset.id])).get(asset.id);
 
-      if (found) {
-        await this.assertVariantValid(db, {
-          ...found.variant,
-          featureGrants: parseVariantGrants(found.variant),
-        });
-      }
+    if (found) {
+      await this.assertVariantValid(db, {
+        ...found.variant,
+        featureGrants: parseVariantGrants(found.variant),
+      });
     }
   }
+
 
   // ---------------------------------------------------------------------------
   // Rules that need the database

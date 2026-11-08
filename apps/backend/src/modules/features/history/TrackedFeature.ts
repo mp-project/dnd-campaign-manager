@@ -36,10 +36,10 @@ type TrackedFeatureDeps = {
     db: AppDatabase,
   ): Promise<CampaignRole | null>;
   /**
-   * Checks the referenced assets of the definition and that its asset may still change. Runs for
-   * every change, so undoing and restoring cannot bring back a cycle or an unavailable target.
+   * Refuses changes to a feature whose asset is archived. References and the other rules across
+   * rows are checked at the end of the action (`FeaturesService.verifyContent`).
    */
-  assertReferencesValid(row: FeatureRow & { graph: FeatureGraph }, db: AppDatabase): Promise<void>;
+  assertChangeable(row: FeatureRow & { graph: FeatureGraph }, db: AppDatabase): Promise<void>;
 };
 
 /** Parses the stored parts and checks the rules across them; throws 400 with all issues. */
@@ -123,7 +123,7 @@ export function createTrackedFeature(deps: TrackedFeatureDeps) {
       parseFeatureGraph(next);
     },
     guard: async (next, _current, db) => {
-      await deps.assertReferencesValid({ ...next, graph: parseFeatureGraph(next) }, db);
+      await deps.assertChangeable({ ...next, graph: parseFeatureGraph(next) }, db);
     },
   });
 }

@@ -281,9 +281,28 @@ export type GetEntityVersionParams = {
   version: number;
 };
 
+/** A row an action created or changed, with the root it belongs to (e.g. its asset). */
+export type TouchedEntity = {
+  entityType: string;
+  entityId: string;
+  root: { type: string; id: string } | null;
+};
+
+/**
+ * Checks what an action changed, once at its end: after all its writes, before the commit, in its
+ * transaction. Rules that span several rows belong here instead of into a `guard`, because a guard
+ * only sees its own row and runs while the other rows of the action may not be written yet. Throws
+ * an AppError to reject the whole action. Runs for every action, undoing and restoring included.
+ */
+export type ActionVerifier = {
+  name: string;
+  verify(touched: readonly TouchedEntity[], db: AppDatabase): Promise<void>;
+};
+
 /** Public port of the history module, available as `container.ports.history`. */
 export type HistoryPort = {
   register<T extends TrackedTable>(entity: TrackedEntity<T>): void;
+  registerVerifier(verifier: ActionVerifier): void;
   /** Everything registered so far, so tests can check that nothing is forgotten. */
   listEntities(): readonly TrackedEntity[];
   subscribe(pattern: string, handler: HistoryEventHandler): void;

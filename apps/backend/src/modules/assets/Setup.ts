@@ -78,6 +78,7 @@ async function registerAssetsModule(
   );
 
   history.register(service.trackedAsset);
+  history.registerVerifier(service.contentVerifier);
 
   const listCampaignAssetsUseCase = new ListCampaignAssetsUseCase(service);
   const getAssetByIdUseCase = new GetAssetByIdUseCase(service);

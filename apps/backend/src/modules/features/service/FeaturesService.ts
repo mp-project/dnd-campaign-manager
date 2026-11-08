@@ -109,17 +109,11 @@ export class FeaturesService {
     this.trackedFeature = createTrackedFeature({
       resolveRole: async (campaignId, actorId, tx) =>
         campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
-      assertReferencesValid: async (row, tx) => {
+      assertChangeable: async (row, tx) => {
         const asset = await assets.requireAsset(tx, row.assetId);
 
         if (asset.status === "ARCHIVED") {
           throw new ConflictError("Archived features cannot be modified", { assetId: asset.id });
-        }
-
-        await this.assertReferencesValid(tx, row, row.graph);
-
-        for (const guard of this.changeGuards) {
-          await guard({ assetId: row.assetId, campaignId: row.campaignId, graph: row.graph }, tx);
         }
       },
     });
@@ -378,9 +372,6 @@ export class FeaturesService {
       supersedes: input.supersedes,
     };
 
-    // Creating runs no history guard, so the references are checked here.
-    await this.assertReferencesValid(scope.tx, { assetId: asset.id, campaignId: params.campaignId }, graph);
-
     const feature = await this.withConstraintErrors(() =>
       scope.create(this.trackedFeature, {
         campaignId: params.campaignId,
@@ -398,8 +389,7 @@ export class FeaturesService {
 
   /**
    * Asset fields first, then the feature. `merged` names the fields of both that kept a newer value
-   * from somebody else. When the rulesets change, the references are checked again, because the
-   * history guard only runs when the feature row itself changes.
+   * from somebody else. References are checked at the end of the action (`verifyContent`).
    */
   async updateFeature(
     scope: ActionScope,
@@ -437,7 +427,6 @@ export class FeaturesService {
           value !== undefined && !(ASSET_FIELDS as readonly string[]).includes(key),
       ),
     );
-    let featureChanged = false;
 
     if (Object.keys(set).length > 0) {
       const result = await this.withConstraintErrors(() =>
@@ -447,15 +436,10 @@ export class FeaturesService {
         })),
       );
 
-      featureChanged = result.changed;
-      merged.push(...result.merged);
+            merged.push(...result.merged);
     }
 
     const found = await this.requireFeature(scope.tx, feature.id);
-
-    if (!featureChanged && (fields.rulesetIds !== undefined || fields.rulesetPolicy !== undefined)) {
-      await this.assertReferencesValid(scope.tx, found.feature, parseFeatureGraph(found.feature));
-    }
 
     return { record: await this.loadRecord(scope.tx, found), merged };
   }
@@ -519,21 +503,26 @@ export class FeaturesService {
   }
 
   /**
-   * Runs when a feature asset leaves ARCHIVED, through the restore route, undoing or restoring a
-   * version. While archived, the feature kept nothing from being archived, so its references are
-   * checked again.
+   * The content check of a feature at the end of every action that touched it (see
+   * `ContentTypeDefinition.verify`): its references, and the rules of the modules that grant it
+   * (`registerChangeGuard`), on the state the action leaves behind.
    */
-  async assertReactivatable(asset: AssetRow, db: AppDatabase): Promise<void> {
-    if (asset.assetType !== "FEATURE") {
+  async verifyContent(asset: AssetRow, db: AppDatabase): Promise<void> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    if (!found) {
       return;
     }
 
-    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+    const graph = parseFeatureGraph(found.feature);
 
-    if (found) {
-      await this.assertReferencesValid(db, found.feature, parseFeatureGraph(found.feature));
+    await this.assertReferencesValid(db, found.feature, graph);
+
+    for (const guard of this.changeGuards) {
+      await guard({ assetId: asset.id, campaignId: found.feature.campaignId, graph }, db);
     }
   }
+
 
   // ---------------------------------------------------------------------------
   // Rules that need the database

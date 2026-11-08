@@ -15,6 +15,7 @@ import {
   VALUE_KINDS,
   type ActionMeta,
   type ActionScope,
+  type ActionVerifier,
   type EntityVersionView,
   type FieldChangeItem,
   type FieldChangePage,
@@ -49,6 +50,7 @@ const NOT_FOUND_MESSAGE = "Resource not found";
 export class HistoryService implements HistoryPort {
   private readonly entities = new Map<string, TrackedEntity>();
   private readonly subscribers: { pattern: string; handler: HistoryEventHandler }[] = [];
+  private readonly verifiers: ActionVerifier[] = [];
 
   constructor(
     public readonly db: AppDatabase,
@@ -90,6 +92,14 @@ export class HistoryService implements HistoryPort {
 
   listEntities(): readonly TrackedEntity[] {
     return [...this.entities.values()];
+  }
+
+  registerVerifier(verifier: ActionVerifier): void {
+    if (this.verifiers.some((existing) => existing.name === verifier.name)) {
+      throw new Error(`Action verifier '${verifier.name}' is already registered`);
+    }
+
+    this.verifiers.push(verifier);
   }
 
   subscribe(pattern: string, handler: HistoryEventHandler): void {
@@ -148,6 +158,13 @@ export class HistoryService implements HistoryPort {
 
     const scope = new HistoryActionScope(tx, this.repository, actionId, meta);
     const result = await work(scope);
+
+    // Once, after every write of the action and before the commit; see `ActionVerifier`.
+    if (scope.touched.length > 0) {
+      for (const verifier of this.verifiers) {
+        await verifier.verify(scope.touched, tx);
+      }
+    }
 
     return { result, events: scope.events };
   }

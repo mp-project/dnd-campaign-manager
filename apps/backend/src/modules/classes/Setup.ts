@@ -133,9 +133,9 @@ async function registerClassesModule(
     listVisibleAssetIds: (input, db) => service.listReleasedFeatureIds(input, db),
   });
   // Archived classes keep nothing from being archived, so coming back needs the checks again.
-  assetsService.registerReactivateHook({
-    name: "classes",
-    onReactivate: (asset, db) => service.assertReactivatable(asset, db),
+  assetsService.registerContentType({
+    assetType: "CLASS",
+    verify: (asset, db) => service.verifyContent(asset, db),
   });
   assetLinks.service.registerEditRoute("CLASS", (input, db) => service.findEditRoutes(input, db));
   // Definitions that refer to an asset keep it from being archived; archived ones don't.

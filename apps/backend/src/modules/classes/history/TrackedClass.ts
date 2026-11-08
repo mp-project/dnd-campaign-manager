@@ -51,10 +51,10 @@ type TrackedClassDeps = {
     db: AppDatabase,
   ): Promise<CampaignRole | null>;
   /**
-   * Checks the referenced assets, feature parameters, the code and that the asset may still change.
-   * Runs for every change, so undoing and restoring cannot bring back an unavailable target.
+   * Refuses changes to a class whose asset is archived. Code, references and the other rules across
+   * rows are checked at the end of the action (`ClassesService.verifyContent`).
    */
-  assertConsistent(row: ClassRow & { definition: ClassDefinition }, db: AppDatabase): Promise<void>;
+  assertChangeable(row: ClassRow & { definition: ClassDefinition }, db: AppDatabase): Promise<void>;
 };
 
 /** Parses the stored parts and checks the rules across them; throws 400 with all issues. */
@@ -142,7 +142,7 @@ export function createTrackedClass(deps: TrackedClassDeps) {
       parseClassDefinition(next);
     },
     guard: async (next, _current, db) => {
-      await deps.assertConsistent({ ...next, definition: parseClassDefinition(next) }, db);
+      await deps.assertChangeable({ ...next, definition: parseClassDefinition(next) }, db);
     },
   });
 }

@@ -770,6 +770,23 @@ describe("classes", () => {
       expect(restored.json().error.message).toBe("Class code is already used for one of these rulesets");
     });
 
+    it("checks the code when the rulesets of an active class are restored", async () => {
+      const first = await createSystem();
+
+      expect((await update(first, { rulesetIds: [ID.otherRuleset] }, ADMIN)).statusCode).toBe(200);
+      await createSystem();
+
+      // Only the asset goes back to version 1, the class row stays: still checked at the end.
+      const restored = await session.injectAs(ADMIN, {
+        method: "POST",
+        url: `/api/v1/history/asset/${first.assetId}/versions/1/restore`,
+        payload: {},
+      });
+
+      expect(restored.statusCode).toBe(409);
+      expect(restored.json().error.message).toBe("Class code is already used for one of these rulesets");
+    });
+
     it("hides global classes of another ruleset from the campaign", async () => {
       const other = await createSystem({}, [ID.otherRuleset]);
 

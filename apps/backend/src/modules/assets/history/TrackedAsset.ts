@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError, ValidationError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { AssetBaseSchema } from "#src/modules/assets/domain/dto/BaseAssetDto";
 import { assets } from "#src/modules/assets/domain/entities/AssetsTable";
 import type {
@@ -20,8 +18,8 @@ export const ASSET_ACTIONS = {
   restore: "asset.restore",
 } as const;
 
-/** The only changes a GM may make directly, so also the only ones a GM may undo. */
-export const GM_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
+/** The only changes an owner may make directly, so also the only ones an owner may undo. */
+export const OWNER_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
   ASSET_ACTIONS.archive,
   ASSET_ACTIONS.restore,
 ];
@@ -32,28 +30,29 @@ type TrackedAssetDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   assertCanArchive(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Runs when the asset leaves `ACTIVE`, after the archive check. */
   onDeactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Runs when the asset leaves `ARCHIVED`, so its owner can check that it is still consistent. */
   onReactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
-  gmRevertibleActions: ReadonlySet<string>;
+  ownerRevertibleActions: ReadonlySet<string>;
   /** Whether custom assets of this type may be released to players. */
   isReleasable(assetType: AssetRow["assetType"]): boolean;
 };
 
 /**
- * History rules of an asset. Only people who may change an asset see its history: the GM of its
- * campaign and administrators. A right to undo must not go beyond the right to change directly: GMs
- * may archive and restore assets of their campaign, everything else is left to administrators.
+ * History rules of an asset. Only people who may change an asset see its history: the owner of its
+ * campaign and administrators. A right to undo must not go beyond the right to change directly:
+ * owners may archive and restore assets of their campaign, everything else is left to
+ * administrators.
  */
 export function createTrackedAsset(deps: TrackedAssetDeps) {
   const campaignAccess = campaignHistoryAccess<AssetRow>({
     campaignId: (row) => row.campaignId as string,
     resolveRole: deps.resolveRole,
-    editRoles: ["GM"],
+    editRoles: ["OWNER"],
   });
 
   return defineTrackedEntity({
@@ -71,8 +70,8 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       revert: async (context, row, change, db) =>
         row.campaignId !== null &&
         context.actorId !== null &&
-        deps.gmRevertibleActions.has(change.action) &&
-        (await deps.resolveRole(row.campaignId, context.actorId, db)) === "GM",
+        deps.ownerRevertibleActions.has(change.action) &&
+        (await deps.resolveRole(row.campaignId, context.actorId, db)) === "OWNER",
     },
     fields: {
       title: field.value(),

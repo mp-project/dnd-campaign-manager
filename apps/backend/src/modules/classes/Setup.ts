@@ -124,7 +124,7 @@ async function registerClassesModule(
   );
 
   history.register(service.trackedClass);
-  assetsService.allowGmRevert(CLASS_ASSET_ACTIONS);
+  assetsService.allowOwnerRevert(CLASS_ASSET_ACTIONS);
   // Custom classes reach players through a release, not through content shares.
   assetsService.registerReleasableType("CLASS");
   // Custom features of a released class become visible with it.

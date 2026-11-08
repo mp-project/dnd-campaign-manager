@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
 
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -112,11 +113,8 @@ export class AssetLinksService {
     private readonly logger: Pick<FastifyBaseLogger, "error">,
   ) {
     this.trackedLink = createTrackedAssetLink({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       parseMetadata: (relationType, metadata) =>
         relations.parseMetadata(relationType, metadata),
       assertSourceChangeable: async (sourceAssetId, tx) => {

@@ -1,4 +1,5 @@
 import type { FastifyBaseLogger } from "fastify";
+import { campaignRoleOf } from "#core/content/viewer";
 import {
   ConflictError,
   ForbiddenError,
@@ -29,7 +30,7 @@ import type {
 import {
   assertReleasable,
   createTrackedAsset,
-  GM_REVERTIBLE_ASSET_ACTIONS,
+  OWNER_REVERTIBLE_ASSET_ACTIONS,
   type TrackedAsset,
 } from "#src/modules/assets/history/TrackedAsset";
 
@@ -141,7 +142,7 @@ export class AssetsService {
   private readonly deactivateHooks: AssetDeactivateHook[] = [];
   private readonly reactivateHooks: AssetReactivateHook[] = [];
   private readonly inUseProviders: AssetInUseProvider[] = [];
-  private readonly gmRevertibleActions = new Set<string>(GM_REVERTIBLE_ASSET_ACTIONS);
+  private readonly ownerRevertibleActions = new Set<string>(OWNER_REVERTIBLE_ASSET_ACTIONS);
   private readonly releasableTypes = new Set<AssetRow["assetType"]>();
   public readonly trackedAsset: TrackedAsset;
 
@@ -154,12 +155,9 @@ export class AssetsService {
   ) {
     this.trackedAsset = createTrackedAsset({
       repository,
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
-      gmRevertibleActions: this.gmRevertibleActions,
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
+      ownerRevertibleActions: this.ownerRevertibleActions,
       isReleasable: (assetType) => this.releasableTypes.has(assetType),
       assertCanArchive: async (asset, db) => {
         for (const guard of this.archiveGuards) {
@@ -292,12 +290,12 @@ export class AssetsService {
   }
 
   /**
-   * For domain modules whose GMs and editors change assets through their own actions: GMs may undo
-   * these actions on the asset as well, next to what they may undo anyway.
+   * For domain modules whose owners and editors change assets through their own actions: owners may
+   * undo these actions on the asset as well, next to what they may undo anyway.
    */
-  allowGmRevert(actions: readonly string[]): void {
+  allowOwnerRevert(actions: readonly string[]): void {
     for (const action of actions) {
-      this.gmRevertibleActions.add(action);
+      this.ownerRevertibleActions.add(action);
     }
   }
 
@@ -313,7 +311,7 @@ export class AssetsService {
     }
 
     lists[field] = rule;
-    this.gmRevertibleActions.add(action);
+    this.ownerRevertibleActions.add(action);
   }
 
   // ---------------------------------------------------------------------------

@@ -111,7 +111,7 @@ async function registerNotesModule(app: FastifyInstance, container: AppContainer
   );
 
   history.register(service.trackedNote);
-  assetsService.allowGmRevert(NOTE_ASSET_ACTIONS);
+  assetsService.allowOwnerRevert(NOTE_ASSET_ACTIONS);
   assetsService.registerDeactivateHook({
     name: "notes",
     onDeactivate: (asset, db) => service.endSharesOfHiddenNote(asset, db),

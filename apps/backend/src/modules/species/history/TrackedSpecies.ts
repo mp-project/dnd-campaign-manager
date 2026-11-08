@@ -1,11 +1,9 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError, ValidationError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
 import type { HistoryAccess } from "#core/history/types";
+import type { CampaignRole } from "#core/http/requestContext";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import {
   SpeciesBaseSchema,
@@ -84,7 +82,7 @@ type TrackedSpeciesDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /**
    * Checks referenced features, the 2024 ability rule, the code and the groups variants use, and
    * that the asset may still change. Runs for every change, so undoing and restoring cannot bring

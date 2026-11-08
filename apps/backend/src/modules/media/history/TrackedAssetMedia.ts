@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ValidationError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import { AssetMediaBaseSchema } from "#src/modules/media/domain/dto/BaseMediaDto";
 import { assetMedia } from "#src/modules/media/domain/entities/MediaTable";
@@ -23,7 +21,7 @@ type TrackedAssetMediaDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /** Undoing and restoring must not change assignments of archived assets either. */
   assertAssetChangeable(assetId: string, db: AppDatabase): Promise<void>;
 };

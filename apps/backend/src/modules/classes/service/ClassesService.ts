@@ -1,3 +1,4 @@
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -85,11 +86,8 @@ export class ClassesService {
     private readonly campaignAccess: ClassCampaignAccessPort,
   ) {
     this.trackedClass = createTrackedClass({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       assertConsistent: async (row, tx) => {
         const asset = await assets.requireAsset(tx, row.assetId);
 

@@ -1,3 +1,4 @@
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
@@ -125,11 +126,8 @@ export class SpeciesService {
     private readonly campaignAccess: SpeciesCampaignAccessPort,
   ) {
     const deps = {
-      resolveRole: async (campaignId: string, actorId: string, tx: AppDatabase) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? ("GM" as const) : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId: string, actorId: string, tx: AppDatabase) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       assertSpeciesConsistent: async (
         row: SpeciesRow & { definition: SpeciesDefinition },
         tx: AppDatabase,

@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { normalizeTagName, TagBaseSchema } from "#src/modules/tags/domain/dto/BaseTagDto";
 import { tags } from "#src/modules/tags/domain/entities/TagsTable";
 import type { TagRow } from "#src/modules/tags/domain/repository/TagsRepository";
@@ -26,7 +24,7 @@ type TrackedTagDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
 };
 
 /** GMs and editors manage tags, so only they read the history. */

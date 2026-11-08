@@ -1,3 +1,4 @@
+import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -47,11 +48,8 @@ export class NotesService {
     campaignAccess: NoteCampaignAccessPort,
   ) {
     this.trackedNote = createTrackedNote({
-      resolveRole: async (campaignId, actorId, tx) => {
-        const campaign = await campaignAccess.findCampaignRole(campaignId, actorId, tx);
-
-        return campaign?.isOwner ? "GM" : (campaign?.role ?? null);
-      },
+      resolveRole: async (campaignId, actorId, tx) =>
+        campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
       assertAssetChangeable: async (assetId, tx) => {
         const asset = await assets.requireAsset(tx, assetId);
 

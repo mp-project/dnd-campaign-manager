@@ -1,9 +1,7 @@
 import type { AppDatabase } from "#core/db/pool";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { AssetLinkBaseSchema } from "#src/modules/asset-links/domain/dto/BaseAssetLinkDto";
 import { assetLinks } from "#src/modules/asset-links/domain/entities/AssetLinksTable";
 import type { AssetLinkRow } from "#src/modules/asset-links/domain/repository/AssetLinksRepository";
@@ -22,7 +20,7 @@ type TrackedAssetLinkDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /** Old values must still fit the relation when they are written back. */
   parseMetadata(relationType: string, metadata: unknown): unknown;
   /** Undoing and restoring must not change links of archived assets either. */

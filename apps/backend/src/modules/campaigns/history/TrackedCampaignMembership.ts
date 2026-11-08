@@ -1,9 +1,7 @@
 import type { AppDatabase } from "#core/db/pool";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { campaignMemberships } from "#src/modules/campaigns/domain/entities/CampaignsTable";
 import type { CampaignMembershipRow } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
 
@@ -20,7 +18,7 @@ type TrackedCampaignMembershipDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
 };
 
 /**

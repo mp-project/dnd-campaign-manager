@@ -145,7 +145,7 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
 
   history.register(service.trackedSpecies);
   history.register(service.trackedVariant);
-  assetsService.allowGmRevert(SPECIES_ASSET_ACTIONS);
+  assetsService.allowOwnerRevert(SPECIES_ASSET_ACTIONS);
   // Custom species and variants reach players through a release, not through content shares.
   assetsService.registerReleasableType("SPECIES");
   assetsService.registerReleasableType("SPECIES_VARIANT");

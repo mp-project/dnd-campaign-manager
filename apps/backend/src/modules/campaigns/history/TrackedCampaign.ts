@@ -1,10 +1,8 @@
 import type { AppDatabase } from "#core/db/pool";
 import { ConflictError } from "#core/error/http/index";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { CampaignBaseSchema } from "#src/modules/campaigns/domain/dto/BaseCampaignDto";
 import { campaigns } from "#src/modules/campaigns/domain/entities/CampaignsTable";
 import type { CampaignRow } from "#src/modules/campaigns/domain/repository/CampaignsRepository";
@@ -24,7 +22,7 @@ type TrackedCampaignDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
 };
 
 /**
@@ -40,7 +38,7 @@ export function createTrackedCampaign(deps: TrackedCampaignDeps) {
     access: campaignHistoryAccess<CampaignRow>({
       campaignId: (row) => row.id,
       resolveRole: deps.resolveRole,
-      editRoles: ["GM"],
+      editRoles: ["OWNER"],
     }),
     fields: {
       name: field.value(),

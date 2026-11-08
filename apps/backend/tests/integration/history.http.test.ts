@@ -8,7 +8,8 @@ import { createDrizzleDb, createPgPool, type AppDatabase } from "#core/db/pool";
 import { baseColumns } from "#core/db/schemaHelpers";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError, VersionConflictError } from "#core/error/http/index";
 import { authorized } from "#core/history/authorization";
-import { campaignHistoryAccess, type CampaignHistoryRole } from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
+import type { CampaignRole } from "#core/http/requestContext";
 import { MutationUseCase } from "#core/history/MutationUseCase";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
 import type { ActionScope, HistoryEvent, HistoryPort } from "#core/history/types";
@@ -78,7 +79,7 @@ async function resolveRole(
   campaignId: string,
   actorId: string,
   db: AppDatabase,
-): Promise<CampaignHistoryRole | null> {
+): Promise<CampaignRole | null> {
   const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId));
 
   if (!campaign) {
@@ -86,7 +87,7 @@ async function resolveRole(
   }
 
   if (campaign.ownerUserId === actorId) {
-    return "GM";
+    return "OWNER";
   }
 
   const [membership] = await db
@@ -983,7 +984,7 @@ describe("history module", () => {
         const role =
           row && context.actorId ? await resolveRole(row.campaignId, context.actorId, tx) : null;
 
-        if (role !== "GM" && row?.ownerId !== context.actorId) {
+        if (role !== "OWNER" && row?.ownerId !== context.actorId) {
           throw new ForbiddenError("Insufficient permissions");
         }
 

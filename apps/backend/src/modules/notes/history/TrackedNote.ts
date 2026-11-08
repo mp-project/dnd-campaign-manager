@@ -1,9 +1,7 @@
 import type { AppDatabase } from "#core/db/pool";
-import {
-  campaignHistoryAccess,
-  type CampaignHistoryRole,
-} from "#core/history/campaignHistoryAccess";
+import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { CampaignRole } from "#core/http/requestContext";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import { NoteBaseSchema } from "#src/modules/notes/domain/dto/BaseNoteDto";
 import { notes } from "#src/modules/notes/domain/entities/NotesTable";
@@ -30,7 +28,7 @@ type TrackedNoteDeps = {
     campaignId: string,
     actorId: string,
     db: AppDatabase,
-  ): Promise<CampaignHistoryRole | null>;
+  ): Promise<CampaignRole | null>;
   /** Undoing and restoring must not change notes of archived assets either. */
   assertAssetChangeable(assetId: string, db: AppDatabase): Promise<void>;
 };

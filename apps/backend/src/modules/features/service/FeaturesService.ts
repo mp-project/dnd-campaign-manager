@@ -325,13 +325,7 @@ export class FeaturesService {
     campaignId: string | null,
     db: AppDatabase,
   ): Promise<string> {
-    if (campaignId === null) {
-      this.assets.assertCanManage(context);
-    } else {
-      await this.assets.assertCanEditCampaignContent(context, campaignId, db);
-    }
-
-    return this.assets.assertAuthenticated(context);
+    return this.assets.assertCanWrite(context, "EDIT", campaignId, db);
   }
 
   /** Id of the acting user, after `assertCanWrite` checked the rights. */

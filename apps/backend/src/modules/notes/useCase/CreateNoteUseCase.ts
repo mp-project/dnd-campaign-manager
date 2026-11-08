@@ -30,7 +30,7 @@ export class CreateNoteUseCase extends MutationUseCase<CreateNoteInput, Response
     input: CreateNoteInput,
     db: AppDatabase,
   ): Promise<Authorization> {
-    await this.assetsService.assertCanEditCampaignContent(context, input.campaignId, db);
+    await this.assetsService.assertCanWrite(context, "EDIT", input.campaignId, db);
 
     return authorized();
   }

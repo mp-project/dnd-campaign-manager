@@ -15,9 +15,7 @@ export class AbortMediaUploadUseCase {
     context: RequestContext,
     input: { campaignId: string; uploadId: string },
   ): Promise<ResponseMediaRemovedDto> {
-    await this.assetsService.assertCanEditCampaignContent(
-      context,
-      input.campaignId,
+    await this.assetsService.assertCanWrite(context, "EDIT", input.campaignId,
       this.uploadService.db,
     );
 

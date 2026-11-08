@@ -174,7 +174,7 @@ describe("history rights of every tracked entity", () => {
       readers: ["gm", "admin"],
       revert: { gm: 200, admin: 200 },
       restore: { gm: 403, admin: 200 },
-      changers: ["gm", "admin"],
+      changers: ["editor", "gm", "admin"],
       change: async () => {
         const [row] = await db.select().from(assets).where(eq(assets.id, ID.asset));
 

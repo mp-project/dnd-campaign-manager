@@ -439,22 +439,22 @@ describe("assets history", () => {
       expect(row).toMatchObject({ status: "ACTIVE", version: 3 });
     });
 
-    it("keeps archiving and undoing it to the GM, not editors or players", async () => {
+    it("lets the owner and editors archive campaign assets, not players", async () => {
       const archive = (actor: TestActor) =>
         injectAs(actor, {
           method: "DELETE",
           url: `/api/v1/assets/${ID.sharedSpell}?expectedVersion=1`,
         });
 
-      expect((await archive(EDITOR)).statusCode).toBe(403);
       expect((await archive(PLAYER)).statusCode).toBe(403);
-      expect((await archive(GM)).statusCode).toBe(200);
+      expect((await archive(OUTSIDER)).statusCode).toBe(404);
+      expect((await archive(EDITOR)).statusCode).toBe(200);
 
       const eventId = await latestEventId(ID.sharedSpell);
 
-      expect((await revert(eventId, EDITOR)).statusCode).toBe(404);
       expect((await revert(eventId, PLAYER)).statusCode).toBe(404);
       expect((await revert(eventId, OUTSIDER)).statusCode).toBe(404);
+      expect((await revert(eventId, GM)).statusCode).toBe(200);
     });
 
     it("lets the GM read the history of campaign assets but not undo other changes or restore", async () => {

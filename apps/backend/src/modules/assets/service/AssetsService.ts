@@ -1,6 +1,7 @@
 import type { SQL } from "drizzle-orm";
 import type { FastifyBaseLogger } from "fastify";
 import type { ContentReadPurpose } from "#core/content/access";
+import { type ContentWriteAction, decideContentWrite } from "#core/content/writeAccess";
 import {
   campaignRoleOf,
   type ContentViewer,
@@ -18,7 +19,7 @@ import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { isDatabaseBusyError } from "#core/error/databaseBusy";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import type { ActionScope, ChangeResult, ListFieldRule } from "#core/history/types";
-import type { RequestContext } from "#core/http/requestContext";
+import type { CampaignRole, RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
 import {
   type CreateAssetBaseDto,
@@ -683,26 +684,43 @@ export class AssetsService {
   }
 
   /**
-   * For content that belongs to a campaign without being the asset itself, like links and tags:
-   * GMs, editors and administrators may change it. Non-members get 404 so the campaign is not
-   * leaked.
+   * Throws unless the actor may do this with content of the campaign, or with global content when
+   * `campaignId` is null; the rule is `decideContentWrite`. Unknown campaigns and non-members get
+   * 404 with `notFoundMessage`, so nothing is leaked; members without the right get 403. Runs in
+   * the transaction of the action when given its handle. Returns the actor id.
    */
-  async assertCanEditCampaignContent(
+  async assertCanWrite(
     context: RequestContext,
-    campaignId: string,
+    action: ContentWriteAction,
+    campaignId: string | null,
     db: AppDatabase,
-  ): Promise<void> {
+    notFoundMessage = "Campaign not found",
+  ): Promise<string> {
     const actorId = this.assertAuthenticated(context);
-    const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, db);
     const isAdmin = isSysAdminRole(context.systemRole);
+    let campaignRole: CampaignRole | null = null;
 
-    if (!campaign || (!campaign.role && !isAdmin)) {
-      throw new NotFoundError("Campaign not found");
+    if (campaignId !== null) {
+      const campaign = await this.campaignAccess.findCampaignRole(campaignId, actorId, db);
+
+      if (!campaign) {
+        throw new NotFoundError(notFoundMessage);
+      }
+
+      campaignRole = campaignRoleOf(campaign);
     }
 
-    if (campaign.role !== "EDITOR" && !isAdmin) {
+    const decision = decideContentWrite({ isAdmin, campaignRole }, action, { campaignId });
+
+    if (decision === "NOT_FOUND") {
+      throw new NotFoundError(notFoundMessage);
+    }
+
+    if (decision === "FORBIDDEN") {
       throw new ForbiddenError("Insufficient permissions");
     }
+
+    return actorId;
   }
 
   /** Loads an asset requested in a campaign; what the viewer may not read is reported as 404. */
@@ -723,37 +741,17 @@ export class AssetsService {
     }
   }
 
-  /**
-   * Administrators may archive and restore every asset, a GM only those of the own campaign.
-   * Non-members get 404 so the asset is not leaked.
-   */
+  /** Archiving and restoring an asset directly; see `assertCanWrite`. */
   async assertCanChangeLifecycle(
     context: RequestContext,
     assetId: string,
     db: AppDatabase,
   ): Promise<void> {
-    const actorId = this.assertAuthenticated(context);
-
-    if (isSysAdminRole(context.systemRole)) {
-      return;
-    }
-
     const asset = await this.requireAsset(db, assetId);
 
-    if (asset.campaignId === null) {
-      throw new ForbiddenError("Insufficient permissions");
-    }
-
-    const campaign = await this.campaignAccess.findCampaignRole(asset.campaignId, actorId, db);
-
-    if (!campaign?.role) {
-      throw new NotFoundError("Asset not found");
-    }
-
-    if (!campaign.isOwner) {
-      throw new ForbiddenError("Insufficient permissions");
-    }
+    await this.assertCanWrite(context, "CHANGE_LIFECYCLE", asset.campaignId, db, "Asset not found");
   }
+
 
   /**
    * Resolves who looks at a campaign: role, administrator and with that the view (full for owner,

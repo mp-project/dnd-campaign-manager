@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger } from "fastify";
 
 import { campaignRoleOf, type ContentViewer } from "#core/content/viewer";
+import { decideContentWrite } from "#core/content/writeAccess";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
@@ -334,9 +335,8 @@ export class AssetLinksService {
       typedUsages: [],
       unavailableProviders: provided.failed,
     };
-    // Only administrators change global content.
     const mayEdit = (asset: AssetRow | undefined): boolean =>
-      viewer.isAdmin || (access.isFullView && asset?.scope !== "SYSTEM");
+      asset !== undefined && decideContentWrite(viewer, "EDIT", asset) === "ALLOWED";
     const editRoutes = await this.resolveEditRoutes(
       visibleLinks.flatMap(({ other }) =>
         mayEdit(other) ? [{ campaignId: viewer.campaignId, assetId: other.id, asset: other }] : [],

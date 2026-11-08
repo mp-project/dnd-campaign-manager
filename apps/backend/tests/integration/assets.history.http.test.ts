@@ -470,13 +470,13 @@ describe("assets history", () => {
     it("shows the history only to people who may change the asset", async () => {
       await patch(ID.sharedSpell, { expectedVersion: 1, title: "Ember II" });
 
-      for (const actor of [GM, ADMIN]) {
+      for (const actor of [GM, EDITOR, ADMIN]) {
         expect((await history(ID.sharedSpell, actor)).statusCode).toBe(200);
         expect((await version(ID.sharedSpell, 1, actor)).statusCode).toBe(200);
       }
 
-      // Also a player who sees the shared asset itself, and an editor of the campaign.
-      for (const actor of [EDITOR, PLAYER, OUTSIDER]) {
+      // Also a player who sees the shared asset itself.
+      for (const actor of [PLAYER, OUTSIDER]) {
         expect((await history(ID.sharedSpell, actor)).statusCode).toBe(404);
         expect((await version(ID.sharedSpell, 1, actor)).statusCode).toBe(404);
       }

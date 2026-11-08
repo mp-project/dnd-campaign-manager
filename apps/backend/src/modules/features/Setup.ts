@@ -110,7 +110,7 @@ async function registerFeaturesModule(
   history.register(service.trackedFeature);
   // Cached resolutions of a changed feature are no longer needed.
   history.subscribe("*", (event) => service.onHistoryEvent(event));
-  assetsService.allowOwnerRevert(FEATURE_ASSET_ACTIONS);
+  assetsService.allowCampaignRevert(FEATURE_ASSET_ACTIONS);
   // Custom features reach players through a release, not through content shares.
   assetsService.registerReleasableType("FEATURE");
   // Archived features keep nothing from being archived, so coming back needs the check again.

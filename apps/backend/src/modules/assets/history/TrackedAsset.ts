@@ -18,8 +18,8 @@ export const ASSET_ACTIONS = {
   restore: "asset.restore",
 } as const;
 
-/** The only changes an owner may make directly, so also the only ones an owner may undo. */
-export const OWNER_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
+/** The only asset changes the campaign makes directly, so also the only ones it may undo. */
+export const CAMPAIGN_REVERTIBLE_ASSET_ACTIONS: readonly string[] = [
   ASSET_ACTIONS.archive,
   ASSET_ACTIONS.restore,
 ];
@@ -37,22 +37,22 @@ type TrackedAssetDeps = {
   /** Runs when the asset leaves `ARCHIVED`, so its owner can check that it is still consistent. */
   onReactivate(asset: AssetRow, db: AppDatabase): Promise<void>;
   /** Grows when other modules add lists to the asset. */
-  ownerRevertibleActions: ReadonlySet<string>;
+  campaignRevertibleActions: ReadonlySet<string>;
   /** Whether custom assets of this type may be released to players. */
   isReleasable(assetType: AssetRow["assetType"]): boolean;
 };
 
 /**
- * History rules of an asset. Only people who may change an asset see its history: the owner of its
- * campaign and administrators. A right to undo must not go beyond the right to change directly:
- * owners may archive and restore assets of their campaign, everything else is left to
- * administrators.
+ * History rules of an asset. Only people who may change an asset see its history: owner and
+ * editors of its campaign and administrators (`decideContentWrite`). A right to undo must not go
+ * beyond the right to change directly: in the campaign, archiving, restoring and the actions of the
+ * modules that change assets (`allowCampaignRevert`) may be undone; everything else, and restoring
+ * versions, is left to administrators.
  */
 export function createTrackedAsset(deps: TrackedAssetDeps) {
   const campaignAccess = campaignHistoryAccess<AssetRow>({
     campaignId: (row) => row.campaignId as string,
     resolveRole: deps.resolveRole,
-    editRoles: ["OWNER"],
   });
 
   return defineTrackedEntity({
@@ -70,8 +70,8 @@ export function createTrackedAsset(deps: TrackedAssetDeps) {
       revert: async (context, row, change, db) =>
         row.campaignId !== null &&
         context.actorId !== null &&
-        deps.ownerRevertibleActions.has(change.action) &&
-        (await deps.resolveRole(row.campaignId, context.actorId, db)) === "OWNER",
+        deps.campaignRevertibleActions.has(change.action) &&
+        ((await campaignAccess.revert?.(context, row, change, db)) ?? false),
     },
     fields: {
       title: field.value(),

@@ -36,7 +36,7 @@ import type {
 import {
   assertReleasable,
   createTrackedAsset,
-  OWNER_REVERTIBLE_ASSET_ACTIONS,
+  CAMPAIGN_REVERTIBLE_ASSET_ACTIONS,
   type TrackedAsset,
 } from "#src/modules/assets/history/TrackedAsset";
 import { ContentAccess } from "#src/modules/assets/service/ContentAccess";
@@ -137,7 +137,7 @@ export class AssetsService {
   private readonly deactivateHooks: AssetDeactivateHook[] = [];
   private readonly reactivateHooks: AssetReactivateHook[] = [];
   private readonly inUseProviders: AssetInUseProvider[] = [];
-  private readonly ownerRevertibleActions = new Set<string>(OWNER_REVERTIBLE_ASSET_ACTIONS);
+  private readonly campaignRevertibleActions = new Set<string>(CAMPAIGN_REVERTIBLE_ASSET_ACTIONS);
   private readonly releasableTypes = new Set<AssetRow["assetType"]>();
   public readonly trackedAsset: TrackedAsset;
 
@@ -152,7 +152,7 @@ export class AssetsService {
       repository,
       resolveRole: async (campaignId, actorId, tx) =>
         campaignRoleOf(await campaignAccess.findCampaignRole(campaignId, actorId, tx)),
-      ownerRevertibleActions: this.ownerRevertibleActions,
+      campaignRevertibleActions: this.campaignRevertibleActions,
       isReleasable: (assetType) => this.releasableTypes.has(assetType),
       assertCanArchive: async (asset, db) => {
         for (const guard of this.archiveGuards) {
@@ -270,12 +270,12 @@ export class AssetsService {
   }
 
   /**
-   * For domain modules whose owners and editors change assets through their own actions: owners may
-   * undo these actions on the asset as well, next to what they may undo anyway.
+   * For domain modules whose owners and editors change assets through their own actions: they may
+   * undo these actions on the asset as well, next to archiving and restoring.
    */
-  allowOwnerRevert(actions: readonly string[]): void {
+  allowCampaignRevert(actions: readonly string[]): void {
     for (const action of actions) {
-      this.ownerRevertibleActions.add(action);
+      this.campaignRevertibleActions.add(action);
     }
   }
 
@@ -291,7 +291,7 @@ export class AssetsService {
     }
 
     lists[field] = rule;
-    this.ownerRevertibleActions.add(action);
+    this.campaignRevertibleActions.add(action);
   }
 
   // ---------------------------------------------------------------------------

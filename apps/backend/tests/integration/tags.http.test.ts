@@ -688,11 +688,15 @@ describe("tags", () => {
       expect(await assignedNames(ID.shared)).toEqual(["A"]);
     });
 
-    it("keeps the history of the asset closed to editors, who can still assign", async () => {
+    it("lets editors who assign tags read and undo that in the history of the asset", async () => {
       const a = await createOk("A");
 
       expect((await replace(ID.shared, [a.id], EDITOR)).statusCode).toBe(200);
-      expect((await entries("asset", ID.shared, EDITOR)).statusCode).toBe(404);
+      expect((await entries("asset", ID.shared, EDITOR)).statusCode).toBe(200);
+
+      const event = await eventOf("asset", ID.shared, "asset.updateTags");
+
+      expect((await revert(event!.eventId, EDITOR)).statusCode).toBe(200);
     });
 
     it("does not let a GM undo other changes of an asset because of this", async () => {

@@ -1,3 +1,4 @@
+import { type ContentWriteAction, decideContentWrite } from "#core/content/writeAccess";
 import type { AppDatabase } from "#core/db/pool";
 import type { HistoryAccess } from "#core/history/types";
 import type { CampaignRole } from "#core/http/requestContext";
@@ -10,29 +11,38 @@ type CampaignHistoryAccessOptions<Row> = {
     actorId: string,
     db: AppDatabase,
   ): Promise<CampaignRole | null>;
-  /** Roles that may change every row of this entity. Defaults to owner and editor. */
+  /**
+   * Only for campaign settings, which only the owner changes: roles that may read and undo every
+   * row. Campaign content leaves it out; its rights come from `decideContentWrite`.
+   */
   editRoles?: readonly Exclude<CampaignRole, "PLAYER">[];
   /** Rows a player may change. Without it, players have no history of this entity. */
   ownedByPlayer?(row: Row, actorId: string): boolean;
   hiddenFromPlayers?: readonly string[];
 };
 
-const DEFAULT_EDIT_ROLES = ["OWNER", "EDITOR"] as const;
-
 /**
  * Standard rights for campaign content. The history only exists for people who may change the
- * content, so seeing a row is not enough to read its history. Rights use the role at access time,
- * so a removed member loses access to old entries as well.
- *
- * - Roles in `editRoles`: read, undo everything
- * - Owner: also restore versions
- * - Player: own rows without hidden fields, undo own actions on them
+ * content, so seeing a row is not enough to read its history: reading and undoing follow
+ * `decideContentWrite` (owner and editors), restoring a version is left to the owner. Rights use
+ * the role at access time, so a removed member loses access to old entries as well. Players read
+ * and undo their own rows (`ownedByPlayer`) without hidden fields.
  */
 export function campaignHistoryAccess<Row>(
   options: CampaignHistoryAccessOptions<Row>,
 ): HistoryAccess<Row> {
   const hidden = new Set(options.hiddenFromPlayers ?? []);
-  const editRoles: readonly CampaignRole[] = options.editRoles ?? DEFAULT_EDIT_ROLES;
+  const allows = (role: CampaignRole, action: ContentWriteAction, row: Row): boolean => {
+    if (options.editRoles) {
+      return action === "RESTORE_VERSION"
+        ? role === "OWNER"
+        : (options.editRoles as readonly CampaignRole[]).includes(role);
+    }
+
+    const target = { campaignId: options.campaignId(row) };
+
+    return decideContentWrite({ isAdmin: false, campaignRole: role }, action, target) === "ALLOWED";
+  };
 
   const roleOf = async (actorId: string | null, row: Row, db: AppDatabase) =>
     actorId ? options.resolveRole(options.campaignId(row), actorId, db) : null;
@@ -46,7 +56,7 @@ export function campaignHistoryAccess<Row>(
       }
 
       return (
-        editRoles.includes(role) ||
+        allows(role, "READ_HISTORY", row) ||
         (role === "PLAYER" && (options.ownedByPlayer?.(row, context.actorId) ?? false))
       );
     },
@@ -62,7 +72,7 @@ export function campaignHistoryAccess<Row>(
         return false;
       }
 
-      if (editRoles.includes(role)) {
+      if (allows(role, "REVERT", row)) {
         return true;
       }
 
@@ -73,7 +83,10 @@ export function campaignHistoryAccess<Row>(
         (options.ownedByPlayer?.(row, context.actorId) ?? false)
       );
     },
-    restore: async (context, row, db) =>
-      (await roleOf(context.actorId, row, db)) === "OWNER",
+    restore: async (context, row, db) => {
+      const role = await roleOf(context.actorId, row, db);
+
+      return role !== null && allows(role, "RESTORE_VERSION", row);
+    },
   };
 }

@@ -9,6 +9,17 @@ import {
   rulesets,
   users,
 } from "#core/db/schema";
+import type { AppModule } from "#core/app/moduleSystem";
+import {
+  ASSETS_MODULE_DEPENDENCIES,
+  type AssetsModuleDependencies,
+  type AssetsService,
+} from "#src/modules/assets/index";
+import {
+  CLASSES_MODULE_DEPENDENCIES,
+  type ClassesModuleDependencies,
+  type ClassesService,
+} from "#src/modules/classes/index";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { createContentUse } from "#test/helpers/contentUse";
@@ -46,6 +57,23 @@ const PLAYER = actor(ID.player);
 const OUTSIDER = actor(ID.outsider);
 const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
+
+let services: { assets: AssetsService; classes: ClassesService };
+
+/** Hands out the services, for the port the character modules will use. */
+const servicesModule: AppModule = {
+  name: "test-classes-services",
+  dependencies: ["assets", "classes"],
+  register: (_app, container) => {
+    services = {
+      assets: container.dependencies.require<AssetsModuleDependencies>(ASSETS_MODULE_DEPENDENCIES)
+        .service,
+      classes: container.dependencies.require<ClassesModuleDependencies>(
+        CLASSES_MODULE_DEPENDENCIES,
+      ).service,
+    };
+  },
+};
 
 type ClassBody = {
   view: string;
@@ -207,7 +235,9 @@ describe("classes", () => {
 
   beforeEach(async () => {
     contentUse.reset();
-    session = buildTestApp({ modules: [...defaultAppModules, contentUse.module] });
+    session = buildTestApp({
+      modules: [...defaultAppModules, contentUse.module, servicesModule],
+    });
 
     await db.insert(rulesets).values(
       [
@@ -470,6 +500,30 @@ describe("classes", () => {
 
       expect((await get(`${catalogUrl()}/${item.id}`, GM)).statusCode).toBe(404);
       expect((await get(catalogUrl(), GM)).json().data).toEqual([]);
+    });
+
+    it("refuses archived classes as a new choice with 409, hidden ones with 404", async () => {
+      const item = await createOk({ releasedToPlayers: true });
+
+      expect((await remove(item)).statusCode).toBe(200);
+      await session.app.ready();
+
+      const accessOf = async (actorId: string) =>
+        services.assets.accessFor(
+          await services.assets.resolveCampaignViewer(
+            { actorId, systemRole: "USER" },
+            ID.campaign,
+          ),
+        );
+
+      // The GM sees the archived class: it exists, but can't be chosen.
+      await expect(
+        services.classes.requireSelectableClass(await accessOf(ID.gm), item.id),
+      ).rejects.toMatchObject({ statusCode: 409 });
+      // A player doesn't see it while nobody uses it.
+      await expect(
+        services.classes.requireSelectableClass(await accessOf(ID.player), item.id),
+      ).rejects.toMatchObject({ statusCode: 404 });
     });
 
     it("checks references again when an archived class comes back, on every path", async () => {

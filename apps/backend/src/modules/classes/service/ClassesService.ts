@@ -158,13 +158,23 @@ export class ClassesService {
 
   /**
    * A class that may be newly chosen in the campaign, for actor progression: in the catalog and
-   * active. Archived classes in use stay readable but cannot be chosen again (409).
+   * active. A class the viewer can read but that isn't active (archived, or a global draft for an
+   * administrator) exists but can't be chosen (409); one the viewer can't read is missing (404).
    */
   async requireSelectableClass(
     access: ContentAccess,
     classId: string,
   ): Promise<ClassWithAsset & { definition: ClassDefinition }> {
-    const found = await this.requireReadableClass(access, classId, "CATALOG");
+    const found = await this.requireClass(this.db, classId);
+
+    if (found.asset.status !== "ACTIVE" && (await access.allows("READ", found.asset))) {
+      throw new ConflictError("Only active classes can be chosen", {
+        classId,
+        status: found.asset.status,
+      });
+    }
+
+    await access.require("CATALOG", found.asset, "Class not found");
 
     if (found.asset.status !== "ACTIVE") {
       throw new ConflictError("Only active classes can be chosen", {

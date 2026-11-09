@@ -53,6 +53,10 @@ import {
   SPECIES_USER_PERMISSION_KEYS,
 } from "#src/modules/species/permissions/SpeciesPermissions";
 import {
+  FEATS_PERMISSION_KEYS,
+  FEATS_USER_PERMISSION_KEYS,
+} from "#src/modules/feats/permissions/FeatsPermissions";
+import {
   HISTORY_PERMISSION_KEYS,
   HISTORY_USER_PERMISSION_KEYS,
 } from "#src/modules/history/permissions/HistoryPermissions";
@@ -88,6 +92,7 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...FEATURES_USER_PERMISSION_KEYS,
   ...CLASSES_USER_PERMISSION_KEYS,
   ...SPECIES_USER_PERMISSION_KEYS,
+  ...FEATS_USER_PERMISSION_KEYS,
   ...HISTORY_USER_PERMISSION_KEYS,
 ];
 
@@ -108,6 +113,7 @@ export const ALL_PERMISSIONS = [
   ...FEATURES_PERMISSION_KEYS,
   ...CLASSES_PERMISSION_KEYS,
   ...SPECIES_PERMISSION_KEYS,
+  ...FEATS_PERMISSION_KEYS,
   ...HISTORY_PERMISSION_KEYS,
 ] as const;
 

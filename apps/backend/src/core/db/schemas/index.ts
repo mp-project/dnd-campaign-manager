@@ -112,3 +112,9 @@ export {
   speciesLifespanModeEnum,
   speciesVariants,
 } from "../../../modules/species/domain/entities/SpeciesTable.js";
+
+export {
+  featCategoryEnum,
+  featPrerequisiteCheckModeEnum,
+  feats,
+} from "../../../modules/feats/domain/entities/FeatsTable.js";

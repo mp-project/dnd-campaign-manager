@@ -232,6 +232,13 @@
       "when": 1794171249217,
       "tag": "0032_glamorous_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794214674272,
+      "tag": "0033_blushing_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

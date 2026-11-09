@@ -103,7 +103,7 @@ const testModule: AppModule = {
     service.relations.register({
       type: "CONTAINS",
       sourceTypes: ["LOCATION"],
-      targetTypes: ["ITEM"],
+      targetTypes: ["BACKGROUND"],
       metadataSchema: z.strictObject({ quantity: z.number().int().positive() }),
       playerVisible: true,
       blocksTargetArchive: true,
@@ -124,7 +124,7 @@ const testModule: AppModule = {
       allowMultiple: true,
       playerVisible: true,
     });
-    for (const [assetType, segment] of [["ITEM", "items"], ["MONSTER_DEFINITION", "monster-definitions"]] as const) {
+    for (const [assetType, segment] of [["BACKGROUND", "backgrounds"], ["MONSTER_DEFINITION", "monster-definitions"]] as const) {
       assetsService.registerContentType({
         assetType,
         kind: "RULE",
@@ -290,7 +290,7 @@ describe("asset links", () => {
 
     await db.insert(assets).values([
       { ...own, id: ID.location, assetType: "LOCATION", title: "Tavern", slug: "tavern", status: "ACTIVE" },
-      { ...own, id: ID.item, assetType: "ITEM", title: "Sword", slug: "sword", status: "ACTIVE" },
+      { ...own, id: ID.item, assetType: "BACKGROUND", title: "Sword", slug: "sword", status: "ACTIVE" },
       { ...own, id: ID.hiddenNote, assetType: "NOTE", title: "Hidden", slug: "hidden", status: "ACTIVE" },
       { ...own, id: ID.sharedNote, assetType: "NOTE", title: "Shared", slug: "shared", status: "ACTIVE" },
       { ...own, id: ID.archivedNote, assetType: "NOTE", title: "Old", slug: "old", status: "ARCHIVED" },
@@ -701,8 +701,8 @@ describe("asset links", () => {
           type: "CONTAINS",
           label: "Loot",
           assetId: ID.item,
-          assetType: "ITEM",
-          editRoute: `/campaigns/${ID.campaign}/items/${ID.item}`,
+          assetType: "BACKGROUND",
+          editRoute: `/campaigns/${ID.campaign}/backgrounds/${ID.item}`,
         }),
       ]);
       expect(body.incoming).toEqual([

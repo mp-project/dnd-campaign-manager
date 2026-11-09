@@ -246,6 +246,13 @@
       "when": 1794238193186,
       "tag": "0034_pink_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794253623343,
+      "tag": "0035_smart_captain_marvel",
+      "breakpoints": true
     }
   ]
 }

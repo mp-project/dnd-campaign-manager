@@ -22,6 +22,7 @@ import { featuresModule } from "#src/modules/features/index";
 import { classesModule } from "#src/modules/classes/index";
 import { speciesModule } from "#src/modules/species/index";
 import { featsModule } from "#src/modules/feats/index";
+import { itemsModule } from "#src/modules/items/index";
 import { spellsModule } from "#src/modules/spells/index";
 import { historyModule } from "#src/modules/history/index";
 
@@ -53,6 +54,7 @@ export const defaultAppModules: readonly AppModule[] = [
   speciesModule,
   featsModule,
   spellsModule,
+  itemsModule,
 ];
 
 export async function registerAppModules(
@@ -78,6 +80,7 @@ export { classesModule } from "#src/modules/classes/index";
 export { speciesModule } from "#src/modules/species/index";
 export { featsModule } from "#src/modules/feats/index";
 export { spellsModule } from "#src/modules/spells/index";
+export { itemsModule } from "#src/modules/items/index";
 export { notesModule } from "#src/modules/notes/index";
 export { tagsModule } from "#src/modules/tags/index";
 export { usersModule } from "#src/modules/users/index";

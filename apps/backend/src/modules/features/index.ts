@@ -19,6 +19,7 @@ export type {
   FeatureBindings,
   ResolvedFeatureGraph,
 } from "#src/modules/features/domain/FeatureResolver";
+export { abilityModifier } from "#src/modules/features/domain/FeatureResolver";
 export {
   FEATURE_PROPERTIES,
   type FeatureInspection,

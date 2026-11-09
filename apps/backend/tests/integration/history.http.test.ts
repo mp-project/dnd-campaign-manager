@@ -112,7 +112,7 @@ const itemAccess = campaignHistoryAccess<typeof items.$inferSelect>({
 });
 
 const trackedItem = defineTrackedEntity({
-  type: "item",
+  type: "probe",
   table: items,
   access: itemAccess,
   history: { limit: "low" },
@@ -155,7 +155,7 @@ const trackedChild = defineTrackedEntity({
   table: children,
   access: childAccess,
   campaignId: (row) => row.campaignId,
-  root: (row) => ({ type: "item", id: row.parentId }),
+  root: (row) => ({ type: "probe", id: row.parentId }),
   fields: {
     campaignId: field.ignore(),
     parentId: field.ignore(),
@@ -296,7 +296,7 @@ describe("history module", () => {
   });
 
   async function createItem(values: Partial<typeof items.$inferInsert> = {}, by: TestActor = GM) {
-    return history.runAction({ action: "item.create", context: by, authorize: allow }, (scope) =>
+    return history.runAction({ action: "probe.create", context: by, authorize: allow }, (scope) =>
       scope.create(trackedItem, { campaignId: ID.campaignA, name: "Goblin", ...values }),
     );
   }
@@ -309,7 +309,7 @@ describe("history module", () => {
       baseVersion?: number;
     },
     by: TestActor = GM,
-    action = "item.update",
+    action = "probe.update",
   ) {
     return history.runAction({ action, context: by, authorize: allow }, (scope) =>
       scope.change(trackedItem, id, () => input),
@@ -574,9 +574,9 @@ describe("history module", () => {
         await updateItem(item.id, { set: { name: "Boss" } });
         await updateItem(item.id, { inc: { hp: -2 } });
 
-        const v1 = await history.getVersion(ADMIN, { entityType: "item", entityId: item.id, version: 1 });
-        const v2 = await history.getVersion(ADMIN, { entityType: "item", entityId: item.id, version: 2 });
-        const v3 = await history.getVersion(ADMIN, { entityType: "item", entityId: item.id, version: 3 });
+        const v1 = await history.getVersion(ADMIN, { entityType: "probe", entityId: item.id, version: 1 });
+        const v2 = await history.getVersion(ADMIN, { entityType: "probe", entityId: item.id, version: 2 });
+        const v3 = await history.getVersion(ADMIN, { entityType: "probe", entityId: item.id, version: 3 });
 
         expect(v1.values).toMatchObject({ name: "Goblin", hp: 10 });
         expect(v2.values).toMatchObject({ name: "Boss", hp: 10 });
@@ -591,8 +591,8 @@ describe("history module", () => {
           await updateItem(item.id, { set: { name: `Name ${index}` } });
         }
 
-        const old = await history.getVersion(ADMIN, { entityType: "item", entityId: item.id, version: 5 });
-        const first = await history.getVersion(ADMIN, { entityType: "item", entityId: item.id, version: 1 });
+        const old = await history.getVersion(ADMIN, { entityType: "probe", entityId: item.id, version: 5 });
+        const first = await history.getVersion(ADMIN, { entityType: "probe", entityId: item.id, version: 1 });
 
         expect(old.incomplete).toContain("name");
         expect(old.values).not.toHaveProperty("name");
@@ -603,7 +603,7 @@ describe("history module", () => {
       it("answers 404 for a version that does not exist", async () => {
         const item = await createItem();
 
-        expect((await get(ADMIN, `/history/item/${item.id}/versions/9`)).statusCode).toBe(404);
+        expect((await get(ADMIN, `/history/probe/${item.id}/versions/9`)).statusCode).toBe(404);
       });
     });
 
@@ -704,7 +704,7 @@ describe("history module", () => {
         const item = await createItem();
 
         await history.runAction(
-          { action: "item.notify", context: GM, authorize: allow, revertible: false },
+          { action: "probe.notify", context: GM, authorize: allow, revertible: false },
           (scope) => scope.change(trackedItem, item.id, () => ({ set: { name: "Boss" } })),
         );
 
@@ -751,7 +751,7 @@ describe("history module", () => {
       it("does not bring back a deleted row", async () => {
         const item = await createItem();
 
-        await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
+        await history.runAction({ action: "probe.delete", context: GM, authorize: allow }, (scope) =>
           scope.softDelete(trackedItem, item.id),
         );
 
@@ -765,14 +765,14 @@ describe("history module", () => {
         const first = await createItem({ name: "First" });
         const second = await createItem({ name: "Second" });
 
-        const actionId = await history.runAction({ action: "item.rename", context: GM, authorize: allow }, async (scope) => {
+        const actionId = await history.runAction({ action: "probe.rename", context: GM, authorize: allow }, async (scope) => {
           await scope.change(trackedItem, first.id, () => ({ set: { name: "A" } }));
           await scope.change(trackedItem, second.id, () => ({ set: { name: "B" } }));
 
           return scope.actionId;
         });
 
-        await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
+        await history.runAction({ action: "probe.delete", context: GM, authorize: allow }, (scope) =>
           scope.softDelete(trackedItem, second.id),
         );
 
@@ -784,7 +784,7 @@ describe("history module", () => {
         const first = await createItem({ name: "First" });
         const second = await createItem({ name: "Second" });
 
-        const actionId = await history.runAction({ action: "item.rename", context: GM, authorize: allow }, async (scope) => {
+        const actionId = await history.runAction({ action: "probe.rename", context: GM, authorize: allow }, async (scope) => {
           await scope.change(trackedItem, first.id, () => ({ set: { name: "A" } }));
           await scope.change(trackedItem, second.id, () => ({ set: { name: "B" } }));
 
@@ -800,7 +800,7 @@ describe("history module", () => {
         const first = await createItem({ name: "First" });
         const second = await createItem({ name: "Second" });
 
-        const actionId = await history.runAction({ action: "item.rename", context: GM, authorize: allow }, async (scope) => {
+        const actionId = await history.runAction({ action: "probe.rename", context: GM, authorize: allow }, async (scope) => {
           await scope.change(trackedItem, first.id, () => ({ set: { name: "A" } }));
           await scope.change(trackedItem, second.id, () => ({ set: { name: "B" } }));
 
@@ -822,7 +822,7 @@ describe("history module", () => {
         await updateItem(item.id, { set: { name: "Boss", description: "Changed" } });
         await updateItem(item.id, { inc: { hp: -4 } });
 
-        const response = await post(GM, `/history/item/${item.id}/versions/1/restore`);
+        const response = await post(GM, `/history/probe/${item.id}/versions/1/restore`);
         const row = await currentItem(item.id);
         const event = await latestEvent(item.id);
 
@@ -840,7 +840,7 @@ describe("history module", () => {
 
         await updateItem(item.id, { set: { role: "ADMIN", name: "Boss" } });
 
-        expect((await post(GM, `/history/item/${item.id}/versions/1/restore`)).statusCode).toBe(200);
+        expect((await post(GM, `/history/probe/${item.id}/versions/1/restore`)).statusCode).toBe(200);
 
         const row = await currentItem(item.id);
 
@@ -853,7 +853,7 @@ describe("history module", () => {
 
         await updateItem(item.id, { set: { name: "Alice" } });
 
-        const response = await post(GM, `/history/item/${item.id}/versions/1/restore`);
+        const response = await post(GM, `/history/probe/${item.id}/versions/1/restore`);
 
         expect(response.statusCode).toBe(409);
         expect((await currentItem(item.id)).name).toBe("Alice");
@@ -866,7 +866,7 @@ describe("history module", () => {
           await updateItem(item.id, { set: { name: `Name ${index}` } });
         }
 
-        const response = await post(GM, `/history/item/${item.id}/versions/5/restore`);
+        const response = await post(GM, `/history/probe/${item.id}/versions/5/restore`);
 
         expect(response.statusCode).toBe(409);
         expect(response.json().error.details).toEqual({ fields: expect.arrayContaining(["name"]) });
@@ -877,7 +877,7 @@ describe("history module", () => {
       const damage = (id: string, key: string, by: TestActor = GM) =>
         history.runAction(
           {
-            action: "item.damage",
+            action: "probe.damage",
             context: by, authorize: allow,
             idempotency: { key, onReplay: async () => currentItem(id) },
           },
@@ -907,7 +907,7 @@ describe("history module", () => {
         const item = await createItem({ hp: 10 });
         const failing = history.runAction(
           {
-            action: "item.damage",
+            action: "probe.damage",
             context: GM, authorize: allow,
             idempotency: { key: "retry", onReplay: async () => null },
           },
@@ -928,7 +928,7 @@ describe("history module", () => {
         const seen: HistoryEvent[] = [];
         let committed = false;
 
-        history.subscribe("item.named", async (event) => {
+        history.subscribe("probe.named", async (event) => {
           const [row] = await db.select().from(items).where(eq(items.id, event.entityId));
 
           committed = row?.name === "Secret name";
@@ -937,7 +937,7 @@ describe("history module", () => {
 
         const item = await createItem();
 
-        await updateItem(item.id, { set: { name: "Secret name" } }, GM, "item.named");
+        await updateItem(item.id, { set: { name: "Secret name" } }, GM, "probe.named");
 
         expect(committed).toBe(true);
         expect(seen).toHaveLength(1);
@@ -948,14 +948,14 @@ describe("history module", () => {
       it("publishes nothing after a rollback", async () => {
         const seen: HistoryEvent[] = [];
 
-        history.subscribe("item.rollback", (event) => {
+        history.subscribe("probe.rollback", (event) => {
           seen.push(event);
         });
 
         const item = await createItem();
 
         await expect(
-          history.runAction({ action: "item.rollback", context: GM, authorize: allow }, async (scope) => {
+          history.runAction({ action: "probe.rollback", context: GM, authorize: allow }, async (scope) => {
             await scope.change(trackedItem, item.id, () => ({ set: { name: "Boss" } }));
             throw new ConflictError("failed");
           }),
@@ -973,7 +973,7 @@ describe("history module", () => {
       { id: string; amount: number; reason?: string },
       typeof items.$inferSelect
     > {
-      protected readonly action = "item.damage";
+      protected readonly action = "probe.damage";
 
       protected async authorize(
         context: RequestContext,
@@ -1021,7 +1021,7 @@ describe("history module", () => {
 
       expect(row.hp).toBe(7);
       expect(await latestEvent(item.id)).toMatchObject({
-        action: "item.damage",
+        action: "probe.damage",
         actorId: ID.player,
         reason: "Trap",
       });
@@ -1082,7 +1082,7 @@ describe("history module", () => {
 
       await history.runAction(
         {
-          action: "item.check",
+          action: "probe.check",
           context: GM,
           authorize: async (tx) => {
             await tx.update(items).set({ description: "In transaction" }).where(eq(items.id, item.id));
@@ -1104,7 +1104,7 @@ describe("history module", () => {
       await expect(
         history.runAction(
           {
-            action: "item.broken",
+            action: "probe.broken",
             context: GM,
             authorize: (async () => ({ kind: "authorized", reason: null })) as never,
           },
@@ -1245,7 +1245,7 @@ describe("history module", () => {
     it("does not change a deleted row", async () => {
       const item = await createItem();
 
-      await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
+      await history.runAction({ action: "probe.delete", context: GM, authorize: allow }, (scope) =>
         scope.softDelete(trackedItem, item.id),
       );
 
@@ -1256,14 +1256,14 @@ describe("history module", () => {
       const item = await createItem();
 
       await updateItem(item.id, { set: { name: "Boss" } });
-      await history.runAction({ action: "item.delete", context: GM, authorize: allow }, (scope) =>
+      await history.runAction({ action: "probe.delete", context: GM, authorize: allow }, (scope) =>
         scope.softDelete(trackedItem, item.id),
       );
 
       for (const actor of [GM, ADMIN]) {
-        expect((await get(actor, `/history/item/${item.id}`)).statusCode).toBe(404);
-        expect((await get(actor, `/history/item/${item.id}/versions/1`)).statusCode).toBe(404);
-        expect((await post(actor, `/history/item/${item.id}/versions/1/restore`)).statusCode).toBe(404);
+        expect((await get(actor, `/history/probe/${item.id}`)).statusCode).toBe(404);
+        expect((await get(actor, `/history/probe/${item.id}/versions/1`)).statusCode).toBe(404);
+        expect((await post(actor, `/history/probe/${item.id}/versions/1/restore`)).statusCode).toBe(404);
       }
 
       expect((await currentItem(item.id)).deletedAt).not.toBeNull();
@@ -1292,8 +1292,8 @@ describe("history module", () => {
     ])("reading the row of a player as %s gives %i", async (_name, by, status) => {
       const { owned } = await seed();
 
-      expect((await get(by, `/history/item/${owned.id}`)).statusCode).toBe(status);
-      expect((await get(by, `/history/item/${owned.id}/versions/1`)).statusCode).toBe(status);
+      expect((await get(by, `/history/probe/${owned.id}`)).statusCode).toBe(status);
+      expect((await get(by, `/history/probe/${owned.id}/versions/1`)).statusCode).toBe(status);
     });
 
     it.each<[string, TestActor, number]>([
@@ -1305,14 +1305,14 @@ describe("history module", () => {
     ])("reading a row owned by nobody in the test as %s gives %i", async (_name, by, status) => {
       const { hidden } = await seed();
 
-      expect((await get(by, `/history/item/${hidden.id}`)).statusCode).toBe(status);
-      expect((await get(by, `/history/item/${hidden.id}/versions/1`)).statusCode).toBe(status);
+      expect((await get(by, `/history/probe/${hidden.id}`)).statusCode).toBe(status);
+      expect((await get(by, `/history/probe/${hidden.id}/versions/1`)).statusCode).toBe(status);
     });
 
     it("needs a login", async () => {
       const { owned, playerEvent } = await seed();
 
-      expect((await app.inject({ method: "GET", url: `/api/v1/history/item/${owned.id}` })).statusCode).toBe(401);
+      expect((await app.inject({ method: "GET", url: `/api/v1/history/probe/${owned.id}` })).statusCode).toBe(401);
       expect(
         (
           await app.inject({
@@ -1365,7 +1365,7 @@ describe("history module", () => {
       const own = await createItem({ ownerId: ID.player, name: "Own" });
       const foreign = await createItem({ ownerId: ID.otherPlayer, name: "Foreign" });
 
-      const actionId = await history.runAction({ action: "item.rename", context: PLAYER, authorize: allow }, async (scope) => {
+      const actionId = await history.runAction({ action: "probe.rename", context: PLAYER, authorize: allow }, async (scope) => {
         await scope.change(trackedItem, own.id, () => ({ set: { name: "A" } }));
         await scope.change(trackedItem, foreign.id, () => ({ set: { name: "B" } }));
 
@@ -1386,7 +1386,7 @@ describe("history module", () => {
       ["removed member", REMOVED, 404],
     ])("restoring a version as %s gives %i", async (_name, by, status) => {
       const { owned } = await seed();
-      const response = await post(by, `/history/item/${owned.id}/versions/1/restore`);
+      const response = await post(by, `/history/probe/${owned.id}/versions/1/restore`);
 
       expect(response.statusCode).toBe(status);
       expect((await currentItem(owned.id)).description).toBe(status === 200 ? null : "By player");
@@ -1397,7 +1397,7 @@ describe("history module", () => {
 
       await updateItem(item.id, { set: { name: "By admin" } }, ADMIN);
 
-      const body = (await get(GM, `/history/item/${item.id}?field=name`)).json();
+      const body = (await get(GM, `/history/probe/${item.id}?field=name`)).json();
 
       expect(body.data[0]).toMatchObject({ actorId: ID.admin, value: "By admin" });
     });
@@ -1406,7 +1406,7 @@ describe("history module", () => {
       const { owned, playerEvent } = await seed();
       const headers = { "x-campaign-id": ID.campaignB };
 
-      expect((await get(OUTSIDER, `/history/item/${owned.id}`, headers)).statusCode).toBe(404);
+      expect((await get(OUTSIDER, `/history/probe/${owned.id}`, headers)).statusCode).toBe(404);
 
       const revert = await injectAs(OUTSIDER, {
         method: "POST",
@@ -1423,8 +1423,8 @@ describe("history module", () => {
       const { owned } = await seed();
       const missingId = "d0000000-0000-4000-8000-000000000000";
       const responses = await Promise.all([
-        get(OUTSIDER, `/history/item/${owned.id}`),
-        get(OUTSIDER, `/history/item/${missingId}`),
+        get(OUTSIDER, `/history/probe/${owned.id}`),
+        get(OUTSIDER, `/history/probe/${missingId}`),
         get(OUTSIDER, `/history/users/${owned.id}`),
       ]);
 
@@ -1445,7 +1445,7 @@ describe("history module", () => {
     it("answers 404 for an unknown field", async () => {
       const { owned } = await seed();
 
-      expect((await get(GM, `/history/item/${owned.id}?field=ghost`)).statusCode).toBe(404);
+      expect((await get(GM, `/history/probe/${owned.id}?field=ghost`)).statusCode).toBe(404);
     });
 
     it("hides fields in lists, versions and conflicts", async () => {
@@ -1453,9 +1453,9 @@ describe("history module", () => {
 
       await updateItem(item.id, { set: { gmNotes: "New secret plan" } }, GM);
 
-      const list = await get(PLAYER, `/history/item/${item.id}`);
-      const version = await get(PLAYER, `/history/item/${item.id}/versions/1`);
-      const filtered = await get(PLAYER, `/history/item/${item.id}?field=gmNotes`);
+      const list = await get(PLAYER, `/history/probe/${item.id}`);
+      const version = await get(PLAYER, `/history/probe/${item.id}/versions/1`);
+      const filtered = await get(PLAYER, `/history/probe/${item.id}?field=gmNotes`);
 
       expect(list.statusCode).toBe(200);
       expect(list.body).not.toContain("Secret plan");
@@ -1476,7 +1476,7 @@ describe("history module", () => {
       const item = await createItem({ gmNotes: "Secret plan" });
 
       for (const by of [GM, ADMIN]) {
-        expect((await get(by, `/history/item/${item.id}`)).body).toContain("Secret plan");
+        expect((await get(by, `/history/probe/${item.id}`)).body).toContain("Secret plan");
       }
     });
 
@@ -1500,9 +1500,9 @@ describe("history module", () => {
       await create("Visible child", true);
       await create("Hidden child", false);
 
-      const asPlayer = await get(PLAYER, `/history/item/${parent.id}?includeChildren=true`);
-      const asGm = await get(GM, `/history/item/${parent.id}?includeChildren=true`);
-      const withoutChildren = await get(GM, `/history/item/${parent.id}`);
+      const asPlayer = await get(PLAYER, `/history/probe/${parent.id}?includeChildren=true`);
+      const asGm = await get(GM, `/history/probe/${parent.id}?includeChildren=true`);
+      const withoutChildren = await get(GM, `/history/probe/${parent.id}`);
 
       expect(asPlayer.body).toContain("Visible child");
       expect(asPlayer.body).not.toContain("Hidden child");
@@ -1520,7 +1520,7 @@ describe("history module", () => {
         scope.softDelete(trackedChild, child.id),
       );
 
-      const response = await get(ADMIN, `/history/item/${parent.id}?includeChildren=true`);
+      const response = await get(ADMIN, `/history/probe/${parent.id}?includeChildren=true`);
 
       expect(response.statusCode).toBe(200);
       expect(response.body).not.toContain("Gone child");
@@ -1550,9 +1550,9 @@ describe("history module", () => {
         await updateItem(item.id, { set: { name: `Name ${index}` } });
       }
 
-      const first = (await get(GM, `/history/item/${item.id}?field=name&limit=2`)).json();
+      const first = (await get(GM, `/history/probe/${item.id}?field=name&limit=2`)).json();
       const second = (
-        await get(GM, `/history/item/${item.id}?field=name&limit=2&before=${first.nextBefore}`)
+        await get(GM, `/history/probe/${item.id}?field=name&limit=2&before=${first.nextBefore}`)
       ).json();
 
       expect(first.data.map((row: { value: string }) => row.value)).toEqual(["Name 2", "Name 1"]);

@@ -129,3 +129,26 @@ export {
   spellSchoolEnum,
   spells,
 } from "../../../modules/spells/domain/entities/SpellsTable.js";
+
+export {
+  itemAbilityEnum,
+  itemArmorCategoryEnum,
+  itemAttunementModeEnum,
+  itemCapacityUnitEnum,
+  itemCategoryEnum,
+  itemConditionEnum,
+  itemCurrencyEnum,
+  itemDamageTypeEnum,
+  itemDexterityModeEnum,
+  itemInstanceKnowledge,
+  itemInstances,
+  itemKnowledgeLevelEnum,
+  itemMagicTypeEnum,
+  itemOwnerTypeEnum,
+  itemRarityEnum,
+  items,
+  itemToolCategoryEnum,
+  itemWeaponCategoryEnum,
+  itemWeaponCombatTypeEnum,
+  itemWeaponMasteryEnum,
+} from "../../../modules/items/domain/entities/ItemsTable.js";

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, mediaFiles, notes, rulesets, species, speciesVariants, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, feats, mediaFiles, notes, rulesets, species, speciesVariants, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -38,6 +38,8 @@ const ID = {
   species: "f0000000-0000-4000-8000-000000000011",
   variantAsset: "d0000000-0000-4000-8000-000000000010",
   variant: "f0000000-0000-4000-8000-000000000012",
+  featAsset: "d0000000-0000-4000-8000-000000000011",
+  feat: "f0000000-0000-4000-8000-000000000013",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -67,6 +69,7 @@ const featureUrl = `/api/v1/campaigns/${ID.campaign}/features/${ID.feature}`;
 const classUrl = `/api/v1/campaigns/${ID.campaign}/classes/${ID.class}`;
 const speciesUrl = `/api/v1/campaigns/${ID.campaign}/species/${ID.species}`;
 const variantUrl = `${speciesUrl}/variants/${ID.variant}`;
+const featUrl = `/api/v1/campaigns/${ID.campaign}/feats/${ID.feat}`;
 
 type Inject = ReturnType<typeof buildTestApp>["injectAs"];
 type Response = Awaited<ReturnType<Inject>>;
@@ -99,7 +102,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof species | typeof speciesVariants | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof feats | typeof species | typeof speciesVariants | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -306,6 +309,28 @@ describe("history rights of every tracked entity", () => {
           description: "Taken over",
           expectedVersion: await rowVersion(species, ID.species),
           expectedAssetVersion: await rowVersion(assets, ID.speciesAsset),
+        }),
+    },
+    feat: {
+      id: ID.feat,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", featUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(feats, ID.feat),
+            expectedAssetVersion: await rowVersion(assets, ID.featAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, featUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(feats, ID.feat),
+          expectedAssetVersion: await rowVersion(assets, ID.featAsset),
         }),
     },
     speciesVariant: {
@@ -607,6 +632,24 @@ describe("history rights of every tracked entity", () => {
       speciesId: ID.species,
       variantGroupCode: "lineage",
       code: "drow",
+    });
+    await db.insert(assets).values({
+      id: ID.featAsset,
+      title: "Alert",
+      slug: "alert",
+      scope: "CAMPAIGN",
+      origin: "CUSTOM",
+      campaignId: ID.campaign,
+      assetType: "FEAT",
+      status: "ACTIVE",
+    });
+    await db.insert(feats).values({
+      id: ID.feat,
+      campaignId: ID.campaign,
+      assetId: ID.featAsset,
+      code: "alert",
+      category: "GENERAL",
+      repeatability: { mode: "ONCE", maximumOccurrences: null, repeatabilityChoiceKey: null },
     });
     await db.insert(mediaFiles).values({
       id: ID.media,

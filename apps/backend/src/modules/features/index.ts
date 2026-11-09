@@ -34,6 +34,7 @@ export {
 export { ABILITIES, CONTEXT_VALUE_KEYS, raisesAbilityScore, usesClassLevel } from "#src/modules/features/domain/FeatureDefinition";
 export { ActorSnapshotSchema } from "#src/modules/features/domain/dto/RequestFeatureDto";
 export {
+  ResolvedPayloadSchema,
   ResponseResolvedFeatureSchema,
   type ResponseResolvedFeatureDto,
   toResolvedFeatureResponse,

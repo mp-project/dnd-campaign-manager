@@ -118,3 +118,14 @@ export {
   featPrerequisiteCheckModeEnum,
   feats,
 } from "../../../modules/feats/domain/entities/FeatsTable.js";
+
+export {
+  spellCastingTimeTypeEnum,
+  spellDurationTypeEnum,
+  spellDurationUnitEnum,
+  spellLists,
+  spellRangeTypeEnum,
+  spellRangeUnitEnum,
+  spellSchoolEnum,
+  spells,
+} from "../../../modules/spells/domain/entities/SpellsTable.js";

@@ -57,6 +57,10 @@ import {
   FEATS_USER_PERMISSION_KEYS,
 } from "#src/modules/feats/permissions/FeatsPermissions";
 import {
+  SPELLS_PERMISSION_KEYS,
+  SPELLS_USER_PERMISSION_KEYS,
+} from "#src/modules/spells/permissions/SpellsPermissions";
+import {
   HISTORY_PERMISSION_KEYS,
   HISTORY_USER_PERMISSION_KEYS,
 } from "#src/modules/history/permissions/HistoryPermissions";
@@ -93,6 +97,7 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
   ...CLASSES_USER_PERMISSION_KEYS,
   ...SPECIES_USER_PERMISSION_KEYS,
   ...FEATS_USER_PERMISSION_KEYS,
+  ...SPELLS_USER_PERMISSION_KEYS,
   ...HISTORY_USER_PERMISSION_KEYS,
 ];
 
@@ -114,6 +119,7 @@ export const ALL_PERMISSIONS = [
   ...CLASSES_PERMISSION_KEYS,
   ...SPECIES_PERMISSION_KEYS,
   ...FEATS_PERMISSION_KEYS,
+  ...SPELLS_PERMISSION_KEYS,
   ...HISTORY_PERMISSION_KEYS,
 ] as const;
 

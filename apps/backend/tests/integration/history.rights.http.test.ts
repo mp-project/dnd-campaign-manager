@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, feats, mediaFiles, notes, rulesets, species, speciesVariants, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, feats, mediaFiles, notes, rulesets, species, speciesVariants, spellLists, spells, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -40,6 +40,10 @@ const ID = {
   variant: "f0000000-0000-4000-8000-000000000012",
   featAsset: "d0000000-0000-4000-8000-000000000011",
   feat: "f0000000-0000-4000-8000-000000000013",
+  spellAsset: "d0000000-0000-4000-8000-000000000012",
+  spell: "f0000000-0000-4000-8000-000000000014",
+  spellListAsset: "d0000000-0000-4000-8000-000000000013",
+  spellList: "f0000000-0000-4000-8000-000000000015",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -70,6 +74,8 @@ const classUrl = `/api/v1/campaigns/${ID.campaign}/classes/${ID.class}`;
 const speciesUrl = `/api/v1/campaigns/${ID.campaign}/species/${ID.species}`;
 const variantUrl = `${speciesUrl}/variants/${ID.variant}`;
 const featUrl = `/api/v1/campaigns/${ID.campaign}/feats/${ID.feat}`;
+const spellUrl = `/api/v1/campaigns/${ID.campaign}/spells/${ID.spell}`;
+const spellListUrl = `/api/v1/campaigns/${ID.campaign}/spell-lists/${ID.spellList}`;
 
 type Inject = ReturnType<typeof buildTestApp>["injectAs"];
 type Response = Awaited<ReturnType<Inject>>;
@@ -102,7 +108,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof feats | typeof species | typeof speciesVariants | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof feats | typeof spells | typeof spellLists | typeof species | typeof speciesVariants | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -331,6 +337,50 @@ describe("history rights of every tracked entity", () => {
           description: "Taken over",
           expectedVersion: await rowVersion(feats, ID.feat),
           expectedAssetVersion: await rowVersion(assets, ID.featAsset),
+        }),
+    },
+    spell: {
+      id: ID.spell,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", spellUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(spells, ID.spell),
+            expectedAssetVersion: await rowVersion(assets, ID.spellAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, spellUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(spells, ID.spell),
+          expectedAssetVersion: await rowVersion(assets, ID.spellAsset),
+        }),
+    },
+    spellList: {
+      id: ID.spellList,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", spellListUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(spellLists, ID.spellList),
+            expectedAssetVersion: await rowVersion(assets, ID.spellListAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, spellListUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(spellLists, ID.spellList),
+          expectedAssetVersion: await rowVersion(assets, ID.spellListAsset),
         }),
     },
     speciesVariant: {
@@ -650,6 +700,48 @@ describe("history rights of every tracked entity", () => {
       code: "alert",
       category: "GENERAL",
       repeatability: { mode: "ONCE", maximumOccurrences: null, repeatabilityChoiceKey: null },
+    });
+    await db.insert(assets).values([
+      {
+        id: ID.spellAsset,
+        title: "Light",
+        slug: "light",
+        scope: "CAMPAIGN",
+        origin: "CUSTOM",
+        campaignId: ID.campaign,
+        assetType: "SPELL",
+        status: "ACTIVE",
+      },
+      {
+        id: ID.spellListAsset,
+        title: "Wizard",
+        slug: "wizard",
+        scope: "CAMPAIGN",
+        origin: "CUSTOM",
+        campaignId: ID.campaign,
+        assetType: "SPELL_LIST",
+        status: "ACTIVE",
+      },
+    ]);
+    await db.insert(spells).values({
+      id: ID.spell,
+      campaignId: ID.campaign,
+      assetId: ID.spellAsset,
+      code: "light",
+      level: 0,
+      school: "EVOCATION",
+      description: "Bright",
+      castingTimeType: "ACTION",
+      rangeType: "TOUCH",
+      durationType: "TIMED",
+      durationAmount: 1,
+      durationUnit: "HOUR",
+    });
+    await db.insert(spellLists).values({
+      id: ID.spellList,
+      campaignId: ID.campaign,
+      assetId: ID.spellListAsset,
+      code: "wizard",
     });
     await db.insert(mediaFiles).values({
       id: ID.media,

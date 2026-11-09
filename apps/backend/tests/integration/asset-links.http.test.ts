@@ -53,8 +53,8 @@ const ID = {
   archivedNote: "e0000000-0000-4000-8000-000000000004",
   sharedNote: "e0000000-0000-4000-8000-000000000005",
   foreignNote: "e0000000-0000-4000-8000-000000000006",
-  systemSpell: "e0000000-0000-4000-8000-000000000007",
-  otherRulesetSpell: "e0000000-0000-4000-8000-000000000008",
+  systemMonster: "e0000000-0000-4000-8000-000000000007",
+  otherRulesetMonster: "e0000000-0000-4000-8000-000000000008",
   draftNote: "e0000000-0000-4000-8000-000000000009",
   unknownAsset: "e0000000-0000-4000-8000-00000000000f",
 } as const;
@@ -124,7 +124,7 @@ const testModule: AppModule = {
       allowMultiple: true,
       playerVisible: true,
     });
-    for (const [assetType, segment] of [["ITEM", "items"], ["SPELL", "spells"]] as const) {
+    for (const [assetType, segment] of [["ITEM", "items"], ["MONSTER_DEFINITION", "monster-definitions"]] as const) {
       assetsService.registerContentType({
         assetType,
         kind: "RULE",
@@ -305,11 +305,11 @@ describe("asset links", () => {
         slug: "foreign",
         status: "ACTIVE",
       },
-      { ...system, id: ID.systemSpell, assetType: "SPELL", title: "Light", slug: "light", status: "ACTIVE" },
+      { ...system, id: ID.systemMonster, assetType: "MONSTER_DEFINITION", title: "Light", slug: "light", status: "ACTIVE" },
       {
         ...system,
-        id: ID.otherRulesetSpell,
-        assetType: "SPELL",
+        id: ID.otherRulesetMonster,
+        assetType: "MONSTER_DEFINITION",
         title: "Old rules",
         slug: "old-rules",
         status: "ACTIVE",
@@ -318,7 +318,7 @@ describe("asset links", () => {
     ]);
     await db
       .insert(assetRulesets)
-      .values({ assetId: ID.otherRulesetSpell, rulesetId: ID.otherRuleset });
+      .values({ assetId: ID.otherRulesetMonster, rulesetId: ID.otherRuleset });
   });
 
   afterEach(async () => {
@@ -355,7 +355,7 @@ describe("asset links", () => {
     });
 
     it("links to compatible global assets and drafts of the campaign", async () => {
-      expect((await create(ID.location, relatedTo(ID.systemSpell))).statusCode).toBe(201);
+      expect((await create(ID.location, relatedTo(ID.systemMonster))).statusCode).toBe(201);
       expect((await create(ID.location, relatedTo(ID.draftNote))).statusCode).toBe(201);
     });
 
@@ -370,7 +370,7 @@ describe("asset links", () => {
       ["target of another campaign", { targetAssetId: ID.foreignNote, relationType: "RELATED_TO" }, 404],
       ["missing target", { targetAssetId: ID.unknownAsset, relationType: "RELATED_TO" }, 404],
       ["archived target", { targetAssetId: ID.archivedNote, relationType: "RELATED_TO" }, 409],
-      ["global target of another ruleset", { targetAssetId: ID.otherRulesetSpell, relationType: "RELATED_TO" }, 409],
+      ["global target of another ruleset", { targetAssetId: ID.otherRulesetMonster, relationType: "RELATED_TO" }, 409],
     ])("rejects %s", async (_name, payload, status) => {
       const response = await create(ID.location, payload);
 
@@ -379,7 +379,7 @@ describe("asset links", () => {
     });
 
     it("rejects sources that are global, archived or in another campaign", async () => {
-      expect((await create(ID.systemSpell, relatedTo(ID.item))).statusCode).toBe(409);
+      expect((await create(ID.systemMonster, relatedTo(ID.item))).statusCode).toBe(409);
       expect((await create(ID.archivedNote, relatedTo(ID.item))).statusCode).toBe(409);
       expect((await create(ID.foreignNote, relatedTo(ID.item))).statusCode).toBe(404);
     });
@@ -540,14 +540,14 @@ describe("asset links", () => {
     });
 
     it("shows links of a global asset only for the own campaign", async () => {
-      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await createOk(ID.location, relatedTo(ID.systemMonster));
 
-      expect((await list(ID.systemSpell)).json().data).toHaveLength(1);
+      expect((await list(ID.systemMonster)).json().data).toHaveLength(1);
       expect(
         (
           await session.injectAs(FOREIGN_GM, {
             method: "GET",
-            url: linksUrl(ID.systemSpell, ID.foreignCampaign),
+            url: linksUrl(ID.systemMonster, ID.foreignCampaign),
           })
         ).json().data,
       ).toEqual([]);
@@ -563,15 +563,15 @@ describe("asset links", () => {
       await createOk(ID.location, { targetAssetId: ID.item, relationType: "CONTAINS", metadata: { quantity: 1 } });
       await createOk(ID.location, relatedTo(ID.sharedNote));
       await createOk(ID.location, relatedTo(ID.hiddenNote));
-      await createOk(ID.location, { targetAssetId: ID.systemSpell, relationType: "SECRET_OF" });
-      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await createOk(ID.location, { targetAssetId: ID.systemMonster, relationType: "SECRET_OF" });
+      await createOk(ID.location, relatedTo(ID.systemMonster));
 
       const response = await list(ID.location, PLAYER);
       const data = response.json().data as Record<string, unknown>[];
 
       expect(response.statusCode).toBe(200);
       expect(data.map((link) => (link.relatedAsset as { id: string }).id).sort()).toEqual(
-        [ID.sharedNote, ID.systemSpell].sort(),
+        [ID.sharedNote, ID.systemMonster].sort(),
       );
 
       for (const link of data) {
@@ -752,77 +752,77 @@ describe("asset links", () => {
       type: "TEST_USAGE",
       label: "Typed",
       assetId,
-      assetType: "SPELL",
+      assetType: "MONSTER_DEFINITION",
       editRoute,
     });
     const setStatus = (id: string, status: "DRAFT" | "ARCHIVED") =>
       db.update(assets).set({ status }).where(eq(assets.id, id));
 
     it("hides links to global drafts from GMs, not from administrators", async () => {
-      await createOk(ID.location, relatedTo(ID.systemSpell));
-      await setStatus(ID.systemSpell, "DRAFT");
+      await createOk(ID.location, relatedTo(ID.systemMonster));
+      await setStatus(ID.systemMonster, "DRAFT");
 
       expect((await usages(ID.location)).json().outgoing).toEqual([]);
       expect((await usages(ID.location, ADMIN)).json().outgoing).toEqual([
-        expect.objectContaining({ assetId: ID.systemSpell }),
+        expect.objectContaining({ assetId: ID.systemMonster }),
       ]);
     });
 
     it("gives only administrators edit routes to global content", async () => {
-      await createOk(ID.location, relatedTo(ID.systemSpell));
-      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
+      await createOk(ID.location, relatedTo(ID.systemMonster));
+      typedUsageItems = [usageOf(ID.systemMonster, "/monster-definitions/edit")];
 
       const asGm = (await usages(ID.location)).json();
       const asAdmin = (await usages(ID.location, ADMIN)).json();
 
-      expect(asGm.outgoing).toEqual([expect.objectContaining({ assetId: ID.systemSpell, editRoute: null })]);
+      expect(asGm.outgoing).toEqual([expect.objectContaining({ assetId: ID.systemMonster, editRoute: null })]);
       expect(asGm.typedUsages).toEqual([expect.objectContaining({ editRoute: null })]);
       expect(asAdmin.outgoing).toEqual([
-        expect.objectContaining({ editRoute: `/campaigns/${ID.campaign}/spells/${ID.systemSpell}` }),
+        expect.objectContaining({ editRoute: `/campaigns/${ID.campaign}/monster-definitions/${ID.systemMonster}` }),
       ]);
-      expect(asAdmin.typedUsages).toEqual([expect.objectContaining({ editRoute: "/spells/edit" })]);
+      expect(asAdmin.typedUsages).toEqual([expect.objectContaining({ editRoute: "/monster-definitions/edit" })]);
     });
 
     it("keeps the edit route of items about the global asset itself, such as its share", async () => {
-      typedUsageItems = [usageOf(ID.systemSpell, `/campaigns/${ID.campaign}/shares/1`)];
+      typedUsageItems = [usageOf(ID.systemMonster, `/campaigns/${ID.campaign}/shares/1`)];
 
-      expect((await usages(ID.systemSpell)).json().typedUsages).toEqual([
+      expect((await usages(ID.systemMonster)).json().typedUsages).toEqual([
         expect.objectContaining({ editRoute: `/campaigns/${ID.campaign}/shares/1` }),
       ]);
     });
 
     it("shows players archived global content only while the campaign uses it", async () => {
-      typedUsageItems = [usageOf(ID.systemSpell, "/spells/edit")];
-      await setStatus(ID.systemSpell, "ARCHIVED");
+      typedUsageItems = [usageOf(ID.systemMonster, "/monster-definitions/edit")];
+      await setStatus(ID.systemMonster, "ARCHIVED");
 
       expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([]);
 
-      await contentUse.use(ID.campaign, ID.systemSpell);
+      await contentUse.use(ID.campaign, ID.systemMonster);
 
       expect((await usages(ID.location, PLAYER)).json().typedUsages).toEqual([
-        expect.objectContaining({ assetId: ID.systemSpell, editRoute: null }),
+        expect.objectContaining({ assetId: ID.systemMonster, editRoute: null }),
       ]);
     });
 
     it("shows the same link ends in links and usages", async () => {
-      await createOk(ID.location, relatedTo(ID.systemSpell));
+      await createOk(ID.location, relatedTo(ID.systemMonster));
       await createOk(ID.location, relatedTo(ID.item));
       // The global spell moves to another ruleset: no longer part of this campaign.
-      await db.update(assets).set({ rulesetPolicy: "RESTRICTED" }).where(eq(assets.id, ID.systemSpell));
-      await db.insert(assetRulesets).values({ assetId: ID.systemSpell, rulesetId: ID.otherRuleset });
+      await db.update(assets).set({ rulesetPolicy: "RESTRICTED" }).where(eq(assets.id, ID.systemMonster));
+      await db.insert(assetRulesets).values({ assetId: ID.systemMonster, rulesetId: ID.otherRuleset });
 
       const listed = (await list(ID.location)).json().data as { relatedAsset: { id: string } }[];
       const used = (await usages(ID.location)).json().outgoing as { assetId: string }[];
 
       expect(listed.map((link) => link.relatedAsset.id)).toEqual([ID.item]);
       expect(used.map((item) => item.assetId)).toEqual([ID.item]);
-      expect((await usages(ID.systemSpell)).statusCode).toBe(404);
-      expect((await usages(ID.systemSpell, ADMIN)).statusCode).toBe(200);
+      expect((await usages(ID.systemMonster)).statusCode).toBe(404);
+      expect((await usages(ID.systemMonster, ADMIN)).statusCode).toBe(200);
     });
 
     it("shows players archived content the campaign uses in links and its own usages", async () => {
-      await createOk(ID.location, relatedTo(ID.systemSpell));
-      await setStatus(ID.systemSpell, "ARCHIVED");
+      await createOk(ID.location, relatedTo(ID.systemMonster));
+      await setStatus(ID.systemMonster, "ARCHIVED");
 
       const linkedIds = async () =>
         ((await list(ID.location, PLAYER)).json().data as { relatedAsset: { id: string } }[]).map(
@@ -830,12 +830,12 @@ describe("asset links", () => {
         );
 
       expect(await linkedIds()).toEqual([]);
-      expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(404);
+      expect((await usages(ID.systemMonster, PLAYER)).statusCode).toBe(404);
 
-      await contentUse.use(ID.campaign, ID.systemSpell);
+      await contentUse.use(ID.campaign, ID.systemMonster);
 
-      expect(await linkedIds()).toEqual([ID.systemSpell]);
-      expect((await usages(ID.systemSpell, PLAYER)).statusCode).toBe(200);
+      expect(await linkedIds()).toEqual([ID.systemMonster]);
+      expect((await usages(ID.systemMonster, PLAYER)).statusCode).toBe(200);
     });
   });
 

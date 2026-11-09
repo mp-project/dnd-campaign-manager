@@ -162,7 +162,8 @@ const resolvedDice = z
   .strictObject({ count: nullableNumber, faces: z.literal([...DIE_FACES]) })
   .nullable();
 
-const ResolvedPayloadSchema = z.discriminatedUnion("type", [
+/** An effect payload with its expressions computed; null where a value is missing. */
+export const ResolvedPayloadSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("MODIFIER"), stat: z.string(), amount: nullableNumber }),
   z.strictObject({ type: z.literal("BASE_VALUE"), stat: z.string(), value: nullableNumber }),
   z.strictObject({ type: z.literal("GRANT"), grantType: z.string(), value: z.string() }),

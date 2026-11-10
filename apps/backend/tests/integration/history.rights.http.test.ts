@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, feats, itemInstanceKnowledge, itemInstances, items, mediaFiles, notes, rulesets, species, speciesVariants, spellLists, spells, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, feats, itemInstanceKnowledge, itemInstances, items, mediaFiles, notes, rulesets, species, speciesVariants, spellLists, spells, subclasses, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -48,6 +48,8 @@ const ID = {
   item: "f0000000-0000-4000-8000-000000000016",
   itemInstance: "f0000000-0000-4000-8000-000000000017",
   itemKnowledge: "f0000000-0000-4000-8000-000000000018",
+  subclassAsset: "d0000000-0000-4000-8000-000000000015",
+  subclass: "f0000000-0000-4000-8000-000000000019",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -75,6 +77,7 @@ const assetLinkUrl = `/api/v1/campaigns/${ID.campaign}/assets/${ID.asset}/links/
 const noteUrl = `/api/v1/campaigns/${ID.campaign}/notes/${ID.note}`;
 const featureUrl = `/api/v1/campaigns/${ID.campaign}/features/${ID.feature}`;
 const classUrl = `/api/v1/campaigns/${ID.campaign}/classes/${ID.class}`;
+const subclassUrl = `/api/v1/campaigns/${ID.campaign}/subclasses/${ID.subclass}`;
 const speciesUrl = `/api/v1/campaigns/${ID.campaign}/species/${ID.species}`;
 const variantUrl = `${speciesUrl}/variants/${ID.variant}`;
 const featUrl = `/api/v1/campaigns/${ID.campaign}/feats/${ID.feat}`;
@@ -114,7 +117,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof feats | typeof spells | typeof spellLists | typeof items | typeof itemInstances | typeof itemInstanceKnowledge | typeof species | typeof speciesVariants | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof feats | typeof spells | typeof spellLists | typeof items | typeof itemInstances | typeof itemInstanceKnowledge | typeof species | typeof speciesVariants | typeof subclasses | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -299,6 +302,28 @@ describe("history rights of every tracked entity", () => {
           description: "Taken over",
           expectedVersion: await rowVersion(classes, ID.class),
           expectedAssetVersion: await rowVersion(assets, ID.classAsset),
+        }),
+    },
+    subclass: {
+      id: ID.subclass,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", subclassUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(subclasses, ID.subclass),
+            expectedAssetVersion: await rowVersion(assets, ID.subclassAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, subclassUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(subclasses, ID.subclass),
+          expectedAssetVersion: await rowVersion(assets, ID.subclassAsset),
         }),
     },
     species: {
@@ -722,6 +747,23 @@ describe("history rights of every tracked entity", () => {
         },
       ],
       multiclass: { combinationMode: "ALL", abilityRequirements: [] },
+    });
+    await db.insert(assets).values({
+      id: ID.subclassAsset,
+      title: "Berserker",
+      slug: "berserker",
+      scope: "CAMPAIGN",
+      origin: "CUSTOM",
+      campaignId: ID.campaign,
+      assetType: "SUBCLASS",
+      status: "ACTIVE",
+    });
+    await db.insert(subclasses).values({
+      id: ID.subclass,
+      campaignId: ID.campaign,
+      assetId: ID.subclassAsset,
+      classId: ID.class,
+      code: "berserker",
     });
     await db.insert(assets).values(
       [

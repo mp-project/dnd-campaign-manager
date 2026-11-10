@@ -24,6 +24,7 @@ import { speciesModule } from "#src/modules/species/index";
 import { featsModule } from "#src/modules/feats/index";
 import { itemsModule } from "#src/modules/items/index";
 import { spellsModule } from "#src/modules/spells/index";
+import { subclassesModule } from "#src/modules/subclasses/index";
 import { historyModule } from "#src/modules/history/index";
 
 export const systemModule: AppModule = {
@@ -51,6 +52,7 @@ export const defaultAppModules: readonly AppModule[] = [
   notesModule,
   featuresModule,
   classesModule,
+  subclassesModule,
   speciesModule,
   featsModule,
   spellsModule,
@@ -77,6 +79,7 @@ export { rulesetModule } from "#src/modules/ruleset/index";
 export { mediaModule } from "#src/modules/media/index";
 export { featuresModule } from "#src/modules/features/index";
 export { classesModule } from "#src/modules/classes/index";
+export { subclassesModule } from "#src/modules/subclasses/index";
 export { speciesModule } from "#src/modules/species/index";
 export { featsModule } from "#src/modules/feats/index";
 export { spellsModule } from "#src/modules/spells/index";

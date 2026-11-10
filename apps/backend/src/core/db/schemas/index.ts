@@ -106,6 +106,8 @@ export {
   classHitDieEnum,
 } from "../../../modules/classes/domain/entities/ClassesTable.js";
 
+export { subclasses } from "../../../modules/subclasses/domain/entities/SubclassesTable.js";
+
 export {
   species,
   speciesCreatureTypeEnum,

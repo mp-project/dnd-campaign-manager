@@ -253,6 +253,13 @@
       "when": 1794253623343,
       "tag": "0035_smart_captain_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794265536800,
+      "tag": "0036_nappy_bill_hollister",
+      "breakpoints": true
     }
   ]
 }

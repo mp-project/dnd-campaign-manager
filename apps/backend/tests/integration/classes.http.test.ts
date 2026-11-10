@@ -107,6 +107,17 @@ const subclassChoice = {
   displayOrder: 0,
 };
 
+/** A choice whose option links an asset, which must be a feature. */
+const totemChoice = (linkedAssetId: string) => ({
+  key: "totem",
+  level: 3,
+  choiceType: "FEATURE_OPTION",
+  minimumSelections: 1,
+  maximumSelections: 1,
+  displayOrder: 1,
+  options: [{ code: "totem", label: "Totem", linkedAssetId }],
+});
+
 const BARBARIAN = {
   name: "Barbarian",
   hitDie: "D12",
@@ -614,7 +625,7 @@ describe("classes", () => {
       expect(
         await status({
           ...BARBARIAN,
-          choices: [{ ...subclassChoice, options: [{ code: "axe", label: "Axe", linkedAssetId: ID.axe }] }],
+          choices: [subclassChoice, totemChoice(ID.axe)],
         }),
       ).toBe(409);
       expect(
@@ -630,7 +641,7 @@ describe("classes", () => {
       await createOk({
         progressionTracks: [rages],
         levels: levelsWith({ 1: [rageGrant(feature.assetId)] }),
-        choices: [{ ...subclassChoice, options: [{ code: "berserker", label: "Berserker", linkedAssetId: ID.path }] }],
+        choices: [subclassChoice, totemChoice(feature.assetId)],
         startingEquipment: [
           { code: "kit", name: "Kit", optionType: "EQUIPMENT", displayOrder: 0, entries: [{ entryType: "FIXED_ITEM", itemAssetId: ID.axe }] },
         ],
@@ -737,7 +748,8 @@ describe("classes", () => {
     it("counts only real references as usages, not text that looks like an id", async () => {
       await createOk({
         choices: [
-          { ...subclassChoice, options: [{ code: "named", label: ID.systemAxe }] },
+          subclassChoice,
+          { ...totemChoice(ID.systemAxe), options: [{ code: "named", label: ID.systemAxe }] },
         ],
       });
 

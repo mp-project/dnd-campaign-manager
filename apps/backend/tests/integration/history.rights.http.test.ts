@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { assetLinks, assetMedia, assets, campaignMemberships, campaigns, classes, features, feats, itemInstanceKnowledge, itemInstances, items, mediaFiles, notes, rulesets, species, speciesVariants, spellLists, spells, subclasses, tags, users } from "#core/db/schema";
+import { assetLinks, assetMedia, assets, backgrounds, campaignMemberships, campaigns, classes, features, feats, itemInstanceKnowledge, itemInstances, items, mediaFiles, notes, rulesets, species, speciesVariants, spellLists, spells, subclasses, tags, users } from "#core/db/schema";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
 import { loadRegisteredEntities } from "#test/helpers/registeredEntities";
 
@@ -50,6 +50,8 @@ const ID = {
   itemKnowledge: "f0000000-0000-4000-8000-000000000018",
   subclassAsset: "d0000000-0000-4000-8000-000000000015",
   subclass: "f0000000-0000-4000-8000-000000000019",
+  backgroundAsset: "d0000000-0000-4000-8000-000000000016",
+  background: "f0000000-0000-4000-8000-00000000001a",
 } as const;
 
 type Role = "outsider" | "former" | "foreignGm" | "player" | "editor" | "gm" | "admin";
@@ -81,6 +83,7 @@ const subclassUrl = `/api/v1/campaigns/${ID.campaign}/subclasses/${ID.subclass}`
 const speciesUrl = `/api/v1/campaigns/${ID.campaign}/species/${ID.species}`;
 const variantUrl = `${speciesUrl}/variants/${ID.variant}`;
 const featUrl = `/api/v1/campaigns/${ID.campaign}/feats/${ID.feat}`;
+const backgroundUrl = `/api/v1/campaigns/${ID.campaign}/backgrounds/${ID.background}`;
 const spellUrl = `/api/v1/campaigns/${ID.campaign}/spells/${ID.spell}`;
 const spellListUrl = `/api/v1/campaigns/${ID.campaign}/spell-lists/${ID.spellList}`;
 const itemUrl = `/api/v1/campaigns/${ID.campaign}/items/${ID.item}`;
@@ -117,7 +120,7 @@ describe("history rights of every tracked entity", () => {
       headers: { ...request.headers, ...HEADERS[role] },
     });
 
-  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof classes | typeof features | typeof feats | typeof spells | typeof spellLists | typeof items | typeof itemInstances | typeof itemInstanceKnowledge | typeof species | typeof speciesVariants | typeof subclasses | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
+  const rowVersion = async (table: typeof assetLinks | typeof assetMedia | typeof assets | typeof backgrounds | typeof classes | typeof features | typeof feats | typeof spells | typeof spellLists | typeof items | typeof itemInstances | typeof itemInstanceKnowledge | typeof species | typeof speciesVariants | typeof subclasses | typeof notes | typeof tags | typeof campaigns | typeof campaignMemberships | typeof rulesets | typeof users, id: string) => {
     const [row] = await db
       .select({ version: table.version })
       .from(table as typeof campaigns)
@@ -368,6 +371,28 @@ describe("history rights of every tracked entity", () => {
           description: "Taken over",
           expectedVersion: await rowVersion(feats, ID.feat),
           expectedAssetVersion: await rowVersion(assets, ID.featAsset),
+        }),
+    },
+    background: {
+      id: ID.background,
+      readers: ["editor", "gm", "admin"],
+      revert: { editor: 200, gm: 200, admin: 200 },
+      restore: { editor: 403, gm: 200, admin: 200 },
+      changers: ["editor", "gm", "admin"],
+      change: async () => {
+        expectOk(
+          await patchAs("gm", backgroundUrl, {
+            description: unique(),
+            expectedVersion: await rowVersion(backgrounds, ID.background),
+            expectedAssetVersion: await rowVersion(assets, ID.backgroundAsset),
+          }),
+        );
+      },
+      attempt: async (role) =>
+        patchAs(role, backgroundUrl, {
+          description: "Taken over",
+          expectedVersion: await rowVersion(backgrounds, ID.background),
+          expectedAssetVersion: await rowVersion(assets, ID.backgroundAsset),
         }),
     },
     spell: {
@@ -822,6 +847,23 @@ describe("history rights of every tracked entity", () => {
       code: "alert",
       category: "GENERAL",
       repeatability: { mode: "ONCE", maximumOccurrences: null, repeatabilityChoiceKey: null },
+    });
+    await db.insert(assets).values({
+      id: ID.backgroundAsset,
+      title: "Acolyte",
+      slug: "acolyte",
+      scope: "CAMPAIGN",
+      origin: "CUSTOM",
+      campaignId: ID.campaign,
+      assetType: "BACKGROUND",
+      status: "ACTIVE",
+    });
+    await db.insert(backgrounds).values({
+      id: ID.background,
+      campaignId: ID.campaign,
+      assetId: ID.backgroundAsset,
+      code: "acolyte",
+      abilityRule: { mode: "CHOOSE_2024", allowedAbilities: ["int", "wis", "cha"], totalIncrease: 3, maximumPerAbility: 2 },
     });
     await db.insert(assets).values([
       {

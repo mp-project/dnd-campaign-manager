@@ -20,6 +20,7 @@ export type {
   SpeciesDefinition,
   SpeciesFeatureGrant,
 } from "#src/modules/species/domain/dto/SpeciesDefinitionDto";
+export { MOVEMENT_MODES } from "#src/modules/species/domain/dto/SpeciesDefinitionDto";
 export type { SpeciesSelectionDto } from "#src/modules/species/domain/dto/RequestSpeciesDto";
 export { SpeciesService } from "#src/modules/species/service/SpeciesService";
 export { SpeciesSelectionService } from "#src/modules/species/service/SpeciesSelectionService";

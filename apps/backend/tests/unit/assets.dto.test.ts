@@ -68,7 +68,7 @@ describe("assets DTOs", () => {
     const player = {
       view: "PLAYER",
       id: assetId,
-      assetType: "NPC",
+      assetType: "ACTOR",
       title: "Mira",
       summary: null,
       scope: "CAMPAIGN",

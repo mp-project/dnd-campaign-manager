@@ -10,8 +10,8 @@ import {
 } from "#src/modules/assets/index";
 
 /**
- * Stands in for the character modules, which don't exist yet: NPCs that use assets. They are
- * content of type `NPC` that `usesContent`, so what they refer to stays in use while they are
+ * Stands in for content that uses assets, like the items an actor names, without its rules: they
+ * are content of type `EVENT` that `usesContent`, so what they refer to stays in use while they are
  * not archived; `shownToPlayers` decides whether players may read them (and so see that use).
  */
 export function createContentUse(db: AppDatabase) {
@@ -27,7 +27,7 @@ export function createContentUse(db: AppDatabase) {
       );
 
       service.registerContentType({
-        assetType: "NPC",
+        assetType: "EVENT",
         kind: "STORY",
         editRoutes: () => new Map(),
         usesContent: true,
@@ -41,7 +41,7 @@ export function createContentUse(db: AppDatabase) {
                 await tx
                   .select({ id: assets.id })
                   .from(assets)
-                  .where(and(eq(assets.campaignId, campaignId), eq(assets.assetType, "NPC")))
+                  .where(and(eq(assets.campaignId, campaignId), eq(assets.assetType, "EVENT")))
               ).map((row) => row.id)
             : [],
       });
@@ -50,14 +50,14 @@ export function createContentUse(db: AppDatabase) {
 
   return {
     module,
-    /** An active NPC of the campaign that uses the asset; returns the NPC's asset id. */
+    /** Active content of the campaign that uses the asset; returns its asset id. */
     async use(campaignId: string, targetAssetId: string): Promise<string> {
       counter += 1;
 
-      const [npc] = await db
+      const [user] = await db
         .insert(assets)
         .values({
-          assetType: "NPC",
+          assetType: "EVENT",
           title: `User ${counter}`,
           slug: `test-user-${counter}`,
           status: "ACTIVE",
@@ -68,14 +68,14 @@ export function createContentUse(db: AppDatabase) {
         .returning({ id: assets.id });
 
       await db.insert(assetReferences).values({
-        sourceAssetId: npc!.id,
+        sourceAssetId: user!.id,
         targetAssetId,
         path: "uses.0",
         kind: "USES",
         position: 0,
       });
 
-      return npc!.id;
+      return user!.id;
     },
     showToPlayers(shown: boolean): void {
       shownToPlayers = shown;

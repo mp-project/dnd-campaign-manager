@@ -4,6 +4,8 @@ import { ConflictError, NotFoundError, ValidationError, VersionConflictError } f
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import type { AssetRow, AssetsService, AssetType } from "#src/modules/assets/index";
+import type { ActorSnapshot } from "#src/modules/features/index";
+import { type ResolvedItem, resolveItem } from "#src/modules/items/domain/ItemResolution";
 import type {
   AdjustItemQuantityDto,
   AttuneItemInstanceDto,
@@ -25,6 +27,7 @@ import type {
 import {
   createTrackedItemInstance,
   createTrackedItemKnowledge,
+  readItemDefinition,
   type TrackedItemInstance,
   type TrackedItemKnowledge,
 } from "#src/modules/items/history/TrackedItem";
@@ -35,10 +38,18 @@ export const ATTUNEMENT_LIMIT = 3;
 
 /** Asset types an owner type accepts; `OTHER` takes any campaign asset but items. */
 export const OWNER_ASSET_TYPES: Record<Exclude<ItemInstanceRow["ownerType"], "UNASSIGNED">, readonly AssetType[] | null> = {
-  ACTOR: ["PLAYER_CHARACTER", "NPC", "MONSTER"],
+  ACTOR: ["ACTOR"],
   LOCATION: ["LOCATION"],
   QUEST: ["QUEST"],
   OTHER: null,
+};
+
+/** An instance an actor owns and what it gives the actor (see `listOwnedByActor`). */
+export type OwnedItem = {
+  instance: ItemInstanceRow;
+  /** The custom name of the instance, otherwise the name of the item. */
+  name: string;
+  resolve(actor: ActorSnapshot): ResolvedItem;
 };
 
 /** What a player knows of an instance; null when the player doesn't know it exists. */
@@ -103,6 +114,43 @@ export class ItemInstancesService {
     }
 
     return found;
+  }
+
+  /**
+   * The instances an actor owns, each with a function that computes what it gives the actor in its
+   * current state (`resolveItem`); for the stat block of the actor modules. Nothing is stored.
+   */
+  async listOwnedByActor(db: AppDatabase, ownerAssetId: string): Promise<OwnedItem[]> {
+    const rows = await this.repository.listByOwner(db, ownerAssetId);
+    const definitions = new Map<string, ItemWithAsset>();
+
+    for (const row of rows) {
+      if (!definitions.has(row.itemAssetId)) {
+        definitions.set(row.itemAssetId, await this.definitionOf(db, row));
+      }
+    }
+
+    return rows.map((instance) => {
+      const found = definitions.get(instance.itemAssetId) as ItemWithAsset;
+      const definition = readItemDefinition(found.item);
+      const item = { ...found.item, ...definition, code: found.item.code, assetId: found.asset.id };
+
+      return {
+        instance,
+        name: instance.customName ?? found.asset.title,
+        resolve: (actor) =>
+          resolveItem(item, {
+            actor,
+            state: {
+              carried: true,
+              equipped: instance.equipped,
+              attuned: instance.attuned,
+              currentCharges: instance.currentCharges,
+            },
+            attack: { twoHanded: false },
+          }),
+      };
+    });
   }
 
   /** The current definition of an instance; it can't be missing while instances use it. */

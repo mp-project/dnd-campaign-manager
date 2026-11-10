@@ -178,7 +178,7 @@ describe("assets HTTP routes", () => {
       { ...system, id: ID.systemArchived, assetType: "SPELL", title: "Old Spell", slug: "old-spell", status: "ARCHIVED" },
       { ...campaignA, id: ID.campaignSpell, assetType: "SPELL", title: "Ember Lance", slug: "ember-lance", status: "ACTIVE" },
       { ...campaignA, id: ID.campaignDraft, assetType: "SPELL", title: "Secret Draft", slug: "secret-draft", status: "DRAFT" },
-      { ...campaignA, id: ID.campaignNpc, assetType: "NPC", title: "Mira", slug: "mira", status: "ACTIVE" },
+      { ...campaignA, id: ID.campaignNpc, assetType: "EVENT", title: "Mira", slug: "mira", status: "ACTIVE" },
       {
         ...campaignA,
         id: ID.campaignDeleted,
@@ -250,7 +250,7 @@ describe("assets HTTP routes", () => {
 
       const npcs = await injectAs(GM, {
         method: "GET",
-        url: `/api/v1/campaigns/${ID.campaignA}/assets?assetType=NPC`,
+        url: `/api/v1/campaigns/${ID.campaignA}/assets?assetType=EVENT`,
       });
       expect(titles(npcs.json())).toEqual(["Mira"]);
     });
@@ -403,13 +403,13 @@ describe("assets HTTP routes", () => {
     it("hides unshared campaign definitions from the player catalog", async () => {
       const gm = await injectAs(GM, {
         method: "GET",
-        url: `/api/v1/campaigns/${ID.campaignA}/catalog/NPC`,
+        url: `/api/v1/campaigns/${ID.campaignA}/catalog/EVENT`,
       });
       expect(titles(gm.json())).toEqual(["Mira"]);
 
       const player = await injectAs(PLAYER, {
         method: "GET",
-        url: `/api/v1/campaigns/${ID.campaignA}/catalog/NPC`,
+        url: `/api/v1/campaigns/${ID.campaignA}/catalog/EVENT`,
       });
       expect(player.statusCode).toBe(200);
       expect(titles(player.json())).toEqual([]);

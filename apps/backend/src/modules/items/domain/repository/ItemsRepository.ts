@@ -196,6 +196,21 @@ export class ItemInstancesRepository {
     return { items: rows.slice(0, filter.limit).map((row) => row.instance), hasMore: rows.length > filter.limit };
   }
 
+  /** Every instance an actor owns, oldest first; for the stat block of the actor. */
+  async listByOwner(db: AppDatabase, ownerAssetId: string): Promise<ItemInstanceRow[]> {
+    return db
+      .select()
+      .from(itemInstances)
+      .where(
+        and(
+          isNull(itemInstances.deletedAt),
+          eq(itemInstances.ownerType, "ACTOR"),
+          eq(itemInstances.ownerAssetId, ownerAssetId),
+        ),
+      )
+      .orderBy(asc(itemInstances.createdAt), asc(itemInstances.id));
+  }
+
   /** Active instances of a definition; they keep it from being archived. */
   async countActiveOfItem(db: AppDatabase, itemAssetId: string): Promise<number> {
     const [row] = await db

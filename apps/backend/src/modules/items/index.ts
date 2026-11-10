@@ -33,7 +33,7 @@ export type {
   ItemWithAsset,
 } from "#src/modules/items/domain/repository/ItemsRepository";
 export { resolveItem, type ResolvedItem } from "#src/modules/items/domain/ItemResolution";
-export { ItemInstancesService } from "#src/modules/items/service/ItemInstancesService";
+export { ItemInstancesService, type OwnedItem } from "#src/modules/items/service/ItemInstancesService";
 export {
   type ItemInspection,
   itemCategoryProperty,

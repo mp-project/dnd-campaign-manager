@@ -267,6 +267,13 @@
       "when": 1794305405813,
       "tag": "0037_lowly_jackal",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794332719889,
+      "tag": "0038_slim_anita_blake",
+      "breakpoints": true
     }
   ]
 }

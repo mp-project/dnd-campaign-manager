@@ -189,7 +189,7 @@ describe("assets service port and persistence", () => {
         await deps.service.createBase(
           scope,
           { actorId: ACTOR, campaignId: CAMPAIGN_A },
-          { assetType: "NPC", title: "Mira" },
+          { assetType: "EVENT", title: "Mira" },
         );
 
         throw new Error("domain insert failed");
@@ -214,7 +214,7 @@ describe("assets service port and persistence", () => {
   });
 
   it("enforces active slug uniqueness per campaign and type, released by soft delete", async () => {
-    const create = (campaignId: string, assetType: "NPC" | "LOCATION" = "NPC") =>
+    const create = (campaignId: string, assetType: "EVENT" | "LOCATION" = "EVENT") =>
       runAction((scope) =>
         deps.service.createBase(scope, { actorId: ACTOR, campaignId }, { assetType, title: "Mira" }),
       );

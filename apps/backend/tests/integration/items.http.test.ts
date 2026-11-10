@@ -310,10 +310,10 @@ describe("items", () => {
     // Owners stand in for the character, location and quest modules that don't exist yet.
     await db.insert(assets).values(
       [
-        { id: ID.hero, title: "Hero", assetType: "PLAYER_CHARACTER" as const, campaignId: ID.campaign },
-        { id: ID.sidekick, title: "Sidekick", assetType: "NPC" as const, campaignId: ID.campaign },
+        { id: ID.hero, title: "Hero", assetType: "ACTOR" as const, campaignId: ID.campaign },
+        { id: ID.sidekick, title: "Sidekick", assetType: "ACTOR" as const, campaignId: ID.campaign },
         { id: ID.tavern, title: "Tavern", assetType: "LOCATION" as const, campaignId: ID.campaign },
-        { id: ID.foreignHero, title: "Stranger", assetType: "PLAYER_CHARACTER" as const, campaignId: ID.foreignCampaign },
+        { id: ID.foreignHero, title: "Stranger", assetType: "ACTOR" as const, campaignId: ID.foreignCampaign },
       ].map((asset) => ({
         ...asset,
         slug: asset.title.toLowerCase(),

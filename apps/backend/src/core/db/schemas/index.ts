@@ -114,6 +114,14 @@ export {
 } from "../../../modules/backgrounds/domain/entities/BackgroundsTable.js";
 
 export {
+  actorAlignmentEnum,
+  actorCategoryEnum,
+  actorCreatureTypeEnum,
+  actors,
+  actorSizeEnum,
+} from "../../../modules/actors/domain/entities/ActorsTable.js";
+
+export {
   species,
   speciesCreatureTypeEnum,
   speciesLifespanModeEnum,

@@ -66,7 +66,7 @@ const OUTSIDER = actor(ID.outsider);
 const FOREIGN_GM = actor(ID.foreignGm);
 const ADMIN = actor(ID.admin, "ADMIN");
 
-/** Stands in for the modules that own quests and locations; NPCs stay unshareable. */
+/** Stands in for the modules that own quests and locations; encounters stay unshareable. */
 const shareableModule: AppModule = {
   name: "test-shareable-types",
   dependencies: ["assets"],
@@ -254,7 +254,7 @@ describe("content shares", () => {
       { ...own, id: ID.draftNote, assetType: "QUEST", title: "Draft", slug: "draft", status: "DRAFT" },
       { ...own, id: ID.location, assetType: "LOCATION", title: "Inn", slug: "inn" },
       { ...own, id: ID.lockedLocation, assetType: "LOCATION", title: "Locked", slug: "locked" },
-      { ...own, id: ID.npc, assetType: "NPC", title: "Spy", slug: "spy" },
+      { ...own, id: ID.npc, assetType: "ENCOUNTER", title: "Spy", slug: "spy" },
       {
         scope: "SYSTEM",
         origin: "DEFAULT",
@@ -430,7 +430,7 @@ describe("content shares", () => {
       const refused = await share({ assetId: ID.npc, audience: "ALL_PLAYERS" });
 
       expect(refused.statusCode).toBe(409);
-      expect(refused.json().error.details).toEqual({ assetType: "NPC" });
+      expect(refused.json().error.details).toEqual({ assetType: "ENCOUNTER" });
     });
 
     it("lets the module refuse a single asset", async () => {

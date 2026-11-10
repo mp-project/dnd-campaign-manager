@@ -449,6 +449,7 @@ describe("asset links", () => {
     /** Valid metadata per relation; a new relation has to be added here. */
     const VALID_METADATA: Record<string, Record<string, unknown>> = {
       RELATED_TO: {},
+      MEMBER_OF: { role: "Spy" },
     };
 
     const insertAsset = async (assetType: AssetType, slug: string) => {

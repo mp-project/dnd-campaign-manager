@@ -34,9 +34,10 @@ export const ASSET_TYPES = [
   "ITEM",
   "BACKGROUND",
   "MONSTER_DEFINITION",
-  "PLAYER_CHARACTER",
-  "NPC",
-  "MONSTER",
+  /** Characters, NPCs and monsters alike; `actors.category` tells them apart and may change. */
+  "ACTOR",
+  /** Placeholder until the faction module exists; actors link to it with `MEMBER_OF`. */
+  "FACTION",
   "LOCATION",
   "EVENT",
   "INTERACTION",

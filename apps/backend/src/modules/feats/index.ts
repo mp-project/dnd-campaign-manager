@@ -5,6 +5,7 @@ export {
 } from "#src/modules/feats/Setup";
 export { featsPermissionDefinitions } from "#src/modules/feats/permissions/FeatsPermissions";
 export {
+  FEAT_CATEGORIES,
   featCategoryEnum,
   featPrerequisiteCheckModeEnum,
   feats,
@@ -13,4 +14,4 @@ export type { FeatRow, FeatWithAsset } from "#src/modules/feats/domain/repositor
 export type { FeatDefinition } from "#src/modules/feats/domain/dto/FeatDefinitionDto";
 export { FeatActorSnapshotSchema } from "#src/modules/feats/domain/dto/RequestFeatDto";
 export { FeatSelectionService } from "#src/modules/feats/service/FeatSelectionService";
-export { FeatsService } from "#src/modules/feats/service/FeatsService";
+export { featCategoryProperty, FeatsService } from "#src/modules/feats/service/FeatsService";

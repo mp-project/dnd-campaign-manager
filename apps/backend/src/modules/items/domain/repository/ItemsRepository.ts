@@ -47,14 +47,24 @@ export class ItemsRepository {
     return row ?? null;
   }
 
-  async findByAssetIds(db: AppDatabase, assetIds: readonly string[]): Promise<Map<string, ItemWithAsset>> {
+  /**
+   * With `lock: "share"` the item rows and their assets stay locked until the transaction ends, so
+   * neither the definition nor the status can change under a caller that depends on them.
+   */
+  async findByAssetIds(
+    db: AppDatabase,
+    assetIds: readonly string[],
+    options: { lock?: "share" } = {},
+  ): Promise<Map<string, ItemWithAsset>> {
     if (assetIds.length === 0) {
       return new Map();
     }
 
-    const rows = await this.selectWithAsset(db).where(
-      and(inArray(items.assetId, [...new Set(assetIds)]), isNull(items.deletedAt)),
-    );
+    const query = this.selectWithAsset(db)
+      .where(and(inArray(items.assetId, [...new Set(assetIds)]), isNull(items.deletedAt)))
+      // Sorted, so parallel callers lock rows in the same order.
+      .orderBy(asc(items.assetId));
+    const rows = options.lock === "share" ? await query.for("share") : await query;
 
     return new Map(rows.map((row) => [row.item.assetId, row]));
   }

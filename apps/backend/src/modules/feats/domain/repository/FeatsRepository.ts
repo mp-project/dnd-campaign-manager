@@ -37,17 +37,24 @@ export class FeatsRepository {
     return row ?? null;
   }
 
+  /**
+   * With `lock: "share"` the feat rows and their assets stay locked until the transaction ends, so
+   * neither the definition nor the status can change under a caller that depends on them.
+   */
   async findByAssetIds(
     db: AppDatabase,
     assetIds: readonly string[],
+    options: { lock?: "share" } = {},
   ): Promise<Map<string, FeatWithAsset>> {
     if (assetIds.length === 0) {
       return new Map();
     }
 
-    const rows = await this.selectWithAsset(db).where(
-      and(inArray(feats.assetId, [...new Set(assetIds)]), isNull(feats.deletedAt)),
-    );
+    const query = this.selectWithAsset(db)
+      .where(and(inArray(feats.assetId, [...new Set(assetIds)]), isNull(feats.deletedAt)))
+      // Sorted, so parallel callers lock rows in the same order.
+      .orderBy(asc(feats.assetId));
+    const rows = options.lock === "share" ? await query.for("share") : await query;
 
     return new Map(rows.map((row) => [row.feat.assetId, row]));
   }

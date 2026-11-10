@@ -109,6 +109,11 @@ export {
 export { subclasses } from "../../../modules/subclasses/domain/entities/SubclassesTable.js";
 
 export {
+  backgroundCustomizationModeEnum,
+  backgrounds,
+} from "../../../modules/backgrounds/domain/entities/BackgroundsTable.js";
+
+export {
   species,
   speciesCreatureTypeEnum,
   speciesLifespanModeEnum,

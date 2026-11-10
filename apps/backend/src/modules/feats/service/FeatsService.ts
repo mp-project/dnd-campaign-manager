@@ -12,6 +12,7 @@ import {
   type AssetRow,
   type AssetsService,
   type ContentAccess,
+  type ContentProperty,
   type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
@@ -29,6 +30,7 @@ import {
   FEAT_CATEGORY_EDITION_YEAR,
   prerequisiteFeatIds,
   referencedAssetIds,
+  staticBindingValues,
 } from "#src/modules/feats/domain/FeatDefinition";
 import type {
   FeatRecord,
@@ -242,6 +244,55 @@ export class FeatsService {
     return [...found.values()]
       .filter((asset) => asset.assetType === "FEATURE" && asset.campaignId === input.campaignId)
       .map((asset) => asset.id);
+  }
+
+  /**
+   * Categories of feats, for content that offers only some of them (a 2024 background grants an
+   * origin feat). With `lock` the rows stay share-locked until the transaction ends, so a
+   * concurrent category change waits.
+   */
+  async inspectFeats(
+    db: AppDatabase,
+    assetIds: readonly string[],
+    options: { lock?: boolean } = {},
+  ): Promise<Map<string, { category: FeatCategory; properties: ContentProperty[] }>> {
+    const found = await this.repository.findByAssetIds(db, assetIds, options.lock ? { lock: "share" } : {});
+
+    return new Map(
+      [...found].map(([assetId, { feat }]) => [
+        assetId,
+        { category: feat.category, properties: [featCategoryProperty(feat.category)] },
+      ]),
+    );
+  }
+
+  /** What the feat is that referring content may forbid; see `featCategoryProperty`. */
+  async listContentProperties(asset: AssetRow, db: AppDatabase): Promise<ContentProperty[]> {
+    const found = (await this.repository.findByAssetIds(db, [asset.id])).get(asset.id);
+
+    return found ? [featCategoryProperty(found.feat.category)] : [];
+  }
+
+  /**
+   * What these feats grant, upgrade, offer as options or bind, for content that makes the feats
+   * visible to players without a release of their own (a released background granting a custom
+   * feat). Feats whose stored definition no longer parses give nothing.
+   */
+  async listGrantedContentIds(db: AppDatabase, featAssetIds: readonly string[]): Promise<string[]> {
+    const found = await this.repository.findByAssetIds(db, featAssetIds);
+
+    return [...found.values()].flatMap(({ feat }) => {
+      const definition = tryParseFeatDefinition(feat);
+
+      return definition === null
+        ? []
+        : [
+            ...collectGrantReferences(definition.featureGrants),
+            ...collectChoiceReferences(definition.choices),
+          ]
+            .map((reference) => reference.assetId)
+            .concat(staticBindingValues(definition.featureGrants));
+    });
   }
 
   /** Edit routes for asset-links, for all custom feats of one request in one query. */
@@ -903,4 +954,9 @@ function issuesOf(error: unknown): DefinitionIssue[] {
       message: item.message ?? "Invalid",
     };
   });
+}
+
+/** Property of a feat of this category; referring content forbids the categories it doesn't offer. */
+export function featCategoryProperty(category: FeatCategory): ContentProperty {
+  return { code: `FEAT_CATEGORY_${category}`, phrase: `is a ${category} feat` };
 }

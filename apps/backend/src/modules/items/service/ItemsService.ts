@@ -12,6 +12,7 @@ import {
   type AssetRow,
   type AssetsService,
   type ContentAccess,
+  type ContentProperty,
   type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
@@ -476,6 +477,33 @@ export class ItemsService {
   }
 
   /**
+   * Category and tool category of items, for content that offers only some of them (a background
+   * that grants a tool proficiency). With `lock` the rows stay share-locked until the transaction
+   * ends, so a concurrent category change waits.
+   */
+  async inspectItems(
+    db: AppDatabase,
+    assetIds: readonly string[],
+    options: { lock?: boolean } = {},
+  ): Promise<Map<string, ItemInspection>> {
+    const found = await this.repository.findByAssetIds(db, assetIds, options.lock ? { lock: "share" } : {});
+
+    return new Map(
+      [...found].map(([assetId, { item }]) => [
+        assetId,
+        { category: item.category, toolCategory: item.toolCategory, properties: itemProperties(item) },
+      ]),
+    );
+  }
+
+  /** What the item is that referring content may forbid; see `itemCategoryProperty`. */
+  async listContentProperties(asset: AssetRow, db: AppDatabase): Promise<ContentProperty[]> {
+    const found = await this.findByAsset(db, asset.id);
+
+    return found ? itemProperties(found.item) : [];
+  }
+
+  /**
    * The content check at the end of every action that touched an item (see
    * `ContentTypeDefinition.verify`), on the state the action leaves behind: the definition, the
    * code per ruleset, the referenced features and spells, the bindings of grants and the cast level
@@ -845,4 +873,27 @@ function issuesOf(error: unknown): DefinitionIssue[] {
       message: item.message ?? "Invalid",
     };
   });
+}
+
+export type ItemInspection = {
+  category: ItemRow["category"];
+  toolCategory: ItemRow["toolCategory"];
+  properties: ContentProperty[];
+};
+
+/** Property of an item of this category; referring content forbids the categories it doesn't offer. */
+export function itemCategoryProperty(category: ItemRow["category"]): ContentProperty {
+  return { code: `ITEM_CATEGORY_${category}`, phrase: `is an item of category ${category}` };
+}
+
+/** Property of a tool of this tool category. */
+export function toolCategoryProperty(toolCategory: NonNullable<ItemRow["toolCategory"]>): ContentProperty {
+  return { code: `TOOL_CATEGORY_${toolCategory}`, phrase: `is a tool of category ${toolCategory}` };
+}
+
+function itemProperties(item: Pick<ItemRow, "category" | "toolCategory">): ContentProperty[] {
+  return [
+    itemCategoryProperty(item.category),
+    ...(item.toolCategory === null ? [] : [toolCategoryProperty(item.toolCategory)]),
+  ];
 }

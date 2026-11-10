@@ -34,4 +34,9 @@ export type {
 } from "#src/modules/items/domain/repository/ItemsRepository";
 export { resolveItem, type ResolvedItem } from "#src/modules/items/domain/ItemResolution";
 export { ItemInstancesService } from "#src/modules/items/service/ItemInstancesService";
-export { ItemsService } from "#src/modules/items/service/ItemsService";
+export {
+  type ItemInspection,
+  itemCategoryProperty,
+  ItemsService,
+  toolCategoryProperty,
+} from "#src/modules/items/service/ItemsService";

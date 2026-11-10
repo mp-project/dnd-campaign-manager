@@ -128,6 +128,7 @@ async function registerFeatsModule(app: FastifyInstance, container: AppContainer
     revertibleActions: FEAT_ASSET_ACTIONS,
     references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
+    properties: (asset, db) => service.listContentProperties(asset, db),
   });
 
   container.dependencies.set<FeatsModuleDependencies>(FEATS_MODULE_DEPENDENCIES, {

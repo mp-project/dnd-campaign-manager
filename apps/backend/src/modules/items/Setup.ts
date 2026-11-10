@@ -120,6 +120,7 @@ async function registerItemsModule(app: FastifyInstance, container: AppContainer
     revertibleActions: ITEM_ASSET_ACTIONS,
     references: (asset, db) => service.listContentReferences(asset, db),
     verify: (asset, db) => service.verifyContent(asset, db),
+    properties: (asset, db) => service.listContentProperties(asset, db),
   });
   // An item with instances can't be archived, also not by undoing or restoring.
   assetsService.registerArchiveGuard({

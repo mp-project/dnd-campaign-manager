@@ -3,10 +3,12 @@ import {
   asc,
   eq,
   exists,
+  getTableColumns,
   gt,
   ilike,
   inArray,
   isNull,
+  ne,
   notInArray,
   or,
   sql,
@@ -70,6 +72,7 @@ export type StoredAssetReference = {
   path: string;
   kind: string;
   forbids: readonly string[];
+  dependent: boolean;
 };
 
 export class AssetsRepository {
@@ -330,6 +333,7 @@ export class AssetsRepository {
           path: reference.path,
           kind: reference.kind,
           forbids: [...reference.forbids],
+          dependent: reference.dependent,
         })),
       );
     }
@@ -370,6 +374,33 @@ export class AssetsRepository {
       .orderBy(asc(assets.title), asc(assets.id), asc(assetReferences.position));
 
     return rows.map(({ source, reference }) => ({ source, reference }));
+  }
+
+  /**
+   * Existing non-archived assets whose stored content depends on one of the targets (references
+   * marked `dependent`), each once.
+   */
+  async listDependentSources(
+    db: AppDatabase,
+    targetAssetIds: readonly string[],
+  ): Promise<AssetRow[]> {
+    if (targetAssetIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .selectDistinct({ ...getTableColumns(assets) })
+      .from(assetReferences)
+      .innerJoin(assets, eq(assets.id, assetReferences.sourceAssetId))
+      .where(
+        and(
+          inArray(assetReferences.targetAssetId, [...targetAssetIds]),
+          eq(assetReferences.dependent, true),
+          isNull(assets.deletedAt),
+          ne(assets.status, "ARCHIVED"),
+        ),
+      )
+      .orderBy(asc(assets.id));
   }
 
   /** What non-archived content of these types in the campaign refers to: pairs of ids only. */

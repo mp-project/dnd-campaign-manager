@@ -170,6 +170,11 @@ export const assetReferences = pgTable(
     position: integer("position").notNull(),
     /** Properties the target must not have (see `ContentTypeDefinition.properties`). */
     forbids: text("forbids").array().notNull().default(sql`'{}'::text[]`),
+    /**
+     * The source depends on the target's content (a subclass on its class): when the target's
+     * content changes, the source is verified again at the end of the action.
+     */
+    dependent: boolean("dependent").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

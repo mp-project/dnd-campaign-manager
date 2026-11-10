@@ -5,7 +5,6 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
-import { UUID_PATTERN } from "#core/uuid";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
@@ -16,10 +15,15 @@ import {
   type ContentReference,
   slugify,
 } from "#src/modules/assets/index";
-import type { ClassDefinition } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
+import type {
+  ClassDefinition,
+  FeatureGrant,
+  ProgressionTrack,
+} from "#src/modules/classes/domain/dto/ClassDefinitionDto";
 import { type CreateClassDto, fillLevels } from "#src/modules/classes/domain/dto/CreateClassDto";
 import type { UpdateClassDto } from "#src/modules/classes/domain/dto/UpdateClassDto";
 import {
+  boundAssetIds,
   collectClassReferences,
   type DefinitionIssue,
   listGrants,
@@ -186,6 +190,26 @@ export class ClassesService {
     return { ...found, definition: parseClassDefinition(found.characterClass) };
   }
 
+  /**
+   * Keeps a class from being changed or archived until the transaction ends, for content that
+   * depends on it (subclasses), and returns it as it is then; null if it doesn't exist. The locks
+   * are taken in the order a class update takes them (asset, then row), so a concurrent change
+   * either finishes first and is seen, or waits until the dependent content is committed and then
+   * verifies it again.
+   */
+  async lockForDependent(db: AppDatabase, classId: string): Promise<ClassWithAsset | null> {
+    const unlocked = await this.repository.findById(db, classId);
+
+    if (!unlocked) {
+      return null;
+    }
+
+    await this.assets.lockForUse([unlocked.asset.id], db);
+    await this.repository.lockShared(db, classId);
+
+    return this.repository.findById(db, classId);
+  }
+
   async loadRecord(db: AppDatabase, found: ClassWithAsset): Promise<ClassRecord> {
     const [record] = await this.loadRecords(db, [found]);
 
@@ -215,7 +239,7 @@ export class ClassesService {
 
       return [
         ...collectClassReferences(definition).map((item) => item.assetId),
-        ...this.staticAssetValues(definition),
+        ...boundAssetIds(listGrants(definition).map(({ grant }) => grant)),
       ];
     });
     return this.assets.referenceVisibility(access, ids, db);
@@ -636,18 +660,46 @@ export class ClassesService {
     row: Pick<ClassRow, "assetId" | "campaignId">,
     definition: ClassDefinition,
   ): Promise<{ missing: DefinitionIssue[]; issues: DefinitionIssue[] }> {
+    const bindings = await this.collectGrantBindingIssues(
+      db,
+      listGrants(definition).map(({ grant, levelIndex, grantIndex }) => ({
+        grant,
+        path: ["levels", levelIndex, "featureGrants", grantIndex],
+      })),
+      definition.progressionTracks,
+    );
+    const campaignRulesetId =
+      row.campaignId === null ? null : await this.campaignAccess.findRulesetId(row.campaignId, db);
+    const result = await this.assets.collectReferenceIssues(
+      db,
+      { assetId: row.assetId, campaignId: row.campaignId, campaignRulesetId },
+      [...collectClassReferences(definition), ...bindings.references],
+    );
+
+    return { missing: result.missing, issues: [...result.issues, ...bindings.issues] };
+  }
+
+  /**
+   * Checks the bindings of feature grants against the parameters of the granted features: every
+   * required parameter bound, each binding fits its parameter and source. Shared with subclasses,
+   * whose grants work the same way (`CLASS_CHOICE` then names a choice of the subclass). Returns
+   * the issues and the bound values that are asset references, for the reference check.
+   */
+  async collectGrantBindingIssues(
+    db: AppDatabase,
+    grants: readonly { grant: FeatureGrant; path: (string | number)[] }[],
+    progressionTracks: readonly Pick<ProgressionTrack, "key" | "valueType">[],
+  ): Promise<{ issues: DefinitionIssue[]; references: AssetReference[] }> {
     const bindingIssues: DefinitionIssue[] = [];
-    const references: AssetReference[] = [...collectClassReferences(definition)];
-    const grants = listGrants(definition);
+    const references: AssetReference[] = [];
     const parameters = await this.features.listParameters(
       db,
       grants.map(({ grant }) => grant.featureAssetId),
     );
-    const tracks = new Map(definition.progressionTracks.map((track) => [track.key, track]));
+    const tracks = new Map(progressionTracks.map((track) => [track.key, track]));
 
-    for (const { grant, levelIndex, grantIndex } of grants) {
+    for (const { grant, path } of grants) {
       const featureParameters = parameters.get(grant.featureAssetId);
-      const path = ["levels", levelIndex, "featureGrants", grantIndex];
 
       if (!featureParameters) {
         // Not a feature (or no feature row); the reference check reports it.
@@ -713,31 +765,7 @@ export class ClassesService {
       });
     }
 
-    const campaignRulesetId =
-      row.campaignId === null ? null : await this.campaignAccess.findRulesetId(row.campaignId, db);
-    const result = await this.assets.collectReferenceIssues(
-      db,
-      { assetId: row.assetId, campaignId: row.campaignId, campaignRulesetId },
-      references,
-    );
-
-    return { missing: result.missing, issues: [...result.issues, ...bindingIssues] };
-  }
-
-  /**
-   * Bound values that may be asset ids; ids of any type, so they are hidden like references. Free
-   * text is left out, because it is no asset and must not reach a uuid column.
-   */
-  private staticAssetValues(definition: ClassDefinition): string[] {
-    return listGrants(definition).flatMap(({ grant }) =>
-      grant.bindings.flatMap((binding) =>
-        binding.bindingSource === "STATIC" &&
-        typeof binding.staticValue === "string" &&
-        UUID_PATTERN.test(binding.staticValue)
-          ? [binding.staticValue]
-          : [],
-      ),
-    );
+    return { issues: bindingIssues, references };
   }
 
   // ---------------------------------------------------------------------------

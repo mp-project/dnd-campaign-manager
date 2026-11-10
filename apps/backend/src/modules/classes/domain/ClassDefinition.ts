@@ -1,6 +1,8 @@
+import { UUID_PATTERN } from "#core/uuid";
 import type { AssetReference } from "#src/modules/assets/index";
 import {
   CHOICE_ASSET_TYPES,
+  type ClassChoice,
   type ClassDefinition,
   type FeatureGrant,
 } from "#src/modules/classes/domain/dto/ClassDefinitionDto";
@@ -229,4 +231,87 @@ export function collectClassReferences(definition: ClassDefinition): AssetRefere
   }
 
   return references;
+}
+
+/**
+ * Grants and choices as a player may see them; shared by classes and subclasses. `isVisible` tells
+ * whether the player may see a referenced asset. Grants of hidden features and hidden choice
+ * options are left out, and so is everything that depends on a left-out part: choices asked by a
+ * left-out grant, grants that only a left-out choice selects, bindings to a left-out choice. Bound
+ * values pointing to hidden assets are dropped.
+ */
+/**
+ * Whether a binding's value is an asset id: a static value that looks like one. Bound values of any
+ * type count, so they are hidden like references; free text is no asset.
+ */
+export function isBoundAssetId(binding: FeatureGrant["bindings"][number]): binding is FeatureGrant["bindings"][number] & { staticValue: string } {
+  return (
+    binding.bindingSource === "STATIC" &&
+    typeof binding.staticValue === "string" &&
+    UUID_PATTERN.test(binding.staticValue)
+  );
+}
+
+/** Bound values of these grants that may be asset ids (see `isBoundAssetId`). */
+export function boundAssetIds(grants: readonly FeatureGrant[]): string[] {
+  return grants.flatMap((grant) =>
+    grant.bindings.flatMap((binding) => (isBoundAssetId(binding) ? [binding.staticValue] : [])),
+  );
+}
+
+export function stripHiddenGrants<Level extends { featureGrants: FeatureGrant[] }>(
+  parts: { levels: readonly Level[]; choices: readonly ClassChoice[] },
+  isVisible: (assetId: string) => boolean,
+): { levels: Level[]; choices: ClassChoice[] } {
+  const hidden = (assetId: string | null) => assetId !== null && !isVisible(assetId);
+  const removedGrants = new Set<string>();
+  const removedChoices = new Set<string>();
+  const grants = parts.levels.flatMap((entry) => entry.featureGrants);
+
+  for (const grant of grants) {
+    if (hidden(grant.featureAssetId) || hidden(grant.targetFeatureAssetId)) {
+      removedGrants.add(grant.key);
+    }
+  }
+
+  // A left-out grant takes its choices along, a left-out choice the grants it selects.
+  for (let changed = true; changed; ) {
+    changed = false;
+
+    for (const choice of parts.choices) {
+      if (choice.grantKey !== null && removedGrants.has(choice.grantKey) && !removedChoices.has(choice.key)) {
+        removedChoices.add(choice.key);
+        changed = true;
+      }
+    }
+
+    for (const grant of grants) {
+      if (grant.choiceKey !== null && removedChoices.has(grant.choiceKey) && !removedGrants.has(grant.key)) {
+        removedGrants.add(grant.key);
+        changed = true;
+      }
+    }
+  }
+
+  return {
+    levels: parts.levels.map((entry) => ({
+      ...entry,
+      featureGrants: entry.featureGrants
+        .filter((grant) => !removedGrants.has(grant.key))
+        .map((grant) => ({
+          ...grant,
+          bindings: grant.bindings.filter(
+            (binding) =>
+              !(isBoundAssetId(binding) && hidden(binding.staticValue)) &&
+              !(binding.bindingSource === "CLASS_CHOICE" && removedChoices.has(binding.choiceKey ?? "")),
+          ),
+        })),
+    })),
+    choices: parts.choices
+      .filter((choice) => !removedChoices.has(choice.key))
+      .map((choice) => ({
+        ...choice,
+        options: choice.options.filter((option) => !hidden(option.linkedAssetId)),
+      })),
+  };
 }

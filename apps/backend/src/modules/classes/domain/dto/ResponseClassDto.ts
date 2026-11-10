@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import type { ContentView } from "#core/content/viewer";
-import { UUID_PATTERN } from "#core/uuid";
 import { baseEntityResponseDto, standardListResponseDto, uuidDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
 import { renderSafeMarkdown } from "#core/text/safeMarkdown";
@@ -26,6 +25,7 @@ import {
   getSpellcastingProfile,
   getStartingEquipment,
 } from "#src/modules/classes/domain/ClassViews";
+import { stripHiddenGrants } from "#src/modules/classes/domain/ClassDefinition";
 import type {
   ClassPage,
   ClassRecord,
@@ -321,37 +321,10 @@ export function toPlayerDefinition(
   isVisible: (assetId: string) => boolean,
 ) {
   const hidden = (assetId: string | null) => assetId !== null && !isVisible(assetId);
-  const removedGrants = new Set<string>();
-  const removedChoices = new Set<string>();
-  const grants = definition.levels.flatMap((entry) => entry.featureGrants);
-
-  for (const grant of grants) {
-    if (hidden(grant.featureAssetId) || hidden(grant.targetFeatureAssetId)) {
-      removedGrants.add(grant.key);
-    }
-  }
-
-  // A left-out grant takes its choices along, a left-out choice the grants it selects.
-  for (let changed = true; changed; ) {
-    changed = false;
-
-    for (const choice of definition.choices) {
-      if (choice.grantKey !== null && removedGrants.has(choice.grantKey) && !removedChoices.has(choice.key)) {
-        removedChoices.add(choice.key);
-        changed = true;
-      }
-    }
-
-    for (const grant of grants) {
-      if (grant.choiceKey !== null && removedChoices.has(grant.choiceKey) && !removedGrants.has(grant.key)) {
-        removedGrants.add(grant.key);
-        changed = true;
-      }
-    }
-  }
 
   return {
     ...definition,
+    ...stripHiddenGrants(definition, isVisible),
     proficiencies: definition.proficiencies.map((rule) => ({
       ...rule,
       options: rule.options.filter((option) => !hidden(option.assetId)),
@@ -362,30 +335,6 @@ export function toPlayerDefinition(
         hidden(entry.itemAssetId) ? { ...entry, itemAssetId: null } : entry,
       ),
     })),
-    levels: definition.levels.map((entry) => ({
-      ...entry,
-      featureGrants: entry.featureGrants
-        .filter((grant) => !removedGrants.has(grant.key))
-        .map((grant) => ({
-          ...grant,
-          bindings: grant.bindings.filter(
-            (binding) =>
-              !(
-                binding.bindingSource === "STATIC" &&
-                typeof binding.staticValue === "string" &&
-                UUID_PATTERN.test(binding.staticValue) &&
-                hidden(binding.staticValue)
-              ) &&
-              !(binding.bindingSource === "CLASS_CHOICE" && removedChoices.has(binding.choiceKey ?? "")),
-          ),
-        })),
-    })),
-    choices: definition.choices
-      .filter((choice) => !removedChoices.has(choice.key))
-      .map((choice) => ({
-        ...choice,
-        options: choice.options.filter((option) => !hidden(option.linkedAssetId)),
-      })),
     spellcasting:
       definition.spellcasting && hidden(definition.spellcasting.spellListAssetId)
         ? { ...definition.spellcasting, spellListAssetId: null }

@@ -72,6 +72,11 @@ export class ClassesRepository {
     await db.execute(sql`select pg_advisory_xact_lock(hashtext(${`classes.code:${code}`}))`);
   }
 
+  /** Keeps the class row from changing until the transaction ends; other share locks still pass. */
+  async lockShared(db: AppDatabase, classId: string): Promise<void> {
+    await db.execute(sql`select 1 from ${classes} where ${classes.id} = ${classId} for share`);
+  }
+
   async listPage(db: AppDatabase, filter: ClassListFilter): Promise<ClassPage> {
     const rows = await this.selectWithAsset(db)
       .where(

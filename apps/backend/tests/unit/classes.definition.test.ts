@@ -42,7 +42,17 @@ const subclassChoice = {
   maximumSelections: 1,
   optionFilter: { assetTypes: ["SUBCLASS"] },
   displayOrder: 0,
-  options: [{ code: "berserker", label: "Path of the Berserker", linkedAssetId: PATH }],
+};
+
+/** A choice whose option links a feature, e.g. a totem spirit. */
+const totemChoice = {
+  key: "totem",
+  level: 3,
+  choiceType: "FEATURE_OPTION",
+  minimumSelections: 1,
+  maximumSelections: 1,
+  displayOrder: 1,
+  options: [{ code: "bear", label: "Bear", linkedAssetId: PATH }],
 };
 
 /** A barbarian with every part used once. */
@@ -125,7 +135,7 @@ const barbarian = (): ClassDefinition =>
         },
       ],
     }),
-    choices: [subclassChoice],
+    choices: [subclassChoice, totemChoice],
     spellcasting: null,
     multiclass: { combinationMode: "ALL", abilityRequirements: [{ ability: "str", minimum: 13 }] },
   });
@@ -331,6 +341,18 @@ describe("class definitions", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("takes the options of the subclass choice from the subclasses, not from the class", () => {
+    const parsed = ClassDefinitionSchema.safeParse({
+      ...barbarian(),
+      choices: [{ ...subclassChoice, options: [{ code: "berserker", label: "Berserker", linkedAssetId: PATH }] }],
+    });
+
+    expect(parsed.success).toBe(false);
+    expect(JSON.stringify(parsed.error?.issues)).toContain(
+      "Subclass choices take their options from the subclasses of the class",
+    );
+  });
+
   it("fills missing levels on create and validates the result", () => {
     const parsed = CreateClassSchema.safeParse({
       name: "Barbarian",
@@ -363,7 +385,7 @@ describe("class definitions", () => {
         [AXE, ["ITEM"]],
         [RAGE, ["FEATURE"]],
         [RAGE_2, ["FEATURE"]],
-        [PATH, ["SUBCLASS"]],
+        [PATH, ["FEATURE"]],
       ]),
     );
     expect(references).toHaveLength(5);
@@ -384,7 +406,7 @@ describe("class views", () => {
       featureGrantKeys: ["rage"],
       choiceKeys: [],
     });
-    expect(progression.levels[2]?.choiceKeys).toEqual(["subclass"]);
+    expect(progression.levels[2]?.choiceKeys).toEqual(["subclass", "totem"]);
     expect(progression.levels[1]?.values[0]).toEqual({ trackKey: "rages", value: null });
   });
 
@@ -410,7 +432,7 @@ describe("class views", () => {
     expect(view.levels[0]?.featureGrants).toHaveLength(1);
     expect(view.startingEquipment[0]?.entries[0]?.itemAssetId).toBeNull();
     // A hidden option is left out with its label, not only its link.
-    expect(view.choices[0]?.options).toEqual([]);
+    expect(view.choices.find((choice) => choice.key === "totem")?.options).toEqual([]);
   });
 
   it("leaves out what depends on a hidden grant for players", () => {
@@ -455,7 +477,7 @@ describe("class views", () => {
     });
     const view = toPlayerDefinition(definition, (assetId) => assetId !== RAGE_2);
 
-    expect(view.choices.map((choice) => choice.key)).toEqual(["subclass"]);
+    expect(view.choices.map((choice) => choice.key)).toEqual(["subclass", "totem"]);
     expect(view.levels[8]?.featureGrants).toEqual([]);
     expect(view.levels[9]?.featureGrants[0]?.bindings).toEqual([]);
   });

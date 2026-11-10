@@ -123,7 +123,7 @@ function contentChangeOf(item: TouchedEntity): string[] {
  * Version of the rules behind `asset_references`. Raise it when a content type changes what it
  * reports as references; the app then rebuilds the index once when it starts.
  */
-export const CONTENT_REFERENCE_INDEX_VERSION = 1;
+export const CONTENT_REFERENCE_INDEX_VERSION = 2;
 
 /** A place in stored content that refers to another asset. */
 export type ContentReference = {
@@ -133,6 +133,12 @@ export type ContentReference = {
   kind: string;
   /** Properties the target must not have (see `ContentTypeDefinition.properties`). */
   forbids?: readonly string[] | undefined;
+  /**
+   * The source depends on the target's content, like a subclass on its class: whenever an action
+   * changes the target's content, the kernel verifies the source (if not archived) again at the
+   * end of the action (`verifyDependents` of its type), so a change to the target can't break it.
+   */
+  dependent?: boolean | undefined;
 };
 
 /** Something content is or does that a reference may forbid, e.g. raising ability scores. */
@@ -208,9 +214,18 @@ export type ContentTypeDefinition = ContentKind & {
    * Checks the content as it is at the end of an action that touched it (its asset or any row
    * whose history root is the asset), in the transaction of the action: references, unique codes
    * and every other rule that spans several rows. Runs for every action, undoing and restoring
-   * included, and not for archived content, which keeps nothing from changing. Throws an AppError.
+   * included, and not for archived content, which keeps nothing from changing. Also runs when an
+   * action changes content this one depends on (`ContentReference.dependent`), unless
+   * `verifyDependents` is given. Throws an AppError.
    */
   verify?(asset: AssetRow, db: AppDatabase): Promise<void>;
+  /**
+   * Checks non-archived content of this type after an action changed content it depends on
+   * (`ContentReference.dependent`), all sources of one action at once. Only the rules against what
+   * it depends on belong here: an unrelated issue of the source must not block the change to the
+   * target. Without it the kernel runs `verify` for each source.
+   */
+  verifyDependents?(sources: readonly AssetRow[], db: AppDatabase): Promise<void>;
 };
 
 /** An asset a definition (class, species …) refers to, with where and which types are allowed. */
@@ -416,6 +431,7 @@ export class AssetsService {
         path: reference.path.join("."),
         kind: reference.kind,
         forbids: reference.forbids ?? [],
+        dependent: reference.dependent ?? false,
       })),
     );
   }
@@ -488,6 +504,33 @@ export class AssetsService {
           // still active may need it, judged on the final state of everything the action changed.
           for (const guard of this.archiveGuards) {
             await guard.assertCanArchive(asset, db);
+          }
+        }
+      }
+
+      // Content that depends on what the action changed (a subclass on its class) must still fit
+      // it. Archived targets need nothing: archiving is refused while active content refers to it.
+      const dependents = await this.repository.listDependentSources(
+        db,
+        changed.filter((asset) => asset.status !== "ARCHIVED").map((asset) => asset.id),
+      );
+
+      const byType = new Map<AssetRow["assetType"], AssetRow[]>();
+
+      for (const asset of dependents) {
+        if (!existing.has(asset.id)) {
+          byType.set(asset.assetType, [...(byType.get(asset.assetType) ?? []), asset]);
+        }
+      }
+
+      for (const [assetType, sources] of byType) {
+        const type = this.contentTypes.get(assetType);
+
+        if (type?.verifyDependents) {
+          await type.verifyDependents(sources, db);
+        } else {
+          for (const source of sources) {
+            await type?.verify?.(source, db);
           }
         }
       }

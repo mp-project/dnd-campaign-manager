@@ -62,6 +62,7 @@ export const CHOICE_ASSET_TYPES: Record<ClassChoiceType, readonly AssetType[]> =
   EQUIPMENT: ["ITEM"],
   WEAPON_MASTERY: ["ITEM"],
   FIGHTING_STYLE: ["FEATURE", "FEAT"],
+  // Only as filter: the options are the subclasses that name the class.
   SUBCLASS: ["SUBCLASS"],
   FEAT: ["FEAT"],
   SPELL: ["SPELL"],
@@ -462,6 +463,15 @@ export const ClassChoiceSchema = z
         });
       }
     });
+
+    // Subclasses name their class, so the class lists none; the subclasses module offers them.
+    if (choice.choiceType === "SUBCLASS" && choice.options.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["options"],
+        message: "Subclass choices take their options from the subclasses of the class",
+      });
+    }
 
     choice.options.forEach((option, index) => {
       if (option.linkedAssetId !== null && allowed.length === 0) {

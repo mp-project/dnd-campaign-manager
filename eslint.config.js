@@ -53,6 +53,14 @@ export default [
     },
   },
   {
+    // Service worker for Pusher Beams, served unbundled from public/.
+    files: ["apps/frontend/public/service-worker.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: globals.serviceworker,
+    },
+  },
+  {
     files: ["apps/backend/src/**/*.ts", "apps/backend/scripts/**/*.ts"],
     rules: {
       "no-restricted-syntax": trackedWritesRule(TRACKED_TABLES),

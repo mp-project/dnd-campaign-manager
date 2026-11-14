@@ -60,6 +60,7 @@ npm run content:reindex --workspace @dnd/backend         # rebuild asset_referen
 - `APP_ENV` (development | stage | production) drives compose profile and `NODE_ENV`. Precedence: `COMPOSE_PROFILES` → `APP_ENV` → `production`; `NODE_ENV` → `APP_ENV` → `production`.
 - `docker compose --profile development up --build` adds RustFS (S3-compatible storage), Mailpit (SMTP + inbox UI) and Adminer. Caddy is the TLS ingress: `https://api.localhost:8443`, `https://app.localhost:8443`.
 - Local dev URLs: API `http://api.localhost:3000/api/v1`, frontend `http://app.localhost:5173/`.
+- Web push uses Pusher Beams (optional): the frontend registers through `src/services/pushNotifications.ts` when `VITE_PUSHER_BEAMS_INSTANCE_ID` is set (compose build: `PUSHER_BEAMS_INSTANCE_ID` in the root `.env`). The SDK is a CDN script tag in `index.html`, the service worker is `public/service-worker.js`, which must stay at the site root. The Beams secret key belongs in the backend only.
 
 ## Backend architecture
 

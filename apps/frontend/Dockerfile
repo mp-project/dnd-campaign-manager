@@ -19,6 +19,8 @@ CMD ["npm", "run", "dev", "--workspace", "@dnd/frontend", "--", "--host", "0.0.0
 FROM dependencies AS build
 ARG VITE_API_BASE_URL=http://localhost:3000/api/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ARG VITE_PUSHER_BEAMS_INSTANCE_ID=
+ENV VITE_PUSHER_BEAMS_INSTANCE_ID=$VITE_PUSHER_BEAMS_INSTANCE_ID
 COPY . .
 RUN npm run build --workspace @dnd/frontend
 

@@ -256,6 +256,7 @@ export class CampaignsService {
       campaign,
       membership,
       isOwner: false,
+      role: null,
       effectivePermissions: [],
     });
   }
@@ -264,20 +265,27 @@ export class CampaignsService {
     context: RequestContext,
     aggregate: CampaignAggregate,
   ): CampaignAggregate {
+    const isOwner = aggregate.campaign.ownerUserId === context.actorId;
+    // The membership is loaded active-only, so its role is the current one. Administrators listing
+    // another user's campaigns get that user's memberships, which say nothing about their own role.
+    const ownMembership = aggregate.membership?.userId === context.actorId ? aggregate.membership : null;
+    const role = campaignRoleOf({ role: ownMembership?.role ?? null, isOwner });
+
     if (!this.permissionService) {
-      return aggregate;
+      return { ...aggregate, isOwner, role };
     }
 
-    const isOwner = aggregate.campaign.ownerUserId === context.actorId;
-
     const campaignContext = toCampaignContext(context, aggregate.campaign);
-    campaignContext.campaignMemberId = aggregate.membership?.id ?? null;
+    campaignContext.campaignMemberId = ownMembership?.id ?? null;
+    // Without the role, keys bound to campaign roles would be listed for every member.
+    campaignContext.campaignRole = role;
 
     const effectivePermissions = this.permissionService.listEffectivePermissions(campaignContext);
 
     return {
       ...aggregate,
       isOwner,
+      role,
       effectivePermissions,
     };
   }

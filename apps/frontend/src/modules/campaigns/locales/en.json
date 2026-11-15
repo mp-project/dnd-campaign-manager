@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "overview": "Overview"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Your campaigns at a glance.",
+    "campaigns": "Your campaigns",
+    "empty": "You are not in a campaign yet. Once you create one or get invited, it shows up here.",
+    "error": "Your campaigns could not be loaded."
+  },
+  "overview": {
+    "noDescription": "No description yet."
+  }
+}

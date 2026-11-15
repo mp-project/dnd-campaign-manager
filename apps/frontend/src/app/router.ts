@@ -1,99 +1,79 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 
+import { frontendModules } from "@/app/modules";
+import type { FrontendModule, RouteArea } from "@/core/modules";
+import BareLayout from "@/layouts/BareLayout.vue";
+
+// The old sign-in and campaign pages stay until they are rebuilt; they have no area, so no guard applies.
 import AuthLayout from "@/layouts/AuthLayout.vue";
 import CampaignEditorLayout from "@/layouts/CampaignEditorLayout.vue";
-import DashboardLayout from "@/layouts/DashboardLayout.vue";
-import PlayerViewLayout from "@/layouts/PlayerViewLayout.vue";
 import AuthPage from "@/pages/AuthPage.vue";
 import CampaignEditorPage from "@/pages/CampaignEditorPage.vue";
-import DashboardPage from "@/pages/DashboardPage.vue";
-import PlayerViewPage from "@/pages/PlayerViewPage.vue";
 
-export const router = createRouter({
-  history: createWebHistory(),
-  routes: [
+const AppShell = () => import("@/layouts/AppShell.vue");
+const PlayerShell = () => import("@/layouts/PlayerShell.vue");
+
+function routesOf(modules: readonly FrontendModule[], area: RouteArea): RouteRecordRaw[] {
+  return modules.flatMap((module) => module.routes?.[area] ?? []);
+}
+
+/**
+ * Routes from the modules, one parent per area; campaigns are addressed as `/k/<short id>-<slug>/...`.
+ * The parent sets `meta.area`; children inherit it through the merged route meta.
+ */
+export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[] {
+  return [
     // Development only: all building blocks on one page (not in the production build).
     ...(import.meta.env.DEV
       ? [{ path: "/_bausteine", name: "dev-components", component: () => import("@/dev/ComponentsShowcase.vue") }]
       : []),
     {
+      path: "/",
+      component: AppShell,
+      meta: { area: "account" },
+      children: [{ path: "", redirect: "/dashboard" }, ...routesOf(modules, "account")],
+    },
+    {
+      path: "/k/:campaign/spiel",
+      component: PlayerShell,
+      meta: { area: "player" },
+      children: routesOf(modules, "player"),
+    },
+    {
+      path: "/k/:campaign",
+      component: AppShell,
+      meta: { area: "campaign" },
+      children: routesOf(modules, "campaign"),
+    },
+    {
       path: "/auth",
       component: AuthLayout,
       children: [
-        {
-          path: "",
-          name: "auth",
-          component: AuthPage,
-          props: {
-            mode: "login",
-          },
-        },
-        {
-          path: "login",
-          name: "auth-login",
-          component: AuthPage,
-          props: {
-            mode: "login",
-          },
-        },
-        {
-          path: "callback",
-          name: "auth-callback",
-          component: AuthPage,
-          props: {
-            mode: "login",
-          },
-        },
-        {
-          path: "register",
-          name: "auth-register",
-          component: AuthPage,
-          props: {
-            mode: "register",
-          },
-        },
-        {
-          path: "reset-password",
-          name: "auth-reset-password",
-          component: AuthPage,
-          props: {
-            mode: "reset-password",
-          },
-        },
-      ],
-    },
-    {
-      path: "/",
-      component: DashboardLayout,
-      children: [
-        {
-          path: "",
-          name: "dashboard",
-          component: DashboardPage,
-        },
+        { path: "", name: "auth", component: AuthPage, props: { mode: "login" } },
+        { path: "login", name: "auth-login", component: AuthPage, props: { mode: "login" } },
+        { path: "callback", name: "auth-callback", component: AuthPage, props: { mode: "login" } },
+        { path: "register", name: "auth-register", component: AuthPage, props: { mode: "register" } },
+        { path: "reset-password", name: "auth-reset-password", component: AuthPage, props: { mode: "reset-password" } },
       ],
     },
     {
       path: "/campaign-editor",
       component: CampaignEditorLayout,
-      children: [
-        {
-          path: "",
-          name: "campaign-editor",
-          component: CampaignEditorPage,
-        },
-      ],
+      children: [{ path: "", name: "campaign-editor", component: CampaignEditorPage }],
     },
     {
-      path: "/player-view",
-      component: PlayerViewLayout,
+      path: "/",
+      component: BareLayout,
+      meta: { area: "bare" },
       children: [
-        {
-          path: "",
-          name: "player-view",
-          component: PlayerViewPage,
-        },
+        ...routesOf(modules, "bare"),
+        { path: ":pathMatch(.*)*", name: "not-found", component: () => import("@/app/views/NotFoundView.vue") },
       ],
     },
-  ],
+  ];
+}
+
+export const router = createRouter({
+  history: createWebHistory(),
+  routes: buildRoutes(frontendModules),
 });

@@ -41,6 +41,8 @@ describe("createAuthFetch", () => {
       "/api/v1/campaigns",
     ]);
     expect(server.calls[2]?.body).toBe(JSON.stringify({ name: "Elaria" }));
+    // The refresh route validates a JSON object; without one it answers 400 and never renews.
+    expect(server.calls[1]?.body).toBe("{}");
     expect(onSessionExpired).not.toHaveBeenCalled();
   });
 
@@ -85,5 +87,29 @@ describe("createAuthFetch", () => {
     expect(response.status).toBe(401);
     expect(server.calls).toHaveLength(1);
     expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it("takes a refresh another tab just made (409) as renewed and repeats the request", async () => {
+    const server = fakeServer({
+      "/api/v1/me": [() => json(401), () => json(200, { id: "u1" })],
+      "/api/v1/auth/refresh": [() => json(409, { error: { code: "SESSION_ALREADY_ROTATED", message: "x" } })],
+    });
+    const onSessionExpired = vi.fn();
+    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
+
+    expect((await authFetch(new Request(`${BASE}/me`))).status).toBe(200);
+    expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it("still ends the session when the repeated request answers 401 after such a refresh", async () => {
+    const server = fakeServer({
+      "/api/v1/me": [() => json(401), () => json(401)],
+      "/api/v1/auth/refresh": [() => json(409)],
+    });
+    const onSessionExpired = vi.fn();
+    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
+
+    expect((await authFetch(new Request(`${BASE}/me`))).status).toBe(401);
+    expect(onSessionExpired).toHaveBeenCalledOnce();
   });
 });

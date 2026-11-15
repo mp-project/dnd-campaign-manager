@@ -94,6 +94,17 @@ describe("message catalog check", () => {
     expect(checkCatalog(src).warnings).toEqual(['unused "common.unused"']);
   });
 
+  it("counts keys passed on as data as used, without checking other dotted strings", () => {
+    const src = project({
+      ...base,
+      "locales/de/common.json": { nav: { world: "Welt" } },
+      "locales/en/common.json": { nav: { world: "World" } },
+      "modules/locations/index.ts": `export const nav = { label: "common.nav.world", file: "main.css" };`,
+    });
+
+    expect(checkCatalog(src)).toEqual({ errors: [], warnings: [] });
+  });
+
   it("derives the message types from the German files", () => {
     const src = project({ ...base, "locales/de/common.json": {}, "modules/notes/locales/de.json": {} });
 

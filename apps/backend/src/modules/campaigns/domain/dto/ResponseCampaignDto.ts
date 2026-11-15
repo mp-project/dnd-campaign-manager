@@ -7,6 +7,9 @@ import type { CampaignAggregate } from "#src/modules/campaigns/domain/repository
 
 export const ResponseCampaignSchema = CampaignBaseSchema.extend({
   isOwner: z.boolean(),
+  /** The viewer's role in the campaign; null for administrators without a membership. */
+  role: z.enum(["OWNER", "EDITOR", "PLAYER"]).nullable(),
+  /** Keys the viewer may use in this campaign, already limited to their role. */
   effectivePermissions: z.array(z.string().min(1)),
 });
 
@@ -22,7 +25,7 @@ export type ResponseCampaignListDto = z.infer<typeof ResponseCampaignListSchema>
 export type ResponseUpdateCampaignDto = z.infer<typeof ResponseUpdateCampaignSchema>;
 
 export function toCampaignResponse(aggregate: CampaignAggregate): ResponseCampaignDto {
-  const { campaign, isOwner, effectivePermissions } = aggregate;
+  const { campaign, isOwner, role, effectivePermissions } = aggregate;
 
   return {
     id: campaign.id,
@@ -42,6 +45,7 @@ export function toCampaignResponse(aggregate: CampaignAggregate): ResponseCampai
     longRestCount: campaign.longRestCount,
     settings: (campaign.settings ?? {}) as Record<string, unknown>,
     isOwner,
+    role,
     effectivePermissions,
   };
 }

@@ -2,8 +2,8 @@
 /**
  * Development only (`/_bausteine`): every building block in all its variants, with example content
  * from the clickdummy, to compare against it. Not in the production build; texts are not translated.
- * `tests/unit/components/showcase.test.ts` fails when a component of components/base or
- * components/content is missing here.
+ * `tests/unit/components/showcase.test.ts` fails when a shared component (base, content, page,
+ * layout) is missing here; only the shell parts that need a session are shown in the app itself.
  */
 import BadgesSection from "./showcase/BadgesSection.vue";
 import ButtonsSection from "./showcase/ButtonsSection.vue";
@@ -11,6 +11,7 @@ import ContentSection from "./showcase/ContentSection.vue";
 import ControlsSection from "./showcase/ControlsSection.vue";
 import FieldsSection from "./showcase/FieldsSection.vue";
 import IconsSection from "./showcase/IconsSection.vue";
+import LayoutSection from "./showcase/LayoutSection.vue";
 import MenusSection from "./showcase/MenusSection.vue";
 import ThemeSection from "./showcase/ThemeSection.vue";
 
@@ -23,6 +24,7 @@ const sections = [
   { id: "controls", label: "Auswahl und Zähler" },
   { id: "menus", label: "Menüs und Einzelwerte" },
   { id: "content", label: "Inhalte" },
+  { id: "layout", label: "Layout und Navigation" },
 ];
 </script>
 
@@ -37,7 +39,7 @@ const sections = [
           Bausteine
         </h1>
         <p class="text-ink-2">
-          Alle Basis- und Inhaltsbausteine mit ihren Varianten im Chronik-Theme, zum Abgleich mit dem Klickdummy.
+          Alle gemeinsamen Bausteine mit ihren Varianten im Chronik-Theme, zum Abgleich mit dem Klickdummy.
           Sprache umschalten: <a
             class="text-brand underline"
             href="?lang=en"
@@ -69,6 +71,7 @@ const sections = [
       <ControlsSection />
       <MenusSection />
       <ContentSection />
+      <LayoutSection />
     </div>
   </main>
 </template>

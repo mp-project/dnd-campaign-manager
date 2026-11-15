@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "overview": "Übersicht"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Deine Kampagnen auf einen Blick.",
+    "campaigns": "Deine Kampagnen",
+    "empty": "Du bist noch in keiner Kampagne. Sobald du eine anlegst oder eingeladen wirst, erscheint sie hier.",
+    "error": "Deine Kampagnen konnten nicht geladen werden."
+  },
+  "overview": {
+    "noDescription": "Noch keine Beschreibung."
+  }
+}

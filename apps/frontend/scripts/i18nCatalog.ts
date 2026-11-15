@@ -99,9 +99,12 @@ function messageAt(catalog: Catalog, locale: string, key: string): string | unde
 /**
  * Keys used in source: literal first arguments of `t`, `te`, `tm`, `$t` and `keypath="…"`.
  * Keys built at runtime are declared with a comment `// i18n-dynamic: errors.*` next to their use.
+ * `mentioned` holds every quoted dotted literal: keys passed on as data (navigation labels typed
+ * `MessageKey`) count as used, but only `used` is checked against the catalog.
  */
-export function scanSource(srcDir: string): { used: Set<string>; dynamic: string[] } {
+export function scanSource(srcDir: string): { used: Set<string>; mentioned: Set<string>; dynamic: string[] } {
   const used = new Set<string>();
+  const mentioned = new Set<string>();
   const dynamic: string[] = [];
   const walk = (dir: string): string[] =>
     readdirSync(dir).flatMap((name) => {
@@ -114,12 +117,13 @@ export function scanSource(srcDir: string): { used: Set<string>; dynamic: string
     const text = readFileSync(file, "utf8");
     for (const match of text.matchAll(/\b\$?(?:t|te|tm|rt)\(\s*["'`]([\w.-]+)["'`]/g)) used.add(match[1]!);
     for (const match of text.matchAll(/\bkeypath="([\w.-]+)"/g)) used.add(match[1]!);
+    for (const match of text.matchAll(/["'`]([\w-]+(?:\.[\w-]+)+)["'`]/g)) mentioned.add(match[1]!);
     for (const match of text.matchAll(/i18n-dynamic:\s*([\w.*-]+(?:\s*,\s*[\w.*-]+)*)/g)) {
       dynamic.push(...match[1]!.split(",").map((pattern) => pattern.trim()));
     }
   }
 
-  return { used, dynamic };
+  return { used, mentioned, dynamic };
 }
 
 function matchesDynamic(key: string, patterns: readonly string[]): boolean {
@@ -184,13 +188,13 @@ export function checkCatalog(srcDir: string): CatalogReport {
     }
   }
 
-  const { used, dynamic } = scanSource(srcDir);
+  const { used, mentioned, dynamic } = scanSource(srcDir);
   for (const key of used) {
     if (!reference.has(key)) errors.push(`source uses "${key}", which ${DEFAULT_LOCALE} doesn't define`);
   }
   // The glossary is read by term name (`useGlossary`), never by a literal key.
   for (const key of reference) {
-    if (!used.has(key) && !key.startsWith("glossary.") && !matchesDynamic(key, dynamic)) {
+    if (!used.has(key) && !mentioned.has(key) && !key.startsWith("glossary.") && !matchesDynamic(key, dynamic)) {
       warnings.push(`unused "${key}"`);
     }
   }

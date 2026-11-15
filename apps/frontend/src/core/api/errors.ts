@@ -14,7 +14,48 @@ export const API_ERROR_CODES = [
   "RATE_LIMITED",
   "INTERNAL_ERROR",
   "SERVICE_UNAVAILABLE",
+  // Sign-in and sessions (backend `AuthErrorCode`)
+  "INVALID_CREDENTIALS",
+  "EMAIL_NOT_VERIFIED",
+  "SESSION_INVALID",
+  "SESSION_ALREADY_ROTATED",
+  "PASSWORD_RESET_INVALID",
+  "PASSWORD_RESET_EXPIRED",
+  "PASSWORD_RESET_USED",
+  "OAUTH_PROVIDER_UNAVAILABLE",
+  "OAUTH_STATE_INVALID",
+  "OAUTH_CALLBACK_FAILED",
+  "OAUTH_VERIFIED_EMAIL_REQUIRED",
+  "OAUTH_REGISTRATION_REQUIRED",
+  "OAUTH_IDENTITY_CONFLICT",
+  "OAUTH_EMAIL_IN_USE",
+  // Files and storage (backend `StorageErrorCode`)
+  "INVALID_KEY",
+  "UNSUPPORTED_CONTENT_TYPE",
+  "CONTENT_TYPE_MISMATCH",
+  "INVALID_MAGIC_BYTES",
+  "MAX_UPLOAD_SIZE_EXCEEDED",
+  "STORAGE_QUOTA_EXCEEDED",
+  "UPLOAD_STREAM_FAILED",
+  "S3_CONFIGURATION_ERROR",
 ] as const;
+
+/** General code for a status, when the answer carries a code this list doesn't know (yet). */
+function codeOfStatus(status: number): ApiErrorCode {
+  if (status >= 500) return status === 503 ? "SERVICE_UNAVAILABLE" : "INTERNAL_ERROR";
+  const byStatus: Record<number, ApiErrorCode> = {
+    400: "VALIDATION_ERROR",
+    401: "UNAUTHENTICATED",
+    403: "FORBIDDEN",
+    404: "NOT_FOUND",
+    409: "CONFLICT",
+    412: "VERSION_CONFLICT",
+    413: "MAX_UPLOAD_SIZE_EXCEEDED",
+    415: "UNSUPPORTED_CONTENT_TYPE",
+    429: "RATE_LIMITED",
+  };
+  return byStatus[status] ?? "UNKNOWN_ERROR";
+}
 
 /** `NETWORK_ERROR`: no answer at all (offline, server down); `UNKNOWN_ERROR`: an answer without the error envelope. */
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number] | "NETWORK_ERROR" | "UNKNOWN_ERROR";
@@ -140,5 +181,7 @@ export function versionConflictDetails(error: ApiError): VersionConflictDetails 
  * i18n-dynamic: errors.*
  */
 export function errorMessageKey(error: unknown): `errors.${ApiErrorCode}` {
-  return `errors.${isApiError(error) ? error.code : "UNKNOWN_ERROR"}`;
+  if (!isApiError(error)) return "errors.UNKNOWN_ERROR";
+  // A code the frontend doesn't know still gets the general text of its status.
+  return `errors.${error.code === "UNKNOWN_ERROR" ? codeOfStatus(error.status) : error.code}`;
 }

@@ -7640,6 +7640,8 @@ export interface operations {
                                 [key: string]: unknown;
                             };
                             isOwner: boolean;
+                            /** @enum {string|null} */
+                            role: "OWNER" | "EDITOR" | "PLAYER" | null;
                             effectivePermissions: string[];
                         }[];
                         pageInfo: {
@@ -7743,6 +7745,8 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         isOwner: boolean;
+                        /** @enum {string|null} */
+                        role: "OWNER" | "EDITOR" | "PLAYER" | null;
                         effectivePermissions: string[];
                     };
                 };
@@ -7875,6 +7879,8 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         isOwner: boolean;
+                        /** @enum {string|null} */
+                        role: "OWNER" | "EDITOR" | "PLAYER" | null;
                         effectivePermissions: string[];
                     };
                 };
@@ -8075,6 +8081,8 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         isOwner: boolean;
+                        /** @enum {string|null} */
+                        role: "OWNER" | "EDITOR" | "PLAYER" | null;
                         effectivePermissions: string[];
                         merged: string[];
                     };
@@ -8234,6 +8242,8 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         isOwner: boolean;
+                        /** @enum {string|null} */
+                        role: "OWNER" | "EDITOR" | "PLAYER" | null;
                         effectivePermissions: string[];
                     };
                 };
@@ -8390,6 +8400,8 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         isOwner: boolean;
+                        /** @enum {string|null} */
+                        role: "OWNER" | "EDITOR" | "PLAYER" | null;
                         effectivePermissions: string[];
                     };
                 };

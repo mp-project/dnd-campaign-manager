@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "Chronik"
+    "name": "Chronik",
+    "tagline": "Your adventures. Organized."
   },
   "actions": {
     "save": "Save",
@@ -131,5 +132,46 @@
     "min": "At least {min}.",
     "max": "At most {max}.",
     "required": "Please fill in."
+  },
+  "nav": {
+    "account": "Your account",
+    "campaign": "Campaign",
+    "world": "World",
+    "adventure": "Adventure",
+    "compendium": "Compendium",
+    "content": "Content",
+    "more": "More"
+  },
+  "shell": {
+    "toDashboard": "Chronik – to the dashboard",
+    "mainNavigation": "Main navigation",
+    "sidebar": "Sidebar",
+    "motto": "“Great stories\nbegin with a place.”",
+    "openMenu": "Open menu",
+    "menu": "Navigation",
+    "closeMenu": "Close navigation",
+    "collapse": "Collapse",
+    "collapseNav": "Collapse navigation",
+    "expandNav": "Expand navigation",
+    "campaignNavigation": "Campaign navigation",
+    "playerNavigation": "Player navigation",
+    "chooseCampaign": "Choose a campaign",
+    "switchCampaign": "Switch campaign",
+    "allCampaigns": "All campaigns",
+    "campaignCount": "No campaign yet | One campaign | {count} campaigns",
+    "noCampaign": "Choose a campaign. Its content will show up here.",
+    "ruleset": "The campaign's ruleset",
+    "role": "Your role in the campaign",
+    "account": "User account",
+    "dashboard": "Dashboard",
+    "playerView": "Open the player view",
+    "campaignView": "To the game master view",
+    "signOut": "Sign out",
+    "breadcrumb": "Breadcrumb"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This page doesn't exist, or you have no access to it.",
+    "back": "To the dashboard"
   }
 }

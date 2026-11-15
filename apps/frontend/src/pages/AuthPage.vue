@@ -606,8 +606,11 @@ async function onRegisterSubmit(): Promise<void> {
       password: registerPassword.value,
     });
 
-    formSuccess.value = "Registrierung erfolgreich. Du kannst dich jetzt einloggen.";
-    await router.push({ name: "auth-login" });
+    // The server answers the same whether the address is new or taken (so nobody can probe for
+    // accounts); only the email says which. An existing account keeps its password.
+    formSuccess.value =
+      "Fast geschafft: Schau in dein Postfach. Ist die Adresse neu, findest du dort den Link zum Bestätigen. " +
+      "Gibt es schon ein Konto mit dieser Adresse, steht dort, wie du dich anmeldest; sein Passwort bleibt unverändert.";
   } catch (error) {
     formError.value = getErrorMessage(error);
   } finally {

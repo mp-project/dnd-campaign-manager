@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "Chronik"
+    "name": "Chronik",
+    "tagline": "Deine Abenteuer. Organisiert."
   },
   "actions": {
     "save": "Speichern",
@@ -131,5 +132,46 @@
     "min": "Mindestens {min}.",
     "max": "Höchstens {max}.",
     "required": "Bitte ausfüllen."
+  },
+  "nav": {
+    "account": "Dein Konto",
+    "campaign": "Kampagne",
+    "world": "Welt",
+    "adventure": "Abenteuer",
+    "compendium": "Kompendium",
+    "content": "Inhalte",
+    "more": "Mehr"
+  },
+  "shell": {
+    "toDashboard": "Chronik – zum Dashboard",
+    "mainNavigation": "Hauptnavigation",
+    "sidebar": "Seitenleiste",
+    "motto": "„Große Geschichten\nbeginnen mit einem Ort.“",
+    "openMenu": "Menü öffnen",
+    "menu": "Navigation",
+    "closeMenu": "Navigation schließen",
+    "collapse": "Einklappen",
+    "collapseNav": "Navigation einklappen",
+    "expandNav": "Navigation ausklappen",
+    "campaignNavigation": "Kampagnennavigation",
+    "playerNavigation": "Spielernavigation",
+    "chooseCampaign": "Kampagne wählen",
+    "switchCampaign": "Kampagne wechseln",
+    "allCampaigns": "Alle Kampagnen",
+    "campaignCount": "Noch keine Kampagne | Eine Kampagne | {count} Kampagnen",
+    "noCampaign": "Wähle eine Kampagne. Danach findest du hier ihre Inhalte.",
+    "ruleset": "Regelwerk der Kampagne",
+    "role": "Deine Rolle in der Kampagne",
+    "account": "Benutzerkonto",
+    "dashboard": "Dashboard",
+    "playerView": "Spieleransicht öffnen",
+    "campaignView": "Zur Spielleiteransicht",
+    "signOut": "Abmelden",
+    "breadcrumb": "Brotkrumen"
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "body": "Diese Seite gibt es nicht, oder du hast keinen Zugriff darauf.",
+    "back": "Zum Dashboard"
   }
 }

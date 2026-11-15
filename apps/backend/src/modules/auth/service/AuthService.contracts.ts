@@ -113,3 +113,23 @@ export type AuthServiceDependencies = {
   accessTtlMs: number;
   refreshTtlMs: number;
 };
+
+/** One signed-in browser or device: a refresh token family. */
+export type SessionView = {
+  id: string;
+  userAgent: string | null;
+  startedAt: Date;
+  lastActiveAt: Date;
+  expiresAt: Date;
+  current: boolean;
+};
+
+/** A browser or device the user linked as trusted. */
+export type TrustedDeviceView = {
+  id: string;
+  userAgent: string | null;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+  expiresAt: Date;
+  current: boolean;
+};

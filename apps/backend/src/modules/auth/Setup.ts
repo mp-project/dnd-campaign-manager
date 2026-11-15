@@ -42,6 +42,14 @@ import { OAuthCallbackController } from "#src/modules/auth/http/controller/OAuth
 import { OAuthCallbackUseCase } from "#src/modules/auth/useCase/OAuthCallbackUseCase";
 import { CompleteOAuthRegistrationController } from "#src/modules/auth/http/controller/CompleteOAuthRegistrationController";
 import { CompleteOAuthRegistrationUseCase } from "#src/modules/auth/useCase/CompleteOAuthRegistrationUseCase";
+import { ListSessionsController } from "#src/modules/auth/http/controller/ListSessionsController";
+import { ListSessionsUseCase } from "#src/modules/auth/useCase/ListSessionsUseCase";
+import { RevokeSessionController } from "#src/modules/auth/http/controller/RevokeSessionController";
+import { RevokeSessionUseCase } from "#src/modules/auth/useCase/RevokeSessionUseCase";
+import { ListTrustedDevicesController } from "#src/modules/auth/http/controller/ListTrustedDevicesController";
+import { ListTrustedDevicesUseCase } from "#src/modules/auth/useCase/ListTrustedDevicesUseCase";
+import { RemoveTrustedDeviceController } from "#src/modules/auth/http/controller/RemoveTrustedDeviceController";
+import { RemoveTrustedDeviceUseCase } from "#src/modules/auth/useCase/RemoveTrustedDeviceUseCase";
 import { registerAuthRoutes } from "#src/modules/auth/http/routes/v1/AuthRoutes";
 import { authPermissionDefinitions } from "#src/modules/auth/permissions/AuthPermissions";
 import { ROLE_PERMISSIONS } from "#src/modules/auth/permissions/roles";
@@ -139,6 +147,10 @@ async function registerAuthModule(
       startOAuthController: new StartOAuthController(new StartOAuthUseCase(service), http),
       oauthCallbackController: new OAuthCallbackController(new OAuthCallbackUseCase(service), http),
       completeOAuthRegistrationController: new CompleteOAuthRegistrationController(new CompleteOAuthRegistrationUseCase(service), http),
+      listSessionsController: new ListSessionsController(new ListSessionsUseCase(service), http),
+      revokeSessionController: new RevokeSessionController(new RevokeSessionUseCase(service), http),
+      listTrustedDevicesController: new ListTrustedDevicesController(new ListTrustedDevicesUseCase(service), http),
+      removeTrustedDeviceController: new RemoveTrustedDeviceController(new RemoveTrustedDeviceUseCase(service), http),
     });
   });
 }

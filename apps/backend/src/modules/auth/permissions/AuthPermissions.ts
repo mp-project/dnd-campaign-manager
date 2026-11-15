@@ -6,6 +6,7 @@ export const AUTH_PERMISSIONS = {
   changePasswordSelf: "auth.changePasswordSelf",
   changeEmailSelf: "auth.changeEmailSelf",
   trustDeviceSelf: "auth.trustDeviceSelf",
+  manageSessionsSelf: "auth.manageSessionsSelf",
 } as const;
 
 export const AUTH_PERMISSION_KEYS = Object.values(AUTH_PERMISSIONS);
@@ -31,6 +32,10 @@ export const authPermissionDefinitions: readonly PermissionDefinition[] = [
   },
   {
     key: AUTH_PERMISSIONS.trustDeviceSelf,
-    description: "Link or unlink the current browser as a trusted device",
+    description: "Link, list and unlink own trusted devices",
+  },
+  {
+    key: AUTH_PERMISSIONS.manageSessionsSelf,
+    description: "List own sessions and end single ones",
   },
 ];

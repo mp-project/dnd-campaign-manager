@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { oauthProviderEnum } from "#src/modules/auth/domain/entities/AuthTable";
 import {
   EmailVerificationBaseSchema,
   UserBaseSchema,
@@ -25,7 +26,7 @@ export type {
   ResetPasswordDto,
 } from "#src/modules/auth/domain/dto/ResetPasswordDto";
 
-export const OAuthProviderSchema = z.enum(["GOOGLE", "DISCORD"]);
+export const OAuthProviderSchema = z.enum(oauthProviderEnum.enumValues);
 export const OAuthIntentSchema = z.enum(["login", "register"]);
 
 /**

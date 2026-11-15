@@ -50,6 +50,14 @@ import { RemoveCurrentDeviceController } from "#src/modules/auth/http/controller
 import { StartOAuthController } from "#src/modules/auth/http/controller/StartOAuthController";
 import { OAuthCallbackController } from "#src/modules/auth/http/controller/OAuthCallbackController";
 import { CompleteOAuthRegistrationController } from "#src/modules/auth/http/controller/CompleteOAuthRegistrationController";
+import { ListSessionsController } from "#src/modules/auth/http/controller/ListSessionsController";
+import { RevokeSessionController } from "#src/modules/auth/http/controller/RevokeSessionController";
+import { ListTrustedDevicesController } from "#src/modules/auth/http/controller/ListTrustedDevicesController";
+import { RemoveTrustedDeviceController } from "#src/modules/auth/http/controller/RemoveTrustedDeviceController";
+import { SessionParamsSchema } from "#src/modules/auth/domain/dto/RequestSessionDto";
+import { ResponseSessionListSchema } from "#src/modules/auth/domain/dto/ResponseSessionDto";
+import { TrustedDeviceParamsSchema } from "#src/modules/auth/domain/dto/RequestTrustedDeviceDto";
+import { ResponseTrustedDeviceListSchema } from "#src/modules/auth/domain/dto/ResponseTrustedDeviceDto";
 
 export type AuthRouteControllers = {
   requestRegistrationVerificationController: RequestRegistrationVerificationController;
@@ -71,6 +79,10 @@ export type AuthRouteControllers = {
   startOAuthController: StartOAuthController;
   oauthCallbackController: OAuthCallbackController;
   completeOAuthRegistrationController: CompleteOAuthRegistrationController;
+  listSessionsController: ListSessionsController;
+  revokeSessionController: RevokeSessionController;
+  listTrustedDevicesController: ListTrustedDevicesController;
+  removeTrustedDeviceController: RemoveTrustedDeviceController;
 };
 
 const tags = ["Auth"];
@@ -519,5 +531,91 @@ export function registerAuthRoutes(
       },
     },
     controllers.confirmEmailChangeByLinkController.handle,
+  );
+  // Under /auth, because the refresh cookie (which marks the current session) is only sent there.
+  app.get(
+    "/auth/sessions",
+    {
+      config: { permission: { key: AUTH_PERMISSIONS.manageSessionsSelf } },
+      schema: {
+        tags,
+        operationId: "listSessions",
+        security,
+        response: {
+          200: ResponseSessionListSchema,
+          401: errorResponseDto,
+        },
+      },
+    },
+    controllers.listSessionsController.handle,
+  );
+
+  app.delete(
+    "/auth/sessions/:sessionId",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.manageSessionsSelf },
+      },
+      schema: {
+        tags,
+        operationId: "revokeSession",
+        security,
+        params: SessionParamsSchema,
+        response: {
+          204: z.null(),
+          400: errorResponseDto,
+          401: errorResponseDto,
+          404: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.revokeSessionController.handle(request, reply);
+      return reply.code(204).send();
+    },
+  );
+
+  app.get(
+    "/me/trusted-devices",
+    {
+      config: { permission: { key: AUTH_PERMISSIONS.trustDeviceSelf } },
+      schema: {
+        tags,
+        operationId: "listTrustedDevices",
+        security,
+        response: {
+          200: ResponseTrustedDeviceListSchema,
+          401: errorResponseDto,
+        },
+      },
+    },
+    controllers.listTrustedDevicesController.handle,
+  );
+
+  app.delete(
+    "/me/trusted-devices/:deviceId",
+    {
+      config: {
+        rateLimit: SENSITIVE_ROUTE_RATE_LIMIT,
+        permission: { key: AUTH_PERMISSIONS.trustDeviceSelf },
+      },
+      schema: {
+        tags,
+        operationId: "removeTrustedDevice",
+        security,
+        params: TrustedDeviceParamsSchema,
+        response: {
+          204: z.null(),
+          400: errorResponseDto,
+          401: errorResponseDto,
+          404: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.removeTrustedDeviceController.handle(request, reply);
+      return reply.code(204).send();
+    },
   );
 }

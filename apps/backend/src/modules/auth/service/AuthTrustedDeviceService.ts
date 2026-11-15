@@ -8,6 +8,7 @@ import type {
 import {
   type ClientMetadata,
   TRUSTED_DEVICE_TTL_MS,
+  type TrustedDeviceView,
 } from "#src/modules/auth/service/AuthService.contracts";
 import { sha256 } from "#src/modules/auth/utils/crypto";
 
@@ -65,6 +66,38 @@ export class AuthTrustedDeviceService {
     });
 
     return { token, expiresAt };
+  }
+
+  /** The user's trusted devices, this browser first, then the most recently used. */
+  async list(userId: string, currentToken: string | null): Promise<TrustedDeviceView[]> {
+    const currentHash = currentToken ? sha256(currentToken) : null;
+    const devices = await this.repository.listTrustedDevicesForUser(this.db, userId, new Date());
+
+    return devices
+      .map((device) => ({
+        id: device.id,
+        userAgent: device.userAgent,
+        createdAt: device.createdAt,
+        lastUsedAt: device.lastUsedAt,
+        expiresAt: device.expiresAt,
+        current: device.tokenHash === currentHash,
+      }))
+      .sort(
+        (a, b) =>
+          Number(b.current) - Number(a.current) ||
+          (b.lastUsedAt ?? b.createdAt).getTime() - (a.lastUsedAt ?? a.createdAt).getTime(),
+      );
+  }
+
+  /** Null if the device isn't the user's; `current` if it was the asking browser. */
+  async removeById(
+    userId: string,
+    deviceId: string,
+    currentToken: string | null,
+  ): Promise<{ current: boolean } | null> {
+    const tokenHash = await this.repository.deleteTrustedDeviceById(this.db, userId, deviceId);
+
+    return tokenHash ? { current: currentToken !== null && sha256(currentToken) === tokenHash } : null;
   }
 
   remove(userId: string, token: string): Promise<void> {

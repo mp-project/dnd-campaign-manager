@@ -10,21 +10,28 @@ import { createPinia } from "pinia";
 import { createApp } from "vue";
 
 import App from "./App.vue";
+import { watchCampaignAccess } from "./app/campaignAccess";
+import { handleSessionExpired, installGuards } from "./app/guards";
+import { frontendModules, navItemsOf } from "./app/modules";
 import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
-import { clearSessionCache, createAppQueryClient } from "./core/api/queryClient";
+import { createAppQueryClient } from "./core/api/queryClient";
+import { NAV_ITEMS } from "./core/navigation/navigation";
 import { startPushNotifications } from "./services/pushNotifications";
 
 const app = createApp(App);
 const queryClient = createAppQueryClient();
 const i18n = createAppI18n();
 
-// Redirecting to the login follows with the auth flows (plan step 1.5).
-onSessionExpired(() => clearSessionCache(queryClient));
+onSessionExpired(() => handleSessionExpired(router, queryClient));
+
+installGuards(router, queryClient);
+watchCampaignAccess(router, queryClient);
 
 app.use(createPinia());
 app.use(router);
+app.provide(NAV_ITEMS, navItemsOf(frontendModules));
 app.use(VueQueryPlugin, { queryClient });
 app.use(i18n);
 

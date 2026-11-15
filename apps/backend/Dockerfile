@@ -9,6 +9,7 @@ FROM base AS dependencies
 COPY package.json package-lock.json* ./
 COPY apps/backend/package.json apps/backend/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/i18n/package.json packages/i18n/package.json
 COPY packages/test-utils/package.json packages/test-utils/package.json
 RUN npm ci
@@ -25,6 +26,7 @@ FROM base AS production-dependencies
 COPY package.json package-lock.json* ./
 COPY apps/backend/package.json apps/backend/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/i18n/package.json packages/i18n/package.json
 COPY packages/test-utils/package.json packages/test-utils/package.json
 # Optional dependencies stay: they hold the prebuilt binaries of sharp.

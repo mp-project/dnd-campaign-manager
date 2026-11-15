@@ -9,11 +9,23 @@ function vueFiles(dir: string): string[] {
   return readdirSync(dir).filter((name) => name.endsWith(".vue")).map((name) => join(dir, name));
 }
 
+/** Parts of the app shell that need a session and a campaign; they are seen in the app itself. */
+const SHOWN_IN_SHELL = new Set([
+  "AppSidebar",
+  "AppTopbar",
+  "MobileHeader",
+  "MobileNavPanel",
+  "ShellNavigation",
+  "SidebarCampaign",
+  "UserMenu",
+]);
+
 describe("building blocks page (/_bausteine)", () => {
   it("shows every shared component with its variants", () => {
-    const components = [...vueFiles(join(SRC, "components/base")), ...vueFiles(join(SRC, "components/content"))].map(
-      (file) => basename(file, ".vue"),
-    );
+    const components = ["base", "content", "page", "layout"]
+      .flatMap((group) => vueFiles(join(SRC, "components", group)))
+      .map((file) => basename(file, ".vue"))
+      .filter((name) => !SHOWN_IN_SHELL.has(name));
     const showcase = vueFiles(join(SRC, "dev/showcase"))
       .map((file) => readFileSync(file, "utf8"))
       .join("\n");

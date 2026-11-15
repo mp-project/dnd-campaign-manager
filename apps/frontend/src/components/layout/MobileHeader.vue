@@ -1,0 +1,101 @@
+<script setup lang="ts">
+/** Mobile top bar (< 768 px): menu, compass and word mark, account; below it the campaign context. */
+import { computed } from "vue";
+import { useRoute } from "vue-router";
+
+import Icon from "@/components/base/Icon.vue";
+import { roleMessageKey, useRuleset } from "@/core/campaign/campaign";
+import { useAppI18n } from "@/core/i18n";
+import { useNavigation } from "@/core/navigation/navigation";
+import { useShellStore } from "@/core/ui/shell";
+
+import CompassRose from "./CompassRose.vue";
+import UserMenu from "./UserMenu.vue";
+
+const { t } = useAppI18n();
+const route = useRoute();
+const shell = useShellStore();
+const nav = useNavigation();
+const campaign = computed(() => (route.meta.area === "campaign" ? nav.campaign.value : null));
+const ruleset = useRuleset(() => campaign.value?.rulesetId);
+</script>
+
+<template>
+  <header class="shrink-0 bg-navy-900 text-parchment md:hidden">
+    <div class="flex h-14 items-center gap-2 px-2">
+      <button
+        type="button"
+        class="flex size-11 items-center justify-center"
+        :aria-label="t('common.shell.openMenu')"
+        :aria-expanded="shell.mobileNavOpen"
+        @click="shell.openMobileNav()"
+      >
+        <Icon
+          name="aktion-menue"
+          :size="26"
+        />
+      </button>
+      <RouterLink
+        to="/dashboard"
+        class="flex items-center gap-2"
+        :aria-label="t('common.shell.toDashboard')"
+      >
+        <CompassRose :size="34" /><span class="font-heading text-[21px] font-bold">{{ t("common.app.name") }}</span>
+      </RouterLink>
+      <div class="ml-auto">
+        <UserMenu
+          compact
+          :switch-to="nav.viewSwitch.value"
+        />
+      </div>
+    </div>
+    <div
+      v-if="campaign"
+      class="grid grid-cols-2 gap-2 px-3 pb-3"
+    >
+      <button
+        type="button"
+        class="shell-chip col-span-2 text-[16px]"
+        :aria-label="`${campaign.name} – ${t('common.shell.switchCampaign')}`"
+        @click="shell.openMobileNav()"
+      >
+        <Icon
+          name="nav-kampagne"
+          :size="20"
+          class="text-gold-light"
+        /><span class="truncate">{{ campaign.name }}</span><Icon
+          name="ui-chevron-down"
+          :size="18"
+          class="ml-auto"
+        />
+      </button>
+      <span
+        class="shell-chip min-w-0 text-[16px]"
+        :title="t('common.shell.ruleset')"
+      ><Icon
+        name="orig-wuerfel"
+        :size="20"
+        class="shrink-0 text-gold-light"
+      /><span class="truncate">{{ ruleset.data.value?.name }}</span></span>
+      <span
+        v-if="campaign.role"
+        class="shell-chip min-w-0 text-[16px]"
+        :title="t('common.shell.role')"
+      ><Icon
+        name="orig-krone"
+        :size="20"
+        class="shrink-0 text-gold-light"
+      /><span class="truncate">{{ t(roleMessageKey(campaign.role)) }}</span></span>
+    </div>
+    <div
+      v-else
+      class="px-3 pb-3"
+    >
+      <span class="shell-chip w-full text-[16px]"><Icon
+        name="nav-dashboard"
+        :size="20"
+        class="text-gold-light"
+      />{{ t("common.nav.account") }}</span>
+    </div>
+  </header>
+</template>

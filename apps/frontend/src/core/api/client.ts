@@ -2,7 +2,7 @@ import createClient, { type Client } from "openapi-fetch";
 
 import { createAuthFetch, type SessionExpiredListener } from "@/core/api/authFetch";
 import { networkError, toApiError } from "@/core/api/errors";
-import type { paths } from "@/core/api/generated/schema";
+import type { operations, paths } from "@/core/api/generated/schema";
 
 /**
  * The typed API client. Paths, parameters, bodies and responses come from the generated OpenAPI
@@ -13,6 +13,17 @@ import type { paths } from "@/core/api/generated/schema";
  *   }));
  */
 export type ApiClient = Client<paths>;
+
+type JsonOf<R> = R extends { content: { "application/json": infer T } } ? T : never;
+
+/** JSON body of an operation's success answer, by operation id: `ApiData<"getCampaignById">`. */
+export type ApiData<Operation extends keyof operations> = operations[Operation]["responses"] extends infer R
+  ? R extends { 200: infer Ok }
+    ? JsonOf<Ok>
+    : R extends { 201: infer Created }
+      ? JsonOf<Created>
+      : never
+  : never;
 
 const sessionExpiredListeners = new Set<SessionExpiredListener>();
 

@@ -463,9 +463,107 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /* App shell on navy: navigation entries (sidebar, mobile menu), context chips, bottom bars */
+  .nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 42px;
+    padding: 6px 20px 6px 26px;
+    color: var(--color-parchment);
+  }
+  .nav-item:hover {
+    background: var(--color-navy-800);
+  }
+  .nav-sub {
+    min-height: 38px;
+    padding-left: 46px;
+    font-size: 16px;
+  }
+  .nav-item.is-active {
+    background: linear-gradient(90deg, var(--color-primary) 60%, color-mix(in srgb, var(--color-primary) 55%, transparent));
+    color: var(--color-parchment-card);
+  }
+  .nav-item.is-active::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 4px;
+    border-radius: 0 2px 2px 0;
+    background: var(--color-gold-light);
+  }
+  .nav-sub.is-active {
+    margin-left: 30px;
+    padding-left: 16px;
+  }
+  /* Collapsed sidebar: symbols only, the label stays for screen readers */
+  .nav-compact .nav-item {
+    justify-content: center;
+    gap: 0;
+    margin-left: 0;
+    padding: 6px 0;
+  }
+  .nav-compact .nav-sub {
+    min-height: 36px;
+  }
+  .nav-compact button.nav-item {
+    min-height: 30px;
+    color: var(--color-gold-light);
+    opacity: 0.7;
+  }
+  .nav-compact .nav-label {
+    @apply sr-only;
+  }
+  .shell-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--color-navy-700);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-navy-950) 50%, transparent);
+    color: var(--color-parchment);
+    font-size: 16.5px;
+    white-space: nowrap;
+  }
+  button.shell-chip:hover,
+  a.shell-chip:hover {
+    background: var(--color-navy-800);
+  }
+  .bottom-nav-active {
+    background: radial-gradient(
+      ellipse at 50% 120%,
+      color-mix(in srgb, var(--color-brand) 75%, transparent),
+      color-mix(in srgb, var(--color-primary) 25%, transparent) 70%
+    );
+  }
+  .bottom-nav-active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 18%;
+    left: 18%;
+    height: 3px;
+    border-radius: 0 0 2px 2px;
+    background: var(--color-gold-light);
+  }
+
+  /* Parchment work surface with the golden double frame and the four corner ornaments */
+  .parchment-frame {
+    position: relative;
+    border: 1px solid var(--color-gold);
+    box-shadow:
+      inset 0 0 0 3px var(--color-parchment),
+      inset 0 0 0 4px var(--color-gold-soft);
+  }
+
   /*
-   * Scaffold layouts from before the clickdummy port. They go away with the real layouts (plan step 1.4);
-   * until then they only use theme tokens.
+   * Scaffold layouts from before the clickdummy port, still used by the sign-in pages and the old
+   * campaign page until they are rebuilt; they only use theme tokens.
    */
   .layout-shell {
     @apply grid min-h-screen place-items-center p-6;

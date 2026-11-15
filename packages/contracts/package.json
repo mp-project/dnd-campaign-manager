@@ -1,0 +1,20 @@
+{
+  "name": "@dnd/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "echo \"No build step: consumed as TypeScript source by the frontend\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "node --test \"tests/**/*.test.ts\"",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3"
+  }
+}

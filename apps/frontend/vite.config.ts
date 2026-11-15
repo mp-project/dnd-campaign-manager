@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
       host: frontendHost,
       port: Number.isFinite(frontendPort) ? frontendPort : 5173,
       strictPort: true,
+      // The API under the app's own origin: browsers treat app.localhost and api.localhost as
+      // different sites, so the session cookies (SameSite=Lax) would not be sent across.
+      proxy: {
+        "/api": { target: env.API_PROXY_TARGET ?? "http://api.localhost:3000", changeOrigin: true },
+      },
     },
     resolve: {
       alias: {

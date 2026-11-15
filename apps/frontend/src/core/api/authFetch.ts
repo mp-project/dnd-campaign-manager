@@ -1,8 +1,9 @@
 /**
  * `fetch` with session renewal. The access token lives in an HttpOnly cookie with a short lifetime;
  * when a request answers 401, the refresh cookie gets a new one (`POST /auth/refresh`) and the request
- * runs once more. Parallel 401s share one refresh. If the refresh fails, the session is over: the
- * listeners (cache, router) are told and the 401 goes to the caller.
+ * runs once more. Parallel 401s share one refresh; a refresh another tab just made (409) counts as
+ * renewed. If the request still answers 401, the session is over: the listeners (cache, router) are
+ * told and the 401 goes to the caller.
  */
 
 export type SessionExpiredListener = () => void;
@@ -24,9 +25,16 @@ export function createAuthFetch(options: AuthFetchOptions): (request: Request) =
 
   async function refreshSession(): Promise<boolean> {
     pendingRefresh ??= send(
-      new Request(refreshUrl, { method: "POST", credentials: "include" }),
+      // The route takes a JSON object (the token may come in the body); the browser sends the cookie.
+      new Request(refreshUrl, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
     )
-      .then((response) => response.ok)
+      // 409: another tab renewed the session a moment ago; the browser already holds its new cookie.
+      .then((response) => response.ok || response.status === 409)
       .catch(() => false)
       .finally(() => {
         pendingRefresh = null;

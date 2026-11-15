@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm-workspaces monorepo (Node `>=24 <25`, ESM) for a D&D campaign manager:
 
 - `apps/backend` (`@dnd/backend`): Fastify 5 + Zod (`fastify-type-provider-zod`) + Drizzle ORM on PostgreSQL. Almost all real logic lives here.
-- `apps/frontend` (`@dnd/frontend`): Vue 3 + Vite + Pinia + Tailwind 4. Being rebuilt from the clickdummy (see Frontend); theme and assets are in place, pages are still scaffolding.
+- `apps/frontend` (`@dnd/frontend`): Vue 3 + Vite + Pinia + Tailwind 4. Being rebuilt from the clickdummy (see Frontend); theme, building blocks, sign-in, account, dashboard and campaign overview are in place; content modules follow.
 - `packages/i18n` (`@dnd/i18n`): languages, language choice and glossary terms shared by frontend, backend and the admin website (TypeScript source, no build yet; the backend gets a build when it uses it).
 - `packages/contracts` (`@dnd/contracts`): types and functions shared by frontend, backend and the admin website that the OpenAPI document doesn't carry; today the short ids for URLs (TypeScript source, tests with `node --test`).
 - `packages/test-utils`: shared test helpers.
@@ -172,7 +172,7 @@ The frontend is rebuilt from the clickdummy (`clickdummy/`, local only; `cd clic
 
 ### Structure
 
-Target layout (built step by step, see the plan; the shells, navigation, the sign-in pages (`auth`) and the first module `campaigns` exist, the old campaign page under `/campaign-editor` is still scaffolding):
+Target layout (built step by step, see the plan; the shells, navigation, sign-in (`auth`, `legal`), account (`users`) and `campaigns` (dashboard with create dialog, campaign overview) exist):
 
 ```
 apps/frontend/src/
@@ -212,7 +212,7 @@ A frontend module has the same name and boundaries as its backend module. Domain
 - **Texts never break the app.** A message that is missing or doesn't compile falls back to German; if German has none either, nothing is shown (the key in development, with a console warning). A language that doesn't load falls back to German, and without any messages the app still starts. Dates with an invalid value or time zone show nothing or use the browser's zone. Problems are caught before shipping by `i18n:check` (it also compiles every message), not at runtime.
 - German and English from the start, more without rework. Text on screen comes only from message files: `src/locales/<lang>/<namespace>.json` (`common`, `errors`, `glossary`) and `src/modules/<module>/locales/<lang>.json` (namespace = module name). Keys name the meaning (`common.actions.save`, `locations.editor.save`), not the text. German is the reference; every change to it comes with English in the same change.
 - Translate with `useAppI18n()` from `@/core/i18n` (`t(key)`, `t(key, named)`, `t(key, count, named)` for plurals); keys are typed against the German files (`src/core/i18n/generated/messages.d.ts`, `npm run i18n:types`), so a typo is a compile error. `$t` is not installed. Keys built at runtime are declared next to their use with a comment `// i18n-dynamic: errors.*`.
-- `@intlify/vue-i18n/no-raw-text` refuses text in templates (only the old scaffold pages are exempt until they are replaced). Labels and toasts in scripts also go through `t()`.
+- `@intlify/vue-i18n/no-raw-text` refuses text in templates (only the development showcase is exempt). Labels and toasts in scripts also go through `t()`.
 - API errors are shown by code: `t(errorMessageKey(error))` (`errors.<code>`), never the server's `message`.
 - D&D terms come from the glossary (`useGlossary().term("species", edition)`): one fixed wording per language, with overrides per ruleset edition (2014 "Volk"/"Race"). Term names are listed in `@dnd/i18n` (`GLOSSARY_TERMS`); `i18n:check` makes sure every language has them.
 - Dates and numbers only through `useFormat()` (`date(value, "date" | "dateLong" | "dateTime" | "time")`, `number`, `relative`) in the active language and the user's time zone (`setTimeZone`, from the profile).

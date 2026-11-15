@@ -5,12 +5,51 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Your campaigns at a glance.",
-    "campaigns": "Your campaigns",
-    "empty": "You are not in a campaign yet. Once you create one or get invited, it shows up here.",
-    "error": "Your campaigns could not be loaded."
+    "subtitle": "Your campaigns and next adventures at a glance.",
+    "mobileSubtitle": "Your adventures at a glance.",
+    "breadcrumb": "Your account",
+    "search": "Search campaigns …",
+    "filter": "Filter campaigns",
+    "filterAll": "All",
+    "filterOwned": "Created by you",
+    "filterJoined": "Joined",
+    "owned": "Created by you",
+    "joined": "Joined",
+    "noMatch": "No campaign matches your search.",
+    "resetSearch": "Reset search",
+    "welcomeTitle": "Welcome to your chronicle",
+    "welcomeText": "You aren't in a campaign yet. Create your first one or wait for an invitation from your game master.",
+    "error": "Your campaigns couldn't be loaded."
+  },
+  "card": {
+    "open": "Open",
+    "openLabel": "Open {name}"
+  },
+  "create": {
+    "action": "Create campaign",
+    "title": "Create campaign",
+    "name": "Campaign name",
+    "namePlaceholder": "e.g. The Shadows of Elaria",
+    "nameRequired": "Please enter a campaign name.",
+    "ruleset": "Ruleset",
+    "rulesetRequired": "Please choose a ruleset.",
+    "rulesetHint": "The ruleset decides default content and calculations and can't be changed later.",
+    "noRulesets": "No ruleset is available yet. Please contact the administration.",
+    "description": "Short description",
+    "descriptionHint": "Optional – visible to all members.",
+    "descriptionPlaceholder": "What is your campaign about?"
   },
   "overview": {
-    "noDescription": "No description yet."
+    "eyebrow": "Campaign · {ruleset}",
+    "about": "What it's about",
+    "noDescription": "No description yet.",
+    "group": "Party",
+    "groupEmpty": "No members besides the game master yet.",
+    "nextSession": "Next session",
+    "nextSessionEmpty": "No session planned yet. Session planning is coming.",
+    "state": "Campaign state",
+    "gameDay": "Game day",
+    "longRests": "Long rests",
+    "createdAt": "Created on {date}"
   }
 }

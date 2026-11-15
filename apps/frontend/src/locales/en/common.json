@@ -63,8 +63,29 @@
   },
   "status": {
     "ACTIVE": "Active",
+    "PUBLISHED": "Published",
+    "RELEASED": "Released",
+    "VERIFIED": "Verified",
+    "CONFIRMED": "Confirmed",
+    "CONNECTED": "Connected",
+    "DEFEATED": "Defeated",
+    "PLANNED": "Planned",
+    "IN_PROGRESS": "In progress",
+    "IN_PREPARATION": "In preparation",
+    "PENDING": "Pending",
+    "IN_REVIEW": "In review",
+    "UNVERIFIED": "Unverified",
+    "INVITED": "Invited",
     "DRAFT": "Draft",
-    "ARCHIVED": "Archived"
+    "OPEN": "Open",
+    "COMPLETED": "Completed",
+    "DISCARDED": "Discarded",
+    "DISCOVERED": "Discovered",
+    "ARCHIVED": "Archived",
+    "BLOCKED": "Blocked",
+    "REJECTED": "Rejected",
+    "FAILED": "Failed",
+    "ERROR": "Error"
   },
   "conflict": {
     "title": "Changed in the meantime",
@@ -76,5 +97,39 @@
     "label": "Language",
     "de": "Deutsch",
     "en": "English"
+  },
+  "password": {
+    "placeholder": "Password",
+    "show": "Show password",
+    "hide": "Hide password"
+  },
+  "stepper": {
+    "decrease": "Decrease {label}",
+    "increase": "Increase {label}"
+  },
+  "code": {
+    "digit": "Digit {index} of {total}"
+  },
+  "menu": {
+    "more": "More actions"
+  },
+  "steps": {
+    "progress": "Progress"
+  },
+  "presence": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "mention": {
+    "gone": "{name} (no longer available)"
+  },
+  "valueEditor": {
+    "dialog": "Edit {title}",
+    "apply": "Apply",
+    "saving": "Saving …",
+    "number": "Please enter a number.",
+    "min": "At least {min}.",
+    "max": "At most {max}.",
+    "required": "Please fill in."
   }
 }

@@ -114,6 +114,12 @@ export default [
     files: ["apps/frontend/src/**/*.vue"],
     plugins: { "@intlify/vue-i18n": vueI18n },
     rules: {
+      // Server HTML only through SafeHtml (DOMPurify), the one place with an exception.
+      "vue/no-v-html": "error",
+      // Props are typed (defineProps<…>()), so optional ones need no runtime default.
+      "vue/require-default-prop": "off",
+      // Base components keep the clickdummy's names.
+      "vue/multi-word-component-names": ["error", { ignores: ["Avatar", "Badge", "Icon"] }],
       "@intlify/vue-i18n/no-raw-text": [
         "error",
         { ignorePattern: "^[\\s\\d.,:;!?·…×+\\-–—/|()&%#*]+$" },
@@ -125,8 +131,15 @@ export default [
     files: [
       "apps/frontend/src/layouts/{Auth,CampaignEditor,Dashboard,PlayerView}Layout.vue",
       "apps/frontend/src/pages/*.vue",
+      // Development-only showcase, never shipped.
+      "apps/frontend/src/dev/**/*.vue",
     ],
     rules: { "@intlify/vue-i18n/no-raw-text": "off" },
+  },
+  {
+    // Tests mount small helper components next to each other.
+    files: ["apps/frontend/tests/**/*.ts"],
+    rules: { "vue/one-component-per-file": "off" },
   },
   {
     files: [

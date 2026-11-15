@@ -12,6 +12,10 @@ import PlayerViewPage from "@/pages/PlayerViewPage.vue";
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // Development only: all building blocks on one page (not in the production build).
+    ...(import.meta.env.DEV
+      ? [{ path: "/_bausteine", name: "dev-components", component: () => import("@/dev/ComponentsShowcase.vue") }]
+      : []),
     {
       path: "/auth",
       component: AuthLayout,

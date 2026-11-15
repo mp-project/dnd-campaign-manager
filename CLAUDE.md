@@ -205,6 +205,12 @@ A frontend module has the same name and boundaries as its backend module. Domain
 - Language choice: profile (`users.locale`, applied with `setLocale` after sign-in) → last choice in this browser → browser languages → German. No language in app URLs. Only the active language is downloaded (one chunk per file).
 - Pseudo language: `?lang=qps` in development shows German with accents, 40 % longer and in brackets; text that stays plain is hard-coded, text that breaks is too tight.
 
+### Building blocks
+
+- `src/components/base/`: Icon, BaseButton, IconButton, CloseButton, Badge, StatusBadge, Avatar, FormField, TextInput, PasswordInput, SelectInput, TextArea, CodeInput, NumberStepper, RangeField, SegmentedControl, ToggleSwitch, CheckBox, RadioCard, DropdownMenu, EditableValue, ValueEditor (shared prop types in `types.ts`). `src/components/content/`: ExpandableText, MentionText, ModalDialog, StepIndicator, SafeHtml. They take data through props and slots and their texts from the message files; component tests mount them with `tests/unit/helpers/mount.ts` (i18n + router).
+- `npm run dev` → `/_bausteine` shows the theme tokens (read from `main.css`), all icons and every building block in all its variants and states, with clickdummy example content, to compare with the clickdummy. One section file per group in `src/dev/showcase/`, each component in a `<ShowcaseComponent name="…">`; `tests/unit/components/showcase.test.ts` fails when a component of `components/base` or `components/content` is missing there, so a new building block comes with its variants on that page. Development only (not in the production build, exempt from `no-raw-text`); `?lang=en` / `?lang=qps` switch the language in development.
+- The frontend tsconfig turns `exactOptionalPropertyTypes` off: templates pass possibly undefined values on to optional props.
+
 Tests: Vitest + Vue Test Utils (`apps/frontend/tests/unit`, `npm run test:unit --workspace @dnd/frontend`; the root `test:unit` runs backend and frontend), Playwright for flows. `tests/unit/theme.test.ts` fails on raw color values outside `styles/main.css`.
 
 ### Theme
@@ -213,20 +219,20 @@ Tests: Vitest + Vue Test Utils (`apps/frontend/tests/unit`, `npm run test:unit -
 - Components use only these semantic utilities, never raw hex/rgb values or arbitrary color values like `bg-[#7a1f2b]`. A missing color becomes a token. Material values that are no utilities (paper texture) are custom properties on `:root` in the same file.
 - Custom CSS is fine where utilities aren't enough (parchment texture, ornamental frames, animations): in a layer of `main.css` (`.parchment`, `.frame-double`, `.card`, `.input`, `.btn-*`, `.badge`, `.table`) or a scoped component style, named by meaning, using the tokens.
 - Look: dark navy sidebar and top bar, parchment work surface with a golden double frame and ornamental corners, burgundy primary color for actions and the active navigation, serif typography (Libre Baskerville for headings, Lora for text, self-hosted through `@fontsource`, no Google Fonts CDN), soft colored pill badges, table lists with filter bars and pagination.
-- App assets live in `public/assets/`: the icon sprite `icons/chronik.svg` (names in `components/base/icon-names.json`) and `deko/` (frame corners, compass rose, seals, mountain motif). Example images of the clickdummy (characters, maps, monsters …) are no app assets.
+- App assets live in `public/assets/`: the icon sprite `icons/chronik.svg` (names typed as `IconName` in `components/base/iconNames.ts`; a test keeps it equal to the sprite) and `deko/` (frame corners, compass rose, seals, mountain motif). Example images of the clickdummy (characters, maps, monsters …) are no app assets.
 
 ### Conventions (from the clickdummy)
 
 - **Page layout:** breadcrumb → domain icon + title → subtitle → primary action → search/filters → count/sort → content → pagination (`PageHeader`, `ListToolbar`, `ResultBar`, `DataTable`, `PaginationBar`).
 - **Exactly one primary action per context** (burgundy); others are secondary. Labels name the concrete action ("Ort erstellen", "Monster speichern").
 - **Buttons** only through `BaseButton` (variant, size lg/md/sm/xs, icon, `to`), icon-only buttons through `IconButton` (label required → aria-label + tooltip), closing through `CloseButton`. No raw `.btn` classes in views.
-- **Icons** only through `<Icon name="…" />` from the sprite (`nav-*`, `aktion-*`, `orig-*`, `ui-*`), sizes 16/20/24/32, domain icons in page headers 40–48. Same function = same icon.
+- **Icons** only through `<Icon name="…" />` from the sprite (`nav-*`, `aktion-*`, `orig-*`, `ui-*`), sizes 16/20/24/32, domain icons in page headers 40–48. Same function = same icon. A misspelled name is a compile error.
 - **Forms:** labels outside the fields (`FormField`), errors directly at the field.
 - **Editors** are child routes of the list (`…/neu`, `…/:id/bearbeiten`) in an `EditorDrawer` (drawer on desktop, editor page on mobile); every section has content. The list renders `<RouterView :key="$route.fullPath" />`.
 - **Tabs with their own URL** through `TabNav` with `to`.
-- **Single values** (character values, quantities, visibility, links …) change in the small value editor (`ValueEditor`, popover on desktop, bottom sheet on mobile); clickable values are wrapped in `EditableValue`.
-- **Status** always through `StatusBadge` (tone + icon from one central mapping), visibility through `VisibilityLabel`. Same meaning = same badge tone.
-- **Long texts** through `ExpandableText`. Server HTML only through `SafeHtml` (see above), mentions through `MentionText`.
+- **Single values** (character values, quantities, visibility, links …) change in the small value editor: `editValues(anchor, { title, fields, preview?, onSave })` from `@/core/ui/valueEditor`, shown by the one `ValueEditor` in `App.vue` (popover on desktop, bottom sheet on mobile). `onSave` runs the request (return its promise): the editor is busy meanwhile and stays open with the translated error if it fails (412 included). Clickable values are wrapped in `EditableValue`.
+- **Status** always through `<StatusBadge status="DRAFT" />` with a status code; tone, icon and label come from the one mapping `@/core/ui/status` (labels `common.status.<CODE>`). An unknown code is shown neutral, never an error. Visibility through `VisibilityLabel`. Same meaning = same badge tone; badge tones are classes `.badge-<tone>` on tokens in `main.css`.
+- **Long texts** through `ExpandableText`. Server HTML only through `SafeHtml` (DOMPurify; `vue/no-v-html` is an error everywhere else). Mentions `@[Name](type:id)` through `MentionText` (`@/core/content/mentions`): a page provides `MENTION_RESOLVER` (current name, preview card; `null` = gone, struck through) and `MENTION_OPENER`; without them the stored name shows. Broken mention syntax stays plain text.
 - **Responsive** with the `md` breakpoint (768 px): reorder content on mobile, never a horizontal page scrollbar.
 - **Rights in the UI** only hide what the API refuses anyway (create, release, settings only for the game master); the backend decides.
 - **New building blocks:** check for a shared component first; module folders only for domain-specific parts.

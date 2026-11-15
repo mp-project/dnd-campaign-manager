@@ -80,7 +80,7 @@
             <input
               v-model.trim="createForm.name"
               type="text"
-              placeholder="The Northern Reach"
+              placeholder="Die Schatten von Elaria"
               class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
@@ -90,7 +90,7 @@
             <input
               v-model.trim="createForm.slug"
               type="text"
-              placeholder="the-northern-reach"
+              placeholder="die-schatten-von-elaria"
               class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
@@ -169,9 +169,9 @@
               v-model="updateForm.status"
               class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
-              <option value="DRAFT">DRAFT</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="ARCHIVED">ARCHIVED</option>
+              <option value="DRAFT">Entwurf</option>
+              <option value="ACTIVE">Aktiv</option>
+              <option value="ARCHIVED">Archiviert</option>
             </select>
           </label>
 

@@ -4,9 +4,9 @@
   >
     <section class="layout-card card">
       <header>
-        <h1 class="layout-title">Dashboard Workspace</h1>
+        <h1 class="layout-title">Übersicht</h1>
         <p class="layout-subtitle">
-          Placeholder for campaign overview and shortcuts.
+          Deine Kampagnen und Schnellzugriffe.
         </p>
       </header>
       <RouterView />

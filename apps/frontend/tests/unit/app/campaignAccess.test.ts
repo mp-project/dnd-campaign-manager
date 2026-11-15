@@ -31,6 +31,7 @@ import { api, unwrap } from "@/core/api/client";
 import { campaignKey } from "@/core/api/queryClient";
 import { lastCampaignId, rememberCampaign } from "@/core/campaign/campaign";
 import { defineFrontendModule } from "@/core/modules";
+import { authModule } from "@/modules/auth";
 
 const CAMPAIGN_ID = "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 const SEGMENT = toRefSegment(CAMPAIGN_ID, "elaria");
@@ -46,7 +47,7 @@ const testModule = defineFrontendModule({
 
 async function openCampaign() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([testModule]) });
+  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, testModule]) });
   installGuards(router, queryClient);
   const stop = watchCampaignAccess(router, queryClient);
   await router.push(`/k/${SEGMENT}/welt/orte`);

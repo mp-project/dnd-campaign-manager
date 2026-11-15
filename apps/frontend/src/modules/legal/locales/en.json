@@ -1,0 +1,85 @@
+{
+  "example": "Example content: these details are placeholders and must be replaced with the real ones and legally reviewed before going live.",
+  "updated": "Last updated: November 2026",
+  "back": "Back",
+  "imprint": {
+    "title": "Legal notice",
+    "subtitle": "Information according to § 5 DDG (German Digital Services Act)",
+    "provider": {
+      "title": "Provider",
+      "body": "Chronik Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nGermany"
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "Phone: +49 123 456789-0\nEmail: kontakt{'@'}example.com"
+    },
+    "represented": {
+      "title": "Represented by",
+      "body": "Erika Mustermann (Managing Director)"
+    },
+    "register": {
+      "title": "Commercial register",
+      "body": "Register court: Amtsgericht Musterstadt\nRegistration number: HRB 00000"
+    },
+    "vat": {
+      "title": "VAT ID",
+      "body": "VAT identification number according to § 27a UStG: DE000000000"
+    },
+    "editorial": {
+      "title": "Responsible for the content",
+      "body": "Erika Mustermann, address as above"
+    },
+    "dispute": {
+      "title": "Consumer dispute resolution",
+      "body": "We are neither willing nor obliged to take part in dispute resolution proceedings before a consumer arbitration board."
+    },
+    "content": {
+      "title": "Content of our users",
+      "body": "Campaigns, notes, images and other content are created by our users, who are responsible for it. We accept reports of unlawful content at the address above and review them promptly."
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "subtitle": "How we handle your data",
+    "controller": {
+      "title": "Controller",
+      "body": "Chronik Beispiel GmbH, Musterstraße 1, 12345 Musterstadt, Germany\nEmail: datenschutz{'@'}example.com"
+    },
+    "account": {
+      "title": "Your account",
+      "body": "For your account we store your email address, display name, username, language and time zone, and your password as a secure hash, never in plain text. The legal basis is the performance of the contract of use (Art. 6(1)(b) GDPR)."
+    },
+    "content": {
+      "title": "Your content",
+      "body": "We store campaigns, notes, characters, uploaded images and other content so that you and the members of your campaigns can use them. Who sees which content is decided by the rights within the campaign. Changes to content are stored with their history so they can be undone."
+    },
+    "oauth": {
+      "title": "Signing in with Google or Discord",
+      "body": "If you sign in with Google or Discord, the provider sends us your confirmed email address, your name and an identifier of your account there. We don't request any other data. The provider's privacy policy applies to its own processing."
+    },
+    "cookies": {
+      "title": "Cookies and local storage",
+      "body": "We only use technically necessary cookies: for your session, its renewal, a device you marked as trusted and the flow of a sign-in through a provider. In your browser we also remember your language and the campaign you opened last. We don't set tracking or advertising cookies."
+    },
+    "security": {
+      "title": "Protecting your account",
+      "body": "To fend off attacks, we count failed sign-ins and confirmation attempts with IP address and time, and store the device and browser of each session. The legal basis is our legitimate interest in secure operation (Art. 6(1)(f) GDPR)."
+    },
+    "email": {
+      "title": "Emails",
+      "body": "We send you the emails your account needs: confirmation codes, password reset links, notices about changes to your email address and invitations to campaigns."
+    },
+    "push": {
+      "title": "Push notifications",
+      "body": "If you allow push notifications, we use the Pusher Beams service for them, which receives an identifier of your browser. You can turn the notifications off in your browser at any time."
+    },
+    "retention": {
+      "title": "Retention",
+      "body": "We keep your data as long as your account exists. Expired sessions and sign-in attempts are deleted after a short time. When your account is deleted, we remove your data unless legal retention obligations apply."
+    },
+    "rights": {
+      "title": "Your rights",
+      "body": "You have the right to access, rectification, erasure, restriction of processing, data portability and objection. Contact us at the address above. You may also lodge a complaint with a data protection supervisory authority."
+    }
+  }
+}

@@ -30,10 +30,25 @@ const initials = computed(() =>
     .join(""),
 );
 
-async function leave(): Promise<void> {
-  // Signed out locally even if the server can't be reached; the session cookie expires on its own.
-  await signOut(queryClient).catch(() => undefined);
-  await router.push({ name: "auth-login" });
+/**
+ * Signing out of this browser works locally even if the server can't be reached; the session
+ * cookie expires on its own. Signing out everywhere is a security action: if it fails, this
+ * browser is still signed out, and the sign-in page says that the other sessions may remain.
+ */
+async function leave(scope: "device" | "everywhere" = "device"): Promise<void> {
+  if (scope === "device") {
+    await signOut(queryClient).catch(() => undefined);
+    await router.push({ name: "auth-login" });
+    return;
+  }
+
+  try {
+    await signOut(queryClient, "everywhere");
+    await router.push({ name: "auth-login" });
+  } catch {
+    await signOut(queryClient).catch(() => undefined);
+    await router.push({ name: "auth-login", query: { signedOut: "partial" } });
+  }
 }
 
 const items = computed<DropdownItem[]>(() => [
@@ -42,6 +57,7 @@ const items = computed<DropdownItem[]>(() => [
   ...(props.switchTo ? [{ label: props.switchTo.label, icon: "nav-spielbrett" as const, to: props.switchTo.to }] : []),
   { divider: true },
   { label: t("common.shell.signOut"), icon: "aktion-abmelden", action: () => void leave() },
+  { label: t("common.shell.signOutEverywhere"), icon: "aktion-abmelden", action: () => void leave("everywhere") },
 ]);
 </script>
 

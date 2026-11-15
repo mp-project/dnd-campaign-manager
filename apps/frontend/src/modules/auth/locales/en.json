@@ -1,0 +1,96 @@
+{
+  "shell": {
+    "quotes": {
+      "place": "“Great stories begin with a place.”",
+      "decision": "“Every legend begins with a decision.”",
+      "steps": "“Great adventures begin with small steps.”",
+      "dice": "“The dice fall and the story begins.”",
+      "deeds": "“Deeds speak so much louder than words.”",
+      "nextAdventure": "“Your next adventure is already waiting.”",
+      "newStories": "“New stories are waiting to be told.”"
+    },
+    "noAccount": "No account yet?",
+    "haveAccount": "Already registered?",
+    "toRegister": "Register",
+    "toLogin": "Sign in"
+  },
+  "fields": {
+    "email": "Email address",
+    "password": "Password",
+    "newPassword": "New password",
+    "passwordRepeat": "Confirm password",
+    "displayName": "Display name",
+    "displayNameHint": "This is how the others see you in your campaigns.",
+    "username": "Username (optional)",
+    "usernameHint": "3–24 characters: lowercase letters, digits, - and _. If you leave it empty, we derive it from your display name.",
+    "passwordHint": "At least {min} characters.",
+    "privacy": "I accept the privacy policy."
+  },
+  "validation": {
+    "email": "Please enter a valid email address.",
+    "passwordRequired": "Please enter your password.",
+    "passwordLength": "The password needs at least {min} characters.",
+    "passwordRepeat": "The passwords don't match.",
+    "displayName": "Please enter a display name.",
+    "username": "3–24 characters: lowercase letters, digits, - and _, no - or _ at the start or end.",
+    "privacy": "Please accept the privacy policy.",
+    "code": "Please enter all 6 digits."
+  },
+  "errors": {
+    "retryAfter": "Too many attempts. Please try again in a minute. | Too many attempts. Please try again in {minutes} minutes.",
+    "codeInvalid": "The code is wrong or has expired. Request a new one if needed."
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Welcome back to your chronicle.",
+    "submit": "Sign in",
+    "toRegister": "No account yet? Register",
+    "forgot": "Forgot your password?",
+    "verified": "Your email address is confirmed. You can sign in now.",
+    "verifyFailed": "The confirmation link is invalid, has expired or was already used.",
+    "verifyWithCode": "Enter a code or request a new one",
+    "reset": "Your password was changed. Sign in with your new password.",
+    "signedOutPartially": "Signing out everywhere didn't work. This browser is signed out, but other sessions may still be active. Sign in and try again.",
+    "notVerified": "Please confirm your email address first.",
+    "toActivation": "Confirm now"
+  },
+  "register": {
+    "title": "Create account",
+    "subtitle": "Begin your next story.",
+    "submit": "Create account"
+  },
+  "activate": {
+    "title": "Confirm your email",
+    "subtitle": "We sent you a 6-digit code. The email also contains a link that does the same.",
+    "code": "Confirmation code",
+    "submit": "Confirm email",
+    "noCode": "Didn't get a code?",
+    "resend": "Send code again",
+    "resent": "If a registration is waiting for this address, a new code is on its way. Check your spam folder too."
+  },
+  "forgot": {
+    "title": "Forgot password",
+    "subtitle": "We'll send you a link to set a new password.",
+    "submit": "Send link",
+    "sent": "If an account belongs to this address, a link is on its way. It is only valid for a short time.",
+    "back": "Back to sign-in"
+  },
+  "reset": {
+    "title": "New password",
+    "subtitle": "Choose a new password for your account. You'll be signed out everywhere afterwards.",
+    "submit": "Save password",
+    "missingToken": "This link is incomplete. Open the link from the email again or request a new one.",
+    "requestNew": "Request a new link"
+  },
+  "oauth": {
+    "with": "Continue with {provider}",
+    "or": "or",
+    "hint": "With Google or Discord you sign in or create a new account.",
+    "signingIn": "Signing you in …",
+    "completeTitle": "Almost done",
+    "completeSubtitle": "Your account with the provider is confirmed. How should the others see you?",
+    "completeSubmit": "Create account",
+    "errorTitle": "Sign-in not possible",
+    "back": "Back to sign-in"
+  }
+}

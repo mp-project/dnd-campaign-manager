@@ -4,10 +4,8 @@ import { frontendModules } from "@/app/modules";
 import type { FrontendModule, RouteArea } from "@/core/modules";
 import BareLayout from "@/layouts/BareLayout.vue";
 
-// The old sign-in and campaign pages stay until they are rebuilt; they have no area, so no guard applies.
-import AuthLayout from "@/layouts/AuthLayout.vue";
+// The old campaign page stays until it is rebuilt; it has no area, so no guard applies.
 import CampaignEditorLayout from "@/layouts/CampaignEditorLayout.vue";
-import AuthPage from "@/pages/AuthPage.vue";
 import CampaignEditorPage from "@/pages/CampaignEditorPage.vue";
 
 const AppShell = () => import("@/layouts/AppShell.vue");
@@ -44,17 +42,6 @@ export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[
       component: AppShell,
       meta: { area: "campaign" },
       children: routesOf(modules, "campaign"),
-    },
-    {
-      path: "/auth",
-      component: AuthLayout,
-      children: [
-        { path: "", name: "auth", component: AuthPage, props: { mode: "login" } },
-        { path: "login", name: "auth-login", component: AuthPage, props: { mode: "login" } },
-        { path: "callback", name: "auth-callback", component: AuthPage, props: { mode: "login" } },
-        { path: "register", name: "auth-register", component: AuthPage, props: { mode: "register" } },
-        { path: "reset-password", name: "auth-reset-password", component: AuthPage, props: { mode: "reset-password" } },
-      ],
     },
     {
       path: "/campaign-editor",

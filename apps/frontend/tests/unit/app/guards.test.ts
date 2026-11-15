@@ -8,6 +8,7 @@ import { buildRoutes } from "@/app/router";
 import { ApiError } from "@/core/api/errors";
 import { lastCampaignId, rememberCampaign } from "@/core/campaign/campaign";
 import { defineFrontendModule } from "@/core/modules";
+import { authModule } from "@/modules/auth";
 
 const page = { render: () => null };
 const testModule = defineFrontendModule({
@@ -37,7 +38,7 @@ function setup(answers: { me?: unknown; campaign?: unknown }) {
     if (answer instanceof Error) throw answer;
     return answer;
   });
-  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([testModule]) });
+  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, testModule]) });
   installGuards(router, queryClient);
   return router;
 }
@@ -127,7 +128,7 @@ describe("expired session", () => {
   it("lets requests that failed with it settle before the cache is cleared", async () => {
     vi.useFakeTimers();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([testModule]) });
+    const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, testModule]) });
     let expire = () => {};
     const loading = queryClient.fetchQuery({
       queryKey: ["me", "campaigns"],

@@ -1,0 +1,85 @@
+{
+  "example": "Beispielinhalt: Diese Angaben sind Platzhalter und müssen vor dem Betrieb durch die echten Angaben ersetzt und rechtlich geprüft werden.",
+  "updated": "Stand: November 2026",
+  "back": "Zurück",
+  "imprint": {
+    "title": "Impressum",
+    "subtitle": "Angaben gemäß § 5 DDG",
+    "provider": {
+      "title": "Anbieter",
+      "body": "Chronik Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nDeutschland"
+    },
+    "contact": {
+      "title": "Kontakt",
+      "body": "Telefon: +49 123 456789-0\nE-Mail: kontakt{'@'}example.com"
+    },
+    "represented": {
+      "title": "Vertreten durch",
+      "body": "Erika Mustermann (Geschäftsführerin)"
+    },
+    "register": {
+      "title": "Registereintrag",
+      "body": "Registergericht: Amtsgericht Musterstadt\nRegisternummer: HRB 00000"
+    },
+    "vat": {
+      "title": "Umsatzsteuer-ID",
+      "body": "Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: DE000000000"
+    },
+    "editorial": {
+      "title": "Verantwortlich für den Inhalt",
+      "body": "Erika Mustermann, Anschrift wie oben"
+    },
+    "dispute": {
+      "title": "Verbraucherstreitbeilegung",
+      "body": "Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen."
+    },
+    "content": {
+      "title": "Inhalte der Nutzerinnen und Nutzer",
+      "body": "Kampagnen, Notizen, Bilder und andere Inhalte legen die Nutzerinnen und Nutzer selbst an. Für diese Inhalte sind sie selbst verantwortlich. Hinweise auf rechtswidrige Inhalte nehmen wir unter der oben genannten Adresse entgegen und prüfen sie umgehend."
+    }
+  },
+  "privacy": {
+    "title": "Datenschutz",
+    "subtitle": "Wie wir mit deinen Daten umgehen",
+    "controller": {
+      "title": "Verantwortliche Stelle",
+      "body": "Chronik Beispiel GmbH, Musterstraße 1, 12345 Musterstadt\nE-Mail: datenschutz{'@'}example.com"
+    },
+    "account": {
+      "title": "Dein Konto",
+      "body": "Für dein Konto speichern wir E-Mail-Adresse, Anzeigename, Benutzername, Sprache und Zeitzone sowie dein Passwort als sicheren Hash, nie im Klartext. Rechtsgrundlage ist die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO)."
+    },
+    "content": {
+      "title": "Deine Inhalte",
+      "body": "Kampagnen, Notizen, Charaktere, hochgeladene Bilder und andere Inhalte speichern wir, damit du und die Mitglieder deiner Kampagnen sie nutzen können. Wer welche Inhalte sieht, entscheiden die Rechte in der Kampagne. Änderungen an Inhalten werden mit ihrem Verlauf gespeichert, damit sie rückgängig gemacht werden können."
+    },
+    "oauth": {
+      "title": "Anmeldung über Google oder Discord",
+      "body": "Wenn du dich über Google oder Discord anmeldest, erhalten wir vom Anbieter deine bestätigte E-Mail-Adresse, deinen Namen und eine Kennung deines Kontos dort. Weitere Daten fragen wir nicht ab. Für die Verarbeitung beim Anbieter gelten dessen Datenschutzbestimmungen."
+    },
+    "cookies": {
+      "title": "Cookies und lokale Speicherung",
+      "body": "Wir verwenden nur technisch notwendige Cookies: für deine Sitzung, ihre Erneuerung, ein von dir als vertrauenswürdig markiertes Gerät und den Ablauf einer Anmeldung über einen Anbieter. Im Browser merken wir uns außerdem deine Sprache und die zuletzt geöffnete Kampagne. Tracking- oder Werbe-Cookies setzen wir nicht."
+    },
+    "security": {
+      "title": "Schutz deines Kontos",
+      "body": "Um Angriffe abzuwehren, zählen wir fehlgeschlagene Anmeldungen und Bestätigungsversuche mit IP-Adresse und Zeitpunkt und speichern zu jeder Sitzung Gerät und Browser. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO)."
+    },
+    "email": {
+      "title": "E-Mails",
+      "body": "Wir schicken dir E-Mails, die für dein Konto nötig sind: Bestätigungscodes, Links zum Zurücksetzen des Passworts, Hinweise zu Änderungen deiner E-Mail-Adresse und Einladungen in Kampagnen."
+    },
+    "push": {
+      "title": "Push-Benachrichtigungen",
+      "body": "Wenn du Push-Benachrichtigungen erlaubst, nutzen wir dafür den Dienst Pusher Beams. Dabei wird eine Kennung deines Browsers übermittelt. Du kannst die Benachrichtigungen jederzeit in deinem Browser abschalten."
+    },
+    "retention": {
+      "title": "Speicherdauer",
+      "body": "Wir speichern deine Daten, solange dein Konto besteht. Abgelaufene Sitzungen und Anmeldeversuche löschen wir nach kurzer Zeit. Nach der Löschung deines Kontos entfernen wir deine Daten, soweit keine gesetzlichen Aufbewahrungspflichten bestehen."
+    },
+    "rights": {
+      "title": "Deine Rechte",
+      "body": "Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Wende dich dafür an die oben genannte Adresse. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren."
+    }
+  }
+}

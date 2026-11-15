@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from "vue";
+
 import BottomNav from "@/components/layout/BottomNav.vue";
 import BrandMark from "@/components/layout/BrandMark.vue";
 import CompassRose from "@/components/layout/CompassRose.vue";
@@ -6,11 +8,15 @@ import NavFooter from "@/components/layout/NavFooter.vue";
 import NavTree from "@/components/layout/NavTree.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
+import InfoNote from "@/components/page/InfoNote.vue";
+import TabNav from "@/components/page/TabNav.vue";
 import type { BottomNavTarget, NavEntry, NavLink } from "@/core/navigation/navigation";
 
 import ShowcaseComponent from "./ShowcaseComponent.vue";
 import ShowcaseSection from "./ShowcaseSection.vue";
 import ShowcaseVariant from "./ShowcaseVariant.vue";
+
+const tab = ref("anmelden");
 
 // The clickdummy's navigation as example; in the app the entries come from the registered modules.
 const link = (id: string, label: string, icon: NavLink["icon"]): NavLink => ({ id, label, icon, to: `/_bausteine#${id}` });
@@ -160,6 +166,63 @@ const playerBottom: BottomNavTarget[] = [
             { label: 'Zum Kupferkrug' },
           ]"
         />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="TabNav"
+      description="Mit to: eigene URL je Tab (aktiv nach Pfad), sonst v-model; mobil horizontal scrollbar"
+    >
+      <ShowcaseVariant
+        label="boxed, v-model"
+        wide
+      >
+        <TabNav
+          v-model="tab"
+          label="Bereiche"
+          :tabs="[
+            { id: 'anmelden', label: 'Anmelden', icon: 'ui-key' },
+            { id: 'registrieren', label: 'Registrieren', icon: 'ui-user' },
+          ]"
+        />
+      </ShowcaseVariant>
+      <ShowcaseVariant
+        label="plain, mit Links"
+        wide
+      >
+        <TabNav
+          variant="plain"
+          label="Profil"
+          :tabs="[
+            { id: 'bausteine', label: 'Bausteine', to: '/_bausteine' },
+            { id: 'dashboard', label: 'Dashboard', to: '/dashboard' },
+            { id: 'konto', label: 'Konto', to: '/konto' },
+          ]"
+        />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="InfoNote"
+      description="tone: info, ok, warn, danger; announce liest Ergebnisse vor"
+    >
+      <ShowcaseVariant label="info">
+        <InfoNote>Der Code ist 30 Minuten gültig.</InfoNote>
+      </ShowcaseVariant>
+      <ShowcaseVariant label="ok">
+        <InfoNote tone="ok">
+          Deine E-Mail-Adresse ist bestätigt. Du kannst dich jetzt anmelden.
+        </InfoNote>
+      </ShowcaseVariant>
+      <ShowcaseVariant label="warn">
+        <InfoNote tone="warn">
+          Bitte bestätige zuerst deine E-Mail-Adresse.
+        </InfoNote>
+      </ShowcaseVariant>
+      <ShowcaseVariant label="danger">
+        <InfoNote tone="danger">
+          E-Mail-Adresse oder Passwort ist falsch.
+        </InfoNote>
       </ShowcaseVariant>
     </ShowcaseComponent>
 

@@ -13,6 +13,7 @@ import App from "./App.vue";
 import { watchCampaignAccess } from "./app/campaignAccess";
 import { handleSessionExpired, installGuards } from "./app/guards";
 import { frontendModules, navItemsOf } from "./app/modules";
+import { applyProfileSettings } from "./app/profileSettings";
 import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
@@ -37,6 +38,8 @@ app.use(i18n);
 
 // Mount once the language is loaded, so the first paint is already translated.
 const override = devLocaleOverride();
-void setLocale(i18n, override ?? initialLocale(), { remember: !override }).finally(() => app.mount("#app"));
+const startLocale = setLocale(i18n, override ?? initialLocale(), { remember: !override });
+applyProfileSettings(queryClient, i18n, { keepLocale: override !== null, after: startLocale });
+void startLocale.finally(() => app.mount("#app"));
 
 void startPushNotifications();

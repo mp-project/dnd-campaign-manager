@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import BottomNav from "@/components/layout/BottomNav.vue";
 import NavTree from "@/components/layout/NavTree.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
+import TabNav from "@/components/page/TabNav.vue";
 import type { NavEntry, NavLink } from "@/core/navigation/navigation";
 
-import { mountWithApp } from "../helpers/mount";
+import { mountWithApp, testRouter } from "../helpers/mount";
 
 const link = (id: string, label: string): NavLink => ({ id, label, icon: "nav-orte", to: `/${id}` });
 const account = [link("dashboard", "Dashboard")];
@@ -82,6 +83,35 @@ describe("breadcrumb", () => {
     expect(wrapper.findAll("a").map((anchor) => anchor.text())).toEqual(["Welt", "Orte"]);
     expect(wrapper.find('[aria-current="page"]').text()).toBe("Zum Kupferkrug");
     expect(wrapper.find("nav").attributes("aria-label")).toBe("Brotkrumen");
+    wrapper.unmount();
+  });
+});
+
+describe("tabs", () => {
+  it("marks the tab of the current path, the most specific one if several match", async () => {
+    const router = testRouter();
+    await router.push("/konto/sicherheit/geraete");
+    const { wrapper } = await mountWithApp(TabNav, {
+      router,
+      props: {
+        label: "Konto",
+        tabs: [
+          { id: "profile", label: "Profil", to: "/konto" },
+          { id: "security", label: "Sicherheit", to: "/konto/sicherheit" },
+          { id: "other", label: "Sonstiges", to: "/konto/sonstiges" },
+        ],
+      },
+    });
+    expect(wrapper.find('[aria-selected="true"]').text()).toBe("Sicherheit");
+    wrapper.unmount();
+  });
+
+  it("switches v-model tabs without links", async () => {
+    const { wrapper } = await mountWithApp(TabNav, {
+      props: { label: "Modus", modelValue: "a", tabs: [{ id: "a", label: "A" }, { id: "b", label: "B" }] },
+    });
+    await wrapper.findAll("button")[1]!.trigger("click");
+    expect(wrapper.emitted("update:modelValue")).toEqual([["b"]]);
     wrapper.unmount();
   });
 });

@@ -1,0 +1,96 @@
+{
+  "shell": {
+    "quotes": {
+      "place": "„Große Geschichten beginnen mit einem Ort.“",
+      "decision": "„Jede Legende beginnt mit einer Entscheidung.“",
+      "steps": "„Große Abenteuer beginnen mit kleinen Schritten.“",
+      "dice": "„Die Würfel fallen und die Geschichte beginnt.“",
+      "deeds": "„Taten sprechen so viel lauter als Worte.“",
+      "nextAdventure": "„Dein nächstes Abenteuer wartet bereits.“",
+      "newStories": "„Neue Geschichten warten darauf, erzählt zu werden.“"
+    },
+    "noAccount": "Noch kein Konto?",
+    "haveAccount": "Bereits registriert?",
+    "toRegister": "Registrieren",
+    "toLogin": "Anmelden"
+  },
+  "fields": {
+    "email": "E-Mail-Adresse",
+    "password": "Passwort",
+    "newPassword": "Neues Passwort",
+    "passwordRepeat": "Passwort bestätigen",
+    "displayName": "Anzeigename",
+    "displayNameHint": "So sehen dich die anderen in deinen Kampagnen.",
+    "username": "Benutzername (optional)",
+    "usernameHint": "3–24 Zeichen: Kleinbuchstaben, Ziffern, - und _. Ohne Angabe bilden wir ihn aus dem Anzeigenamen.",
+    "passwordHint": "Mindestens {min} Zeichen.",
+    "privacy": "Ich akzeptiere die Datenschutzrichtlinien."
+  },
+  "validation": {
+    "email": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "passwordRequired": "Bitte gib dein Passwort ein.",
+    "passwordLength": "Das Passwort braucht mindestens {min} Zeichen.",
+    "passwordRepeat": "Die Passwörter stimmen nicht überein.",
+    "displayName": "Bitte gib einen Anzeigenamen ein.",
+    "username": "3–24 Zeichen: Kleinbuchstaben, Ziffern, - und _, am Anfang und Ende kein - oder _.",
+    "privacy": "Bitte akzeptiere die Datenschutzrichtlinien.",
+    "code": "Bitte gib alle 6 Ziffern ein."
+  },
+  "errors": {
+    "retryAfter": "Zu viele Versuche. Bitte versuche es in einer Minute erneut. | Zu viele Versuche. Bitte versuche es in {minutes} Minuten erneut.",
+    "codeInvalid": "Der Code ist falsch oder abgelaufen. Fordere bei Bedarf einen neuen an."
+  },
+  "login": {
+    "title": "Anmelden",
+    "subtitle": "Willkommen zurück in deiner Chronik.",
+    "submit": "Anmelden",
+    "toRegister": "Noch kein Konto? Registrieren",
+    "forgot": "Passwort vergessen?",
+    "verified": "Deine E-Mail-Adresse ist bestätigt. Du kannst dich jetzt anmelden.",
+    "verifyFailed": "Der Bestätigungslink ist ungültig, abgelaufen oder wurde schon verwendet.",
+    "verifyWithCode": "Code eingeben oder neu anfordern",
+    "reset": "Dein Passwort wurde geändert. Melde dich mit dem neuen Passwort an.",
+    "signedOutPartially": "Das Abmelden auf allen Geräten hat nicht geklappt. Dieser Browser ist abgemeldet, andere Sitzungen können noch bestehen. Melde dich an und versuche es erneut.",
+    "notVerified": "Bitte bestätige zuerst deine E-Mail-Adresse.",
+    "toActivation": "Zur Bestätigung"
+  },
+  "register": {
+    "title": "Konto erstellen",
+    "subtitle": "Beginne deine nächste Geschichte.",
+    "submit": "Konto erstellen"
+  },
+  "activate": {
+    "title": "E-Mail bestätigen",
+    "subtitle": "Wir haben dir einen 6-stelligen Code geschickt. Du findest in der E-Mail auch einen Link, der dasselbe tut.",
+    "code": "Bestätigungscode",
+    "submit": "E-Mail bestätigen",
+    "noCode": "Keinen Code erhalten?",
+    "resend": "Code erneut senden",
+    "resent": "Falls zu dieser Adresse eine Registrierung wartet, ist ein neuer Code unterwegs. Schau auch im Spam-Ordner nach."
+  },
+  "forgot": {
+    "title": "Passwort vergessen",
+    "subtitle": "Wir schicken dir einen Link, mit dem du ein neues Passwort setzt.",
+    "submit": "Link senden",
+    "sent": "Falls zu dieser Adresse ein Konto gehört, ist ein Link unterwegs. Er ist nur kurz gültig.",
+    "back": "Zurück zur Anmeldung"
+  },
+  "reset": {
+    "title": "Neues Passwort",
+    "subtitle": "Wähle ein neues Passwort für dein Konto. Danach bist du überall abgemeldet.",
+    "submit": "Passwort speichern",
+    "missingToken": "Dieser Link ist unvollständig. Öffne den Link aus der E-Mail noch einmal oder fordere einen neuen an.",
+    "requestNew": "Neuen Link anfordern"
+  },
+  "oauth": {
+    "with": "Mit {provider} fortfahren",
+    "or": "oder",
+    "hint": "Mit Google oder Discord meldest du dich an oder legst ein neues Konto an.",
+    "signingIn": "Du wirst angemeldet …",
+    "completeTitle": "Fast geschafft",
+    "completeSubtitle": "Dein Konto beim Anbieter ist bestätigt. Wie sollen dich die anderen sehen?",
+    "completeSubmit": "Konto erstellen",
+    "errorTitle": "Anmeldung nicht möglich",
+    "back": "Zurück zur Anmeldung"
+  }
+}

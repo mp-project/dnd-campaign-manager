@@ -25,12 +25,15 @@ export function useMe() {
 }
 
 /**
- * Signs out this browser. The session ends on the server first; the cache is cleared either way,
- * so nothing of the account stays in memory even when the request fails.
+ * Ends the session: of this browser (`device`), or of every browser and device of the account
+ * including trusted devices (`everywhere`). The cache is cleared either way, so nothing of the
+ * account stays in memory; a failed request still rejects, so the caller can say so.
  */
-export async function signOut(queryClient: QueryClient): Promise<void> {
+export async function signOut(queryClient: QueryClient, scope: "device" | "everywhere" = "device"): Promise<void> {
   try {
-    await unwrap(api.POST("/api/v1/auth/logout", { body: {} }));
+    await unwrap(
+      scope === "everywhere" ? api.POST("/api/v1/auth/logout-all") : api.POST("/api/v1/auth/logout", { body: {} }),
+    );
   } finally {
     clearSessionCache(queryClient);
   }

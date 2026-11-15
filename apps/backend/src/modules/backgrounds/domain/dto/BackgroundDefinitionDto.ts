@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
+import { jsonValueDto, uuidDto } from "#core/http/dto";
 import { featCategoryEnum } from "#src/modules/feats/index";
 import { ABILITIES, featureKeyDto } from "#src/modules/features/index";
 import {
@@ -238,7 +238,7 @@ export const BackgroundFeatureBindingSchema = z
   .strictObject({
     parameterKey: featureKeyDto,
     bindingSource: z.enum(BINDING_SOURCES),
-    staticValue: z.json().nullable().default(null),
+    staticValue: jsonValueDto.nullable().default(null),
     contextKey: z.string().min(1).max(100).nullable().default(null),
   })
   .superRefine((binding, ctx) => {

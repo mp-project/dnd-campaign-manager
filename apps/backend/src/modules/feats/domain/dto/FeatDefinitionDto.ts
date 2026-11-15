@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
+import { jsonValueDto, uuidDto } from "#core/http/dto";
 import { AssetBaseSchema, type AssetRow } from "#src/modules/assets/index";
 import { ABILITIES, featureKeyDto } from "#src/modules/features/index";
 import { FEAT_MAX_CHARACTER_LEVEL } from "#src/modules/feats/domain/entities/FeatsTable";
@@ -151,6 +151,10 @@ export const PrerequisiteNodeSchema = prerequisiteNodeSchema(uuidDto);
 /** The tree as players see it: references to assets they may not see are null. */
 export const PrerequisiteNodeViewSchema = prerequisiteNodeSchema(uuidDto.nullable());
 
+// Recursive, so named components of the OpenAPI document (see `#core/rules/contracts`).
+z.globalRegistry.add(PrerequisiteNodeSchema, { id: "FeatPrerequisiteNode" });
+z.globalRegistry.add(PrerequisiteNodeViewSchema, { id: "FeatPrerequisiteNodeView" });
+
 // ---------------------------------------------------------------------------
 // Repeatability
 // ---------------------------------------------------------------------------
@@ -291,7 +295,7 @@ export const FeatFeatureBindingSchema = z
   .strictObject({
     parameterKey: featureKeyDto,
     bindingSource: z.enum(BINDING_SOURCES),
-    staticValue: z.json().nullable().default(null),
+    staticValue: jsonValueDto.nullable().default(null),
     contextKey: z.string().min(1).max(100).nullable().default(null),
     /** The feat choice whose (first) answer fills the parameter. */
     choiceKey: featureKeyDto.nullable().default(null),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { baseEntityResponseDto, standardListResponseDto, uuidDto } from "#core/http/dto";
+import { baseEntityResponseDto, jsonValueDto, standardListResponseDto, uuidDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
 import { campaignFactValues } from "#core/rules/campaignFacts";
 import { renderSafeMarkdown } from "#core/text/safeMarkdown";
@@ -247,7 +247,7 @@ export const ResponseSpellResolutionSchema = z.strictObject({
       scaleBy: z.enum(SPELL_SCALE_BY),
       valueType: z.enum(SPELL_SCALING_VALUE_TYPES),
       atLevel: z.number().int(),
-      value: z.json(),
+      value: jsonValueDto,
     }),
   ),
   effects: z.array(

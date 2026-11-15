@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { baseEntityResponseDto, standardListResponseDto, uuidDto } from "#core/http/dto";
+import { baseEntityResponseDto, jsonValueDto, standardListResponseDto, uuidDto } from "#core/http/dto";
 import { campaignFactValues } from "#core/rules/campaignFacts";
 import { ADVANTAGE_MODES, DIE_FACES } from "#core/rules/contracts";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
@@ -191,7 +191,7 @@ export const ResponseResolvedFeatureSchema = z.strictObject({
   parameters: z.array(
     z.strictObject({
       key: z.string(),
-      value: z.json().nullable(),
+      value: jsonValueDto.nullable(),
       source: z.enum(["BINDING", "DEFAULT", "NONE"]),
     }),
   ),
@@ -202,14 +202,14 @@ export const ResponseResolvedFeatureSchema = z.strictObject({
         z.strictObject({
           code: z.string().nullable(),
           label: z.string().nullable(),
-          value: z.json().nullable(),
+          value: jsonValueDto.nullable(),
           assetId: uuidDto.nullable(),
         }),
       ),
     }),
   ),
   scaling: z.array(
-    z.strictObject({ key: z.string(), level: z.number().nullable(), value: z.json().nullable() }),
+    z.strictObject({ key: z.string(), level: z.number().nullable(), value: jsonValueDto.nullable() }),
   ),
   resources: z.array(
     z.strictObject({

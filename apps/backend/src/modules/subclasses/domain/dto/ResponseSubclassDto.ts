@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { ContentView } from "#core/content/viewer";
-import { baseEntityResponseDto, standardListResponseDto, uuidDto } from "#core/http/dto";
+import { baseEntityResponseDto, jsonValueDto, standardListResponseDto, uuidDto } from "#core/http/dto";
 import { createStandardListResponse, encodePaginationCursor } from "#core/http/listResponse";
 import { renderSafeMarkdown } from "#core/text/safeMarkdown";
 import {
@@ -239,7 +239,7 @@ export const ResponseSubclassSectionSchemas = {
     levels: z.array(
       z.strictObject({
         level: z.number().int(),
-        values: z.array(z.strictObject({ trackKey: z.string(), value: z.json().nullable() })),
+        values: z.array(z.strictObject({ trackKey: z.string(), value: jsonValueDto.nullable() })),
         featureGrantKeys: z.array(z.string()),
         choiceKeys: z.array(z.string()),
         spellGrantKeys: z.array(z.string()),

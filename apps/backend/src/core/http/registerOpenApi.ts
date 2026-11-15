@@ -1,7 +1,7 @@
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import type { FastifyInstance } from "fastify";
-import { jsonSchemaTransform } from "fastify-type-provider-zod";
+import { jsonSchemaTransform, jsonSchemaTransformObject } from "fastify-type-provider-zod";
 
 export function registerOpenApi(app: FastifyInstance): void {
   app.register(swagger, {
@@ -26,6 +26,8 @@ export function registerOpenApi(app: FastifyInstance): void {
       },
     },
     transform: jsonSchemaTransform,
+    // Writes the shared schemas the routes refer to (`#/components/schemas/…`) into the document.
+    transformObject: jsonSchemaTransformObject,
   });
 
   app.register(swaggerUI, {

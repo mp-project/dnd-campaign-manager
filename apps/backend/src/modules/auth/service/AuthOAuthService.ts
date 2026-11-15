@@ -75,6 +75,16 @@ export class AuthOAuthService {
     };
   }
 
+  /**
+   * The page to return to from the signed state cookie, also when the callback itself fails (an
+   * expired state still names it). Without a valid signature: the start page.
+   */
+  redirectPathOfState(stateCookieValue: string | null): string {
+    if (!this.deps.config.oauthStateSecret || !stateCookieValue) return "/";
+    const payload = decodeSignedJson<OAuthStatePayload>(stateCookieValue, this.deps.config.oauthStateSecret);
+    return payload ? normalizeRedirectPath(payload.redirectPath) : "/";
+  }
+
   async completeOAuthCallback(input: {
     provider: OAuthProvider;
     code: string;
@@ -186,6 +196,8 @@ export class AuthOAuthService {
       displayName: string;
       username?: string | undefined;
       privacyAccepted: true;
+      locale?: string | undefined;
+      timezone?: string | undefined;
     },
     onboardingCookieValue: string | null,
     metadata: ClientMetadata,
@@ -241,6 +253,11 @@ export class AuthOAuthService {
         systemRole: SYSTEM_ROLE.USER,
         status: "ACTIVE",
         emailVerifiedAt: new Date(),
+      });
+      await this.deps.repository.createSettings(tx, {
+        userId: user.id,
+        locale: input.locale,
+        timezone: input.timezone,
       });
 
       if (onboarding.provider === "GOOGLE") {

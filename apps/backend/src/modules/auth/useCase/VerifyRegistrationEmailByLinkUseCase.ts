@@ -1,4 +1,5 @@
 import { ConflictError } from "#core/error/http/index";
+import { AUTH_FRONTEND_PATHS } from "#src/modules/auth/domain/AuthFrontendPaths";
 import { AuthService } from "#src/modules/auth/service/AuthService";
 import type { ClientMetadata } from "#src/modules/auth/service/AuthService.contracts";
 
@@ -14,12 +15,12 @@ export class VerifyRegistrationEmailByLinkUseCase {
       await this.authService.registrationService.verifyRegistrationEmailByToken(token, metadata);
     } catch (error) {
       if (error instanceof ConflictError) {
-        return { redirectPath: "/login?verified=0" };
+        return { redirectPath: `${AUTH_FRONTEND_PATHS.login}?verified=0` };
       }
 
       throw error;
     }
 
-    return { redirectPath: "/login?verified=1" };
+    return { redirectPath: `${AUTH_FRONTEND_PATHS.login}?verified=1` };
   }
 }

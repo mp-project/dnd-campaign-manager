@@ -1,9 +1,8 @@
+import { AUTH_FRONTEND_PATHS } from "#src/modules/auth/domain/AuthFrontendPaths";
 import { getAuthLang } from "#src/modules/auth/lang/AuthLang";
 
-const FRONTEND_PASSWORD_RESET_PATH = "/auth/reset-password";
-
 export function buildPasswordResetUrl(frontendOrigin: string, token: string): string {
-  const url = new URL(FRONTEND_PASSWORD_RESET_PATH, frontendOrigin);
+  const url = new URL(AUTH_FRONTEND_PATHS.passwordReset, frontendOrigin);
   url.searchParams.set("token", token);
   return url.toString();
 }

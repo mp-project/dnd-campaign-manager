@@ -61,7 +61,7 @@ describe("auth security fixes", () => {
     const registered = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { email, displayName: "Player", password: PASSWORD },
+      payload: { email, displayName: "Player", password: PASSWORD, privacyAccepted: true },
     });
 
     expect(registered.statusCode).toBe(202);

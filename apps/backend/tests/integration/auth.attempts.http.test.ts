@@ -181,6 +181,7 @@ describe("auth attempt tracking", () => {
       email,
       displayName: "Verify Me",
       password: PASSWORD,
+      privacyAccepted: true,
     });
     expect(registered.statusCode).toBe(202);
     const verificationCode = sentEmails.at(-1)?.text.match(/(\d{6})/)?.[1] as string;

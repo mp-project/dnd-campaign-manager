@@ -22,6 +22,7 @@ import type {
   ClientMetadata,
   VerifyRegistrationLinkResult,
 } from "#src/modules/auth/service/AuthService.contracts";
+import { AUTH_FRONTEND_PATHS } from "#src/modules/auth/domain/AuthFrontendPaths";
 import { MAX_VERIFICATION_ATTEMPTS } from "#src/modules/auth/service/AuthService.contracts";
 import { normalizeEmail, normalizeRedirectPath } from "#src/modules/auth/service/AuthService.utils";
 import { decodeSignedJson, encodeSignedJson, sha256 } from "#src/modules/auth/utils/crypto";
@@ -112,6 +113,11 @@ export class AuthRegistrationService {
         systemRole: SYSTEM_ROLE.USER,
         status: "ACTIVE",
         emailVerifiedAt: null,
+      });
+      await this.deps.repository.createSettings(tx, {
+        userId: user.id,
+        locale: input.locale,
+        timezone: input.timezone,
       });
 
       return { user };
@@ -317,7 +323,7 @@ export class AuthRegistrationService {
 
     const message = renderRegistrationExistingAccountEmail({
       locale: undefined,
-      loginUrl: new URL("/login", this.deps.config.frontendOrigin).toString(),
+      loginUrl: new URL(AUTH_FRONTEND_PATHS.login, this.deps.config.frontendOrigin).toString(),
     });
 
     try {

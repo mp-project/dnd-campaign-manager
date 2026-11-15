@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import { users } from "#core/db/schema";
 import type { EmailMessage, EmailPort } from "#core/email/index";
-import { emailVerificationRequests } from "#src/modules/users/domain/entities/UsersTable";
+import { emailVerificationRequests, userSettings } from "#src/modules/users/domain/entities/UsersTable";
 import { buildTestApp } from "#test/helpers/buildTestApp";
 
 const TEST_DB_URL =
@@ -62,7 +62,7 @@ describe("users registration verification HTTP routes", () => {
     return app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { email, displayName: "New Player", password },
+      payload: { email, displayName: "New Player", password, privacyAccepted: true },
     });
   }
 
@@ -249,6 +249,40 @@ describe("users registration verification HTTP routes", () => {
         expect(response.statusCode).toBe(409);
         expect(response.json().error.message).toBe(VERIFICATION_FAILED);
       }
+    });
+  });
+  describe("first settings and consent", () => {
+    function registerWith(email: string, extra: Record<string, unknown>) {
+      return app.inject({
+        method: "POST",
+        url: "/api/v1/auth/register",
+        payload: { email, displayName: "New Player", password: PASSWORD, privacyAccepted: true, ...extra },
+      });
+    }
+
+    async function settingsOf(email: string) {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, user!.id));
+      return settings;
+    }
+
+    it("stores the browser's language and time zone as the account's settings", async () => {
+      expect((await registerWith("settings@example.test", { locale: "en", timezone: "America/New_York" })).statusCode).toBe(202);
+
+      expect(await settingsOf("settings@example.test")).toMatchObject({ locale: "en", timezone: "America/New_York" });
+    });
+
+    it("drops values it doesn't accept instead of refusing the registration", async () => {
+      expect((await registerWith("odd@example.test", { locale: "qps", timezone: "Mars/Olympus" })).statusCode).toBe(202);
+
+      expect(await settingsOf("odd@example.test")).toMatchObject({ locale: "de", timezone: "UTC" });
+    });
+
+    it("refuses a registration without consent to the privacy policy", async () => {
+      const response = await registerWith("noconsent@example.test", { privacyAccepted: false });
+
+      expect(response.statusCode).toBe(400);
+      expect(await db.select().from(users).where(eq(users.email, "noconsent@example.test"))).toEqual([]);
     });
   });
 });

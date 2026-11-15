@@ -89,7 +89,7 @@ describe("auth password reset HTTP routes", () => {
     const parsedResetUrl = new URL(resetUrl);
 
     expect(parsedResetUrl.origin).toBe("http://app.localhost:5173");
-    expect(parsedResetUrl.pathname).toBe("/auth/reset-password");
+    expect(parsedResetUrl.pathname).toBe("/passwort-zuruecksetzen");
 
     const rawToken = extractTokenFromResetUrl(resetUrl);
 

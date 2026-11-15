@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   EmailVerificationBaseSchema,
   UserBaseSchema,
+  UserSettingsBaseSchema,
 } from "#src/modules/users/domain/dto/BaseUsersDto";
 
 export {
@@ -27,13 +28,27 @@ export type {
 export const OAuthProviderSchema = z.enum(["GOOGLE", "DISCORD"]);
 export const OAuthIntentSchema = z.enum(["login", "register"]);
 
+/**
+ * Language and time zone of the browser that registers, stored as the account's first settings.
+ * A value the server doesn't accept (an unknown zone) is dropped instead of refusing the
+ * registration; the defaults apply then.
+ */
+const RegistrationSettingsShape = {
+  locale: UserSettingsBaseSchema.shape.locale.optional().catch(undefined),
+  timezone: UserSettingsBaseSchema.shape.timezone.optional().catch(undefined),
+};
+
 export const RegisterSchema = UserBaseSchema.pick({
   email: true,
   displayName: true,
   username: true,
 })
   .partial({ username: true })
-  .extend({ password: z.string().min(12).max(200) });
+  .extend({
+    password: z.string().min(12).max(200),
+    privacyAccepted: z.literal(true),
+    ...RegistrationSettingsShape,
+  });
 
 export const LoginSchema = UserBaseSchema.pick({ email: true }).extend({
   password: z.string().min(1).max(200),
@@ -76,9 +91,15 @@ export const OAuthCallbackParamsSchema = z.strictObject({
   provider: OAuthProviderSchema,
 });
 
-export const OAuthCallbackQuerySchema = z.strictObject({
-  code: z.string().min(1).max(4096),
-  state: z.string().min(1).max(512),
+/**
+ * Not strict: providers add their own parameters (Google: `scope`, `authuser`, `prompt`, `hd`).
+ * `code` and `state` are missing when the user cancels at the provider (`error=access_denied`);
+ * the controller then sends the browser back to the frontend with an error.
+ */
+export const OAuthCallbackQuerySchema = z.object({
+  code: z.string().min(1).max(4096).optional(),
+  state: z.string().min(1).max(512).optional(),
+  error: z.string().max(256).optional(),
 });
 
 export const OAuthCompleteRegistrationSchema = UserBaseSchema.pick({
@@ -86,7 +107,7 @@ export const OAuthCompleteRegistrationSchema = UserBaseSchema.pick({
   username: true,
 })
   .partial({ username: true })
-  .extend({ privacyAccepted: z.literal(true) });
+  .extend({ privacyAccepted: z.literal(true), ...RegistrationSettingsShape });
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;

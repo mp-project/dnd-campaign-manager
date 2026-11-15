@@ -75,6 +75,7 @@ function createDeps(input: {
       | "updateOAuthIdentity"
       | "updateLastLogin"
       | "create"
+      | "createSettings"
     >
   >;
 }) {
@@ -92,6 +93,7 @@ function createDeps(input: {
     | "updateOAuthIdentity"
     | "updateLastLogin"
     | "create"
+    | "createSettings"
   > = {
     findByGoogleSubject: jest.fn(async () => null),
     findByDiscordUserId: jest.fn(async () => null),
@@ -100,6 +102,7 @@ function createDeps(input: {
     updateOAuthIdentity: jest.fn(async () => null),
     updateLastLogin: jest.fn(async () => undefined),
     create: jest.fn(async () => createUserRow()),
+    createSettings: jest.fn(async () => undefined),
     ...input.repositoryOverrides,
   };
 

@@ -50,6 +50,7 @@
     "verifyFailed": "Der Bestätigungslink ist ungültig, abgelaufen oder wurde schon verwendet.",
     "verifyWithCode": "Code eingeben oder neu anfordern",
     "reset": "Dein Passwort wurde geändert. Melde dich mit dem neuen Passwort an.",
+    "passwordChanged": "Dein Passwort ist geändert. Melde dich mit dem neuen Passwort an.",
     "signedOutPartially": "Das Abmelden auf allen Geräten hat nicht geklappt. Dieser Browser ist abgemeldet, andere Sitzungen können noch bestehen. Melde dich an und versuche es erneut.",
     "notVerified": "Bitte bestätige zuerst deine E-Mail-Adresse.",
     "toActivation": "Zur Bestätigung"

@@ -11,10 +11,11 @@ import TextInput from "@/components/base/TextInput.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import { useAppI18n } from "@/core/i18n";
 import BrandLayout from "@/layouts/BrandLayout.vue";
+import { isEmail } from "@/core/auth/accountRules";
 
 import { forgotPassword } from "../api";
 import { useAuthErrorText } from "../errors";
-import { browserSettings, emailFromHistory, isEmail } from "../form";
+import { browserSettings, emailFromHistory } from "../form";
 
 const { t, locale } = useAppI18n();
 const errorText = useAuthErrorText();

@@ -46,14 +46,15 @@ export type CampaignFactPort = {
 
 /**
  * Checks a verified access token against the current account state, so a lock, a role change,
- * a password change or a logout everywhere ends the token at once. Returns the role to use for
- * the request, or null when the token no longer counts.
+ * a password change, a logout everywhere or ending its session ends the token at once. Returns
+ * the role to use for the request, or null when the token no longer counts.
  */
 export type SessionStatePort = {
   resolveActor(input: {
     actorId: string;
     systemRole: SystemRole;
     sessionVersion: number | null;
+    sessionId: string | null;
   }): Promise<{ systemRole: SystemRole } | null>;
 };
 

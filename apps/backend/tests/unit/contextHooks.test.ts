@@ -35,9 +35,10 @@ async function createAccessToken(
   actorId: string,
   systemRole: (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE],
   secret: string,
+  sid?: string,
 ): Promise<string> {
   return jsonwebtoken.sign(
-    { systemRole, sv: 3 },
+    { systemRole, sv: 3, ...(sid ? { sid } : {}) },
     secret,
     {
       algorithm: "HS256",
@@ -92,7 +93,16 @@ describe("session state check of access tokens", () => {
       actorId: "alice",
       systemRole: "ADMIN",
       sessionVersion: 3,
+      sessionId: null,
     });
+  });
+
+  it("hands the token's session to the port, which refuses ended sessions", async () => {
+    const token = await createAccessToken("alice", SYSTEM_ROLE.USER, env.JWT_ACCESS_SECRET, "family-1");
+    const resolveActor = jest.fn().mockResolvedValue(null);
+
+    await probeRequestContext({ sessionStatePort: { resolveActor } }, token);
+    expect(resolveActor).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "family-1" }));
   });
 
   it("uses the role from the port instead of the token", async () => {

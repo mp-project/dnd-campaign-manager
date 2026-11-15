@@ -1,4 +1,5 @@
 import { type QueryClient, queryOptions, useQuery } from "@tanstack/vue-query";
+import type { Router } from "vue-router";
 
 import { cachePolicy } from "@/core/api/cachePolicy";
 import { api, type ApiData, unwrap } from "@/core/api/client";
@@ -37,4 +38,29 @@ export async function signOut(queryClient: QueryClient, scope: "device" | "every
   } finally {
     clearSessionCache(queryClient);
   }
+}
+
+/**
+ * Leaves the app for the sign-in. This browser is always signed out, even if the server can't be
+ * reached (the session cookie expires on its own). Signing out everywhere is a security action:
+ * if it fails, this browser is still signed out and the sign-in page says that other sessions may
+ * remain.
+ */
+export async function leave(
+  queryClient: QueryClient,
+  router: Router,
+  scope: "device" | "everywhere" = "device",
+): Promise<void> {
+  if (scope === "everywhere") {
+    try {
+      await signOut(queryClient, "everywhere");
+    } catch {
+      await signOut(queryClient).catch(() => undefined);
+      await router.push({ name: "auth-login", query: { signedOut: "partial" } });
+      return;
+    }
+  } else {
+    await signOut(queryClient).catch(() => undefined);
+  }
+  await router.push({ name: "auth-login" });
 }

@@ -67,15 +67,36 @@ export class AuthRepository {
     return rows[0] ?? null;
   }
 
+  /**
+   * What decides whether an access token still counts, in one query: the account state and, for a
+   * token bound to a session, whether that session still has a current (not revoked, not rotated,
+   * not expired) refresh token.
+   */
   async findSessionState(
     db: AppDatabase,
     userId: string,
-  ): Promise<Pick<UserRow, "systemRole" | "status" | "sessionVersion"> | null> {
+    sessionId: string | null,
+    now: Date,
+  ): Promise<(Pick<UserRow, "systemRole" | "status" | "sessionVersion"> & { sessionActive: boolean }) | null> {
+    // Explicit names: drizzle leaves columns unqualified in single-table queries, which would make
+    // the subquery compare its own columns.
+    const sessionActive = sessionId
+      ? sql<boolean>`exists (
+          select 1 from refresh_tokens session_token
+          where session_token.family_id = ${sessionId}
+            and session_token.user_id = ${userId}
+            and session_token.deleted_at is null
+            and session_token.revoked_at is null
+            and session_token.rotated_at is null
+            and session_token.expires_at > ${now}
+        )`
+      : sql<boolean>`true`;
     const [row] = await db
       .select({
         systemRole: users.systemRole,
         status: users.status,
         sessionVersion: users.sessionVersion,
+        sessionActive,
       })
       .from(users)
       .where(and(eq(users.id, userId), isNull(users.deletedAt)))
@@ -646,6 +667,87 @@ export class AuthRepository {
       );
   }
 
+  /**
+   * The current token of every session (refresh token family) of the user: neither rotated nor
+   * revoked and not expired, with the time the session started (its first token).
+   */
+  async listActiveRefreshTokensForUser(
+    db: AppDatabase,
+    userId: string,
+    now: Date,
+  ): Promise<Array<RefreshTokenRow & { startedAt: Date }>> {
+    const rows = await db
+      .select({
+        token: refreshTokens,
+        // Explicit names, see findSessionState.
+        startedAt: sql<string>`(select min(first_token.created_at) from refresh_tokens first_token where first_token.family_id = "refresh_tokens"."family_id")`,
+      })
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.userId, userId),
+          isNull(refreshTokens.deletedAt),
+          isNull(refreshTokens.revokedAt),
+          isNull(refreshTokens.rotatedAt),
+          gt(refreshTokens.expiresAt, now),
+        ),
+      );
+
+    return rows.map((row) => ({ ...row.token, startedAt: new Date(row.startedAt) }));
+  }
+
+  /**
+   * Locks the open tokens of one session of the user. A refresh of that session holds the lock
+   * on its current token until it has inserted the next one, so revoking after this lock (in a
+   * new statement) also catches a token issued at the same moment.
+   */
+  async lockRefreshTokenFamilyForUser(
+    db: AppDatabase,
+    userId: string,
+    familyId: string,
+  ): Promise<RefreshTokenRow[]> {
+    return db
+      .select()
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.userId, userId),
+          eq(refreshTokens.familyId, familyId),
+          isNull(refreshTokens.deletedAt),
+          isNull(refreshTokens.revokedAt),
+        ),
+      )
+      .for("update");
+  }
+
+  /** Revokes one session of the user; false if it isn't theirs or already ended. */
+  async updateRefreshTokenFamilyRevokedForUser(
+    db: AppDatabase,
+    params: { userId: string; familyId: string; now: Date },
+  ): Promise<boolean> {
+    const auditActorId = toAuditActorId(params.userId);
+    const revoked = await db
+      .update(refreshTokens)
+      .set({
+        revokedAt: params.now,
+        version: sql`${refreshTokens.version} + 1`,
+        updatedAt: params.now,
+        updatedBy: auditActorId,
+      })
+      .where(
+        and(
+          eq(refreshTokens.userId, params.userId),
+          eq(refreshTokens.familyId, params.familyId),
+          isNull(refreshTokens.deletedAt),
+          isNull(refreshTokens.revokedAt),
+          gt(refreshTokens.expiresAt, params.now),
+        ),
+      )
+      .returning({ id: refreshTokens.id });
+
+    return revoked.length > 0;
+  }
+
   async updateRefreshTokensRevokedForUser(
     db: AppDatabase,
     params: {
@@ -785,6 +887,23 @@ export class AuthRepository {
     await db
       .delete(trustedDevices)
       .where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.tokenHash, tokenHash)));
+  }
+
+  async listTrustedDevicesForUser(db: AppDatabase, userId: string, now: Date): Promise<TrustedDeviceRow[]> {
+    return db
+      .select()
+      .from(trustedDevices)
+      .where(and(eq(trustedDevices.userId, userId), gt(trustedDevices.expiresAt, now)));
+  }
+
+  /** Removes one trusted device of the user and returns its token hash; null if it isn't theirs. */
+  async deleteTrustedDeviceById(db: AppDatabase, userId: string, deviceId: string): Promise<string | null> {
+    const [deleted] = await db
+      .delete(trustedDevices)
+      .where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.id, deviceId)))
+      .returning({ tokenHash: trustedDevices.tokenHash });
+
+    return deleted?.tokenHash ?? null;
   }
 
   async deleteTrustedDevicesForUser(db: AppDatabase, userId: string): Promise<void> {

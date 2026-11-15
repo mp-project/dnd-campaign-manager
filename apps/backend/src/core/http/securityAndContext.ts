@@ -21,6 +21,8 @@ type VerifiedAccessToken = {
 
 type SignedAccessToken = VerifiedAccessToken & {
   sessionVersion: number | null;
+  /** The session (refresh token family) the token was issued for; null in older tokens. */
+  sessionId: string | null;
 };
 
 type AccessTokenPayload = JwtPayload & {
@@ -28,6 +30,7 @@ type AccessTokenPayload = JwtPayload & {
   systemRole?: unknown;
   role?: unknown;
   sv?: unknown;
+  sid?: unknown;
 };
 
 const AUTH_COOKIE_KEYS = ["access_token", "auth_token", "token"] as const;
@@ -159,6 +162,7 @@ async function verifyAccessToken(
       actorId,
       systemRole,
       sessionVersion: Number.isSafeInteger(payload.sv) ? (payload.sv as number) : null,
+      sessionId: typeof payload.sid === "string" && payload.sid.length > 0 ? payload.sid : null,
     };
   } catch {
     return null;

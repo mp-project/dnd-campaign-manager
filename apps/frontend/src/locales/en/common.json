@@ -33,7 +33,11 @@
   "pagination": {
     "previous": "Previous page",
     "next": "Next page",
-    "page": "Page {page} of {total}"
+    "page": "Page {page} of {total}",
+    "label": "Pages",
+    "perPage": "Entries per page",
+    "loadMore": "Load more",
+    "range": "{from}–{to} of {total}"
   },
   "visibility": {
     "private": {
@@ -179,5 +183,29 @@
     "privacy": "Privacy",
     "imprint": "Legal notice",
     "readPrivacy": "Read the privacy policy"
+  },
+  "list": {
+    "search": "Search",
+    "filter": "Filter",
+    "resetFilters": "Reset filters",
+    "sortBy": "Sort by",
+    "view": "View",
+    "viewList": "List view",
+    "viewGrid": "Grid view",
+    "actions": "Actions"
+  },
+  "editor": {
+    "sections": "Sections",
+    "close": "Close editor"
+  },
+  "counts": {
+    "documents": "No documents | One document | {count} documents",
+    "people": "No people | One person | {count} people",
+    "links": "No links | One link | {count} links"
+  },
+  "hp": {
+    "label": "Hit points {hp} of {max}",
+    "labelWithTemp": "Hit points {hp} of {max}, {temp} temporary",
+    "temp": "{temp} temporary HP"
   }
 }

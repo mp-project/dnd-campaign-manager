@@ -9,10 +9,12 @@ import BadgesSection from "./showcase/BadgesSection.vue";
 import ButtonsSection from "./showcase/ButtonsSection.vue";
 import ContentSection from "./showcase/ContentSection.vue";
 import ControlsSection from "./showcase/ControlsSection.vue";
+import DataSection from "./showcase/DataSection.vue";
 import FieldsSection from "./showcase/FieldsSection.vue";
 import IconsSection from "./showcase/IconsSection.vue";
 import LayoutSection from "./showcase/LayoutSection.vue";
 import MenusSection from "./showcase/MenusSection.vue";
+import PageSection from "./showcase/PageSection.vue";
 import ThemeSection from "./showcase/ThemeSection.vue";
 
 const sections = [
@@ -25,6 +27,8 @@ const sections = [
   { id: "menus", label: "Menüs und Einzelwerte" },
   { id: "content", label: "Inhalte" },
   { id: "layout", label: "Layout und Navigation" },
+  { id: "page", label: "Seitenbausteine" },
+  { id: "data", label: "Daten und Editor" },
 ];
 </script>
 
@@ -72,6 +76,13 @@ const sections = [
       <MenusSection />
       <ContentSection />
       <LayoutSection />
+      <PageSection />
+      <DataSection />
     </div>
+    <!-- Drawers teleport here, like into the shells. -->
+    <div
+      id="overlay-host"
+      class="pointer-events-none fixed inset-0 z-30 *:pointer-events-auto"
+    />
   </main>
 </template>

@@ -22,7 +22,7 @@ const SHOWN_IN_SHELL = new Set([
 
 describe("building blocks page (/_bausteine)", () => {
   it("shows every shared component with its variants", () => {
-    const components = ["base", "content", "page", "layout"]
+    const components = ["base", "content", "page", "layout", "data", "editor"]
       .flatMap((group) => vueFiles(join(SRC, "components", group)))
       .map((file) => basename(file, ".vue"))
       .filter((name) => !SHOWN_IN_SHELL.has(name));

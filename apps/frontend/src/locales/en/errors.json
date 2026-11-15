@@ -1,0 +1,13 @@
+{
+  "VALIDATION_ERROR": "Please check your input.",
+  "UNAUTHENTICATED": "Please sign in.",
+  "FORBIDDEN": "You don't have permission to do that.",
+  "NOT_FOUND": "This doesn't exist (anymore).",
+  "CONFLICT": "That doesn't fit the current state.",
+  "VERSION_CONFLICT": "Someone else has changed this in the meantime.",
+  "RATE_LIMITED": "Too many attempts. Please wait a moment.",
+  "INTERNAL_ERROR": "An error occurred on the server.",
+  "SERVICE_UNAVAILABLE": "The service is busy right now. Please try again shortly.",
+  "NETWORK_ERROR": "No connection to the server.",
+  "UNKNOWN_ERROR": "Unknown error."
+}

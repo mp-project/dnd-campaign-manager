@@ -3,6 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 import vue from "eslint-plugin-vue";
 import vueParser from "vue-eslint-parser";
+import vueI18n from "@intlify/eslint-plugin-vue-i18n";
 
 /**
  * Tracked tables are only written through the history, so no change can skip its entry.
@@ -107,6 +108,25 @@ export default [
     rules: {
       "vue/singleline-html-element-content-newline": "off",
     },
+  },
+  {
+    // Every text on screen comes from the message files (German and English).
+    files: ["apps/frontend/src/**/*.vue"],
+    plugins: { "@intlify/vue-i18n": vueI18n },
+    rules: {
+      "@intlify/vue-i18n/no-raw-text": [
+        "error",
+        { ignorePattern: "^[\\s\\d.,:;!?·…×+\\-–—/|()&%#*]+$" },
+      ],
+    },
+  },
+  {
+    // Scaffold pages from before the clickdummy port; they are replaced by the layouts and auth flows.
+    files: [
+      "apps/frontend/src/layouts/{Auth,CampaignEditor,Dashboard,PlayerView}Layout.vue",
+      "apps/frontend/src/pages/*.vue",
+    ],
+    rules: { "@intlify/vue-i18n/no-raw-text": "off" },
   },
   {
     files: [

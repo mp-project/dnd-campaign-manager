@@ -1,0 +1,25 @@
+{
+  "terms": {
+    "abilityScores": "Attributswerte",
+    "armorClass": "Rüstungsklasse",
+    "background": "Hintergrund",
+    "cantrip": "Zaubertrick",
+    "class": "Klasse",
+    "condition": "Zustand",
+    "feat": "Talent",
+    "hitPoints": "Trefferpunkte",
+    "initiative": "Initiative",
+    "proficiencyBonus": "Übungsbonus",
+    "savingThrow": "Rettungswurf",
+    "skill": "Fertigkeit",
+    "species": "Spezies",
+    "spell": "Zauber",
+    "spellSlot": "Zauberplatz",
+    "subclass": "Unterklasse"
+  },
+  "editions": {
+    "2014": {
+      "species": "Volk"
+    }
+  }
+}

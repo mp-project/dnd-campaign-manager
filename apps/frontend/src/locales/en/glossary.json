@@ -1,0 +1,25 @@
+{
+  "terms": {
+    "abilityScores": "Ability Scores",
+    "armorClass": "Armor Class",
+    "background": "Background",
+    "cantrip": "Cantrip",
+    "class": "Class",
+    "condition": "Condition",
+    "feat": "Feat",
+    "hitPoints": "Hit Points",
+    "initiative": "Initiative",
+    "proficiencyBonus": "Proficiency Bonus",
+    "savingThrow": "Saving Throw",
+    "skill": "Skill",
+    "species": "Species",
+    "spell": "Spell",
+    "spellSlot": "Spell Slot",
+    "subclass": "Subclass"
+  },
+  "editions": {
+    "2014": {
+      "species": "Race"
+    }
+  }
+}

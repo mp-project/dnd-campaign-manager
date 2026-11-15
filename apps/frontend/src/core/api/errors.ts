@@ -134,3 +134,11 @@ export function versionConflictDetails(error: ApiError): VersionConflictDetails 
     conflicts: Array.isArray(details.conflicts) ? details.conflicts : [],
   };
 }
+
+/**
+ * The message for an error, to pass to `t()`. The backend's own text (`message`) is for logs only.
+ * i18n-dynamic: errors.*
+ */
+export function errorMessageKey(error: unknown): `errors.${ApiErrorCode}` {
+  return `errors.${isApiError(error) ? error.code : "UNKNOWN_ERROR"}`;
+}

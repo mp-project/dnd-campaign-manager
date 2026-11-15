@@ -8,6 +8,7 @@ npm-workspaces monorepo (Node `>=24 <25`, ESM) for a D&D campaign manager:
 
 - `apps/backend` (`@dnd/backend`): Fastify 5 + Zod (`fastify-type-provider-zod`) + Drizzle ORM on PostgreSQL. Almost all real logic lives here.
 - `apps/frontend` (`@dnd/frontend`): Vue 3 + Vite + Pinia + Tailwind 4. Being rebuilt from the clickdummy (see Frontend); theme and assets are in place, pages are still scaffolding.
+- `packages/i18n` (`@dnd/i18n`): languages, language choice and glossary terms shared by frontend, backend and the admin website (TypeScript source, no build yet; the backend gets a build when it uses it).
 - `packages/test-utils`: shared test helpers.
 - `tests/e2e`: Playwright smoke tests (root `playwright.config.ts`).
 
@@ -29,6 +30,8 @@ npm run test:integration  # backend jest "integration" project (needs test DB, r
 npm run test:integration:docker   # integration tests fully inside compose (profile "test")
 npm run test:e2e          # build + playwright
 npm run api:types         # regenerate the frontend API types from the backend OpenAPI document
+npm run i18n:check --workspace @dnd/frontend   # same keys/placeholders in every language, used keys exist, glossary complete
+npm run i18n:types --workspace @dnd/frontend   # regenerate the message key types after changing German messages
 ```
 
 Single test (Jest, from root):
@@ -39,7 +42,7 @@ npm run test:unit --workspace @dnd/backend -- -t "registers module dependencies"
 npm run test:integration --workspace @dnd/backend -- tests/integration/campaigns.http.test.ts
 ```
 
-CI (`.github/workflows/ci.yml`) runs: `lint` → `typecheck` → `api:types` (fails if the generated types changed) → `test:unit` → `db:migrate` → `test:integration` → `build`.
+CI (`.github/workflows/ci.yml`) runs: `lint` → `typecheck` → `api:types` (fails if the generated types changed) → `i18n:check` → `test:unit` → `db:migrate` → `test:integration` → `build`.
 
 ### Database
 
@@ -168,7 +171,7 @@ The frontend is rebuilt from the clickdummy (`clickdummy/`, local only; `cd clic
 
 ### Structure
 
-Target layout (built step by step, see the plan; today `styles/`, `core/api/`, `layouts/`, `app/router.ts` and the scaffold pages exist):
+Target layout (built step by step, see the plan; today `styles/`, `core/api/`, `core/i18n/`, `locales/`, `layouts/`, `app/router.ts` and the scaffold pages exist):
 
 ```
 apps/frontend/src/
@@ -189,6 +192,18 @@ A frontend module has the same name and boundaries as its backend module. Domain
 - A 401 renews the session once (`POST /auth/refresh`, shared by parallel requests) and repeats the request; auth routes are excluded. A failed renewal fires `onSessionExpired`, which clears the query cache.
 - 412 (`isVersionConflict`, `versionConflictDetails`: `currentVersion` and the conflicting fields) is shown by the editor as "changed by someone else" with reload / keep my change.
 - Server data lives in TanStack Vue Query, UI state in Pinia. Every query takes its cache rule from the one table `src/core/api/cachePolicy.ts` (`...cachePolicy("list")`: `static`, `content`, `list`, `live`, `private`, `signedUrl`) and its key from `globalKey`/`meKey`/`campaignKey` (`src/core/api/queryClient.ts`); modules set no `staleTime` of their own. Logout clears the whole cache, a role or membership change clears that campaign (`clearCampaignCache`). Failed requests are retried only for 5xx/network errors, mutations never.
+
+### Languages
+
+- **Texts never break the app.** A message that is missing or doesn't compile falls back to German; if German has none either, nothing is shown (the key in development, with a console warning). A language that doesn't load falls back to German, and without any messages the app still starts. Dates with an invalid value or time zone show nothing or use the browser's zone. Problems are caught before shipping by `i18n:check` (it also compiles every message), not at runtime.
+- German and English from the start, more without rework. Text on screen comes only from message files: `src/locales/<lang>/<namespace>.json` (`common`, `errors`, `glossary`) and `src/modules/<module>/locales/<lang>.json` (namespace = module name). Keys name the meaning (`common.actions.save`, `locations.editor.save`), not the text. German is the reference; every change to it comes with English in the same change.
+- Translate with `useAppI18n()` from `@/core/i18n` (`t(key)`, `t(key, named)`, `t(key, count, named)` for plurals); keys are typed against the German files (`src/core/i18n/generated/messages.d.ts`, `npm run i18n:types`), so a typo is a compile error. `$t` is not installed. Keys built at runtime are declared next to their use with a comment `// i18n-dynamic: errors.*`.
+- `@intlify/vue-i18n/no-raw-text` refuses text in templates (only the old scaffold pages are exempt until they are replaced). Labels and toasts in scripts also go through `t()`.
+- API errors are shown by code: `t(errorMessageKey(error))` (`errors.<code>`), never the server's `message`.
+- D&D terms come from the glossary (`useGlossary().term("species", edition)`): one fixed wording per language, with overrides per ruleset edition (2014 "Volk"/"Race"). Term names are listed in `@dnd/i18n` (`GLOSSARY_TERMS`); `i18n:check` makes sure every language has them.
+- Dates and numbers only through `useFormat()` (`date(value, "date" | "dateLong" | "dateTime" | "time")`, `number`, `relative`) in the active language and the user's time zone (`setTimeZone`, from the profile).
+- Language choice: profile (`users.locale`, applied with `setLocale` after sign-in) → last choice in this browser → browser languages → German. No language in app URLs. Only the active language is downloaded (one chunk per file).
+- Pseudo language: `?lang=qps` in development shows German with accents, 40 % longer and in brackets; text that stays plain is hard-coded, text that breaks is too tight.
 
 Tests: Vitest + Vue Test Utils (`apps/frontend/tests/unit`, `npm run test:unit --workspace @dnd/frontend`; the root `test:unit` runs backend and frontend), Playwright for flows. `tests/unit/theme.test.ts` fails on raw color values outside `styles/main.css`.
 

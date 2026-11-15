@@ -43,6 +43,7 @@ function buildAggregate(overrides: Partial<CampaignAggregate> = {}): CampaignAgg
     campaign: buildCampaign(),
     membership: null,
     isOwner: true,
+    role: "OWNER",
     effectivePermissions: [],
     ...overrides,
   };

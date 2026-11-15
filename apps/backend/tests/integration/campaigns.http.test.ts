@@ -423,6 +423,57 @@ describe("campaigns HTTP routes", () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it("reports the viewer's role and only the rights of that role", async () => {
+    const owner = { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" } as const;
+    const player = { actorId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", systemRole: "USER" } as const;
+    const admin = { actorId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", systemRole: "ADMIN" } as const;
+    const createResponse = await injectAs(owner, {
+      method: "POST",
+      url: "/api/v1/campaigns",
+      payload: {
+        name: "Role Report",
+        slug: "role-report",
+        rulesetId: "11111111-1111-4111-8111-111111111111",
+        settings: {},
+      },
+    });
+    expect(createResponse.statusCode).toBe(201);
+    const campaignId = createResponse.json().id as string;
+    await db.insert(campaignMemberships).values({
+      campaignId,
+      userId: player.actorId,
+      role: "PLAYER",
+      status: "ACTIVE",
+      joinedAt: new Date(),
+      createdBy: owner.actorId,
+    });
+
+    const asOwner = (await injectAs(owner, { method: "GET", url: `/api/v1/campaigns/${campaignId}` })).json();
+    expect(asOwner.role).toBe("OWNER");
+    expect(asOwner.effectivePermissions).toContain("campaigns.update");
+
+    const asPlayer = (await injectAs(player, { method: "GET", url: `/api/v1/campaigns/${campaignId}` })).json();
+    expect(asPlayer.role).toBe("PLAYER");
+    expect(asPlayer.effectivePermissions).toContain("campaigns.read");
+    expect(asPlayer.effectivePermissions).not.toContain("campaigns.update");
+    expect(asPlayer.effectivePermissions).not.toContain("campaigns.archive");
+
+    const playerList = (await injectAs(player, { method: "GET", url: "/api/v1/campaigns?limit=20" })).json();
+    const listed = playerList.data.find((item: { id: string }) => item.id === campaignId);
+    expect(listed).toMatchObject({ role: "PLAYER", isOwner: false });
+    expect(listed.effectivePermissions).not.toContain("campaigns.update");
+
+    const asAdmin = (await injectAs(admin, { method: "GET", url: `/api/v1/campaigns/${campaignId}` })).json();
+    expect(asAdmin.role).toBeNull();
+    expect(asAdmin.effectivePermissions).toContain("campaigns.update");
+
+    // Listing the player's campaigns as administrator reports the administrator's role, not the player's.
+    const adminList = (
+      await injectAs(admin, { method: "GET", url: `/api/v1/campaigns?limit=20&userId=${player.actorId}` })
+    ).json();
+    expect(adminList.data.find((item: { id: string }) => item.id === campaignId)).toMatchObject({ role: null, isOwner: false });
+  });
+
   it("manages active campaign memberships and removes access after revocation", async () => {
     const createResponse = await injectAs(
       { actorId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", systemRole: "USER" },

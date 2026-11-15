@@ -1,6 +1,7 @@
 import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
+import type { CampaignRole } from "#core/http/requestContext";
 import {
   campaigns,
   campaignMemberships,
@@ -16,6 +17,8 @@ export type CampaignAggregate = {
   campaign: CampaignRow;
   membership: CampaignMembershipRow | null;
   isOwner: boolean;
+  /** The actor's role in the campaign; null for administrators without a membership. */
+  role: CampaignRole | null;
   effectivePermissions: string[];
 };
 
@@ -123,6 +126,7 @@ export class CampaignsRepository {
       campaign: row.campaign,
       membership: row.membership,
       isOwner: row.campaign.ownerUserId === actorId,
+      role: null,
       effectivePermissions: [],
     }));
   }

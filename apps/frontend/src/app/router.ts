@@ -4,9 +4,6 @@ import { frontendModules } from "@/app/modules";
 import type { FrontendModule, RouteArea } from "@/core/modules";
 import BareLayout from "@/layouts/BareLayout.vue";
 
-// The old campaign page stays until it is rebuilt; it has no area, so no guard applies.
-import CampaignEditorLayout from "@/layouts/CampaignEditorLayout.vue";
-import CampaignEditorPage from "@/pages/CampaignEditorPage.vue";
 
 const AppShell = () => import("@/layouts/AppShell.vue");
 const PlayerShell = () => import("@/layouts/PlayerShell.vue");
@@ -42,11 +39,6 @@ export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[
       component: AppShell,
       meta: { area: "campaign" },
       children: routesOf(modules, "campaign"),
-    },
-    {
-      path: "/campaign-editor",
-      component: CampaignEditorLayout,
-      children: [{ path: "", name: "campaign-editor", component: CampaignEditorPage }],
     },
     {
       path: "/",

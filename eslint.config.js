@@ -127,13 +127,8 @@ export default [
     },
   },
   {
-    // Scaffold pages from before the clickdummy port; they are replaced by the layouts and auth flows.
-    files: [
-      "apps/frontend/src/layouts/{Auth,CampaignEditor,Dashboard,PlayerView}Layout.vue",
-      "apps/frontend/src/pages/*.vue",
-      // Development-only showcase, never shipped.
-      "apps/frontend/src/dev/**/*.vue",
-    ],
+    // Development-only showcase, never shipped.
+    files: ["apps/frontend/src/dev/**/*.vue"],
     rules: { "@intlify/vue-i18n/no-raw-text": "off" },
   },
   {

@@ -5,12 +5,51 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Deine Kampagnen auf einen Blick.",
-    "campaigns": "Deine Kampagnen",
-    "empty": "Du bist noch in keiner Kampagne. Sobald du eine anlegst oder eingeladen wirst, erscheint sie hier.",
+    "subtitle": "Deine Kampagnen und nächsten Abenteuer im Blick.",
+    "mobileSubtitle": "Deine Abenteuer im Blick.",
+    "breadcrumb": "Dein Konto",
+    "search": "Kampagnen durchsuchen …",
+    "filter": "Kampagnen filtern",
+    "filterAll": "Alle",
+    "filterOwned": "Von dir erstellt",
+    "filterJoined": "Beigetreten",
+    "owned": "Von dir erstellt",
+    "joined": "Beigetreten",
+    "noMatch": "Keine Kampagne passt zu deiner Suche.",
+    "resetSearch": "Suche zurücksetzen",
+    "welcomeTitle": "Willkommen in deiner Chronik",
+    "welcomeText": "Du bist noch in keiner Kampagne. Lege deine erste an oder warte auf eine Einladung deiner Spielleitung.",
     "error": "Deine Kampagnen konnten nicht geladen werden."
   },
+  "card": {
+    "open": "Öffnen",
+    "openLabel": "{name} öffnen"
+  },
+  "create": {
+    "action": "Kampagne erstellen",
+    "title": "Kampagne erstellen",
+    "name": "Kampagnenname",
+    "namePlaceholder": "z. B. Die Schatten von Elaria",
+    "nameRequired": "Bitte gib einen Kampagnennamen ein.",
+    "ruleset": "Regelwerk",
+    "rulesetRequired": "Bitte wähle ein Regelwerk.",
+    "rulesetHint": "Das Regelwerk bestimmt Standardinhalte und Berechnungen und kann später nicht mehr gewechselt werden.",
+    "noRulesets": "Es ist noch kein Regelwerk verfügbar. Wende dich an die Administration.",
+    "description": "Kurzbeschreibung",
+    "descriptionHint": "Optional – sichtbar für alle Mitglieder.",
+    "descriptionPlaceholder": "Worum geht es in deiner Kampagne?"
+  },
   "overview": {
-    "noDescription": "Noch keine Beschreibung."
+    "eyebrow": "Kampagne · {ruleset}",
+    "about": "Worum es geht",
+    "noDescription": "Noch keine Beschreibung.",
+    "group": "Gruppe",
+    "groupEmpty": "Noch keine Mitglieder außer der Spielleitung.",
+    "nextSession": "Nächste Session",
+    "nextSessionEmpty": "Noch keine Session geplant. Die Sessionplanung folgt.",
+    "state": "Kampagnenstand",
+    "gameDay": "Spieltag",
+    "longRests": "Lange Rasten",
+    "createdAt": "Angelegt am {date}"
   }
 }

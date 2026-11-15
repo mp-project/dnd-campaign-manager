@@ -136,7 +136,7 @@ async function submit(): Promise<void> {
             name="ruleset"
             :value="ruleset.id"
             :label="ruleset.name"
-            :description="ruleset.description ?? undefined"
+            :description="t('campaigns.create.edition', { year: ruleset.editionYear })"
             icon="nav-regelwerk"
           />
         </div>

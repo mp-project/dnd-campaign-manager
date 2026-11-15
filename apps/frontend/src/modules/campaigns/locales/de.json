@@ -34,6 +34,7 @@
     "ruleset": "Regelwerk",
     "rulesetRequired": "Bitte wähle ein Regelwerk.",
     "rulesetHint": "Das Regelwerk bestimmt Standardinhalte und Berechnungen und kann später nicht mehr gewechselt werden.",
+    "edition": "Regeln von {year}",
     "noRulesets": "Es ist noch kein Regelwerk verfügbar. Wende dich an die Administration.",
     "description": "Kurzbeschreibung",
     "descriptionHint": "Optional – sichtbar für alle Mitglieder.",

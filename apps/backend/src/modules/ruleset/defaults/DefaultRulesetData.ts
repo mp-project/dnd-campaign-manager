@@ -1,4 +1,5 @@
-export type RulesetSeedRow = {
+/** The rulesets every installation starts with; their codes are never created twice. */
+export type DefaultRulesetRow = {
   code: string;
   name: string;
   description: string;
@@ -54,9 +55,10 @@ const fullCasterSpellSlotMatrix = [
   [4, 3, 3, 3, 3, 2, 2, 1, 1],
 ] as const;
 
-export const seedActorId = "00000000-0000-4000-8000-000000000001";
+/** Audit actor of rows the system creates itself (seed, defaults at start). */
+export const SYSTEM_ACTOR_ID = "00000000-0000-4000-8000-000000000001";
 
-export const rulesetSeedRows: readonly RulesetSeedRow[] = [
+export const DEFAULT_RULESETS: readonly DefaultRulesetRow[] = [
   {
     code: "DND_5E_2014",
     name: "D&D 5E (2014)",

@@ -6,7 +6,7 @@ import {
 } from "#core/db/pool";
 import { getEnv } from "#core/env";
 import { seedBootstrapState } from "./seed/bootstrap.seed.js";
-import { seedRulesets } from "./seed/ruleset.seed.js";
+import { ensureDefaultRulesets } from "#src/modules/ruleset/defaults/ensureDefaultRulesets";
 
 async function runSeed(): Promise<void> {
   const env = getEnv();
@@ -15,7 +15,7 @@ async function runSeed(): Promise<void> {
   try {
     const db = createDrizzleDb(pool);
     const bootstrapCreated = await seedBootstrapState(db);
-    const createdRulesets = await seedRulesets(db);
+    const createdRulesets = await ensureDefaultRulesets(db);
 
     if (!bootstrapCreated && createdRulesets === 0) {
       console.info("Seed skipped, all baseline data already exists.");
@@ -39,4 +39,4 @@ if (isInvokedDirectly) {
 }
 
 export { runSeed };
-export { seedBootstrapState, seedRulesets };
+export { ensureDefaultRulesets, seedBootstrapState };

@@ -34,6 +34,7 @@
     "ruleset": "Ruleset",
     "rulesetRequired": "Please choose a ruleset.",
     "rulesetHint": "The ruleset decides default content and calculations and can't be changed later.",
+    "edition": "{year} rules",
     "noRulesets": "No ruleset is available yet. Please contact the administration.",
     "description": "Short description",
     "descriptionHint": "Optional – visible to all members.",

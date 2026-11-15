@@ -26,6 +26,7 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     EMAIL_VERIFICATION_SECRET: "test-email-verification-secret-1234",
     EMAIL_VERIFICATION_CODE_TTL_HOURS: 24,
     LOG_LEVEL: "warn",
+    DEFAULT_RULESETS_ON_START: false,
     CORS_ORIGIN: "http://app.localhost:5173",
     FRONTEND_ORIGIN: "http://app.localhost:5173",
     VITE_API_BASE_URL:

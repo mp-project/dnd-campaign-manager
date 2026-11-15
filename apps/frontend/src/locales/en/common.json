@@ -1,0 +1,80 @@
+{
+  "app": {
+    "name": "Chronik"
+  },
+  "actions": {
+    "save": "Save",
+    "discard": "Discard",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "archive": "Archive",
+    "restore": "Restore",
+    "search": "Search",
+    "filter": "Filter",
+    "reload": "Reload",
+    "retry": "Try again",
+    "showMore": "Show more",
+    "showLess": "Show less"
+  },
+  "states": {
+    "loading": "Loading …",
+    "empty": "Nothing here yet.",
+    "noResults": "No matches for this search.",
+    "error": "Something went wrong."
+  },
+  "results": {
+    "count": "No entries | One entry | {count} entries"
+  },
+  "pagination": {
+    "previous": "Previous page",
+    "next": "Next page",
+    "page": "Page {page} of {total}"
+  },
+  "visibility": {
+    "private": {
+      "label": "Private",
+      "short": "Private",
+      "hint": "Only you can see this note."
+    },
+    "gm": {
+      "label": "GM only",
+      "short": "GM only",
+      "hint": "Visible to the game master only."
+    },
+    "selected": {
+      "label": "Selected players",
+      "short": "Players",
+      "hint": "Visible to selected players only."
+    },
+    "all": {
+      "label": "All members",
+      "short": "Public",
+      "hint": "Visible to every campaign member."
+    }
+  },
+  "roles": {
+    "OWNER": "Game master",
+    "EDITOR": "Co-author",
+    "PLAYER": "Player"
+  },
+  "status": {
+    "ACTIVE": "Active",
+    "DRAFT": "Draft",
+    "ARCHIVED": "Archived"
+  },
+  "conflict": {
+    "title": "Changed in the meantime",
+    "body": "This content was changed while you were editing it.",
+    "reload": "Reload",
+    "keepMine": "Keep my change"
+  },
+  "language": {
+    "label": "Language",
+    "de": "Deutsch",
+    "en": "English"
+  }
+}

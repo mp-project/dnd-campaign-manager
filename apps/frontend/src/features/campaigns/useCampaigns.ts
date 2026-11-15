@@ -1,7 +1,9 @@
 import { computed, ref } from "vue";
 
+import { errorMessageKey, isApiError } from "@/core/api/errors";
+import { useAppI18n } from "@/core/i18n";
+
 import {
-  ApiError,
   advanceCampaignTime,
   archiveCampaign,
   correctCampaignTime,
@@ -22,6 +24,8 @@ import type {
 } from "@/features/campaigns/types";
 
 export function useCampaigns() {
+  const { t } = useAppI18n();
+  const toErrorMessage = (caughtError: unknown) => t(errorMessageKey(caughtError));
   const loading = ref(false);
   const saving = ref(false);
   const error = ref("");
@@ -128,7 +132,7 @@ export function useCampaigns() {
       canReadTimeHistory.value = false;
 
       // The history only exists for people who may change the campaign.
-      if (!(caughtError instanceof ApiError && caughtError.statusCode === 404)) {
+      if (!(isApiError(caughtError) && caughtError.status === 404)) {
         error.value = toErrorMessage(caughtError);
       }
     }
@@ -259,10 +263,3 @@ export function useCampaigns() {
   };
 }
 
-function toErrorMessage(caughtError: unknown): string {
-  if (caughtError instanceof Error) {
-    return caughtError.message;
-  }
-
-  return "Unbekannter Fehler";
-}

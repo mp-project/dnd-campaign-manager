@@ -11,6 +11,12 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue(), tailwindcss()],
+    define: {
+      // vue-i18n: Composition API only, so the legacy API and the global $t components drop out of the bundle.
+      __VUE_I18N_FULL_INSTALL__: false,
+      __VUE_I18N_LEGACY_API__: false,
+      __INTLIFY_PROD_DEVTOOLS__: false,
+    },
     server: {
       host: frontendHost,
       port: Number.isFinite(frontendPort) ? frontendPort : 5173,

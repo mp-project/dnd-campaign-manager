@@ -1,0 +1,13 @@
+{
+  "VALIDATION_ERROR": "Bitte prüfe deine Eingaben.",
+  "UNAUTHENTICATED": "Bitte melde dich an.",
+  "FORBIDDEN": "Dafür fehlen dir die Rechte.",
+  "NOT_FOUND": "Das gibt es nicht (mehr).",
+  "CONFLICT": "Das passt nicht zum aktuellen Stand.",
+  "VERSION_CONFLICT": "Jemand anderes hat das inzwischen geändert.",
+  "RATE_LIMITED": "Zu viele Versuche. Bitte warte einen Moment.",
+  "INTERNAL_ERROR": "Auf dem Server ist ein Fehler aufgetreten.",
+  "SERVICE_UNAVAILABLE": "Der Dienst ist gerade ausgelastet. Bitte versuche es gleich noch einmal.",
+  "NETWORK_ERROR": "Keine Verbindung zum Server.",
+  "UNKNOWN_ERROR": "Unbekannter Fehler."
+}

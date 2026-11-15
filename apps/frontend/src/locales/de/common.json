@@ -1,0 +1,80 @@
+{
+  "app": {
+    "name": "Chronik"
+  },
+  "actions": {
+    "save": "Speichern",
+    "discard": "Verwerfen",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "create": "Erstellen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "archive": "Archivieren",
+    "restore": "Wiederherstellen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "reload": "Neu laden",
+    "retry": "Erneut versuchen",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen"
+  },
+  "states": {
+    "loading": "Wird geladen …",
+    "empty": "Noch keine Einträge vorhanden.",
+    "noResults": "Keine Treffer für diese Suche.",
+    "error": "Das hat nicht geklappt."
+  },
+  "results": {
+    "count": "Keine Einträge | Ein Eintrag | {count} Einträge"
+  },
+  "pagination": {
+    "previous": "Vorherige Seite",
+    "next": "Nächste Seite",
+    "page": "Seite {page} von {total}"
+  },
+  "visibility": {
+    "private": {
+      "label": "Privat",
+      "short": "Privat",
+      "hint": "Nur du siehst diese Notiz."
+    },
+    "gm": {
+      "label": "Nur SL",
+      "short": "Nur SL",
+      "hint": "Nur für die Spielleitung sichtbar."
+    },
+    "selected": {
+      "label": "Ausgewählte Spieler",
+      "short": "Spieler",
+      "hint": "Nur für ausgewählte Spieler sichtbar."
+    },
+    "all": {
+      "label": "Alle Mitglieder",
+      "short": "Öffentlich",
+      "hint": "Für alle Kampagnenmitglieder sichtbar."
+    }
+  },
+  "roles": {
+    "OWNER": "Spielleitung",
+    "EDITOR": "Mitautor",
+    "PLAYER": "Spieler"
+  },
+  "status": {
+    "ACTIVE": "Aktiv",
+    "DRAFT": "Entwurf",
+    "ARCHIVED": "Archiviert"
+  },
+  "conflict": {
+    "title": "Inzwischen geändert",
+    "body": "Dieser Inhalt wurde geändert, während du ihn bearbeitet hast.",
+    "reload": "Neu laden",
+    "keepMine": "Eigene Änderung behalten"
+  },
+  "language": {
+    "label": "Sprache",
+    "de": "Deutsch",
+    "en": "English"
+  }
+}

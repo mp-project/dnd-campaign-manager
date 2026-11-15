@@ -7,47 +7,27 @@ import type {
   ListResponse,
   UpdateCampaignInput,
 } from "@/features/campaigns/types";
-
-type ErrorPayload = {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-};
-
-export class ApiError extends Error {
-  statusCode: number;
-
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.name = "ApiError";
-    this.statusCode = statusCode;
-  }
-}
+import { networkError, toApiError } from "@/core/api/errors";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (cause) {
+    throw networkError(cause);
+  }
 
   if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-
-    try {
-      const payload = (await response.json()) as ErrorPayload;
-      message = payload.error?.message ?? message;
-    } catch {
-      // Keep default message when body is not JSON.
-    }
-
-    throw new ApiError(message, response.status);
+    throw toApiError(response, await response.json().catch(() => null));
   }
 
   if (response.status === 204) {

@@ -2,7 +2,7 @@
   <section class="grid gap-6">
     <nav
       class="grid gap-2 rounded-2xl border border-black/10 bg-white/80 p-2 sm:grid-cols-3"
-      aria-label="Authentication templates"
+      aria-label="Anmeldeformulare"
     >
       <RouterLink
         :to="{ name: 'auth-login' }"
@@ -57,7 +57,7 @@
             v-model.trim="loginEmail"
             type="email"
             autocomplete="email"
-            placeholder="hero@campaign.example"
+            placeholder="lea@beispiel.de"
             class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
         </label>
@@ -140,7 +140,7 @@
             v-model.trim="registerDisplayName"
             type="text"
             autocomplete="nickname"
-            placeholder="Ela Frostblade"
+            placeholder="Lea"
             class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
         </label>
@@ -152,7 +152,7 @@
               v-model.trim="registerEmail"
               type="email"
               autocomplete="email"
-              placeholder="hero@campaign.example"
+              placeholder="lea@beispiel.de"
               class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
           </label>
@@ -279,7 +279,7 @@
               v-model.trim="forgotEmail"
               type="email"
               autocomplete="email"
-              placeholder="hero@campaign.example"
+              placeholder="lea@beispiel.de"
               class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
           </label>
@@ -305,11 +305,15 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { errorMessageKey, toApiError } from "@/core/api/errors";
+import { useAppI18n } from "@/core/i18n";
+
 const props = defineProps<{
   mode: "login" | "register" | "reset-password";
 }>();
 
 const route = useRoute();
+const { t } = useAppI18n();
 const router = useRouter();
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
@@ -500,22 +504,14 @@ async function postJson(path: string, payload: unknown): Promise<unknown> {
     : null;
 
   if (!response.ok) {
-    const message =
-      body && typeof body === "object" && "message" in body && typeof body.message === "string"
-        ? body.message
-        : `Request failed (${response.status})`;
-    throw new Error(message);
+    throw toApiError(response, body);
   }
 
   return body;
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-
-  return "Die Anfrage konnte nicht verarbeitet werden.";
+  return t(errorMessageKey(error));
 }
 
 function getOAuthErrorMessage(): string {

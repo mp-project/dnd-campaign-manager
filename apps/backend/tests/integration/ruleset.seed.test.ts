@@ -1,10 +1,16 @@
 import { and, eq, isNull } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
-import { rulesetLevelProgressions, rulesets } from "#core/db/schema";
-import { seedBootstrapState, seedRulesets } from "../../scripts/seed.js";
+import { rulesetLevelProgressions, rulesets, rulesetSpellSlotProgressions } from "#core/db/schema";
+import { buildTestApp } from "#test/helpers/buildTestApp";
 
-describe("ruleset seed", () => {
+import { ensureDefaultRulesets, seedBootstrapState } from "../../scripts/seed.js";
+
+/**
+ * The default rulesets exist without a manual step: the seed script and the app's start create
+ * them once per version, and a deleted default doesn't come back.
+ */
+describe("default rulesets", () => {
   const testDatabaseUrl =
     process.env.TEST_DATABASE_URL ??
     "postgres://postgres:postgres@127.0.0.1:55432/dnd_campaign_manager_test";
@@ -16,39 +22,50 @@ describe("ruleset seed", () => {
     await pool.end();
   });
 
-  it("is idempotent and creates exactly 20 levels per ruleset", async () => {
-    const bootstrapCreatedFirst = await seedBootstrapState(db);
-    const createdRulesetsFirst = await seedRulesets(db);
-
-    const bootstrapCreatedSecond = await seedBootstrapState(db);
-    const createdRulesetsSecond = await seedRulesets(db);
-
-    expect(bootstrapCreatedFirst).toBe(true);
-    expect(createdRulesetsFirst).toBe(2);
-    expect(bootstrapCreatedSecond).toBe(false);
-    expect(createdRulesetsSecond).toBe(0);
-
-    const activeRulesets = await db
-      .select({ id: rulesets.id, code: rulesets.code })
+  async function activeCodes(): Promise<string[]> {
+    const rows = await db
+      .select({ code: rulesets.code })
       .from(rulesets)
       .where(and(isNull(rulesets.deletedAt), eq(rulesets.status, "ACTIVE")));
+    return rows.map((row) => row.code).sort();
+  }
 
-    const codes = activeRulesets.map((item) => item.code).sort();
+  it("is idempotent and creates 20 levels and the spell slots per ruleset", async () => {
+    expect(await seedBootstrapState(db)).toBe(true);
+    expect(await ensureDefaultRulesets(db)).toBe(2);
+    expect(await seedBootstrapState(db)).toBe(false);
+    expect(await ensureDefaultRulesets(db)).toBe(0);
 
-    expect(codes).toEqual(["DND_5E_2014", "DND_5E_2024"]);
+    expect(await activeCodes()).toEqual(["DND_5E_2014", "DND_5E_2024"]);
 
-    for (const ruleset of activeRulesets) {
+    for (const ruleset of await db.select({ id: rulesets.id }).from(rulesets)) {
       const levels = await db
         .select({ id: rulesetLevelProgressions.id })
         .from(rulesetLevelProgressions)
-        .where(
-          and(
-            eq(rulesetLevelProgressions.rulesetId, ruleset.id),
-            isNull(rulesetLevelProgressions.deletedAt),
-          ),
-        );
+        .where(eq(rulesetLevelProgressions.rulesetId, ruleset.id));
+      const slots = await db
+        .select({ id: rulesetSpellSlotProgressions.id })
+        .from(rulesetSpellSlotProgressions)
+        .where(eq(rulesetSpellSlotProgressions.rulesetId, ruleset.id));
 
       expect(levels).toHaveLength(20);
+      expect(slots).toHaveLength(20 * 9);
     }
+  });
+
+  it("doesn't bring back a default ruleset somebody deleted", async () => {
+    await ensureDefaultRulesets(db);
+    await db.update(rulesets).set({ deletedAt: new Date() }).where(eq(rulesets.code, "DND_5E_2014"));
+
+    expect(await ensureDefaultRulesets(db)).toBe(0);
+    expect(await activeCodes()).toEqual(["DND_5E_2024"]);
+  });
+
+  it("are created when the app starts, so a campaign can be created right away", async () => {
+    const { app } = buildTestApp({ env: { DEFAULT_RULESETS_ON_START: true } });
+    await app.ready();
+
+    expect(await activeCodes()).toEqual(["DND_5E_2014", "DND_5E_2024"]);
+    await app.close();
   });
 });

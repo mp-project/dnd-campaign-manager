@@ -81,6 +81,8 @@ const envSchema = z
     MAILPIT_UI_URL: z.string().url().optional(),
     EMAIL_VERIFICATION_SECRET: z.string().min(16).optional(),
     EMAIL_VERIFICATION_CODE_TTL_HOURS: positiveInt.default(24),
+    // Create the default rulesets at start (once per version); off in tests, which start empty.
+    DEFAULT_RULESETS_ON_START: booleanFromEnv.default(true),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),

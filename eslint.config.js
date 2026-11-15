@@ -84,7 +84,7 @@ export default [
   },
   {
     // Seed rows have no actor; they get their first version with the first change.
-    files: ["apps/backend/scripts/seed/ruleset.seed.ts"],
+    files: ["apps/backend/src/modules/ruleset/defaults/ensureDefaultRulesets.ts"],
     rules: {
       "no-restricted-syntax": trackedWritesRule(tablesWithout("rulesets")),
     },

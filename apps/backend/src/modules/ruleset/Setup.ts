@@ -12,6 +12,7 @@ import { ValidateRulesetController } from "#src/modules/ruleset/http/controller/
 import { trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
 import { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";
 import { registerRulesetRoutes } from "#src/modules/ruleset/http/routes/v1/RulesetRoutes";
+import { ensureDefaultRulesets } from "#src/modules/ruleset/defaults/ensureDefaultRulesets";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 import { CreateRulesetUseCase } from "#src/modules/ruleset/useCase/CreateRulesetUseCase";
 import { DeleteRulesetUseCase } from "#src/modules/ruleset/useCase/DeleteRulesetUseCase";
@@ -21,6 +22,8 @@ import { UpdateRulesetUseCase } from "#src/modules/ruleset/useCase/UpdateRuleset
 import { ValidateRulesetUseCase } from "#src/modules/ruleset/useCase/ValidateRulesetUseCase";
 
 export const RULESET_MODULE_DEPENDENCIES = "ruleset.module.dependencies";
+
+const DEFAULT_RULESETS_RETRY_MS = 30_000;
 
 export type RulesetModuleDependencies = {
   repository: RulesetRepository;
@@ -51,6 +54,26 @@ async function registerRulesetModule(
     repository,
     service,
   });
+
+  // The default rulesets, so a campaign can be created without a manual seed. A database that
+  // isn't reachable or migrated yet must not stop the app (`/ready` reports it): a failed attempt
+  // is logged and tried again.
+  if (container.config.DEFAULT_RULESETS_ON_START) {
+    let retry: NodeJS.Timeout | undefined;
+    const ensureDefaults = async (): Promise<void> => {
+      try {
+        const created = await ensureDefaultRulesets(container.db);
+        if (created > 0) app.log.info({ created }, "Default rulesets created");
+      } catch (err) {
+        app.log.error({ err }, "Default rulesets could not be created; trying again");
+        retry = setTimeout(() => void ensureDefaults(), DEFAULT_RULESETS_RETRY_MS);
+        retry.unref();
+      }
+    };
+
+    app.addHook("onReady", ensureDefaults);
+    app.addHook("onClose", async () => clearTimeout(retry));
+  }
 
   app.register(async (rulesetApp) => {
     registerRulesetRoutes(rulesetApp, {

@@ -50,13 +50,14 @@ CI (`.github/workflows/ci.yml`) runs: `lint` → `typecheck` → `api:types` (fa
 ```bash
 npm run db:generate       # drizzle-kit generate a migration from schema changes
 npm run db:migrate        # apply migrations (drizzle-kit migrate)
-npm run db:seed           # bootstrap + ruleset seed data (apps/backend/scripts/seed.ts)
+npm run db:seed           # bootstrap + default rulesets (apps/backend/scripts/seed.ts); the app creates the rulesets at start anyway
 docker compose --profile development up -d db adminer   # local DB + Adminer
 docker compose --profile test up -d db-test rustfs-test # integration-test DB on 127.0.0.1:55433, S3 on 127.0.0.1:59000 (both tmpfs)
 npm run storage:check --workspace @dnd/backend          # write, read and delete an object with the current env's storage settings
 npm run content:reindex --workspace @dnd/backend         # rebuild asset_references by hand (repair); the app does it at startup when needed
 ```
 
+- The default rulesets (D&D 5E 2014 and 2024 with level and spell slot progressions, `src/modules/ruleset/defaults`) are created when the app starts (`DEFAULT_RULESETS_ON_START`, off in tests), once per `DEFAULT_RULESETS_VERSION` stored in `system_runtime_state` and only for codes that never existed, so a deleted default doesn't come back. Raise the version when a default ruleset is added.
 - Drizzle schema entrypoint is `apps/backend/src/core/db/schema.ts`, which re-exports `src/core/db/schemas/index.ts`. **Each module's table file must be exported from `schemas/index.ts`** or drizzle-kit won't see it.
 - Migrations live in `apps/backend/drizzle/migrations` (SQL + `meta/` snapshots, generated). Generated SQL has needed hand fixes before (e.g. enum replacement with dependent indexes/defaults, parenthesized defaults); review it and keep schema, SQL and snapshot consistent.
 - Integration tests need `db-test` and `rustfs-test`: `tests/integration/storage.s3.test.ts` and `media.s3.http.test.ts` run against a real S3, each with its own bucket. All other tests use `InMemoryStorage`, which can't show S3 problems.

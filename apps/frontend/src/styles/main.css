@@ -1,0 +1,434 @@
+/*
+ * Chronik – "Illuminierte Chronik"
+ * Design tokens (Tailwind 4 @theme) plus base and component classes, taken over from the clickdummy
+ * (clickdummy/src/styles/main.css). Colors, fonts, radii and shadows are defined here only; components use
+ * the semantic utilities (bg-primary, text-ink, border-gold …), never raw hex or arbitrary color values.
+ */
+@import "tailwindcss";
+
+@theme {
+  /* Navy – app shell */
+  --color-navy-950: #101b24; /* sidebar, darkest background */
+  --color-navy-900: #17232d; /* header, raised dark surfaces */
+  --color-navy-800: #263846; /* dark hover surfaces */
+  --color-navy-700: #38505f; /* secondary dark accents */
+  --color-navy-line: #31414c; /* dividers on navy */
+
+  /* Parchment – work surfaces */
+  --color-parchment: #f7f2e9; /* work surface */
+  --color-parchment-card: #fbf8f1; /* inputs, light cards */
+  --color-parchment-sunk: #f1ece4; /* table heads, set-off areas */
+  --color-line: #d8cdbd; /* fine dividers on parchment */
+  --color-line-strong: #b9ae9c; /* input borders */
+
+  /* Text */
+  --color-ink: #132c44; /* body text, icons on parchment */
+  --color-ink-2: #36516a; /* secondary text */
+  --color-ink-3: #718092; /* metadata, placeholders */
+  --color-heading: #101419; /* headings */
+
+  /* Burgundy */
+  --color-brand: #70142e; /* brand accents, highlighted names */
+  --color-primary: #5c0e24; /* primary actions, active navigation */
+  --color-primary-hover: #6b1229;
+  --color-primary-pressed: #430817;
+  --color-primary-soft: #e7d6db; /* subtle selection surfaces */
+  --color-primary-soft-hover: #dcc3ca;
+
+  /* Gold and decoration */
+  --color-gold: #a8864f; /* frames, corner ornaments */
+  --color-gold-light: #d8b777; /* active markers on navy */
+  --color-gold-soft: #cdb791; /* inner line of the double frame */
+  --color-earth: #6b4e2a; /* domain icons for locations */
+  --color-backdrop: #efe6d6; /* background behind the parchment frame */
+  --color-online: #7db36a; /* online dot on navy */
+  --color-alert: #d4413b; /* notification dot */
+  --color-mist: #5b7a90; /* mountain motif on navy */
+  --color-sepia: #b8a78a; /* decorative lines on parchment */
+  --color-scrollbar-light: #c8b99f; /* scrollbar thumb on parchment */
+
+  /* Avatar tones (initial circles) */
+  --color-avatar-teal: #2f5a5c;
+  --color-avatar-blue: #46698a;
+  --color-avatar-brown: #7a5a44;
+  --color-avatar-violet: #6b5a94;
+
+  /* Status (restrained, badges only) */
+  --color-ok: #3f6b3a;
+  --color-ok-soft: #dde7d3;
+  --color-warn: #8a5a12;
+  --color-warn-soft: #f1e2c0;
+  --color-danger: #8e1b1b;
+  --color-danger-soft: #f2d6d3;
+  --color-info: #2f5577;
+  --color-info-soft: #d6e2ec;
+  --color-violet: #5b3f86;
+  --color-violet-soft: #e3daf0;
+  --color-neutral-soft: #e4dfd7;
+
+  /* Typography (self-hosted through @fontsource, imported in main.ts) */
+  --font-heading: "Libre Baskerville", Georgia, serif;
+  --font-sans: "Lora Variable", "Lora", Georgia, serif;
+  --font-serif: "Lora Variable", "Lora", Georgia, serif;
+
+  --radius-control: 4px;
+  --radius-card: 8px;
+
+  --shadow-soft: 0 1px 2px rgb(16 27 36 / 0.06), 0 4px 14px rgb(16 27 36 / 0.07);
+  --shadow-drawer: -12px 0 40px rgb(16 27 36 / 0.28);
+  --shadow-popover: 0 10px 30px rgb(16 27 36 / 0.28);
+  --shadow-primary: 0 2px 6px rgb(92 14 36 / 0.25);
+
+  /* 768px; rem like the other Tailwind breakpoints, otherwise the order sm → md → lg breaks */
+  --breakpoint-md: 48rem;
+}
+
+/* Material values that are no utilities (paper texture). */
+:root {
+  --parchment-glow: rgb(255 250 241 / 0.9);
+  --parchment-shade: rgb(232 220 198 / 0.35);
+  --parchment-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23132C44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-navy-950 font-sans text-ink antialiased;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  @media (min-width: 768px) {
+    body {
+      font-size: 15.5px;
+    }
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    color: var(--color-heading);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+  .on-parchment :focus-visible {
+    outline-color: var(--color-primary);
+  }
+  button {
+    cursor: pointer;
+  }
+  .num,
+  table td,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Grids without explicit columns: one shrinkable column instead of content width (no overflow on mobile) */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Materials and components ---------- */
+@layer components {
+  /* Parchment with a very subtle paper texture */
+  .parchment {
+    background-color: var(--color-parchment);
+    background-image:
+      radial-gradient(ellipse at 30% 20%, var(--parchment-glow), transparent 60%),
+      radial-gradient(ellipse at 80% 90%, var(--parchment-shade), transparent 55%),
+      var(--parchment-noise);
+  }
+
+  /* Fine golden double frame (work surface, editor) */
+  .frame-double {
+    position: relative;
+    border: 1px solid var(--color-gold);
+    box-shadow:
+      inset 0 0 0 3px var(--color-parchment),
+      inset 0 0 0 4px var(--color-gold-soft);
+  }
+
+  .card {
+    @apply min-w-0 rounded-card border border-line bg-parchment-card;
+  }
+  .card-sunk {
+    @apply min-w-0 rounded-card border border-line bg-parchment-sunk;
+  }
+
+  /* Typography helpers */
+  .page-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-heading);
+    font-size: 32px;
+    line-height: 1.1;
+    min-width: 0;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  @media (max-width: 380px) {
+    .page-title {
+      font-size: 28px;
+    }
+  }
+  @media (min-width: 768px) {
+    .page-title {
+      font-size: 42px;
+    }
+  }
+  .section-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-heading);
+    font-size: 20px;
+    min-width: 0;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  .label {
+    font-size: 14px;
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+  .meta {
+    font-size: 13px;
+    color: var(--color-ink-3);
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .name-link {
+    color: var(--color-brand);
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
+
+  /* Form fields – almost without texture */
+  .input {
+    @apply w-full rounded-control border border-line-strong bg-parchment-card px-3 text-ink;
+    min-height: 46px;
+    font-size: 16px;
+  }
+  .input::placeholder {
+    color: var(--color-ink-3);
+  }
+  .input:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0;
+    border-color: var(--color-primary);
+  }
+  .input[aria-invalid="true"] {
+    border-color: var(--color-danger);
+  }
+  textarea.input {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    min-height: 96px;
+    resize: vertical;
+  }
+  select.input {
+    appearance: none;
+    padding-right: 40px;
+    background-image: var(--select-chevron);
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+  }
+
+  /* Buttons (only through BaseButton/IconButton, never as raw classes in views) */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-control border px-4 font-medium whitespace-nowrap transition-colors select-none;
+    min-height: 44px;
+    font-size: 15.5px;
+  }
+  .btn-primary {
+    @apply border-primary bg-primary text-parchment-card shadow-primary;
+    padding-inline: 20px;
+  }
+  .btn-primary:hover {
+    background: var(--color-primary-hover);
+  }
+  .btn-primary:active {
+    background: var(--color-primary-pressed);
+  }
+  .btn-secondary {
+    @apply border-gold bg-parchment-card text-ink;
+  }
+  .btn-secondary:hover {
+    background: var(--color-parchment-sunk);
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-ink;
+  }
+  .btn-ghost:hover {
+    background: var(--color-parchment-sunk);
+  }
+  .btn-quiet {
+    @apply border-line bg-parchment-sunk text-ink-2;
+  }
+  .btn-danger {
+    @apply border-danger bg-parchment-card text-danger;
+  }
+  .btn-danger:hover {
+    background: var(--color-danger-soft);
+  }
+  .btn-dark {
+    @apply border-navy-700 bg-navy-900 text-parchment;
+  }
+  .btn-dark:hover {
+    background: var(--color-navy-800);
+  }
+  .btn-outline-gold {
+    @apply border-gold-light/70 bg-transparent text-parchment;
+  }
+  .btn-outline-gold:hover {
+    background: var(--color-navy-800);
+  }
+  /* Sizes (BaseButton size): lg = default 44px without a class of its own */
+  .btn-md {
+    min-height: 40px;
+  }
+  .btn-sm {
+    min-height: 36px;
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+  .btn-xs {
+    min-height: 32px;
+    padding-inline: 8px;
+    font-size: 12.5px;
+  }
+  .btn-icon {
+    min-width: 44px;
+    padding-inline: 0;
+  }
+  /* Mobile: wrap long labels instead of cutting them off or overflowing */
+  @media (max-width: 767px) {
+    .btn {
+      min-width: 0;
+      max-width: 100%;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.25;
+      padding-block: 6px;
+    }
+    .btn-icon {
+      min-width: 44px;
+    }
+  }
+  .btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Avatar (initial circle) – display in the components layer so hidden/md:hidden win */
+  .avatar {
+    @apply inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-heading text-parchment-card;
+  }
+
+  /* Badges (pills) */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 whitespace-nowrap;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* Tables */
+  .table {
+    @apply w-full border-collapse text-left;
+  }
+  .table thead th {
+    @apply border-b border-line bg-parchment-sunk px-3 py-3 font-semibold whitespace-nowrap text-ink;
+    font-size: 14.5px;
+  }
+  .table tbody td {
+    @apply border-b border-line px-3 py-3 align-middle;
+  }
+  .table tbody tr:hover {
+    background: color-mix(in srgb, var(--color-parchment-sunk) 55%, transparent);
+  }
+
+  /* Scrollbars */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-navy-700) transparent;
+  }
+  .scroll-thin-light {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-scrollbar-light) transparent;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /*
+   * Scaffold layouts from before the clickdummy port. They go away with the real layouts (plan step 1.4);
+   * until then they only use theme tokens.
+   */
+  .layout-shell {
+    @apply grid min-h-screen place-items-center p-6;
+  }
+  .layout-card {
+    @apply grid w-full max-w-230 gap-4 p-6 shadow-soft;
+  }
+  .layout-title {
+    @apply m-0 font-heading text-2xl text-heading;
+  }
+  .layout-subtitle {
+    @apply mt-1.5 mb-0 text-ink-2;
+  }
+}
+
+/* ---------- Transitions ---------- */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: transform 0.22s ease;
+}
+.slide-left-enter-from,
+.slide-left-leave-to {
+  transform: translateX(-100%);
+}
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform 0.24s ease;
+}
+.slide-right-enter-from,
+.slide-right-leave-to {
+  transform: translateX(100%);
+}
+
+/* `.table` collides with Tailwind's display utility (layer "utilities") → enforce it unlayered */
+.table.hidden {
+  display: none;
+}
+@media (min-width: 768px) {
+  .table.md\:table {
+    display: table;
+  }
+}

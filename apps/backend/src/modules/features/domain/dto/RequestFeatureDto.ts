@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { paginationDto, uuidDto } from "#core/http/dto";
+import { jsonValueDto, paginationDto, uuidDto } from "#core/http/dto";
 import { campaignFactValues } from "#core/rules/campaignFacts";
 import { AssetBaseSchema } from "#src/modules/assets/index";
 import { FeatureBaseSchema } from "#src/modules/features/domain/dto/BaseFeatureDto";
@@ -68,7 +68,7 @@ export const ActorSnapshotSchema = z.strictObject({
 });
 
 export const FeatureBindingsSchema = z.strictObject({
-  parameters: z.record(featureKeyDto, z.json()).optional(),
+  parameters: z.record(featureKeyDto, jsonValueDto).optional(),
   choices: z
     .record(featureKeyDto, z.array(z.string().min(1).max(100)).max(50))
     .optional(),

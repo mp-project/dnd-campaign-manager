@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
+import { jsonValueDto, uuidDto } from "#core/http/dto";
 import {
   DIE_FACES,
   effectPayloadSchema,
@@ -95,7 +95,6 @@ export type DieValue = z.infer<typeof DieValueSchema>;
 export type DistanceValue = z.infer<typeof DistanceValueSchema>;
 
 /** Any JSON value; the type of a parameter or scaling value decides what is allowed. */
-const jsonValueDto = z.json();
 
 const uniqueBy = <T>(items: readonly T[], keyOf: (item: T) => string) =>
   new Set(items.map(keyOf)).size === items.length;

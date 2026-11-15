@@ -7,9 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm-workspaces monorepo (Node `>=24 <25`, ESM) for a D&D campaign manager:
 
 - `apps/backend` (`@dnd/backend`): Fastify 5 + Zod (`fastify-type-provider-zod`) + Drizzle ORM on PostgreSQL. Almost all real logic lives here.
-- `apps/frontend` (`@dnd/frontend`): Vue 3 + Vite + Pinia + Tailwind. Still mostly scaffolding (layouts/pages plus `features/campaigns`).
+- `apps/frontend` (`@dnd/frontend`): Vue 3 + Vite + Pinia + Tailwind 4. Being rebuilt from the clickdummy (see Frontend); theme and assets are in place, pages are still scaffolding.
 - `packages/test-utils`: shared test helpers.
 - `tests/e2e`: Playwright smoke tests (root `playwright.config.ts`).
+
+## Roadmap
+
+The refactoring and module plan (local only, gitignored; backend + frontend per module, domain events with `@EventHandler`, realtime channel, frontend built from the clickdummy) is `docs/plan/refactoring-und-modulplan.md`. Read it before starting work on a new module or on cross-cutting backend/frontend structure, and tick off finished steps there. The clickdummy (`clickdummy/`, gitignored, local only) is the reference for features, flows and theme; admin screens in it are out of scope (separate project).
 
 ## Commands
 
@@ -20,10 +24,11 @@ npm run dev               # backend (tsx watch) + frontend (vite) together
 npm run lint              # eslint over the whole repo
 npm run typecheck         # tsc / vue-tsc in every workspace
 npm run build
-npm run test:unit         # backend jest "unit" project
+npm run test:unit         # backend jest "unit" project + frontend vitest
 npm run test:integration  # backend jest "integration" project (needs test DB, runs in band)
 npm run test:integration:docker   # integration tests fully inside compose (profile "test")
 npm run test:e2e          # build + playwright
+npm run api:types         # regenerate the frontend API types from the backend OpenAPI document
 ```
 
 Single test (Jest, from root):
@@ -34,7 +39,7 @@ npm run test:unit --workspace @dnd/backend -- -t "registers module dependencies"
 npm run test:integration --workspace @dnd/backend -- tests/integration/campaigns.http.test.ts
 ```
 
-CI (`.github/workflows/ci.yml`) runs: `lint` → `typecheck` → `test:unit` → `db:migrate` → `test:integration` → `build`.
+CI (`.github/workflows/ci.yml`) runs: `lint` → `typecheck` → `api:types` (fails if the generated types changed) → `test:unit` → `db:migrate` → `test:integration` → `build`.
 
 ### Database
 
@@ -84,6 +89,13 @@ The backend uses Node subpath imports (`apps/backend/package.json` `imports`): `
 Typical module folders: `domain/dto` (Zod schemas), `domain/entities` (Drizzle tables), `domain/repository`, `service/`, `useCase/`, `http/controller`, `http/routes/v1`, `permissions/`, optionally `email/`. There is no `config/` folder: permission keys live only in `permissions/` (a named object like `ASSETS_PERMISSIONS`, accessed by name), paths are inline in the routes file and `security` is a constant there.
 
 Flow: route (Zod `schema` + `config.permission`) → controller (extends `AbstractController`, wraps work in `this.execute(...)`, which maps `ZodError` → `ValidationError` and unknown errors → `InternalError`) → use case (one class per operation, `execute(context, ...)`) → service (holds `db`, `transactionManager`, repository) → repository (Drizzle queries, takes the db/tx handle as first arg). Each operation has its own use case and controller (`handle`). The controller only parses input and passes the result on; the use case decides what the user gets and returns the response DTO. Mapping functions (`to<Entity>Response`) live next to the schema in `domain/dto/Response<Entity>Dto.ts`. The service holds only shared logic and exposes `db`, `transactionManager` and `repository` publicly. In `auth`, use cases return the session next to the response DTO because controllers set the token cookies (`http/AuthHttpSupport.ts`); the sub-services under `auth/service` keep the domain logic.
+
+Code structure rules (backend and frontend):
+
+- Modules are built on CRUD: create, get, list, update, delete/archive, restore; domain commands that don't fit CRUD (`transfer`, `resolve`, `invite` …) are extra operations in the same pattern.
+- One file per use case and per controller (`useCase/Create<Entity>UseCase.ts`, `http/controller/Create<Entity>Controller.ts`); no files that bundle several operations.
+- DTOs live in their own files under `domain/dto/`: `Base<Entity>Dto.ts`, `Create<Entity>Dto.ts`, `Update<Entity>Dto.ts`, `Request<Entity>Dto.ts` (params/query), `Response<Entity>Dto.ts`; extra operations get their own DTO file.
+- Don't duplicate logic where sharing makes sense: shared within a module → its service; across modules → a container port or module dependency injected through constructors in `Setup.ts`; domain-neutral helpers → `src/core`; recurring flows → base classes. Frontend: shared components in `src/components`, shared logic as composables in `src/core`. Extract only when the same logic with the same meaning is needed in at least two places; no abstraction in advance.
 
 DTOs derive from one `domain/dto/Base<Entity>Dto.ts` schema (`<Entity>BaseSchema`) via `pick`/`partial`/`extend`. Response schemas inherit the input rules, so check that stored data can't violate them before deriving a field; a violation becomes a 500 at serialization. Repository writes are named `create`/`update`/`delete` (with a suffix for secondary entities, status changes are `update*`); reads stay `find*`/`list*`/`count*`. There are no `/admin/...` routes: the route checks the permission and the use case picks the view by role. Content responses say which one they are with `view: "FULL" | "PLAYER"`; FULL (everything, including drafts and GM-only fields) goes to the campaign owner, editors and administrators, so it names the projection, not a role. Campaign roles are `OWNER` (the game master), `EDITOR` and `PLAYER` (`CampaignRole`, `campaignRoleOf` in `#core/content/viewer`). Boolean query parameters use `booleanQueryDto`, not `z.coerce.boolean()`, which turns "false" into `true`.
 
@@ -150,29 +162,59 @@ Throw subclasses of `AppError` / the HTTP errors in `src/core/error/http/` (`Not
 - `apps/backend/tests/unit/**/*.test.ts` and `tests/integration/**/*.test.ts` are separate Jest projects (SWC transform, `maxWorkers: 1`). `tests/unit/http.validation.test.ts` uses snapshots.
 - Integration HTTP tests use `buildTestApp` with signed test JWTs and `app.inject`; `tests/helpers/factories.ts` and `deterministic.ts` give fixtures.
 
-## Frontend UI reference
+## Frontend
 
-`example/UI/` holds mockup screenshots ("Chronik", German UI) to use as a reference for UI templates and the theme:
+The frontend is rebuilt from the clickdummy (`clickdummy/`, local only; `cd clickdummy && npm run dev` → `http://localhost:5180/#/` with a screen overview). It is the reference for features, flows, theme and components; take its components over converted to TypeScript, not copied 1:1, and take data from props or the API instead of its `data/*.js`. Its admin screens (`views/admin/*`) are out of scope. Example content from the clickdummy (texts, the "Die Schatten von Elaria" campaign) may be used. The older screenshots in `example/UI/` are superseded by it.
 
-- `chronik-ui-mockups/`: desktop screens, numbered by content type. Each type has a list screen (`NN-<type>-liste.png`) and a create/edit screen (`NN-<type>-erstellen-bearbeiten.png`): Orte, NPCs, Monster, Gegenstände, Zauber, Quests, Encounter, Klassen, Spezies, Storylines. There are also auth screens (21–22) and import screens (24–25).
-- `chronik-ui-mobile-mockups/`: the same screens at mobile size (`*-mobile.png`).
+### Structure
 
-**The screenshots are not consistent with each other.** Use them only for the basic theme and design language, not as an exact spec for layout, fields, labels or data. The common look:
+Target layout (built step by step, see the plan; today `styles/`, `core/api/`, `layouts/`, `app/router.ts` and the scaffold pages exist):
 
-- dark navy sidebar and top bar
-- parchment-textured content area with ornamental corners
-- deep burgundy/wine primary color for actions, active nav and links
-- serif typography
-- soft colored pill tags
-- table lists with filter bars and pagination
-- create/edit opens as a right-hand slide-over panel with section tabs on the left and Verwerfen/Speichern actions in the footer
+```
+apps/frontend/src/
+  app/         main wiring: router assembly, guards, providers (query, i18n, realtime)
+  core/        api/ (client, errors, 412 conflicts), auth/, realtime/, permissions/ (useCan), i18n/, ui/ (toast, value editor, dialogs)
+  styles/      main.css: @theme tokens, base and component classes
+  components/  shared building blocks: base/ layout/ page/ data/ editor/ content/ canvas/
+  layouts/     AppShell, PlayerShell, BareLayout
+  modules/<name>/  api.ts, queries.ts, realtime.ts, routes.ts, nav.ts, components/, views/, locales/, index.ts (defineFrontendModule)
+```
 
-### Theme and component rules
+A frontend module has the same name and boundaries as its backend module. Domain building blocks (`welt/`, `story/`, `charakter/` … in the clickdummy) go into their module, not into `components/`.
 
-- **Styling uses Tailwind** (`apps/frontend/tailwind.config.ts`, `src/assets/main.css`). Custom CSS is fine where Tailwind isn't enough, for example parchment textures, ornamental borders or complex animations, as long as it is well structured: put it in a clear place (an `@layer` in the global stylesheet or a scoped component style), give it meaningful names, and use the theme variables instead of hardcoded values.
-- **Theme values are variables.** Colors, fonts, radii, shadows, spacing and other basic theme elements are defined once as CSS custom properties (in `main.css`, e.g. `--color-primary`). They are mapped to Tailwind theme keys in `tailwind.config.ts` (e.g. `primary: "var(--color-primary)"`). Components only use these semantic Tailwind classes (`bg-primary`, `text-ink`), never raw hex values or arbitrary values like `bg-[#7a1f2b]`. To change the theme, change the variables.
-- **Structure lives in reusable Vue components.** Build the shared UI pieces as components in `src/components/` and compose pages and layouts from them: app shell/sidebar/top bar, page header, buttons, inputs/selects, tags, filter bar, data table, pagination, slide-over form panel. Don't repeat the markup in each page.
-- The current `tailwind.config.ts` colors (`parchment`, `ink`, `ember`, `spruce`) and the `.layout-*` classes in `main.css` are early placeholders with hardcoded hex values. Move them to the variable-based setup when working on the theme.
+### API and server data
+
+- Types are generated from the backend's OpenAPI document: `npm run api:types` exports it without a database (`apps/backend/scripts/export-openapi.ts`, builds the app like the unit tests) and writes `src/core/api/generated/schema.d.ts` (committed, never edited). Run it after every backend route or DTO change; CI fails on a stale file. Recursive Zod schemas must be registered with a name (`z.globalRegistry.add(schema, { id })`, see `#core/rules/contracts`), and `z.json()` is never used directly but `jsonValueDto` from `#core/http/dto`; otherwise the document refers to schemas it doesn't contain.
+- Requests go through `api` from `@/core/api/client` (openapi-fetch, paths with the `/api/v1` prefix) and `unwrap(...)`, which returns the data or throws an `ApiError` (`status`, `code` from the backend's error envelope, `details`, `requestId`, `retryAfterSeconds`; `NETWORK_ERROR`/`UNKNOWN_ERROR` without an envelope). The UI translates `code`, never shows `message`.
+- A 401 renews the session once (`POST /auth/refresh`, shared by parallel requests) and repeats the request; auth routes are excluded. A failed renewal fires `onSessionExpired`, which clears the query cache.
+- 412 (`isVersionConflict`, `versionConflictDetails`: `currentVersion` and the conflicting fields) is shown by the editor as "changed by someone else" with reload / keep my change.
+- Server data lives in TanStack Vue Query, UI state in Pinia. Every query takes its cache rule from the one table `src/core/api/cachePolicy.ts` (`...cachePolicy("list")`: `static`, `content`, `list`, `live`, `private`, `signedUrl`) and its key from `globalKey`/`meKey`/`campaignKey` (`src/core/api/queryClient.ts`); modules set no `staleTime` of their own. Logout clears the whole cache, a role or membership change clears that campaign (`clearCampaignCache`). Failed requests are retried only for 5xx/network errors, mutations never.
+
+Tests: Vitest + Vue Test Utils (`apps/frontend/tests/unit`, `npm run test:unit --workspace @dnd/frontend`; the root `test:unit` runs backend and frontend), Playwright for flows. `tests/unit/theme.test.ts` fails on raw color values outside `styles/main.css`.
+
+### Theme
+
+- **Tailwind 4**, configured in CSS: tokens are defined once in `@theme` in `src/styles/main.css` (`--color-*`, `--font-*`, `--radius-*`, `--shadow-*`, `--breakpoint-md`) and become utilities (`bg-navy-950`, `bg-parchment-card`, `text-ink-2`, `border-gold`, `rounded-card`, `shadow-soft`). There is no `tailwind.config.ts`.
+- Components use only these semantic utilities, never raw hex/rgb values or arbitrary color values like `bg-[#7a1f2b]`. A missing color becomes a token. Material values that are no utilities (paper texture) are custom properties on `:root` in the same file.
+- Custom CSS is fine where utilities aren't enough (parchment texture, ornamental frames, animations): in a layer of `main.css` (`.parchment`, `.frame-double`, `.card`, `.input`, `.btn-*`, `.badge`, `.table`) or a scoped component style, named by meaning, using the tokens.
+- Look: dark navy sidebar and top bar, parchment work surface with a golden double frame and ornamental corners, burgundy primary color for actions and the active navigation, serif typography (Libre Baskerville for headings, Lora for text, self-hosted through `@fontsource`, no Google Fonts CDN), soft colored pill badges, table lists with filter bars and pagination.
+- App assets live in `public/assets/`: the icon sprite `icons/chronik.svg` (names in `components/base/icon-names.json`) and `deko/` (frame corners, compass rose, seals, mountain motif). Example images of the clickdummy (characters, maps, monsters …) are no app assets.
+
+### Conventions (from the clickdummy)
+
+- **Page layout:** breadcrumb → domain icon + title → subtitle → primary action → search/filters → count/sort → content → pagination (`PageHeader`, `ListToolbar`, `ResultBar`, `DataTable`, `PaginationBar`).
+- **Exactly one primary action per context** (burgundy); others are secondary. Labels name the concrete action ("Ort erstellen", "Monster speichern").
+- **Buttons** only through `BaseButton` (variant, size lg/md/sm/xs, icon, `to`), icon-only buttons through `IconButton` (label required → aria-label + tooltip), closing through `CloseButton`. No raw `.btn` classes in views.
+- **Icons** only through `<Icon name="…" />` from the sprite (`nav-*`, `aktion-*`, `orig-*`, `ui-*`), sizes 16/20/24/32, domain icons in page headers 40–48. Same function = same icon.
+- **Forms:** labels outside the fields (`FormField`), errors directly at the field.
+- **Editors** are child routes of the list (`…/neu`, `…/:id/bearbeiten`) in an `EditorDrawer` (drawer on desktop, editor page on mobile); every section has content. The list renders `<RouterView :key="$route.fullPath" />`.
+- **Tabs with their own URL** through `TabNav` with `to`.
+- **Single values** (character values, quantities, visibility, links …) change in the small value editor (`ValueEditor`, popover on desktop, bottom sheet on mobile); clickable values are wrapped in `EditableValue`.
+- **Status** always through `StatusBadge` (tone + icon from one central mapping), visibility through `VisibilityLabel`. Same meaning = same badge tone.
+- **Long texts** through `ExpandableText`. Server HTML only through `SafeHtml` (see above), mentions through `MentionText`.
+- **Responsive** with the `md` breakpoint (768 px): reorder content on mobile, never a horizontal page scrollbar.
+- **Rights in the UI** only hide what the API refuses anyway (create, release, settings only for the game master); the backend decides.
+- **New building blocks:** check for a shared component first; module folders only for domain-specific parts.
 
 ## Git
 

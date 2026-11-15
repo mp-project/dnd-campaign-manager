@@ -9,6 +9,13 @@ export const uuidDto = z.string().uuid();
  * every non-empty string into `true`, including "false".
  * Real booleans stay valid because controllers parse the query again after route validation.
  */
+/**
+ * Any JSON value. Use this one instance instead of `z.json()`: `z.json()` builds a new recursive
+ * schema on every call, which the OpenAPI document can only describe as a named component.
+ */
+export const jsonValueDto = z.json();
+z.globalRegistry.add(jsonValueDto, { id: "JsonValue" });
+
 export const booleanQueryDto = z.union([
   z.boolean(),
   z.enum(["true", "false"]).transform((value) => value === "true"),

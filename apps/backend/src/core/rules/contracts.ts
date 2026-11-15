@@ -241,6 +241,13 @@ export const predicateExpressionSchema: z.ZodType<PredicateExpression> = z.lazy(
   ]),
 );
 
+/*
+ * Recursive schemas are named components of the OpenAPI document; without a name the generated
+ * document refers to schemas it doesn't contain, and clients can't generate types from it.
+ */
+z.globalRegistry.add(valueExpressionSchema, { id: "ValueExpression" });
+z.globalRegistry.add(predicateExpressionSchema, { id: "PredicateExpression" });
+
 const areaSpecificationSchema: z.ZodType<AreaSpecification> = z.strictObject({
   shape: z.enum(["cone", "cube", "cylinder", "line", "sphere"]),
   size: z.number().positive(),

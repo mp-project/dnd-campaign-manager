@@ -1,6 +1,6 @@
 <template>
-  <main class="layout-shell bg-[linear-gradient(160deg,_#f8f1dd,_#fff8e8)]">
-    <section class="layout-card border-l-8 border-ember">
+  <main class="layout-shell parchment on-parchment">
+    <section class="layout-card card border-l-8 border-gold">
       <header>
         <h1 class="layout-title">Player View Workspace</h1>
         <p class="layout-subtitle">

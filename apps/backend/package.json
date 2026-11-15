@@ -38,7 +38,8 @@
     "content:reindex": "NODE_OPTIONS=--conditions=development tsx scripts/reindex-content.ts",
     "media:worker": "NODE_OPTIONS=--conditions=development tsx src/workers/mediaWorker.ts",
     "media:worker:dev": "NODE_OPTIONS=--conditions=development tsx watch src/workers/mediaWorker.ts",
-    "storage:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-storage.ts"
+    "storage:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-storage.ts",
+    "openapi:export": "NODE_OPTIONS=--conditions=development tsx scripts/export-openapi.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1162.0",

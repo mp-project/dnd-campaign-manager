@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
+import { jsonValueDto, uuidDto } from "#core/http/dto";
 import { AssetBaseSchema, type AssetType } from "#src/modules/assets/index";
 import { CLASS_MAX_LEVEL } from "#src/modules/classes/domain/entities/ClassesTable";
 import {
@@ -277,7 +277,7 @@ const TRACK_VALUE_SCHEMAS: Record<TrackValueType, z.ZodType> = {
 
 export const ProgressionValueSchema = z.strictObject({
   level: classLevelDto,
-  value: z.json(),
+  value: jsonValueDto,
 });
 
 /** A column of the class table, e.g. rages, rage damage, martial arts die. */
@@ -318,7 +318,7 @@ export const FeatureBindingSchema = z
   .strictObject({
     parameterKey: featureKeyDto,
     bindingSource: z.enum(BINDING_SOURCES),
-    staticValue: z.json().nullable().default(null),
+    staticValue: jsonValueDto.nullable().default(null),
     choiceKey: featureKeyDto.nullable().default(null),
     trackKey: featureKeyDto.nullable().default(null),
     contextKey: z.string().min(1).max(100).nullable().default(null),

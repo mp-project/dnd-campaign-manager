@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
+import { jsonValueDto, uuidDto } from "#core/http/dto";
 import { DIE_FACES, effectPayloadSchema, predicateExpressionSchema } from "#core/rules/contracts";
 import { featureKeyDto } from "#src/modules/features/index";
 import {
@@ -72,7 +72,7 @@ export const ItemFeatureBindingSchema = z
   .strictObject({
     parameterKey: featureKeyDto,
     bindingSource: z.enum(BINDING_SOURCES),
-    staticValue: z.json().nullable().default(null),
+    staticValue: jsonValueDto.nullable().default(null),
     /** A value of the actor, e.g. `level.character`. */
     contextKey: z.string().min(1).max(100).nullable().default(null),
   })

@@ -1,8 +1,8 @@
 <template>
   <main
-    class="layout-shell bg-[radial-gradient(circle_at_top,_#fff_20%,_#f8f1dd_70%)]"
+    class="layout-shell parchment on-parchment"
   >
-    <section class="layout-card">
+    <section class="layout-card card">
       <header>
         <h1 class="layout-title">Dashboard Workspace</h1>
         <p class="layout-subtitle">

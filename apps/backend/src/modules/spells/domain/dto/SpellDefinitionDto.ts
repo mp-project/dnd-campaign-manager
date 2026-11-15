@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { uuidDto } from "#core/http/dto";
+import { jsonValueDto, uuidDto } from "#core/http/dto";
 import { effectPayloadSchema, predicateExpressionSchema } from "#core/rules/contracts";
 import { AssetBaseSchema } from "#src/modules/assets/index";
 import { ABILITIES, checkTypedValue, featureKeyDto } from "#src/modules/features/index";
@@ -201,7 +201,7 @@ export const SpellChoiceSchema = z.strictObject(spellChoiceShape).superRefine((c
 export const SpellScalingValueSchema = z.strictObject({
   /** Character level or slot level from which the value applies. */
   minimumLevel: z.number().int().min(1).max(SPELL_MAX_CHARACTER_LEVEL),
-  value: z.json(),
+  value: jsonValueDto,
 });
 
 /**

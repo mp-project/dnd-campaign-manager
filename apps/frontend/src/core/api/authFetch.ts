@@ -20,7 +20,10 @@ export function createAuthFetch(options: AuthFetchOptions): (request: Request) =
   const baseUrl = options.baseUrl.replace(/\/$/, "");
   const refreshUrl = `${baseUrl}/auth/refresh`;
   // Auth routes answer 401 for wrong credentials or codes; renewing the session doesn't help there.
+  // Signing out is the exception: it needs the session like any other request, or the server
+  // never ends it.
   const authPath = `${new URL(baseUrl, "http://localhost").pathname.replace(/\/$/, "")}/auth/`;
+  const sessionAuthPaths = new Set([`${authPath}logout`, `${authPath}logout-all`]);
   let pendingRefresh: Promise<boolean> | null = null;
 
   async function refreshSession(): Promise<boolean> {
@@ -44,7 +47,8 @@ export function createAuthFetch(options: AuthFetchOptions): (request: Request) =
   }
 
   return async function authFetch(request: Request): Promise<Response> {
-    const renewable = !new URL(request.url).pathname.startsWith(authPath);
+    const path = new URL(request.url).pathname;
+    const renewable = !path.startsWith(authPath) || sessionAuthPaths.has(path);
     // The body of a sent request is used up, so the retry needs its own copy.
     const retry = renewable ? request.clone() : null;
     const response = await send(request);

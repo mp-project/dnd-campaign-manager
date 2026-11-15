@@ -35,9 +35,7 @@ export class StartOAuthController extends AbstractController {
       if (error instanceof AuthError && error.code === "OAUTH_PROVIDER_UNAVAILABLE") {
         return reply.redirect(
           this.http.frontendCallbackUrl("error", query.redirect, {
-            reason: "provider_unavailable",
-            provider: params.provider,
-            intent: query.intent,
+            code: "OAUTH_PROVIDER_UNAVAILABLE",
           }),
         );
       }

@@ -17,4 +17,9 @@ export class OAuthCallbackUseCase {
   }): Promise<CompleteOAuthCallbackResult> {
     return this.authService.oauthService.completeOAuthCallback(input);
   }
+
+  /** Where the user started from, to return there after a failed callback too. */
+  redirectPathOf(stateCookieValue: string | null): string {
+    return this.authService.oauthService.redirectPathOfState(stateCookieValue);
+  }
 }

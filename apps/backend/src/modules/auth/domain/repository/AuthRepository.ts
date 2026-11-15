@@ -3,6 +3,7 @@ import { and, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import type { AppDatabase } from "#core/db/pool";
 import {
   emailVerificationRequests,
+  userSettings,
   users,
 } from "#src/modules/users/domain/entities/UsersTable";
 import type { OAuthProvider } from "#src/modules/auth/domain/dto/AuthRequestDto";
@@ -181,6 +182,21 @@ export class AuthRepository {
     }
 
     return created;
+  }
+
+  /** The first settings of a new account; columns left out keep their defaults. */
+  async createSettings(
+    db: AppDatabase,
+    input: { userId: string; locale?: string | undefined; timezone?: string | undefined },
+  ): Promise<void> {
+    const auditActorId = toAuditActorId(input.userId);
+    await db.insert(userSettings).values({
+      userId: input.userId,
+      ...(input.locale ? { locale: input.locale } : {}),
+      ...(input.timezone ? { timezone: input.timezone } : {}),
+      createdBy: auditActorId,
+      updatedBy: auditActorId,
+    });
   }
 
   async updatePasswordHash(

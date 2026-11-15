@@ -4876,6 +4876,10 @@ export interface operations {
                     displayName: string;
                     username?: string;
                     password: string;
+                    /** @enum {boolean} */
+                    privacyAccepted: true;
+                    locale?: string;
+                    timezone?: string;
                 };
             };
         };
@@ -5650,9 +5654,10 @@ export interface operations {
     };
     oauthCallback: {
         parameters: {
-            query: {
-                code: string;
-                state: string;
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
             };
             header?: never;
             path: {
@@ -5687,54 +5692,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        error: {
-                            code: string;
-                            message: string;
-                            details: unknown;
-                            requestId: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        error: {
-                            code: string;
-                            message: string;
-                            details: unknown;
-                            requestId: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        error: {
-                            code: string;
-                            message: string;
-                            details: unknown;
-                            requestId: string;
-                        };
-                    };
-                };
-            };
         };
     };
     completeOAuthRegistration: {
@@ -5751,6 +5708,8 @@ export interface operations {
                     username?: string;
                     /** @enum {boolean} */
                     privacyAccepted: true;
+                    locale?: string;
+                    timezone?: string;
                 };
             };
         };

@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
+import { AUTH_FRONTEND_PATHS } from "#src/modules/auth/domain/AuthFrontendPaths";
 import type { ClientMetadata } from "#src/modules/auth/service/AuthService.contracts";
 import { normalizeRedirectPath } from "#src/modules/auth/service/AuthService.utils";
 import { parseCookieHeader, serializeCookie } from "#src/modules/auth/utils/cookies";
@@ -131,7 +132,7 @@ export class AuthHttpSupport {
     redirectPath: string,
     extraQuery?: Record<string, string>,
   ): string {
-    const url = new URL("/auth/callback", this.options.frontendOrigin);
+    const url = new URL(AUTH_FRONTEND_PATHS.oauthCallback, this.options.frontendOrigin);
     url.searchParams.set("status", status);
     url.searchParams.set("redirect", normalizeRedirectPath(redirectPath));
 

@@ -89,6 +89,23 @@ describe("createAuthFetch", () => {
     expect(onSessionExpired).not.toHaveBeenCalled();
   });
 
+  it.each(["logout", "logout-all"])("renews the session for signing out (%s), which needs it like any other request", async (route) => {
+    const server = fakeServer({
+      [`/api/v1/auth/${route}`]: [() => json(401), () => new Response(null, { status: 204 })],
+      "/api/v1/auth/refresh": [() => json(200)],
+    });
+    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch });
+
+    const response = await authFetch(new Request(`${BASE}/auth/${route}`, { method: "POST" }));
+
+    expect(response.status).toBe(204);
+    expect(server.calls.map((call) => call.path)).toEqual([
+      `/api/v1/auth/${route}`,
+      "/api/v1/auth/refresh",
+      `/api/v1/auth/${route}`,
+    ]);
+  });
+
   it("takes a refresh another tab just made (409) as renewed and repeats the request", async () => {
     const server = fakeServer({
       "/api/v1/me": [() => json(401), () => json(200, { id: "u1" })],

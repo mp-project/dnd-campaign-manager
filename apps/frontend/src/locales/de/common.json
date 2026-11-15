@@ -167,11 +167,17 @@
     "playerView": "Spieleransicht öffnen",
     "campaignView": "Zur Spielleiteransicht",
     "signOut": "Abmelden",
+    "signOutEverywhere": "Überall abmelden",
     "breadcrumb": "Brotkrumen"
   },
   "notFound": {
     "title": "Seite nicht gefunden",
     "body": "Diese Seite gibt es nicht, oder du hast keinen Zugriff darauf.",
     "back": "Zum Dashboard"
+  },
+  "legal": {
+    "privacy": "Datenschutz",
+    "imprint": "Impressum",
+    "readPrivacy": "Datenschutzerklärung lesen"
   }
 }

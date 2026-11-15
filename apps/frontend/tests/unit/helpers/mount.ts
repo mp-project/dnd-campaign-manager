@@ -1,6 +1,6 @@
 import { mount, type ComponentMountingOptions } from "@vue/test-utils";
 import type { Component } from "vue";
-import { createMemoryHistory, createRouter } from "vue-router";
+import { createMemoryHistory, createRouter, type Router } from "vue-router";
 
 import { type AppI18n, createAppI18n, setLocale } from "@/core/i18n";
 
@@ -28,15 +28,15 @@ export function testRouter() {
 }
 
 /**
- * Mounts a component the way the app runs it: German messages (or `locale`) and a router.
+ * Mounts a component the way the app runs it: German messages (or `locale`) and a router (a
+ * catch-all one, or `router` with real routes).
  * Attached to the document, so teleported content (menus, dialogs) can be found in `document.body`.
  */
 export async function mountWithApp<C extends Component>(
   component: C,
-  options: ComponentMountingOptions<C> & { locale?: string } = {},
+  options: ComponentMountingOptions<C> & { locale?: string; router?: Router } = {},
 ) {
-  const { locale = "de", global, ...rest } = options;
-  const router = testRouter();
+  const { locale = "de", global, router = testRouter(), ...rest } = options;
   const i18n = await i18nFor(locale);
   const wrapper = mount(component, {
     attachTo: document.body,

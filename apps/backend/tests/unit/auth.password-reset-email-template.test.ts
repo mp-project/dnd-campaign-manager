@@ -12,13 +12,13 @@ describe("password reset email template", () => {
     const token = "token-abc";
     const url = buildPasswordResetUrl("http://app.localhost:5173", token);
 
-    expect(url).toBe("http://app.localhost:5173/auth/reset-password?token=token-abc");
+    expect(url).toBe("http://app.localhost:5173/passwort-zuruecksetzen?token=token-abc");
   });
 
   it("renders english email copy by default", () => {
     const email = renderPasswordResetEmail({
       locale: undefined,
-      resetUrl: "http://app.localhost:5173/auth/reset-password?token=t",
+      resetUrl: "http://app.localhost:5173/passwort-zuruecksetzen?token=t",
       expiresAt: new Date("2026-09-26T12:00:00.000Z"),
     });
 
@@ -31,7 +31,7 @@ describe("password reset email template", () => {
   it("renders german email copy when locale starts with de", () => {
     const email = renderPasswordResetEmail({
       locale: "de-DE",
-      resetUrl: "http://app.localhost:5173/auth/reset-password?token=t",
+      resetUrl: "http://app.localhost:5173/passwort-zuruecksetzen?token=t",
       expiresAt: new Date("2026-09-26T12:00:00.000Z"),
     });
 

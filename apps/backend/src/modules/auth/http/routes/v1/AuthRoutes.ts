@@ -418,11 +418,9 @@ export function registerAuthRoutes(
         params: OAuthCallbackParamsSchema,
         querystring: OAuthCallbackQuerySchema,
         response: {
+          // Failures redirect to the frontend with their code as well.
           302: z.null(),
           400: errorResponseDto,
-          401: errorResponseDto,
-          409: errorResponseDto,
-          503: errorResponseDto,
         },
       },
     },

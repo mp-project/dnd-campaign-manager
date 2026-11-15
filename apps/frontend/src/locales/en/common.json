@@ -167,11 +167,17 @@
     "playerView": "Open the player view",
     "campaignView": "To the game master view",
     "signOut": "Sign out",
+    "signOutEverywhere": "Sign out everywhere",
     "breadcrumb": "Breadcrumb"
   },
   "notFound": {
     "title": "Page not found",
     "body": "This page doesn't exist, or you have no access to it.",
     "back": "To the dashboard"
+  },
+  "legal": {
+    "privacy": "Privacy",
+    "imprint": "Legal notice",
+    "readPrivacy": "Read the privacy policy"
   }
 }

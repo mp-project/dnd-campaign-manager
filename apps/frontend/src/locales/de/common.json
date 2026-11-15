@@ -33,7 +33,11 @@
   "pagination": {
     "previous": "Vorherige Seite",
     "next": "Nächste Seite",
-    "page": "Seite {page} von {total}"
+    "page": "Seite {page} von {total}",
+    "label": "Seiten",
+    "perPage": "Einträge pro Seite",
+    "loadMore": "Mehr laden",
+    "range": "{from}–{to} von {total}"
   },
   "visibility": {
     "private": {
@@ -179,5 +183,29 @@
     "privacy": "Datenschutz",
     "imprint": "Impressum",
     "readPrivacy": "Datenschutzerklärung lesen"
+  },
+  "list": {
+    "search": "Suchen",
+    "filter": "Filter",
+    "resetFilters": "Filter zurücksetzen",
+    "sortBy": "Sortieren nach",
+    "view": "Ansicht",
+    "viewList": "Listenansicht",
+    "viewGrid": "Rasteransicht",
+    "actions": "Aktionen"
+  },
+  "editor": {
+    "sections": "Abschnitte",
+    "close": "Editor schließen"
+  },
+  "counts": {
+    "documents": "Keine Dokumente | Ein Dokument | {count} Dokumente",
+    "people": "Keine Personen | Eine Person | {count} Personen",
+    "links": "Keine Verknüpfungen | Eine Verknüpfung | {count} Verknüpfungen"
+  },
+  "hp": {
+    "label": "Trefferpunkte {hp} von {max}",
+    "labelWithTemp": "Trefferpunkte {hp} von {max}, {temp} temporär",
+    "temp": "{temp} temporäre TP"
   }
 }

@@ -5,6 +5,8 @@
     "moduleResolution": "Bundler",
     "target": "ES2022",
     "allowImportingTsExtensions": true,
+    // Vue templates pass possibly undefined values on to optional props (`:icon-size="iconSize"`).
+    "exactOptionalPropertyTypes": false,
     "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/*"]

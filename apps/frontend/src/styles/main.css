@@ -65,6 +65,21 @@
   --color-violet: #5b3f86;
   --color-violet-soft: #e3daf0;
   --color-neutral-soft: #e4dfd7;
+  --color-neutral-ink: #3f4a55;
+
+  /* Tag tones (pills for categories; semantic states use the status colors above) */
+  --color-tag-gold: #e9d7b0;
+  --color-tag-gold-ink: #5a431b;
+  --color-tag-green: #cfddbf;
+  --color-tag-green-ink: #2e4a23;
+  --color-tag-blue: #c9daeb;
+  --color-tag-blue-ink: #1f3d5c;
+  --color-tag-violet: #dccdf0;
+  --color-tag-violet-ink: #47306b;
+  --color-tag-rose: #e8c5c8;
+  --color-tag-rose-ink: #6a1a27;
+  --color-tag-sand: #e9dcc8;
+  --color-tag-sand-ink: #5a4630;
 
   /* Typography (self-hosted through @fontsource, imported in main.ts) */
   --font-heading: "Libre Baskerville", Georgia, serif;
@@ -344,6 +359,21 @@
     line-height: 1.6;
   }
 
+  /* Badge tones (Badge `tone`); the same meaning always gets the same tone */
+  .badge-gold { background: var(--color-tag-gold); color: var(--color-tag-gold-ink); }
+  .badge-green { background: var(--color-tag-green); color: var(--color-tag-green-ink); }
+  .badge-blue { background: var(--color-tag-blue); color: var(--color-tag-blue-ink); }
+  .badge-violet { background: var(--color-tag-violet); color: var(--color-tag-violet-ink); }
+  .badge-rose { background: var(--color-tag-rose); color: var(--color-tag-rose-ink); }
+  .badge-sand { background: var(--color-tag-sand); color: var(--color-tag-sand-ink); }
+  .badge-neutral { background: var(--color-neutral-soft); color: var(--color-neutral-ink); }
+  .badge-burgundy { background: var(--color-primary); color: var(--color-parchment-card); }
+  .badge-ok { background: var(--color-ok-soft); color: var(--color-ok); }
+  .badge-warn { background: var(--color-warn-soft); color: var(--color-warn); }
+  .badge-danger { background: var(--color-danger-soft); color: var(--color-danger); }
+  .badge-info { background: var(--color-info-soft); color: var(--color-info); }
+  .badge-outline { background: transparent; color: var(--color-ink-2); box-shadow: inset 0 0 0 1px var(--color-line); }
+
   /* Tables */
   .table {
     @apply w-full border-collapse text-left;
@@ -373,6 +403,60 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Mentions in texts (@[Name](type:id)): mark, preview card (MentionText) */
+  .men {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--color-primary-soft);
+    color: var(--color-brand);
+    font-weight: 600;
+    white-space: nowrap;
+    line-height: 1.45;
+    vertical-align: baseline;
+    cursor: pointer;
+  }
+  .men:hover {
+    background: var(--color-primary-soft-hover);
+  }
+  .men svg {
+    fill: currentColor;
+    flex: none;
+  }
+  .men-gone {
+    background: var(--color-neutral-soft);
+    color: var(--color-ink-3);
+    text-decoration: line-through;
+    cursor: default;
+  }
+  .men-wrap {
+    position: relative;
+    display: inline;
+  }
+  .men-card {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    z-index: 70;
+    display: none;
+    width: 260px;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-card);
+    background: var(--color-parchment-card);
+    box-shadow: var(--shadow-drawer);
+    white-space: normal;
+    font-weight: 400;
+    text-align: left;
+  }
+  .men-wrap:hover .men-card,
+  .men:focus-visible + .men-card {
+    display: flex;
   }
 
   .safe-bottom {

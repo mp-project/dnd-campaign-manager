@@ -58,15 +58,25 @@ function storedLocale(): string | null {
 }
 
 /**
+ * Development only: `?lang=en` (or any language) and `?lang=qps` (pseudo language) override the
+ * language for this page load. The override is not remembered.
+ */
+export function devLocaleOverride(): AppLocale | null {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const requested = new URLSearchParams(location.search).get("lang");
+    return requested === PSEUDO_LOCALE ? PSEUDO_LOCALE : matchLocale(requested);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Language before the profile is known: last choice in this browser → browser languages → German.
  * After sign-in the profile language (`users.locale`) wins (`setLocale(i18n, user.locale)`).
- * `?lang=qps` switches to the pseudo language in development.
  */
 export function initialLocale(): AppLocale {
   try {
-    if (import.meta.env.DEV && new URLSearchParams(location.search).get("lang") === PSEUDO_LOCALE) {
-      return PSEUDO_LOCALE;
-    }
     return resolveLocale([storedLocale(), ...(navigator.languages ?? [navigator.language])]);
   } catch {
     return DEFAULT_LOCALE;
@@ -93,11 +103,16 @@ async function ensureLoaded(i18n: AppI18n, locale: AppLocale): Promise<boolean> 
 }
 
 /**
- * Loads the language (once), activates it and remembers the choice for the next visit. Never
+ * Loads the language (once), activates it and remembers the choice for the next visit (unless
+ * `remember: false`). Never
  * rejects: a language that can't be loaded falls back to German, and without German the app shows
  * no texts but keeps working. Returns the language that is active afterwards.
  */
-export async function setLocale(i18n: AppI18n, requested: string): Promise<AppLocale> {
+export async function setLocale(
+  i18n: AppI18n,
+  requested: string,
+  options: { remember?: boolean } = {},
+): Promise<AppLocale> {
   const wanted: AppLocale =
     requested === PSEUDO_LOCALE && import.meta.env.DEV ? PSEUDO_LOCALE : (matchLocale(requested) ?? DEFAULT_LOCALE);
 
@@ -108,7 +123,7 @@ export async function setLocale(i18n: AppI18n, requested: string): Promise<AppLo
   i18n.global.locale.value = locale;
   document.documentElement.lang = locale === PSEUDO_LOCALE ? DEFAULT_LOCALE : locale;
 
-  if (locale === wanted && locale !== PSEUDO_LOCALE) {
+  if (options.remember !== false && locale === wanted && locale !== PSEUDO_LOCALE) {
     try {
       localStorage.setItem(STORAGE_KEY, locale);
     } catch {

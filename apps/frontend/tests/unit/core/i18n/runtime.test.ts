@@ -30,6 +30,14 @@ describe("i18n runtime", () => {
     expect(localStorage.getItem("chronik.locale")).toBe("en");
   });
 
+  it("doesn't remember a language set with remember: false (development URL override)", async () => {
+    localStorage.setItem("chronik.locale", "de");
+    const i18n = createAppI18n();
+
+    expect(await setLocale(i18n, "en", { remember: false })).toBe("en");
+    expect(localStorage.getItem("chronik.locale")).toBe("de");
+  });
+
   it("falls back to German for unsupported languages", async () => {
     const { t } = await withI18n("fr-FR", () => useAppI18n());
 

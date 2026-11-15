@@ -12,7 +12,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
-import { createAppI18n, initialLocale, setLocale } from "./core/i18n";
+import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
 import { clearSessionCache, createAppQueryClient } from "./core/api/queryClient";
 import { startPushNotifications } from "./services/pushNotifications";
 
@@ -29,6 +29,7 @@ app.use(VueQueryPlugin, { queryClient });
 app.use(i18n);
 
 // Mount once the language is loaded, so the first paint is already translated.
-void setLocale(i18n, initialLocale()).finally(() => app.mount("#app"));
+const override = devLocaleOverride();
+void setLocale(i18n, override ?? initialLocale(), { remember: !override }).finally(() => app.mount("#app"));
 
 void startPushNotifications();

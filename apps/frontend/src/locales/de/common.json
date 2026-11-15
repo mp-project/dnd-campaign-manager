@@ -63,8 +63,29 @@
   },
   "status": {
     "ACTIVE": "Aktiv",
+    "PUBLISHED": "Veröffentlicht",
+    "RELEASED": "Freigegeben",
+    "VERIFIED": "Geprüft",
+    "CONFIRMED": "Bestätigt",
+    "CONNECTED": "Verbunden",
+    "DEFEATED": "Besiegt",
+    "PLANNED": "Geplant",
+    "IN_PROGRESS": "In Arbeit",
+    "IN_PREPARATION": "In Vorbereitung",
+    "PENDING": "Ausstehend",
+    "IN_REVIEW": "In Prüfung",
+    "UNVERIFIED": "Ungeprüft",
+    "INVITED": "Eingeladen",
     "DRAFT": "Entwurf",
-    "ARCHIVED": "Archiviert"
+    "OPEN": "Offen",
+    "COMPLETED": "Abgeschlossen",
+    "DISCARDED": "Verworfen",
+    "DISCOVERED": "Entdeckt",
+    "ARCHIVED": "Archiviert",
+    "BLOCKED": "Gesperrt",
+    "REJECTED": "Abgelehnt",
+    "FAILED": "Gescheitert",
+    "ERROR": "Fehler"
   },
   "conflict": {
     "title": "Inzwischen geändert",
@@ -76,5 +97,39 @@
     "label": "Sprache",
     "de": "Deutsch",
     "en": "English"
+  },
+  "password": {
+    "placeholder": "Passwort",
+    "show": "Passwort anzeigen",
+    "hide": "Passwort verbergen"
+  },
+  "stepper": {
+    "decrease": "{label} verringern",
+    "increase": "{label} erhöhen"
+  },
+  "code": {
+    "digit": "Ziffer {index} von {total}"
+  },
+  "menu": {
+    "more": "Weitere Aktionen"
+  },
+  "steps": {
+    "progress": "Fortschritt"
+  },
+  "presence": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "mention": {
+    "gone": "{name} (nicht mehr vorhanden)"
+  },
+  "valueEditor": {
+    "dialog": "{title} bearbeiten",
+    "apply": "Übernehmen",
+    "saving": "Wird gespeichert …",
+    "number": "Bitte gib eine Zahl ein.",
+    "min": "Mindestens {min}.",
+    "max": "Höchstens {max}.",
+    "required": "Bitte ausfüllen."
   }
 }

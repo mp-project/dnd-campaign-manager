@@ -1,0 +1,87 @@
+{
+  "account": {
+    "title": "Profile & account",
+    "breadcrumb": "Your account",
+    "tabs": "Account sections",
+    "profileTab": "Profile",
+    "profileSubtitle": "Your personal details",
+    "securityTab": "Sign-in & security",
+    "securitySubtitle": "Email, password, devices and sessions"
+  },
+  "profile": {
+    "title": "Profile",
+    "previewTitle": "How others see you",
+    "previewHint": "Your display name and user tag appear with your content and in your campaigns.",
+    "displayName": "Display name",
+    "displayNameHint": "This is how the others see you in your campaigns.",
+    "displayNameRequired": "Please enter a display name.",
+    "userTag": "User tag",
+    "userTagHint": "Others find you by it, for example for invitations. It can't be changed.",
+    "email": "Email address",
+    "emailHint": "Your email address stays private.",
+    "verified": "Confirmed",
+    "unverified": "Not confirmed",
+    "changeEmail": "Change email address",
+    "language": "Language",
+    "timezone": "Time zone",
+    "timezoneHint": "For dates and times in the app.",
+    "save": "Save profile",
+    "saved": "Your profile is saved."
+  },
+  "email": {
+    "title": "Email address",
+    "current": "Current address",
+    "pending": "Waiting for confirmation: {email}",
+    "newEmail": "New email address",
+    "currentPassword": "Current password",
+    "request": "Send confirmation code",
+    "requested": "We sent a code to {email}. Your current address stays valid until you confirm.",
+    "code": "Confirmation code",
+    "confirm": "Confirm new address",
+    "confirmed": "Your email address is now {email}.",
+    "codeInvalid": "The code is wrong or has expired. Request a new one if needed.",
+    "same": "This is already your current address."
+  },
+  "password": {
+    "title": "Password",
+    "current": "Current password",
+    "new": "New password",
+    "repeat": "Repeat new password",
+    "hint": "At least {min} characters. You'll be signed out everywhere afterwards, here too.",
+    "submit": "Change password",
+    "none": "Your account has no password: you sign in through a provider."
+  },
+  "methods": {
+    "title": "Sign-in methods",
+    "password": "Email and password",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "hint": "Providers can't be linked later. An address always belongs to exactly one account."
+  },
+  "devices": {
+    "title": "Trusted devices",
+    "hint": "A trusted device still needs your password, but isn't locked out when someone else guesses at your password. Only on your own devices.",
+    "trustThis": "Trust this device",
+    "since": "Trusted since {date}",
+    "lastUsed": "last used {when}",
+    "remove": "Remove",
+    "removeLabel": "Remove {device}",
+    "empty": "No trusted devices yet."
+  },
+  "sessions": {
+    "title": "Signed-in devices",
+    "hint": "A signed-out device loses access shortly afterwards.",
+    "since": "Signed in since {date}",
+    "lastActive": "last active {when}",
+    "end": "Sign out",
+    "endLabel": "Sign out {device}",
+    "endAll": "Sign out everywhere"
+  },
+  "device": {
+    "thisDevice": "This device",
+    "describe": "{browser} on {system}",
+    "unknown": "Unknown device",
+    "browser": "Browser",
+    "system": "an unknown system"
+  }
+}

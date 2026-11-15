@@ -3,28 +3,8 @@ import { DEFAULT_LOCALE } from "@dnd/i18n";
 import { PSEUDO_LOCALE } from "@/core/i18n/pseudo";
 import { timeZone } from "@/core/i18n/settings";
 
-/**
- * The backend's rules for account fields (`UserBaseSchema`, auth DTOs), checked before sending so
- * the error shows at the field. The backend checks them again.
- */
-export const PASSWORD_MIN_LENGTH = 12;
-
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Username rule of the backend (`UserBaseSchema.username`). */
 const USERNAME = /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])$/;
-
-export function isEmail(value: string): boolean {
-  const email = value.trim();
-  return email.length >= 3 && email.length <= 320 && EMAIL.test(email);
-}
-
-export function isPassword(value: string): boolean {
-  return value.length >= PASSWORD_MIN_LENGTH && value.length <= 200;
-}
-
-export function isDisplayName(value: string): boolean {
-  const name = value.trim();
-  return name.length >= 1 && name.length <= 120;
-}
 
 /** Empty is fine (optional); the backend lowercases, so the check does too. */
 export function isUsername(value: string): boolean {

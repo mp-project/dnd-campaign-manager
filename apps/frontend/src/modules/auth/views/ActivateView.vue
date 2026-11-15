@@ -16,10 +16,11 @@ import InfoNote from "@/components/page/InfoNote.vue";
 import { isApiError } from "@/core/api/errors";
 import { useAppI18n } from "@/core/i18n";
 import BrandLayout from "@/layouts/BrandLayout.vue";
+import { isEmail } from "@/core/auth/accountRules";
 
 import { requestVerification, verifyEmail } from "../api";
 import { useAuthErrorText } from "../errors";
-import { emailFromHistory, isEmail } from "../form";
+import { emailFromHistory } from "../form";
 import { useAuthRedirect } from "../redirect";
 
 const { t } = useAppI18n();

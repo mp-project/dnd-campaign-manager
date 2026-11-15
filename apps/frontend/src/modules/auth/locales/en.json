@@ -50,6 +50,7 @@
     "verifyFailed": "The confirmation link is invalid, has expired or was already used.",
     "verifyWithCode": "Enter a code or request a new one",
     "reset": "Your password was changed. Sign in with your new password.",
+    "passwordChanged": "Your password was changed. Sign in with your new password.",
     "signedOutPartially": "Signing out everywhere didn't work. This browser is signed out, but other sessions may still be active. Sign in and try again.",
     "notVerified": "Please confirm your email address first.",
     "toActivation": "Confirm now"

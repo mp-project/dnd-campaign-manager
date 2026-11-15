@@ -18,12 +18,13 @@ import { isApiError } from "@/core/api/errors";
 import { clearSessionCache } from "@/core/api/queryClient";
 import { useAppI18n } from "@/core/i18n";
 import BrandLayout from "@/layouts/BrandLayout.vue";
+import { isEmail } from "@/core/auth/accountRules";
 
 import { login } from "../api";
 import OAuthButtons from "../components/OAuthButtons.vue";
 import RotatingQuote from "../components/RotatingQuote.vue";
 import { useAuthErrorText } from "../errors";
-import { emailFromHistory, isEmail } from "../form";
+import { emailFromHistory } from "../form";
 import { useAuthRedirect } from "../redirect";
 
 const { t } = useAppI18n();
@@ -37,6 +38,7 @@ const notice = computed(() => {
   if (route.query.verified === "1") return "verified";
   if (route.query.verified === "0") return "verifyFailed";
   if (route.query.reset === "1") return "reset";
+  if (route.query.passwordChanged === "1") return "passwordChanged";
   if (route.query.signedOut === "partial") return "signedOutPartially";
   return null;
 });
@@ -101,6 +103,12 @@ async function submit(): Promise<void> {
         tone="ok"
       >
         {{ t("auth.login.reset") }}
+      </InfoNote>
+      <InfoNote
+        v-else-if="notice === 'passwordChanged'"
+        tone="ok"
+      >
+        {{ t("auth.login.passwordChanged") }}
       </InfoNote>
       <InfoNote
         v-else-if="notice === 'signedOutPartially'"

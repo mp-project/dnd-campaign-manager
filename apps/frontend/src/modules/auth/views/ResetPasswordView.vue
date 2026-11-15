@@ -13,10 +13,10 @@ import InfoNote from "@/components/page/InfoNote.vue";
 import { isApiError } from "@/core/api/errors";
 import { useAppI18n } from "@/core/i18n";
 import BrandLayout from "@/layouts/BrandLayout.vue";
+import { isPassword, PASSWORD_MIN_LENGTH } from "@/core/auth/accountRules";
 
 import { resetPassword } from "../api";
 import { useAuthErrorText } from "../errors";
-import { isPassword, PASSWORD_MIN_LENGTH } from "../form";
 
 const { t } = useAppI18n();
 const errorText = useAuthErrorText();

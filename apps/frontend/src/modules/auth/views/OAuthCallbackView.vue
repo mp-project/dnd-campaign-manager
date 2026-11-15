@@ -21,10 +21,11 @@ import { API_ERROR_CODES } from "@/core/api/errors";
 import { clearSessionCache } from "@/core/api/queryClient";
 import { useAppI18n } from "@/core/i18n";
 import BrandLayout from "@/layouts/BrandLayout.vue";
+import { isDisplayName } from "@/core/auth/accountRules";
 
 import { completeOAuthRegistration } from "../api";
 import { useAuthErrorText } from "../errors";
-import { browserSettings, isDisplayName, isUsername, optionalUsername } from "../form";
+import { browserSettings, isUsername, optionalUsername } from "../form";
 import { useAuthRedirect } from "../redirect";
 
 const { t, locale } = useAppI18n();

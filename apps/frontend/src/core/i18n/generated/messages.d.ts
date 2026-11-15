@@ -7,4 +7,5 @@ export type MessageSchema = {
   "errors": typeof import("../../../locales/de/errors.json");
   "glossary": typeof import("../../../locales/de/glossary.json");
   "legal": typeof import("../../../modules/legal/locales/de.json");
+  "users": typeof import("../../../modules/users/locales/de.json");
 };

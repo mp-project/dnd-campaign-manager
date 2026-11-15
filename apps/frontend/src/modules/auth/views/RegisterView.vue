@@ -16,20 +16,13 @@ import TextInput from "@/components/base/TextInput.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import { useAppI18n } from "@/core/i18n";
 import BrandLayout from "@/layouts/BrandLayout.vue";
+import { isDisplayName, isEmail, isPassword, PASSWORD_MIN_LENGTH } from "@/core/auth/accountRules";
 
 import { register } from "../api";
 import OAuthButtons from "../components/OAuthButtons.vue";
 import RotatingQuote from "../components/RotatingQuote.vue";
 import { useAuthErrorText } from "../errors";
-import {
-  browserSettings,
-  isDisplayName,
-  isEmail,
-  isPassword,
-  isUsername,
-  optionalUsername,
-  PASSWORD_MIN_LENGTH,
-} from "../form";
+import { browserSettings, isUsername, optionalUsername } from "../form";
 import { useAuthRedirect } from "../redirect";
 
 const { t, locale } = useAppI18n();

@@ -42,7 +42,7 @@
             class="w-full rounded-xl border px-3 py-2 text-left transition"
             :class="
               selectedCampaign?.id === campaign.id
-                ? 'border-spruce bg-spruce/10'
+                ? 'border-primary bg-primary/10'
                 : 'border-black/10 bg-white hover:bg-black/5'
             "
             @click="selectCampaign(campaign.id)"
@@ -81,7 +81,7 @@
               v-model.trim="createForm.name"
               type="text"
               placeholder="The Northern Reach"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
 
@@ -91,7 +91,7 @@
               v-model.trim="createForm.slug"
               type="text"
               placeholder="the-northern-reach"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
 
@@ -101,7 +101,7 @@
               v-model.trim="createForm.rulesetId"
               type="text"
               placeholder="11111111-1111-4111-8111-111111111111"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
 
@@ -111,14 +111,14 @@
               v-model.trim="createForm.description"
               rows="3"
               placeholder="Kurze Kampagnenbeschreibung"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             />
           </label>
 
           <div class="md:col-span-2">
             <button
               type="submit"
-              class="rounded-xl bg-spruce px-4 py-2 text-sm font-semibold text-white transition hover:bg-spruce/90 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="saving"
             >
               {{ saving ? "Wird erstellt..." : "Kampagne erstellen" }}
@@ -150,7 +150,7 @@
             <input
               v-model.trim="updateForm.name"
               type="text"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
 
@@ -159,7 +159,7 @@
             <input
               v-model.trim="updateForm.slug"
               type="text"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
           </label>
 
@@ -167,7 +167,7 @@
             Status
             <select
               v-model="updateForm.status"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
               <option value="DRAFT">DRAFT</option>
               <option value="ACTIVE">ACTIVE</option>
@@ -190,7 +190,7 @@
             <textarea
               v-model.trim="updateForm.description"
               rows="3"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
             />
           </label>
 
@@ -198,7 +198,7 @@
             <button
               v-if="canUpdate"
               type="submit"
-              class="rounded-xl bg-spruce px-4 py-2 text-sm font-semibold text-white transition hover:bg-spruce/90 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="saving"
             >
               Speichern
@@ -261,7 +261,7 @@
             </label>
             <button
               type="submit"
-              class="rounded-lg bg-spruce px-3 py-2 text-sm font-semibold text-white"
+              class="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white"
               :disabled="saving"
             >
               Anwenden
@@ -302,7 +302,7 @@
             </label>
             <button
               type="submit"
-              class="rounded-lg bg-spruce px-3 py-2 text-sm font-semibold text-white"
+              class="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white"
               :disabled="saving"
             >
               Korrigieren

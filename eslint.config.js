@@ -31,6 +31,10 @@ export default [
       "**/.turbo/**",
       "**/node_modules/**",
       "**/drizzle/meta/**",
+      // Local only (gitignored): the clickdummy is a JavaScript reference, not part of the app.
+      "clickdummy/**",
+      // Generated from the backend OpenAPI document (npm run api:types).
+      "apps/frontend/src/core/api/generated/**",
     ],
   },
   js.configs.recommended,

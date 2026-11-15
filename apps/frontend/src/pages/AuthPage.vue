@@ -7,21 +7,21 @@
       <RouterLink
         :to="{ name: 'auth-login' }"
         class="rounded-xl px-3 py-2 text-center text-sm font-semibold transition"
-        :class="mode === 'login' ? 'bg-spruce text-white' : 'text-ink/80 hover:bg-black/5'"
+        :class="mode === 'login' ? 'bg-primary text-white' : 'text-ink/80 hover:bg-black/5'"
       >
         Login
       </RouterLink>
       <RouterLink
         :to="{ name: 'auth-register' }"
         class="rounded-xl px-3 py-2 text-center text-sm font-semibold transition"
-        :class="mode === 'register' ? 'bg-spruce text-white' : 'text-ink/80 hover:bg-black/5'"
+        :class="mode === 'register' ? 'bg-primary text-white' : 'text-ink/80 hover:bg-black/5'"
       >
         Registrierung
       </RouterLink>
       <RouterLink
         :to="{ name: 'auth-reset-password' }"
         class="rounded-xl px-3 py-2 text-center text-sm font-semibold transition"
-        :class="mode === 'reset-password' ? 'bg-spruce text-white' : 'text-ink/80 hover:bg-black/5'"
+        :class="mode === 'reset-password' ? 'bg-primary text-white' : 'text-ink/80 hover:bg-black/5'"
       >
         Passwort Reset
       </RouterLink>
@@ -58,7 +58,7 @@
             type="email"
             autocomplete="email"
             placeholder="hero@campaign.example"
-            class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+            class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
         </label>
 
@@ -69,7 +69,7 @@
             type="password"
             autocomplete="current-password"
             placeholder="••••••••••••"
-            class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+            class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
         </label>
 
@@ -83,7 +83,7 @@
           </label>
           <RouterLink
             :to="{ name: 'auth-reset-password' }"
-            class="text-sm font-medium text-spruce hover:underline"
+            class="text-sm font-medium text-primary hover:underline"
           >
             Passwort vergessen?
           </RouterLink>
@@ -92,7 +92,7 @@
         <button
           type="submit"
           :disabled="isSubmitting"
-          class="mt-2 rounded-xl bg-spruce px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-spruce/90 disabled:cursor-not-allowed disabled:opacity-60"
+          class="mt-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ isSubmitting ? "Login läuft..." : "Login" }}
         </button>
@@ -141,7 +141,7 @@
             type="text"
             autocomplete="nickname"
             placeholder="Ela Frostblade"
-            class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+            class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
         </label>
 
@@ -153,7 +153,7 @@
               type="email"
               autocomplete="email"
               placeholder="hero@campaign.example"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
           </label>
 
@@ -165,7 +165,7 @@
                 type="password"
                 autocomplete="new-password"
                 placeholder="Mindestens 12 Zeichen"
-                class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+                class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               >
             </label>
             <label class="grid gap-1.5 text-sm text-ink/85">
@@ -175,7 +175,7 @@
                 type="password"
                 autocomplete="new-password"
                 placeholder="Zur Bestätigung"
-                class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+                class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               >
             </label>
           </div>
@@ -195,7 +195,7 @@
         <button
           type="submit"
           :disabled="isSubmitting"
-          class="mt-2 rounded-xl bg-spruce px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-spruce/90 disabled:cursor-not-allowed disabled:opacity-60"
+          class="mt-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ registerSubmitLabel }}
         </button>
@@ -252,7 +252,7 @@
               type="password"
               autocomplete="new-password"
               placeholder="Mindestens 12 Zeichen"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
           </label>
 
@@ -263,7 +263,7 @@
               type="password"
               autocomplete="new-password"
               placeholder="Zur Bestätigung"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
           </label>
 
@@ -280,7 +280,7 @@
               type="email"
               autocomplete="email"
               placeholder="hero@campaign.example"
-              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-spruce focus:ring-2 focus:ring-spruce/20"
+              class="rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
           </label>
 
@@ -292,7 +292,7 @@
         <button
           type="submit"
           :disabled="isSubmitting"
-          class="mt-2 rounded-xl bg-spruce px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-spruce/90 disabled:cursor-not-allowed disabled:opacity-60"
+          class="mt-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ resetSubmitLabel }}
         </button>

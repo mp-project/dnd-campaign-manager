@@ -151,3 +151,8 @@ test-results/
 
 # clickdummy
 clickdummy/
+# local refactoring plan (not committed)
+docs/plan/
+
+# OpenAPI document the frontend API types are generated from (npm run api:types)
+apps/frontend/.openapi/

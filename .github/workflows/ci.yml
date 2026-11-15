@@ -59,6 +59,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - name: API types match the backend
+        run: |
+          npm run api:types
+          git diff --exit-code -- apps/frontend/src/core/api/generated
       - run: npm run test:unit
       - run: npm run db:migrate
       - run: npm run test:integration

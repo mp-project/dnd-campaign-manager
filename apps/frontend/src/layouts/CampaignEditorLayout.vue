@@ -1,6 +1,6 @@
 <template>
-  <main class="layout-shell bg-[linear-gradient(135deg,_#f8f1dd,_#e7e0ce)]">
-    <section class="layout-card border-l-8 border-spruce">
+  <main class="layout-shell parchment on-parchment">
+    <section class="layout-card card border-l-8 border-primary">
       <header>
         <h1 class="layout-title">Campaign Editor Workspace</h1>
         <p class="layout-subtitle">

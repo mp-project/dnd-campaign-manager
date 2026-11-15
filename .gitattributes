@@ -1,0 +1,2 @@
+# Generated from the backend OpenAPI document (npm run api:types)
+apps/frontend/src/core/api/generated/** linguist-generated=true -diff

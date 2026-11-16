@@ -1,3 +1,4 @@
+import type { Locale } from "@dnd/i18n";
 import type { RouteRecordRaw } from "vue-router";
 
 import type { IconName } from "@/components/base/iconNames";
@@ -57,5 +58,9 @@ declare module "vue-router" {
     nav?: string;
     /** The page brings its own padding (canvas, board). */
     fullBleed?: boolean;
+    /** Public pages with the language in the address (`localizedRoutes`): the page's language. */
+    locale?: Locale;
+    /** Public pages: the route name without language, to address the page in another language. */
+    localizedName?: string;
   }
 }

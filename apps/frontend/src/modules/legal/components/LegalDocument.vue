@@ -17,10 +17,10 @@ defineProps<{ title: MessageKey; subtitle: MessageKey; sections: LegalSection[] 
 const { t } = useAppI18n();
 const router = useRouter();
 
-/** Back where the visitor came from in this app; opened directly (new tab, link), to the start. */
+/** Back where the visitor came from in this app; opened directly (new tab, link), to the start page. */
 function back(): void {
   if (router.options.history.state.back) router.back();
-  else void router.push("/dashboard");
+  else void router.push("/");
 }
 </script>
 

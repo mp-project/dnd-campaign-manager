@@ -6,6 +6,7 @@ import { useRoute } from "vue-router";
 import Icon from "@/components/base/Icon.vue";
 import { roleMessageKey, useRuleset } from "@/core/campaign/campaign";
 import { useAppI18n } from "@/core/i18n";
+import { useHomePath } from "@/core/i18n/localizedRoutes";
 import { useNavigation } from "@/core/navigation/navigation";
 import { useShellStore } from "@/core/ui/shell";
 
@@ -13,6 +14,7 @@ import CompassRose from "./CompassRose.vue";
 import UserMenu from "./UserMenu.vue";
 
 const { t } = useAppI18n();
+const home = useHomePath();
 const route = useRoute();
 const shell = useShellStore();
 const nav = useNavigation();
@@ -36,9 +38,9 @@ const ruleset = useRuleset(() => campaign.value?.rulesetId);
         />
       </button>
       <RouterLink
-        to="/dashboard"
+        :to="home"
         class="flex items-center gap-2"
-        :aria-label="t('common.shell.toDashboard')"
+        :aria-label="t('common.shell.toHome')"
       >
         <CompassRose :size="34" /><span class="font-heading text-[21px] font-bold">{{ t("common.app.name") }}</span>
       </RouterLink>

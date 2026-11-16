@@ -14,6 +14,7 @@ function routesOf(modules: readonly FrontendModule[], area: RouteArea): RouteRec
 
 /**
  * Routes from the modules, one parent per area; campaigns are addressed as `/k/<short id>-<slug>/...`.
+ * `/` is the public start page (bare area); the app starts at `/dashboard`.
  * The parent sets `meta.area`; children inherit it through the merged route meta.
  */
 export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[] {
@@ -22,11 +23,22 @@ export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[
     ...(import.meta.env.DEV
       ? [{ path: "/_bausteine", name: "dev-components", component: () => import("@/dev/ComponentsShowcase.vue") }]
       : []),
+    // Before the account area, whose parent also sits at `/`: the start page (the bare area's empty
+    // child) must win there, not the shell without a page. The catch-all ranks last anyway.
+    {
+      path: "/",
+      component: BareLayout,
+      meta: { area: "bare" },
+      children: [
+        ...routesOf(modules, "bare"),
+        { path: ":pathMatch(.*)*", name: "not-found", component: () => import("@/app/views/NotFoundView.vue") },
+      ],
+    },
     {
       path: "/",
       component: AppShell,
       meta: { area: "account" },
-      children: [{ path: "", redirect: "/dashboard" }, ...routesOf(modules, "account")],
+      children: routesOf(modules, "account"),
     },
     {
       path: "/k/:campaign/spiel",
@@ -39,15 +51,6 @@ export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[
       component: AppShell,
       meta: { area: "campaign" },
       children: routesOf(modules, "campaign"),
-    },
-    {
-      path: "/",
-      component: BareLayout,
-      meta: { area: "bare" },
-      children: [
-        ...routesOf(modules, "bare"),
-        { path: ":pathMatch(.*)*", name: "not-found", component: () => import("@/app/views/NotFoundView.vue") },
-      ],
     },
   ];
 }

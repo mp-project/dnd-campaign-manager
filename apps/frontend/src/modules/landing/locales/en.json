@@ -28,7 +28,8 @@
     "quest": "Quest “The seal of the north gate” with rewards: experience points, gold, an item and reputation changes",
     "character": "Character sheet of Arvel Merad with armor class, hit points, spell slots and abilities",
     "sessions": "Planned sessions with date, place, content and the players' replies",
-    "marketplace": "Marketplace with monsters, places and adventure packs by other game masters"
+    "marketplace": "Marketplace with monsters, places and adventure packs by other game masters",
+    "reputation": "Reputation overview with the standing of factions, people and regions and the history of the North Gate Watch with changes from story, quest, encounter and a manual correction"
   },
   "audience": {
     "title": "Who is Chronik for?",
@@ -87,7 +88,24 @@
     }
   },
   "more": {
+    "eyebrow": "More for your table",
     "title": "And there's more",
+    "intro": "Helpers big and small that bring your campaign to life.",
+    "previous": "Previous card",
+    "next": "Next card",
+    "position": "Card {n} of {total}",
+    "encounters": {
+      "title": "Encounters",
+      "text": "Prepare fights and events – with opponents, setting, treasure and consequences for the story."
+    },
+    "factions": {
+      "title": "Factions",
+      "text": "Guilds, orders, houses and gangs with goals, members and relationships to each other."
+    },
+    "sounds": {
+      "title": "Music and sound effects",
+      "text": "Background music and sounds for every scene, played right from the session."
+    },
     "compendium": {
       "title": "Compendium by ruleset",
       "text": "Spells, classes, species, feats, backgrounds and items – plus your campaign's own content."
@@ -101,9 +119,24 @@
       "text": "Every change is recorded and can be undone."
     },
     "languages": {
-      "title": "Multilingual",
-      "text": "German and English, with the terms of each ruleset edition."
+      "title": "German and English",
+      "text": "Chronik currently supports German and English – each with the terms of the matching ruleset edition."
     }
+  },
+  "reputation": {
+    "eyebrow": "Reputation system",
+    "title": "A reputation that grows with the story",
+    "text": "Where do factions, people and regions stand with the party? Reputation develops dynamically: story events, completed quests and encounters shift it automatically – and where the story calls for it, you adjust it by hand.",
+    "sourcesLabel": "What changes reputation",
+    "sources": {
+      "story": "Story events",
+      "quest": "Quests",
+      "encounter": "Encounters",
+      "manual": "Adjust by hand"
+    },
+    "point1": "Reputation changes automatically through story events, quests and encounters",
+    "point2": "Adjust it by hand at any time, with a note on why",
+    "point3": "History per faction, person and region with the source of every change"
   },
   "marketplace": {
     "eyebrow": "Marketplace",

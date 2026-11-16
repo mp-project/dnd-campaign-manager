@@ -4,6 +4,7 @@ import character from "./assets/screens/character.webp";
 import map from "./assets/screens/map.webp";
 import marketplace from "./assets/screens/marketplace.webp";
 import quest from "./assets/screens/quest.webp";
+import reputation from "./assets/screens/reputation.webp";
 import sessions from "./assets/screens/sessions.webp";
 import storyline from "./assets/screens/storyline.webp";
 
@@ -22,6 +23,7 @@ export const SCREENS = {
   map: { src: map, alt: "landing.screens.map", demoPath: "/kampagne/welt/orte/atlas" },
   quest: { src: quest, alt: "landing.screens.quest", demoPath: "/kampagne/abenteuer/quests/siegel-nordtor/bearbeiten" },
   character: { src: character, alt: "landing.screens.character", demoPath: "/spiel/charakter" },
+  reputation: { src: reputation, alt: "landing.screens.reputation", demoPath: "/kampagne/welt/ruf" },
   sessions: { src: sessions, alt: "landing.screens.sessions", demoPath: "/kampagne/sessions" },
   marketplace: { src: marketplace, alt: "landing.screens.marketplace", demoPath: "/marketplace" },
 } satisfies Record<string, Screen>;

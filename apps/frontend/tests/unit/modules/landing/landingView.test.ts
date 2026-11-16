@@ -115,6 +115,43 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
+  it("shows the further features as a slider on navy, languages as German and English for now", async () => {
+    const { wrapper } = await open();
+    const section = wrapper.find("section[aria-labelledby=landing-more]");
+    expect(section.find("h2").text()).toBe("Und außerdem");
+    const slider = section.find("[aria-roledescription=carousel]");
+    expect(slider.attributes("aria-label")).toBe("Und außerdem");
+    const cards = slider.findAll("[aria-roledescription=slide]");
+    expect(cards.map((card) => card.find("h3").text())).toEqual([
+      "Encounter",
+      "Fraktionen",
+      "Musik und Soundeffekte",
+      "Kompendium nach Regelwerk",
+      "Gezielt freigeben",
+      "Nichts geht verloren",
+      "Deutsch und Englisch",
+    ]);
+    expect(cards[0]!.attributes("aria-label")).toBe("Karte 1 von 7");
+    expect(cards.at(-1)!.text()).toContain("aktuell Deutsch und Englisch");
+    wrapper.unmount();
+  });
+
+  it("presents the reputation system with its sources and a screen of it", async () => {
+    vi.stubEnv("VITE_DEMO_URL", "https://demo.example.com/");
+    const { wrapper } = await open();
+    const section = wrapper.find("section[aria-labelledby=landing-reputation]");
+    expect(section.find("h2").text()).toBe("Ein Ruf, der mit der Geschichte wächst");
+    expect(section.findAll("ul[aria-label] li").map((source) => source.text())).toEqual([
+      "Story-Ereignisse",
+      "Quests",
+      "Encounter",
+      "Manuell anpassen",
+    ]);
+    expect(section.find("img").attributes("alt")).toContain("Ruf-Übersicht");
+    expect(section.find("a").attributes("href")).toBe("https://demo.example.com/#/kampagne/welt/ruf");
+    wrapper.unmount();
+  });
+
   it("links the logo to the start page in the active language", async () => {
     const german = await open();
     expect(german.wrapper.find("header a").attributes("href")).toBe("/");
@@ -187,14 +224,14 @@ describe("landing page", () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
     const alts = wrapper.findAll("img[alt]").map((image) => image.attributes("alt")).filter(Boolean);
-    expect(alts).toHaveLength(8);
+    expect(alts).toHaveLength(9);
     expect(alts.slice(0, 2)).toEqual([
       expect.stringContaining("Charakterbogen von Arvel Merad"),
       expect.stringContaining("Akt-Board der Storyline"),
     ]);
     expect(alts).toEqual(expect.arrayContaining([expect.stringContaining("Weltkarte von Elaria"), expect.stringContaining("Marktplatz")]));
     // Below the hero the pictures load only when needed.
-    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(6);
+    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(7);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

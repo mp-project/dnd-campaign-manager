@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "title": "Chronik – campaign manager for D&D 5E",
+    "description": "Plan campaigns, weave storylines, manage characters and invite your group to game sessions – Chronik is the tool for game masters and their groups."
+  },
+  "header": {
+    "signIn": "Sign in",
+    "register": "Sign up",
+    "toApp": "Open the app",
+    "language": "Choose language",
+    "demo": "Demo"
+  },
+  "hero": {
+    "eyebrow": "Campaign manager for D&D 5E",
+    "title": "Your campaign. Your world. In one place.",
+    "lead": "Chronik is the tool for game masters and their groups: plan campaigns, weave storylines, manage characters and invite to game sessions – from the first sketch of your world to the final encounter.",
+    "register": "Create an account",
+    "demo": "Try the demo",
+    "demoHint": "The demo shows an example campaign and needs no account.",
+    "toApp": "Go to my campaigns",
+    "splitStoryline": "Storyline canvas",
+    "splitCharacter": "Character sheet"
+  },
+  "screens": {
+    "open": "Open in the demo",
+    "storyline": "Act board of the storyline “The Mist Pact”: scenes as cards, connected by decisions and routes",
+    "map": "World map of Elaria with markers for regions and places and the location hierarchy next to it",
+    "quest": "Quest “The seal of the north gate” with rewards: experience points, gold, an item and reputation changes",
+    "character": "Character sheet of Arvel Merad with armor class, hit points, spell slots and abilities",
+    "sessions": "Planned sessions with date, place, content and the players' replies",
+    "marketplace": "Marketplace with monsters, places and adventure packs by other game masters"
+  },
+  "audience": {
+    "title": "Who is Chronik for?",
+    "intro": "For everyone at the table – each role sees exactly what it needs.",
+    "gameMasters": {
+      "title": "Game masters",
+      "text": "Keep world, plot and rules in view and prepare sessions calmly – with everything you know in one place instead of scattered notes."
+    },
+    "players": {
+      "title": "Players",
+      "text": "See your character, shared discoveries and everything the game master reveals – on your computer or on your phone right at the table."
+    },
+    "editors": {
+      "title": "Co-authors",
+      "text": "Work on the world and the compendium as an editor without the group seeing anything too early."
+    }
+  },
+  "features": {
+    "eyebrow": "Main features",
+    "title": "Everything your campaign needs",
+    "intro": "Five areas carry your campaign – and work hand in hand.",
+    "campaigns": {
+      "title": "Plan campaigns",
+      "text": "Create campaigns with their own ruleset and build your world piece by piece: locations, people, factions and notes, all linked to each other.",
+      "point1": "D&D 5E 2014 or 2024 rules per campaign",
+      "point2": "Locations, people and factions with links",
+      "point3": "Drafts stay hidden until you reveal them"
+    },
+    "storylines": {
+      "title": "Weave storylines",
+      "text": "Keep plot lines, quests and encounters together and see at a glance where your group stands and what may come next.",
+      "point1": "Plot lines with chapters and quests",
+      "point2": "Prepare encounters with monsters and treasure",
+      "point3": "Reveal clues and secrets when the time is right"
+    },
+    "quests": {
+      "title": "Quests with rewards",
+      "text": "Create quests with quest givers, prerequisites and goals, and decide what the group gets for them.",
+      "point1": "Prerequisites, goals and quest items",
+      "point2": "Rewards with experience, gold, items and reputation",
+      "point3": "Visible to everyone, single players or the game master only"
+    },
+    "characters": {
+      "title": "Manage characters",
+      "text": "Player characters and NPCs by the rules of your campaign: species, class, background, feats, spells and equipment – with calculated values.",
+      "point1": "Character sheets with values, spells and equipment",
+      "point2": "Classes, subclasses and feats from the compendium",
+      "point3": "Players keep their own character up to date"
+    },
+    "sessions": {
+      "title": "Game sessions with invitations",
+      "text": "Invite your group by email, plan the dates and run the session: your players see what you show them.",
+      "point1": "Invite players by email and assign roles",
+      "point2": "Plan sessions and follow up on them",
+      "point3": "A player view for the table, mobile too"
+    }
+  },
+  "more": {
+    "title": "And there's more",
+    "compendium": {
+      "title": "Compendium by ruleset",
+      "text": "Spells, classes, species, feats, backgrounds and items – plus your campaign's own content."
+    },
+    "reveals": {
+      "title": "Reveal on purpose",
+      "text": "You decide when a location, a note or a person becomes visible – to everyone or to single players."
+    },
+    "history": {
+      "title": "Nothing gets lost",
+      "text": "Every change is recorded and can be undone."
+    },
+    "languages": {
+      "title": "Multilingual",
+      "text": "German and English, with the terms of each ruleset edition."
+    }
+  },
+  "marketplace": {
+    "eyebrow": "Marketplace",
+    "title": "Share and discover content",
+    "text": "Find monsters, places and whole adventures by other game masters for your ruleset and add them to your campaign – or publish your own. Reviewed content is marked.",
+    "demo": "See the marketplace in the demo"
+  },
+  "cta": {
+    "title": "Ready for the next adventure?",
+    "text": "Try the demo, or create your account and set up your first campaign.",
+    "signIn": "Already have an account? Sign in"
+  }
+}

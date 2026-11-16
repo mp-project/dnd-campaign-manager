@@ -6,6 +6,7 @@ export type MessageSchema = {
   "common": typeof import("../../../locales/de/common.json");
   "errors": typeof import("../../../locales/de/errors.json");
   "glossary": typeof import("../../../locales/de/glossary.json");
+  "landing": typeof import("../../../modules/landing/locales/de.json");
   "legal": typeof import("../../../modules/legal/locales/de.json");
   "users": typeof import("../../../modules/users/locales/de.json");
 };

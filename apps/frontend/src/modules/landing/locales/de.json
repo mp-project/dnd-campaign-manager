@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "title": "Chronik – Kampagnenverwaltung für D&D 5E",
+    "description": "Plane Kampagnen, verwebe Storylines, verwalte Charaktere und lade deine Gruppe zu Spielsessions ein – Chronik ist das Werkzeug für Spielleitungen und ihre Gruppen."
+  },
+  "header": {
+    "signIn": "Anmelden",
+    "register": "Registrieren",
+    "toApp": "Zur App",
+    "language": "Sprache wählen",
+    "demo": "Demo"
+  },
+  "hero": {
+    "eyebrow": "Kampagnenverwaltung für D&D 5E",
+    "title": "Deine Kampagne. Deine Welt. An einem Ort.",
+    "lead": "Chronik ist das Werkzeug für Spielleitungen und ihre Gruppen: Kampagnen planen, Storylines verweben, Charaktere verwalten und zu Spielsessions einladen – vom ersten Weltentwurf bis zur letzten Begegnung.",
+    "register": "Konto erstellen",
+    "demo": "Demo ansehen",
+    "demoHint": "Die Demo zeigt eine Beispielkampagne und braucht keine Anmeldung.",
+    "toApp": "Zu meinen Kampagnen",
+    "splitStoryline": "Storyline-Canvas",
+    "splitCharacter": "Charakterbogen"
+  },
+  "screens": {
+    "open": "In der Demo öffnen",
+    "storyline": "Akt-Board der Storyline „Der Nebelpakt“: Szenen als Karten, verbunden durch Entscheidungen und Routen",
+    "map": "Weltkarte von Elaria mit Markern für Regionen und Orte und der Ortshierarchie daneben",
+    "quest": "Quest „Das Siegel des Nordtors“ mit Belohnungen: Erfahrungspunkte, Gold, Gegenstand und Ruf-Änderungen",
+    "character": "Charakterbogen von Arvel Merad mit Rüstungsklasse, Trefferpunkten, Zauberplätzen und Attributen",
+    "sessions": "Geplante Sessions mit Termin, Ort, Inhalten und den Zu- und Absagen der Spieler",
+    "marketplace": "Marktplatz mit Monstern, Orten und Abenteuer-Paketen anderer Spielleitungen"
+  },
+  "audience": {
+    "title": "Für wen ist Chronik?",
+    "intro": "Für alle am Tisch – jede Rolle sieht genau das, was sie braucht.",
+    "gameMasters": {
+      "title": "Spielleitungen",
+      "text": "Behalte Welt, Handlung und Regeln im Blick und bereite Sessions in Ruhe vor – mit allem Wissen an einem Ort statt in verstreuten Notizen."
+    },
+    "players": {
+      "title": "Spielerinnen und Spieler",
+      "text": "Sieh deinen Charakter, gemeinsame Entdeckungen und alles, was die Spielleitung freigibt – am Rechner oder am Handy direkt am Spieltisch."
+    },
+    "editors": {
+      "title": "Co-Autorinnen und Co-Autoren",
+      "text": "Arbeite als Editor an Welt und Kompendium mit, ohne dass die Gruppe etwas zu früh zu sehen bekommt."
+    }
+  },
+  "features": {
+    "eyebrow": "Hauptfunktionen",
+    "title": "Alles, was deine Kampagne braucht",
+    "intro": "Fünf Bereiche tragen deine Kampagne – und greifen ineinander.",
+    "campaigns": {
+      "title": "Kampagnen planen",
+      "text": "Lege Kampagnen mit eigenem Regelwerk an und baue deine Welt Stück für Stück auf: Orte, Personen, Fraktionen und Notizen, alles miteinander verknüpft.",
+      "point1": "Regelwerk D&D 5E 2014 oder 2024 je Kampagne",
+      "point2": "Orte, Personen und Fraktionen mit Verknüpfungen",
+      "point3": "Entwürfe bleiben verborgen, bis du sie freigibst"
+    },
+    "storylines": {
+      "title": "Storylines verweben",
+      "text": "Halte Handlungsstränge, Quests und Begegnungen zusammen und sieh auf einen Blick, wo deine Gruppe steht und was als Nächstes kommen kann.",
+      "point1": "Handlungsstränge mit Kapiteln und Quests",
+      "point2": "Begegnungen mit Monstern und Schätzen vorbereiten",
+      "point3": "Hinweise und Geheimnisse gezielt aufdecken"
+    },
+    "quests": {
+      "title": "Quests mit Belohnungen",
+      "text": "Lege Aufträge mit Questgebern, Voraussetzungen und Zielen an und bestimme, was die Gruppe dafür bekommt.",
+      "point1": "Voraussetzungen, Ziele und Questgegenstände",
+      "point2": "Belohnungen mit Erfahrung, Gold, Gegenständen und Ruf",
+      "point3": "Sichtbar für alle, einzelne Spieler oder nur die Spielleitung"
+    },
+    "characters": {
+      "title": "Charaktere verwalten",
+      "text": "Spielercharaktere und NSCs nach den Regeln deiner Kampagne: Spezies, Klasse, Hintergrund, Talente, Zauber und Ausrüstung – mit berechneten Werten.",
+      "point1": "Charakterbögen mit Werten, Zaubern und Ausrüstung",
+      "point2": "Klassen, Unterklassen und Talente aus dem Kompendium",
+      "point3": "Spieler pflegen ihren eigenen Charakter"
+    },
+    "sessions": {
+      "title": "Spielsessions mit Einladungen",
+      "text": "Lade deine Gruppe per E-Mail ein, plane die Termine und leite die Session: Deine Spieler sehen, was du ihnen zeigst.",
+      "point1": "Spieler per E-Mail einladen und Rollen vergeben",
+      "point2": "Sessions planen und nachbereiten",
+      "point3": "Eigene Spieleransicht für den Spieltisch, auch mobil"
+    }
+  },
+  "more": {
+    "title": "Und außerdem",
+    "compendium": {
+      "title": "Kompendium nach Regelwerk",
+      "text": "Zauber, Klassen, Spezies, Talente, Hintergründe und Gegenstände – dazu eigene Inhalte deiner Kampagne."
+    },
+    "reveals": {
+      "title": "Gezielt freigeben",
+      "text": "Du entscheidest, wann ein Ort, eine Notiz oder eine Person sichtbar wird – für alle oder für einzelne Spieler."
+    },
+    "history": {
+      "title": "Nichts geht verloren",
+      "text": "Jede Änderung wird festgehalten und lässt sich rückgängig machen."
+    },
+    "languages": {
+      "title": "Mehrsprachig",
+      "text": "Deutsch und Englisch, mit den Begriffen der jeweiligen Regelwerksausgabe."
+    }
+  },
+  "marketplace": {
+    "eyebrow": "Marktplatz",
+    "title": "Inhalte teilen und entdecken",
+    "text": "Finde Monster, Orte und ganze Abenteuer anderer Spielleitungen für dein Regelwerk und übernimm sie in deine Kampagne – oder veröffentliche deine eigenen. Geprüfte Inhalte sind gekennzeichnet.",
+    "demo": "Marktplatz in der Demo ansehen"
+  },
+  "cta": {
+    "title": "Bereit für das nächste Abenteuer?",
+    "text": "Sieh dir die Demo an oder erstelle dein Konto und lege deine erste Kampagne an.",
+    "signIn": "Schon ein Konto? Anmelden"
+  }
+}

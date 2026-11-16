@@ -5,6 +5,7 @@
  */
 import Icon from "@/components/base/Icon.vue";
 import { useAppI18n } from "@/core/i18n";
+import { useHomePath } from "@/core/i18n/localizedRoutes";
 import { useShellStore } from "@/core/ui/shell";
 
 import BrandMark from "./BrandMark.vue";
@@ -14,6 +15,7 @@ import ShellNavigation from "./ShellNavigation.vue";
 
 withDefaults(defineProps<{ headerHeight?: number }>(), { headerHeight: 76 });
 const { t } = useAppI18n();
+const home = useHomePath();
 const shell = useShellStore();
 </script>
 
@@ -30,8 +32,8 @@ const shell = useShellStore();
     >
       <RouterLink
         v-if="shell.navCollapsed"
-        to="/dashboard"
-        :aria-label="t('common.shell.toDashboard')"
+        :to="home"
+        :aria-label="t('common.shell.toHome')"
       >
         <CompassRose :size="40" />
       </RouterLink>

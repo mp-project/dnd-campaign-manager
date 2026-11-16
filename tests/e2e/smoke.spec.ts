@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("homepage responds with app title", async ({ page }) => {
+test("start page responds in German and English", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("DnD Campaign Manager");
+  await expect(page).toHaveTitle("Chronik – Kampagnenverwaltung für D&D 5E");
+  await page.goto("/en");
+  await expect(page).toHaveTitle("Chronik – campaign manager for D&D 5E");
 });

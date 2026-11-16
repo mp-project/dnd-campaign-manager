@@ -1,18 +1,20 @@
 <script setup lang="ts">
-/** Compass rose and word mark; leads to the dashboard. `compact` drops the motto. */
+/** Compass rose and word mark; leads to the start page in the active language. `compact` drops the motto. */
 import { useAppI18n } from "@/core/i18n";
+import { useHomePath } from "@/core/i18n/localizedRoutes";
 
 import CompassRose from "./CompassRose.vue";
 
 defineProps<{ compact?: boolean }>();
 const { t } = useAppI18n();
+const home = useHomePath();
 </script>
 
 <template>
   <RouterLink
-    to="/dashboard"
+    :to="home"
     class="flex items-center gap-3 text-parchment"
-    :aria-label="t('common.shell.toDashboard')"
+    :aria-label="t('common.shell.toHome')"
   >
     <CompassRose :size="compact ? 40 : 46" />
     <span class="flex flex-col leading-tight">

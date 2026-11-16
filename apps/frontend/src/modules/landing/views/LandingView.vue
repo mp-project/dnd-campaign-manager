@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Public start page, one address per language (`/`, `/en`): what Chronik is for, who it serves,
- * the main features with screenshots of the clickdummy, the marketplace and the way to the demo
- * and to the registration. It asks the API nothing: a visitor without a session would otherwise
+ * the main features with screenshots of the clickdummy, further features as a slider, the
+ * reputation system, the marketplace and the way to the demo and to the registration. It asks the API nothing: a visitor without a session would otherwise
  * cost a failed refresh. Who already has a profile loaded in this tab gets the way into the app
  * instead of the sign-in.
  */
@@ -20,6 +20,7 @@ import type { MessageKey } from "@/core/i18n/keys";
 import { usePageMeta } from "@/core/i18n/pageMeta";
 
 import LanguageSwitch from "../components/LanguageSwitch.vue";
+import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
 import SplitShowcase from "../components/SplitShowcase.vue";
 import { demoScreenUrl, demoUrl } from "../demo";
@@ -120,11 +121,28 @@ const features: Feature[] = [
   },
 ];
 
-const more: Array<{ id: string; icon: IconName; title: MessageKey; text: MessageKey }> = [
+const more: MoreItem[] = [
+  { id: "encounters", icon: "nav-encounter", title: "landing.more.encounters.title", text: "landing.more.encounters.text" },
+  { id: "factions", icon: "nav-fraktionen", title: "landing.more.factions.title", text: "landing.more.factions.text" },
+  { id: "sounds", icon: "nav-musik-sounds", title: "landing.more.sounds.title", text: "landing.more.sounds.text" },
   { id: "compendium", icon: "nav-kompendium", title: "landing.more.compendium.title", text: "landing.more.compendium.text" },
   { id: "reveals", icon: "nav-freigaben", title: "landing.more.reveals.title", text: "landing.more.reveals.text" },
   { id: "history", icon: "ui-hourglass", title: "landing.more.history.title", text: "landing.more.history.text" },
   { id: "languages", icon: "ui-globe", title: "landing.more.languages.title", text: "landing.more.languages.text" },
+];
+
+/** What moves a reputation, in the order of the reputation screen's sources. */
+const reputationSources: Array<{ id: string; icon: IconName; label: MessageKey }> = [
+  { id: "story", icon: "nav-storylines", label: "landing.reputation.sources.story" },
+  { id: "quest", icon: "nav-quests", label: "landing.reputation.sources.quest" },
+  { id: "encounter", icon: "nav-encounter", label: "landing.reputation.sources.encounter" },
+  { id: "manual", icon: "aktion-bearbeiten", label: "landing.reputation.sources.manual" },
+];
+
+const reputationPoints: MessageKey[] = [
+  "landing.reputation.point1",
+  "landing.reputation.point2",
+  "landing.reputation.point3",
 ];
 </script>
 
@@ -352,32 +370,91 @@ const more: Array<{ id: string; icon: IconName; title: MessageKey; text: Message
               <ScreenFrame :screen="feature.screen" />
             </article>
           </div>
+        </div>
+      </section>
 
-          <h3 class="section-title mt-20 text-center">
-            {{ t("landing.more.title") }}
-          </h3>
-          <!-- Mobile: a row to swipe through; from sm on a grid -->
-          <ul
-            class="scroll-thin -mx-4 mt-6 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+      <!-- Further features: dark like the footer, as a slider of framed cards -->
+      <section
+        class="relative overflow-hidden border-t border-navy-line"
+        aria-labelledby="landing-more"
+      >
+        <div class="more-glow pointer-events-none absolute inset-0" />
+        <div class="relative mx-auto max-w-300 px-4 py-14 md:px-10 md:py-20">
+          <p class="eyebrow text-center text-gold-light">
+            {{ t("landing.more.eyebrow") }}
+          </p>
+          <h2
+            id="landing-more"
+            class="mt-2 text-center font-heading text-[28px] leading-tight font-bold text-parchment md:text-[36px]"
           >
-            <li
-              v-for="item in more"
-              :key="item.id"
-              class="card w-4/5 shrink-0 snap-start px-5 py-4 sm:w-auto sm:border-0 sm:bg-transparent sm:p-0"
+            {{ t("landing.more.title") }}
+          </h2>
+          <p class="mx-auto mt-3 max-w-160 text-center text-[17px] text-parchment/85">
+            {{ t("landing.more.intro") }}
+          </p>
+          <MoreSlider
+            :items="more"
+            :label="t('landing.more.title')"
+            class="mt-10"
+          />
+        </div>
+      </section>
+
+      <!-- Reputation: grows with the story, adjustable by hand -->
+      <section
+        class="parchment on-parchment text-ink"
+        aria-labelledby="landing-reputation"
+      >
+        <div
+          class="mx-auto grid max-w-300 items-center gap-10 px-4 py-14 md:px-10 md:py-20 lg:grid-cols-[2fr_3fr]"
+        >
+          <div>
+            <p class="eyebrow text-brand">
+              {{ t("landing.reputation.eyebrow") }}
+            </p>
+            <h2
+              id="landing-reputation"
+              class="page-title mt-2"
             >
-              <p class="flex items-center gap-2 font-heading text-[17px] font-bold text-heading">
+              {{ t("landing.reputation.title") }}
+            </h2>
+            <p class="mt-4 text-[17px] text-ink-2">
+              {{ t("landing.reputation.text") }}
+            </p>
+            <ul
+              class="mt-5 flex flex-wrap items-center gap-2"
+              :aria-label="t('landing.reputation.sourcesLabel')"
+            >
+              <li
+                v-for="source in reputationSources"
+                :key="source.id"
+                class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[14px]"
+                :class="source.id === 'manual' ? 'border-brand bg-primary-soft text-brand' : 'border-gold bg-parchment-card text-ink'"
+              >
                 <Icon
-                  :name="item.icon"
-                  :size="24"
-                  class="shrink-0 text-brand"
+                  :name="source.icon"
+                  :size="16"
+                  class="shrink-0"
                 />
-                {{ t(item.title) }}
-              </p>
-              <p class="mt-2 text-ink-2">
-                {{ t(item.text) }}
-              </p>
-            </li>
-          </ul>
+                {{ t(source.label) }}
+              </li>
+            </ul>
+            <ul class="mt-6 flex flex-col gap-2">
+              <li
+                v-for="point in reputationPoints"
+                :key="point"
+                class="flex items-start gap-2"
+              >
+                <Icon
+                  name="ui-check"
+                  :size="20"
+                  class="mt-0.5 shrink-0 text-ok"
+                />
+                <span>{{ t(point) }}</span>
+              </li>
+            </ul>
+          </div>
+          <ScreenFrame :screen="SCREENS.reputation" />
         </div>
       </section>
 
@@ -509,6 +586,10 @@ const more: Array<{ id: string; icon: IconName; title: MessageKey; text: Message
 </template>
 
 <style scoped>
+.more-glow {
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-gold) 12%, transparent), transparent 55%);
+}
+
 .marketplace-glow {
   background: radial-gradient(ellipse at 70% 50%, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent 60%);
 }

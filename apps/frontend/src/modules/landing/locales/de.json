@@ -28,7 +28,8 @@
     "quest": "Quest „Das Siegel des Nordtors“ mit Belohnungen: Erfahrungspunkte, Gold, Gegenstand und Ruf-Änderungen",
     "character": "Charakterbogen von Arvel Merad mit Rüstungsklasse, Trefferpunkten, Zauberplätzen und Attributen",
     "sessions": "Geplante Sessions mit Termin, Ort, Inhalten und den Zu- und Absagen der Spieler",
-    "marketplace": "Marktplatz mit Monstern, Orten und Abenteuer-Paketen anderer Spielleitungen"
+    "marketplace": "Marktplatz mit Monstern, Orten und Abenteuer-Paketen anderer Spielleitungen",
+    "reputation": "Ruf-Übersicht mit Haltungen von Fraktionen, Personen und Regionen und dem Verlauf der Nordtorwache mit Änderungen aus Story, Quest, Encounter und manueller Korrektur"
   },
   "audience": {
     "title": "Für wen ist Chronik?",
@@ -87,7 +88,24 @@
     }
   },
   "more": {
+    "eyebrow": "Noch mehr für deinen Spieltisch",
     "title": "Und außerdem",
+    "intro": "Viele kleine und große Helfer, die deine Kampagne lebendig machen.",
+    "previous": "Vorherige Karte",
+    "next": "Nächste Karte",
+    "position": "Karte {n} von {total}",
+    "encounters": {
+      "title": "Encounter",
+      "text": "Bereite Kämpfe und Ereignisse vor – mit Gegnern, Schauplatz, Schätzen und Folgen für die Geschichte."
+    },
+    "factions": {
+      "title": "Fraktionen",
+      "text": "Gilden, Orden, Häuser und Banden mit Zielen, Mitgliedern und Beziehungen untereinander."
+    },
+    "sounds": {
+      "title": "Musik und Soundeffekte",
+      "text": "Hintergrundmusik und Geräusche für jede Szene, direkt aus der Session heraus abgespielt."
+    },
     "compendium": {
       "title": "Kompendium nach Regelwerk",
       "text": "Zauber, Klassen, Spezies, Talente, Hintergründe und Gegenstände – dazu eigene Inhalte deiner Kampagne."
@@ -101,9 +119,24 @@
       "text": "Jede Änderung wird festgehalten und lässt sich rückgängig machen."
     },
     "languages": {
-      "title": "Mehrsprachig",
-      "text": "Deutsch und Englisch, mit den Begriffen der jeweiligen Regelwerksausgabe."
+      "title": "Deutsch und Englisch",
+      "text": "Chronik unterstützt aktuell Deutsch und Englisch – jeweils mit den Begriffen der passenden Regelwerksausgabe."
     }
+  },
+  "reputation": {
+    "eyebrow": "Ruf-System",
+    "title": "Ein Ruf, der mit der Geschichte wächst",
+    "text": "Wie stehen Fraktionen, Personen und Regionen zur Gruppe? Der Ruf entwickelt sich dynamisch: Story-Ereignisse, abgeschlossene Quests und Encounter verschieben ihn automatisch – und wo es die Geschichte verlangt, passt du ihn von Hand an.",
+    "sourcesLabel": "Was den Ruf verändert",
+    "sources": {
+      "story": "Story-Ereignisse",
+      "quest": "Quests",
+      "encounter": "Encounter",
+      "manual": "Manuell anpassen"
+    },
+    "point1": "Ruf ändert sich automatisch durch Story-Ereignisse, Quests und Encounter",
+    "point2": "Manuelle Anpassung jederzeit möglich, mit Notiz zum Grund",
+    "point3": "Verlauf je Fraktion, Person und Region mit der Quelle jeder Änderung"
   },
   "marketplace": {
     "eyebrow": "Marktplatz",

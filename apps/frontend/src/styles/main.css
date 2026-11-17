@@ -278,6 +278,25 @@
   .btn-primary:active {
     background: var(--color-primary-pressed);
   }
+
+  /* Primary buttons: the brand's mountain symbol, centred at the bottom edge and faint in navy; the colour comes from
+     the token, the pattern is only a mask */
+  .btn-primary {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--color-navy-950);
+    opacity: 0.28;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80'%3E%3Cpath d='M5 74 69 36 94 50 146 4 202 60 235 46' fill='none' stroke='%23000' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M69 36 77 58 92 51M146 4 138 48 156 33 180 60' fill='none' stroke='%23000' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 74 69 36 94 50 146 4 202 60 235 46 235 80H5Z' fill='%23000' fill-opacity='.14'/%3E%3C/svg%3E") no-repeat center bottom / auto 80%;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 80'%3E%3Cpath d='M5 74 69 36 94 50 146 4 202 60 235 46' fill='none' stroke='%23000' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M69 36 77 58 92 51M146 4 138 48 156 33 180 60' fill='none' stroke='%23000' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 74 69 36 94 50 146 4 202 60 235 46 235 80H5Z' fill='%23000' fill-opacity='.14'/%3E%3C/svg%3E") no-repeat center bottom / auto 80%;
+  }
   .btn-secondary {
     @apply border-gold bg-parchment-card text-ink;
   }

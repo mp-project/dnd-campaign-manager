@@ -95,7 +95,7 @@ const features: Feature[] = [
     text: "landing.features.quests.text",
     points: ["landing.features.quests.point1", "landing.features.quests.point2", "landing.features.quests.point3"],
     screen: SCREENS.quest,
-    layout: "left",
+    layout: "right",
   },
   {
     id: "characters",
@@ -406,9 +406,9 @@ const reputationPoints: MessageKey[] = [
         aria-labelledby="landing-reputation"
       >
         <div
-          class="mx-auto grid max-w-300 items-center gap-10 px-4 py-14 md:px-10 md:py-20 lg:grid-cols-[2fr_3fr]"
+          class="mx-auto grid max-w-300 items-center gap-10 px-4 py-14 md:px-10 md:py-20 lg:grid-cols-[3fr_2fr]"
         >
-          <div>
+          <div class="lg:order-last">
             <p class="eyebrow text-brand">
               {{ t("landing.reputation.eyebrow") }}
             </p>

@@ -87,6 +87,67 @@
       "point3": "Eigene Spieleransicht für den Spieltisch, auch mobil"
     }
   },
+  "storylineTour": {
+    "routesLabel": "Route wählen",
+    "stopsLabel": "Szenen der Route",
+    "position": "Szene {n} von {total}",
+    "play": "Kamerafahrt starten",
+    "pause": "Kamerafahrt anhalten",
+    "overview": "Ganzes Board zeigen",
+    "closer": "Zur Szene heranfahren",
+    "overviewHint": "Akt I der Storyline „Der Nebelpakt“: zwei Routen, die sich am alten Tor wieder treffen.",
+    "routes": {
+      "official": "Offizieller Weg",
+      "secret": "Geheimer Zugang"
+    },
+    "stops": {
+      "start": {
+        "title": "Spuren im Nebel",
+        "text": "Nebel liegt über dem Hafen. Die Gruppe entscheidet, wie sie in die Festung gelangt."
+      },
+      "bribe": {
+        "title": "Die Wache bestechen",
+        "text": "Ab 10 Gold öffnet ein diskreter Handel den Weg – Hauptmann Rovan erwartet eine Gegenleistung."
+      },
+      "gate": {
+        "title": "Am alten Tor",
+        "text": "Beide Wege treffen hier wieder aufeinander: Die Szene führt zusammen, was die Gruppe vorher getrennt erlebt hat."
+      },
+      "watch": {
+        "title": "Torwache",
+        "text": "Weiter in Akt II – nur wer bestochen hat oder Rovans Vertrauen besitzt, kommt hierher."
+      },
+      "tunnel": {
+        "title": "Den Tunnel nehmen",
+        "text": "Unter der Kaimauer liegt ein verborgener Zugang, aus der Tiefe dringen leise Stimmen."
+      },
+      "below": {
+        "title": "Unter der Festung",
+        "text": "Nur bei Nacht: Wer schleicht, findet hinter dem Tunnel ein altes Gewölbe."
+      },
+      "vault": {
+        "title": "Das versiegelte Gewölbe",
+        "text": "Drei Siegel verschließen die Tür. Eines davon liegt schon im Gepäck der Gruppe."
+      }
+    }
+  },
+  "characterSheet": {
+    "slots": "Zauberplätze",
+    "slotLevel": "Grad {n}",
+    "check": "Stärke-Probe",
+    "roll": "Stärke-Probe würfeln",
+    "rollPrompt": "Antippen und würfeln",
+    "rolling": "Der W20 rollt …",
+    "rollResult": "{roll} + {modifier} = {total}",
+    "critical": "Natürliche 20! Gesamt {total}",
+    "restored": "Alle wieder da",
+    "restText": "Trefferpunkte und Zauberplätze sind wieder voll.",
+    "events": {
+      "hit": "Treffer: {n} Schaden",
+      "cast": "Zauber gewirkt: Grad {n}",
+      "rest": "Lange Rast"
+    }
+  },
   "more": {
     "eyebrow": "Noch mehr für deinen Spieltisch",
     "title": "Und außerdem",

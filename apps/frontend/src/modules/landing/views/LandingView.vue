@@ -19,10 +19,12 @@ import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
 import { usePageMeta } from "@/core/i18n/pageMeta";
 
+import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import LanguageSwitch from "../components/LanguageSwitch.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
 import SplitShowcase from "../components/SplitShowcase.vue";
+import StorylineTour from "../components/StorylineTour.vue";
 import { demoScreenUrl, demoUrl } from "../demo";
 import { type Screen, SCREENS } from "../screens";
 
@@ -46,7 +48,13 @@ type Feature = {
   screen: Screen;
   /** Where the picture goes from md on: beside the text, or across the full width below it. */
   layout: "left" | "right" | "wide";
+  /** A wide feature can show its screen as a moving stage instead of a still picture. */
+  showcase?: "storylineTour" | "characterSheet";
+  /** On a navy band across the page, like the footer, instead of the light backdrop. */
+  dark?: boolean;
 };
+
+const SHOWCASES = { storylineTour: StorylineTour, characterSheet: CharacterSheetShowcase } as const;
 
 /** Grid of a feature row and order of its text, per layout. */
 const LAYOUT = {
@@ -62,8 +70,9 @@ const audience: Array<{ id: string; icon: IconName; title: MessageKey; text: Mes
 ];
 
 /**
- * The main features in reading order. Pictures beside the text alternate with full-width ones
- * (storyline canvas, character sheet), so the page doesn't only swing left and right.
+ * The main features in reading order. Pictures beside the text alternate with full-width stages
+ * (a camera ride over the storyline canvas, the character sheet with its values floating around
+ * it), so the page doesn't only swing left and right.
  */
 const features: Feature[] = [
   {
@@ -87,6 +96,8 @@ const features: Feature[] = [
     ],
     screen: SCREENS.storyline,
     layout: "wide",
+    showcase: "storylineTour",
+    dark: true,
   },
   {
     id: "quests",
@@ -109,6 +120,7 @@ const features: Feature[] = [
     ],
     screen: SCREENS.character,
     layout: "wide",
+    showcase: "characterSheet",
   },
   {
     id: "sessions",
@@ -303,12 +315,12 @@ const reputationPoints: MessageKey[] = [
         </div>
       </section>
 
-      <!-- Main features, each with a screen of the clickdummy -->
+      <!-- Main features, each with a screen of the clickdummy; dark ones as a navy band across the page -->
       <section
-        class="bg-backdrop text-ink"
+        class="bg-backdrop pb-7 text-ink md:pb-10"
         aria-labelledby="landing-features"
       >
-        <div class="mx-auto max-w-300 px-4 py-14 md:px-10 md:py-20">
+        <div class="mx-auto max-w-300 px-4 pt-14 pb-5 md:px-10 md:pt-20 md:pb-2">
           <p class="eyebrow text-center text-brand">
             {{ t("landing.features.eyebrow") }}
           </p>
@@ -321,55 +333,80 @@ const reputationPoints: MessageKey[] = [
           <p class="mx-auto mt-3 max-w-160 text-center text-[17px] text-ink-2">
             {{ t("landing.features.intro") }}
           </p>
-          <div class="mt-12 flex flex-col gap-14 md:gap-20">
-            <article
-              v-for="feature in features"
-              :key="feature.id"
-              class="grid items-center gap-6 md:gap-12"
-              :class="[LAYOUT[feature.layout].row, feature.layout === 'wide' && 'md:gap-8']"
-              :aria-labelledby="`landing-feature-${feature.id}`"
-            >
-              <div :class="LAYOUT[feature.layout].text">
-                <div>
-                  <div class="flex items-center gap-4">
-                    <span class="flex size-14 shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-light">
-                      <Icon
-                        :name="feature.icon"
-                        :size="32"
-                      />
-                    </span>
-                    <h3
-                      :id="`landing-feature-${feature.id}`"
-                      class="section-title text-[24px]"
-                    >
-                      {{ t(feature.title) }}
-                    </h3>
-                  </div>
-                  <p class="mt-4 text-[17px] text-ink-2">
-                    {{ t(feature.text) }}
-                  </p>
-                </div>
-                <ul
-                  class="mt-4 flex flex-col gap-2"
-                  :class="feature.layout === 'wide' && 'md:mt-0 md:self-end'"
-                >
-                  <li
-                    v-for="point in feature.points"
-                    :key="point"
-                    class="flex items-start gap-2"
+        </div>
+        <div
+          v-for="feature in features"
+          :key="feature.id"
+          :class="
+            feature.dark
+              ? 'feature-dark relative my-7 overflow-hidden border-y border-navy-line bg-navy-950 py-14 text-parchment md:my-10 md:py-20'
+              : 'py-7 md:py-10'
+          "
+        >
+          <div
+            v-if="feature.dark"
+            class="feature-dark-glow pointer-events-none absolute inset-0"
+          />
+          <article
+            class="relative mx-auto grid max-w-300 items-center gap-6 px-4 md:gap-12 md:px-10"
+            :class="[LAYOUT[feature.layout].row, feature.layout === 'wide' && 'md:gap-8']"
+            :aria-labelledby="`landing-feature-${feature.id}`"
+          >
+            <div :class="LAYOUT[feature.layout].text">
+              <div>
+                <div class="flex items-center gap-4">
+                  <span
+                    class="flex size-14 shrink-0 items-center justify-center rounded-full text-gold-light"
+                    :class="feature.dark ? 'border border-gold bg-navy-900' : 'bg-navy-950'"
                   >
                     <Icon
-                      name="ui-check"
-                      :size="20"
-                      class="mt-0.5 shrink-0 text-ok"
+                      :name="feature.icon"
+                      :size="32"
                     />
-                    <span>{{ t(point) }}</span>
-                  </li>
-                </ul>
+                  </span>
+                  <h3
+                    :id="`landing-feature-${feature.id}`"
+                    class="section-title text-[24px]"
+                    :class="feature.dark && 'text-parchment'"
+                  >
+                    {{ t(feature.title) }}
+                  </h3>
+                </div>
+                <p
+                  class="mt-4 text-[17px]"
+                  :class="feature.dark ? 'text-parchment/85' : 'text-ink-2'"
+                >
+                  {{ t(feature.text) }}
+                </p>
               </div>
-              <ScreenFrame :screen="feature.screen" />
-            </article>
-          </div>
+              <ul
+                class="mt-4 flex flex-col gap-2"
+                :class="feature.layout === 'wide' && 'md:mt-0 md:self-end'"
+              >
+                <li
+                  v-for="point in feature.points"
+                  :key="point"
+                  class="flex items-start gap-2"
+                >
+                  <Icon
+                    name="ui-check"
+                    :size="20"
+                    class="mt-0.5 shrink-0"
+                    :class="feature.dark ? 'text-gold-light' : 'text-ok'"
+                  />
+                  <span>{{ t(point) }}</span>
+                </li>
+              </ul>
+            </div>
+            <component
+              :is="SHOWCASES[feature.showcase]"
+              v-if="feature.showcase"
+            />
+            <ScreenFrame
+              v-else
+              :screen="feature.screen"
+            />
+          </article>
         </div>
       </section>
 
@@ -586,6 +623,10 @@ const reputationPoints: MessageKey[] = [
 </template>
 
 <style scoped>
+.feature-dark-glow {
+  background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 60%);
+}
+
 .more-glow {
   background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-gold) 12%, transparent), transparent 55%);
 }

@@ -152,6 +152,49 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
+  it("rides over the storyline board scene by scene, on the route the visitor chooses", async () => {
+    vi.stubEnv("VITE_DEMO_URL", "https://demo.example.com/");
+    const { wrapper } = await open();
+    const article = wrapper.find("article[aria-labelledby=landing-feature-storylines]");
+    // At first the whole board with a hint, no scene.
+    expect(article.text()).toContain("zwei Routen, die sich am alten Tor wieder treffen");
+    const steps = () => article.findAll("ol button");
+    expect(steps().map((step) => step.text())).toEqual([
+      "1Spuren im Nebel",
+      "2Die Wache bestechen",
+      "3Am alten Tor",
+      "4Torwache",
+    ]);
+    await steps()[2]!.trigger("click");
+    expect(steps()[2]!.attributes("aria-current")).toBe("step");
+    expect(article.text()).toContain("Szene 3 von 4 · Offizieller Weg");
+    await article.findAll("[role=radio]")[1]!.trigger("click");
+    expect(steps().map((step) => step.text())).toContain("4Das versiegelte Gewölbe");
+    expect(steps()[0]!.attributes("aria-current")).toBe("step");
+    expect(article.text()).toContain("Szene 1 von 4 · Geheimer Zugang");
+    // The stage leads nowhere itself; the demo link sits below it.
+    expect(article.find("a").attributes("href")).toBe(
+      "https://demo.example.com/#/kampagne/abenteuer/storylines/schatten-elaria/akt",
+    );
+    wrapper.unmount();
+  });
+
+  it("lets the visitor roll the character's Strength check", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const { wrapper } = await open();
+    const article = wrapper.find("article[aria-labelledby=landing-feature-characters]");
+    expect(article.text()).toContain("Rüstungsklasse");
+    expect(article.text()).toContain("Trefferpunkte");
+    const die = article.find("button[aria-label='Stärke-Probe würfeln']");
+    expect(die.text()).toContain("Antippen und würfeln");
+    await die.trigger("click");
+    await vi.runAllTimersAsync();
+    expect(die.text()).toContain("11 + 2 = 13");
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
   it("links the logo to the start page in the active language", async () => {
     const german = await open();
     expect(german.wrapper.find("header a").attributes("href")).toBe("/");

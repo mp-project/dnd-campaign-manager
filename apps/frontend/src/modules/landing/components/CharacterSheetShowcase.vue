@@ -1,0 +1,843 @@
+<script setup lang="ts">
+/**
+ * The character feature as the sheet with its most important values beside it: the screenshot of
+ * Arvel Merad's sheet stays large, and armor class, hit points, spell slots and a Strength check sit
+ * around it, tied to their place by golden lines (on phones they line up below it). Nothing moves
+ * around; the values change: the sheet plays a small adventure in which Arvel takes hits and casts
+ * spells until a long rest, shown over the sheet, fills hit points and spell slots again. The
+ * Strength check is a d20 the visitor can roll. With reduced motion the adventure doesn't play by
+ * itself; the die still rolls.
+ */
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+
+import Icon from "@/components/base/Icon.vue";
+import { useAppI18n, useGlossary } from "@/core/i18n";
+import type { MessageKey } from "@/core/i18n/keys";
+
+import { SCREENS } from "../screens";
+import ScreenFrame from "./ScreenFrame.vue";
+
+const { t } = useAppI18n();
+const { term } = useGlossary();
+
+const MAX_HP = 74;
+const SLOT_MAX = [4, 3, 2];
+const HIT = 12;
+const STRENGTH_MODIFIER = 2;
+/** How long each event stays on screen; the long rest gets more time. */
+const EVENT_MS = 2600;
+const REST_MS = 4800;
+
+type EventKind = "hit" | "cast" | "rest";
+/** The adventure, played in a loop: two rounds of a hit and a spell, then a long rest. */
+const STORY: EventKind[] = ["hit", "cast", "hit", "cast", "rest"];
+
+type Sheet = { hp: number; temp: number; slots: number[] };
+type Event = { kind: EventKind; hpDelta: string | null; slotDelta: string | null; label: string };
+
+/** As on the screenshot. */
+const sheet = ref<Sheet>({ hp: 58, temp: 5, slots: [3, 2, 1] });
+const event = ref<Event | null>(null);
+const step = ref(0);
+const resting = computed(() => event.value?.kind === "rest");
+
+/** One event of the adventure: changes the sheet and says what happened. */
+function apply(kind: EventKind) {
+  const { hp, temp, slots } = sheet.value;
+  if (kind === "hit") {
+    // Temporary hit points go first.
+    const absorbed = Math.min(temp, HIT);
+    sheet.value = { hp: Math.max(1, hp - (HIT - absorbed)), temp: temp - absorbed, slots };
+    event.value = { kind, hpDelta: `−${HIT}`, slotDelta: null, label: t("landing.characterSheet.events.hit", { n: HIT }) };
+    return;
+  }
+  if (kind === "cast") {
+    // The highest slot that is left.
+    const level = slots.reduce((highest, count, index) => (count > 0 ? index : highest), -1);
+    if (level < 0) return;
+    sheet.value = { hp, temp, slots: slots.map((count, index) => (index === level ? count - 1 : count)) };
+    event.value = { kind, hpDelta: null, slotDelta: "−1", label: t("landing.characterSheet.events.cast", { n: level + 1 }) };
+    return;
+  }
+  sheet.value = { hp: MAX_HP, temp: 0, slots: [...SLOT_MAX] };
+  event.value = {
+    kind,
+    hpDelta: `+${MAX_HP - hp}`,
+    slotDelta: t("landing.characterSheet.restored"),
+    label: t("landing.characterSheet.events.rest"),
+  };
+}
+
+// ---- Strength check ---------------------------------------------------------------------------
+
+const roll = ref<number | null>(null);
+const rolling = ref(false);
+const shown = ref(20);
+let rollTimer: ReturnType<typeof setInterval> | undefined;
+
+const d20 = () => Math.floor(Math.random() * 20) + 1;
+
+function rollCheck() {
+  if (rolling.value) return;
+  const result = d20();
+  if (reduceMotion.value) {
+    roll.value = result;
+    shown.value = result;
+    return;
+  }
+  rolling.value = true;
+  let flips = 0;
+  rollTimer = setInterval(() => {
+    flips += 1;
+    shown.value = d20();
+    if (flips < 10) return;
+    clearInterval(rollTimer);
+    rollTimer = undefined;
+    shown.value = result;
+    roll.value = result;
+    rolling.value = false;
+  }, 70);
+}
+
+const rollText = computed(() => {
+  if (roll.value === null) return t("landing.characterSheet.rollPrompt");
+  const total = roll.value + STRENGTH_MODIFIER;
+  if (roll.value === 20) return t("landing.characterSheet.critical", { total });
+  return t("landing.characterSheet.rollResult", { roll: roll.value, modifier: STRENGTH_MODIFIER, total });
+});
+
+// ---- Playing while in view --------------------------------------------------------------------
+
+const stage = ref<HTMLElement | null>(null);
+const revealed = ref(false);
+const reduceMotion = ref(false);
+let visible = false;
+let timer: ReturnType<typeof setTimeout> | undefined;
+let visibility: IntersectionObserver | undefined;
+
+function schedule(delay: number) {
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(() => {
+    timer = undefined;
+    if (!visible) return;
+    const kind = STORY[step.value % STORY.length]!;
+    step.value += 1;
+    apply(kind);
+    schedule(kind === "rest" ? REST_MS : EVENT_MS);
+  }, delay);
+}
+
+onMounted(() => {
+  reduceMotion.value = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !stage.value) {
+    revealed.value = true;
+    return;
+  }
+  visibility = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry) return;
+      visible = entry.isIntersecting;
+      if (!visible) return;
+      revealed.value = true;
+      if (!timer) schedule(EVENT_MS);
+    },
+    { threshold: 0.35 },
+  );
+  visibility.observe(stage.value);
+});
+
+onBeforeUnmount(() => {
+  if (timer) clearTimeout(timer);
+  if (rollTimer) clearInterval(rollTimer);
+  visibility?.disconnect();
+});
+
+/**
+ * Where each value sits around the sheet (`x`/`y`, top left corner), the place on the sheet it
+ * belongs to (`ax`/`ay`) and where its line ends (`ex`/`ey`), all in percent of the sheet's width
+ * and height.
+ */
+const pieces = {
+  ac: { x: -6, y: 22, ax: 24.6, ay: 41, ex: 4, ey: 40 },
+  hp: { x: 50, y: -10, ax: 42.3, ay: 37, ex: 56, ey: 4 },
+  slots: { x: 80, y: 42, ax: 56, ay: 53, ex: 82, ey: 54 },
+  dice: { x: 16, y: 88, ax: 38, ay: 69, ex: 26, ey: 92 },
+} as const;
+
+const pieceStyle = (id: keyof typeof pieces) => ({ "--x": pieces[id].x, "--y": pieces[id].y });
+const eventIcon: Record<EventKind, "ui-swords" | "ui-sparkle" | "ui-hourglass"> = {
+  hit: "ui-swords",
+  cast: "ui-sparkle",
+  rest: "ui-hourglass",
+};
+const restTitle: MessageKey = "landing.characterSheet.events.rest";
+</script>
+
+<template>
+  <div
+    ref="stage"
+    class="stage"
+    :class="{ revealed, resting }"
+  >
+    <!-- What just happened in the adventure -->
+    <div
+      class="event-row"
+      aria-hidden="true"
+    >
+      <Transition
+        name="event"
+        mode="out-in"
+      >
+        <span
+          v-if="event"
+          :key="step"
+          class="event-chip"
+          :class="`event-${event.kind}`"
+        >
+          <Icon
+            :name="eventIcon[event.kind]"
+            :size="16"
+          />
+          {{ event.label }}
+        </span>
+      </Transition>
+    </div>
+
+    <div class="sheet">
+      <ScreenFrame :screen="SCREENS.character" />
+
+      <!-- The long rest, over the sheet -->
+      <Transition name="rest">
+        <div
+          v-if="resting"
+          class="rest-veil"
+          aria-hidden="true"
+        >
+          <div class="rest-card">
+            <Icon
+              name="ui-hourglass"
+              :size="32"
+              class="text-gold-light"
+            />
+            <p class="font-heading text-[22px] font-bold text-parchment md:text-[28px]">
+              {{ t(restTitle) }}
+            </p>
+            <p class="text-[14px] text-parchment/85 md:text-[16px]">
+              {{ t("landing.characterSheet.restText") }}
+            </p>
+          </div>
+        </div>
+      </Transition>
+
+      <svg
+        class="links"
+        viewBox="0 0 160 100"
+        aria-hidden="true"
+      >
+        <line
+          v-for="(piece, id) in pieces"
+          :key="id"
+          :x1="piece.ax * 1.6"
+          :y1="piece.ay"
+          :x2="piece.ex * 1.6"
+          :y2="piece.ey"
+          class="link"
+        />
+      </svg>
+      <span
+        v-for="(piece, id) in pieces"
+        :key="`dot-${id}`"
+        class="anchor"
+        :style="{ left: `${piece.ax}%`, top: `${piece.ay}%` }"
+        aria-hidden="true"
+      />
+
+      <ul class="pieces">
+        <!-- Armor class as the sheet's shield -->
+        <li
+          class="piece"
+          :style="pieceStyle('ac')"
+          aria-hidden="true"
+        >
+          <div class="piece-shield">
+            <svg
+              viewBox="0 0 100 116"
+              class="shield"
+            >
+              <path
+                d="M50 4 94 18v38c0 28-19 46-44 56C25 102 6 84 6 56V18Z"
+                class="shield-body"
+              />
+              <path
+                d="M50 12 86 23.5V56c0 23-15.5 38.5-36 47-20.5-8.5-36-24-36-47V23.5Z"
+                class="shield-line"
+              />
+            </svg>
+            <span class="shield-value">18</span>
+            <span class="piece-label mt-1 text-center">{{ term("armorClass") }}</span>
+          </div>
+        </li>
+
+        <!-- Hit points -->
+        <li
+          class="piece"
+          :style="pieceStyle('hp')"
+          aria-hidden="true"
+        >
+          <div
+            class="piece-card w-56"
+            :class="{ restoring: resting }"
+          >
+            <p class="piece-label">
+              <Icon
+                name="ui-heart"
+                :size="16"
+                class="text-brand"
+              />
+              {{ term("hitPoints") }}
+            </p>
+            <p class="mt-1 font-heading text-[26px] leading-none text-heading">
+              <span
+                :key="sheet.hp"
+                class="bump"
+              >{{ sheet.hp }}</span>
+              <span
+                v-if="sheet.temp"
+                class="ml-1 text-[15px] text-hp-temp"
+              >+{{ sheet.temp }}</span>
+              <span class="text-ink-3"> / {{ MAX_HP }}</span>
+            </p>
+            <div class="bar mt-2">
+              <span
+                class="bar-hp"
+                :style="{ width: `${(sheet.hp / MAX_HP) * 100}%` }"
+              />
+              <span
+                class="bar-temp"
+                :style="{ width: `${(sheet.temp / MAX_HP) * 100}%` }"
+              />
+            </div>
+            <Transition name="delta">
+              <span
+                v-if="event?.hpDelta"
+                :key="step"
+                class="delta"
+                :class="event.hpDelta.startsWith('+') ? 'text-ok' : 'text-danger'"
+              >{{ event.hpDelta }}</span>
+            </Transition>
+          </div>
+        </li>
+
+        <!-- Spell slots -->
+        <li
+          class="piece"
+          :style="pieceStyle('slots')"
+          aria-hidden="true"
+        >
+          <div
+            class="piece-card w-52"
+            :class="{ restoring: resting }"
+          >
+            <p class="piece-label">
+              <Icon
+                name="ui-star"
+                :size="16"
+                class="text-brand"
+              />
+              {{ t("landing.characterSheet.slots") }}
+            </p>
+            <ul class="mt-2 flex flex-col gap-1.5">
+              <li
+                v-for="(max, level) in SLOT_MAX"
+                :key="level"
+                class="flex items-center gap-2 text-[14px] text-ink-2"
+              >
+                <span class="w-14 shrink-0">{{ t("landing.characterSheet.slotLevel", { n: level + 1 }) }}</span>
+                <span
+                  v-for="slot in max"
+                  :key="slot"
+                  class="slot"
+                  :class="{ 'slot-full': slot <= (sheet.slots[level] ?? 0) }"
+                  :style="resting ? { transitionDelay: `${(level * 4 + slot) * 90}ms` } : undefined"
+                />
+              </li>
+            </ul>
+            <p class="slot-note">
+              <Transition name="delta">
+                <span
+                  v-if="event?.slotDelta"
+                  :key="step"
+                  :class="event.kind === 'rest' ? 'text-ok' : 'text-danger'"
+                >{{ event.slotDelta }}</span>
+              </Transition>
+            </p>
+          </div>
+        </li>
+
+        <!-- Strength check: a d20 to roll -->
+        <li
+          class="piece"
+          :style="pieceStyle('dice')"
+        >
+          <button
+            type="button"
+            class="piece-card dice-card"
+            :aria-label="t('landing.characterSheet.roll')"
+            @click="rollCheck"
+          >
+            <span
+              class="die"
+              :class="{ 'die-rolling': rolling, 'die-critical': roll === 20 && !rolling }"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 100 100">
+                <path
+                  d="M50 4 90 27v46L50 96 10 73V27Z"
+                  class="die-body"
+                />
+                <path
+                  d="M50 4 30 62h40ZM10 27l20 35M90 27 70 62M30 62 10 73M70 62l20 11M30 62l20 34 20-34"
+                  class="die-edges"
+                />
+              </svg>
+              <span class="die-value">{{ shown }}</span>
+            </span>
+            <span class="flex min-w-0 flex-col text-left">
+              <span class="piece-label">
+                <Icon
+                  name="aktion-wuerfeln"
+                  :size="16"
+                  class="text-brand"
+                />
+                {{ t("landing.characterSheet.check") }}
+              </span>
+              <span
+                class="mt-0.5 text-[15px] text-ink"
+                aria-live="polite"
+              >{{ rolling ? t("landing.characterSheet.rolling") : rollText }}</span>
+            </span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.stage {
+  position: relative;
+}
+@media (min-width: 48rem) {
+  .stage {
+    padding: 64px 9% 72px;
+  }
+}
+
+.sheet {
+  position: relative;
+  container-type: inline-size;
+}
+
+/* ---- What happened ---- */
+.event-row {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+@media (min-width: 48rem) {
+  .event-row {
+    position: absolute;
+    top: 14px;
+    left: 9%;
+    justify-content: flex-start;
+    margin: 0;
+  }
+}
+.event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.event-hit {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+.event-cast {
+  border-color: var(--color-violet);
+  background: var(--color-violet-soft);
+  color: var(--color-violet);
+}
+.event-rest {
+  border-color: var(--color-gold);
+  background: var(--color-navy-950);
+  color: var(--color-gold-light);
+}
+.event-enter-active,
+.event-leave-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.event-enter-from,
+.event-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ---- Long rest over the sheet ---- */
+.rest-veil {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-navy-950) 72%, transparent);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.rest-card {
+  display: flex;
+  max-width: 80%;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 24px;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-card);
+  background: var(--color-navy-950);
+  text-align: center;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--color-gold) 35%, transparent);
+}
+.rest-enter-active,
+.rest-leave-active {
+  transition: opacity 0.5s ease;
+}
+.rest-enter-from,
+.rest-leave-to {
+  opacity: 0;
+}
+
+/* ---- Lines and anchors (wide screens only) ---- */
+.links,
+.anchor {
+  display: none;
+}
+@media (min-width: 48rem) {
+  .links {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .anchor {
+    position: absolute;
+    display: block;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border: 2px solid var(--color-gold-light);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-gold-light) 35%, transparent);
+    pointer-events: none;
+  }
+}
+.link {
+  stroke: var(--color-gold);
+  stroke-width: 0.3;
+}
+
+/* ---- Pieces: a grid below the sheet on phones, around it from md on ---- */
+.pieces {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.piece {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.revealed .piece {
+  opacity: 1;
+}
+@media (min-width: 48rem) {
+  .pieces {
+    display: contents;
+  }
+  .piece {
+    position: absolute;
+    left: calc(var(--x) * 1%);
+    top: calc(var(--y) * 0.625cqw);
+    z-index: 2;
+  }
+}
+@media (max-width: 47.99rem) {
+  .piece:nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+}
+
+.piece-card {
+  position: relative;
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-card);
+  background: var(--color-parchment-card);
+  box-shadow: var(--shadow-popover);
+  transition: box-shadow 0.5s ease;
+}
+@media (max-width: 47.99rem) {
+  .piece-card {
+    width: 100%;
+    height: 100%;
+    box-shadow: var(--shadow-soft);
+  }
+}
+/* A long rest lights the values it fills up. */
+.piece-card.restoring {
+  box-shadow:
+    0 0 0 3px var(--color-gold-light),
+    0 0 28px color-mix(in srgb, var(--color-gold-light) 70%, transparent);
+}
+.piece-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink-2);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bump {
+  display: inline-block;
+  animation: bump 0.5s ease;
+}
+@keyframes bump {
+  40% {
+    transform: scale(1.18);
+  }
+}
+
+.bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-neutral-soft);
+}
+.bar-hp,
+.bar-temp {
+  display: block;
+  height: 100%;
+  transition: width 0.8s ease;
+}
+.restoring .bar-hp {
+  transition-duration: 1.6s;
+}
+.bar-hp {
+  background: var(--color-brand);
+}
+.bar-temp {
+  background: var(--color-hp-temp);
+}
+
+.slot {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--color-brand);
+  border-radius: 999px;
+  transition: background-color 0.4s ease;
+}
+.slot-full {
+  background: var(--color-brand);
+}
+
+.delta {
+  position: absolute;
+  top: 36px;
+  right: 12px;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  pointer-events: none;
+}
+/* What changed in the slots, on its own line below them. */
+.slot-note {
+  min-height: 22px;
+  margin-top: 6px;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+}
+.delta-enter-active {
+  transition: opacity 0.3s ease;
+}
+.delta-leave-active {
+  transition: opacity 0.5s ease;
+}
+.delta-enter-from,
+.delta-leave-to {
+  opacity: 0;
+}
+
+/* ---- Armor class ---- */
+.piece-shield {
+  position: relative;
+  display: flex;
+  width: 132px;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+@media (max-width: 47.99rem) {
+  .piece-shield {
+    width: 100%;
+    height: 100%;
+    padding: 12px;
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-card);
+    background: var(--color-parchment-card);
+    box-shadow: var(--shadow-soft);
+  }
+  .shield {
+    width: 72px;
+  }
+}
+.shield {
+  width: 104px;
+  filter: drop-shadow(0 10px 14px color-mix(in srgb, var(--color-navy-950) 40%, transparent));
+}
+.shield-body {
+  fill: var(--color-primary);
+  stroke: var(--color-gold);
+  stroke-width: 3;
+}
+.shield-line {
+  fill: none;
+  stroke: var(--color-gold-light);
+  stroke-width: 1.5;
+}
+.shield-value {
+  position: absolute;
+  top: 28px;
+  color: var(--color-parchment-card);
+  font-family: var(--font-heading);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+@media (max-width: 47.99rem) {
+  .shield-value {
+    top: 30px;
+    font-size: 28px;
+  }
+}
+@media (min-width: 48rem) {
+  .piece-shield .piece-label {
+    padding: 2px 10px;
+    border: 1px solid var(--color-gold);
+    border-radius: 999px;
+    background: var(--color-parchment-card);
+  }
+}
+
+/* ---- Strength check ---- */
+.dice-card {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+@media (min-width: 48rem) {
+  .dice-card {
+    width: 17rem;
+  }
+}
+.dice-card:hover {
+  border-color: var(--color-primary);
+}
+.die {
+  position: relative;
+  display: inline-flex;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+.die svg {
+  position: absolute;
+  inset: 0;
+}
+.die-body {
+  fill: var(--color-navy-950);
+  stroke: var(--color-gold);
+  stroke-width: 3;
+}
+.die-edges {
+  fill: none;
+  stroke: var(--color-gold-soft);
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+.die-value {
+  position: relative;
+  margin-top: 8px;
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+}
+.die-rolling {
+  animation: die-spin 0.7s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+.die-critical .die-body {
+  fill: var(--color-primary);
+}
+@keyframes die-spin {
+  0% {
+    transform: rotate(0) scale(1);
+  }
+  50% {
+    transform: rotate(320deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(720deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece,
+  .bar-hp,
+  .bar-temp,
+  .slot,
+  .piece-card {
+    transition: none;
+  }
+  .bump,
+  .die-rolling {
+    animation: none;
+  }
+}
+</style>

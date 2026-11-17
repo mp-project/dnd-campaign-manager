@@ -87,6 +87,67 @@
       "point3": "A player view for the table, mobile too"
     }
   },
+  "storylineTour": {
+    "routesLabel": "Choose a route",
+    "stopsLabel": "Scenes of the route",
+    "position": "Scene {n} of {total}",
+    "play": "Start the camera ride",
+    "pause": "Pause the camera ride",
+    "overview": "Show the whole board",
+    "closer": "Move in on the scene",
+    "overviewHint": "Act I of the storyline “The Mist Pact”: two routes that meet again at the old gate.",
+    "routes": {
+      "official": "Official way",
+      "secret": "Secret passage"
+    },
+    "stops": {
+      "start": {
+        "title": "Traces in the mist",
+        "text": "Mist lies over the harbour. The group decides how to get into the fortress."
+      },
+      "bribe": {
+        "title": "Bribe the guard",
+        "text": "From 10 gold on, a discreet deal opens the way – Captain Rovan expects something in return."
+      },
+      "gate": {
+        "title": "At the old gate",
+        "text": "Both ways meet again here: the scene brings together what the group went through apart."
+      },
+      "watch": {
+        "title": "Gate watch",
+        "text": "On into act II – only those who paid a bribe or earned Rovan's trust get here."
+      },
+      "tunnel": {
+        "title": "Take the tunnel",
+        "text": "Beneath the quay wall lies a hidden passage; quiet voices rise from the depths."
+      },
+      "below": {
+        "title": "Beneath the fortress",
+        "text": "At night only: whoever sneaks finds an old vault behind the tunnel."
+      },
+      "vault": {
+        "title": "The sealed vault",
+        "text": "Three seals lock the door. One of them is already in the group's pack."
+      }
+    }
+  },
+  "characterSheet": {
+    "slots": "Spell slots",
+    "slotLevel": "Level {n}",
+    "check": "Strength check",
+    "roll": "Roll a Strength check",
+    "rollPrompt": "Tap to roll",
+    "rolling": "The d20 is rolling …",
+    "rollResult": "{roll} + {modifier} = {total}",
+    "critical": "Natural 20! Total {total}",
+    "restored": "All back",
+    "restText": "Hit points and spell slots are full again.",
+    "events": {
+      "hit": "Hit: {n} damage",
+      "cast": "Spell cast: level {n}",
+      "rest": "Long rest"
+    }
+  },
   "more": {
     "eyebrow": "More for your table",
     "title": "And there's more",

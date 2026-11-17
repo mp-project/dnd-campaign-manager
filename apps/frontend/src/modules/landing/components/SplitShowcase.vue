@@ -33,35 +33,37 @@ const halves = [
 </script>
 
 <template>
-  <div
-    class="split shadow-soft"
-    :class="focus && `split-${focus}`"
-    @mouseleave="focus = null"
-  >
-    <component
-      :is="half.href ? 'a' : 'div'"
-      v-for="half in halves"
-      :key="half.id"
-      :href="half.href ?? undefined"
-      :target="half.href ? '_blank' : undefined"
-      :rel="half.href ? 'noopener' : undefined"
-      class="half"
-      :class="`half-${half.id}`"
-      :aria-label="half.href ? `${t(half.label)} – ${t('landing.screens.open')}` : undefined"
-      @mouseenter="focus = half.id"
-      @focus="focus = half.id"
-      @blur="focus = null"
+  <div class="stage">
+    <div
+      class="split shadow-soft"
+      :class="focus && `split-${focus}`"
+      @mouseleave="focus = null"
     >
-      <img
-        :src="half.screen.src"
-        :alt="t(half.screen.alt)"
-        :width="SCREEN_WIDTH"
-        :height="SCREEN_HEIGHT"
-        fetchpriority="high"
-        class="shot"
+      <component
+        :is="half.href ? 'a' : 'div'"
+        v-for="half in halves"
+        :key="half.id"
+        :href="half.href ?? undefined"
+        :target="half.href ? '_blank' : undefined"
+        :rel="half.href ? 'noopener' : undefined"
+        class="half"
+        :class="`half-${half.id}`"
+        :aria-label="half.href ? `${t(half.label)} – ${t('landing.screens.open')}` : undefined"
+        @mouseenter="focus = half.id"
+        @focus="focus = half.id"
+        @blur="focus = null"
       >
-      <span class="label eyebrow">{{ t(half.label) }}</span>
-    </component>
+        <img
+          :src="half.screen.src"
+          :alt="t(half.screen.alt)"
+          :width="SCREEN_WIDTH"
+          :height="SCREEN_HEIGHT"
+          fetchpriority="high"
+          class="shot"
+        >
+        <span class="label eyebrow">{{ t(half.label) }}</span>
+      </component>
+    </div>
   </div>
 </template>
 
@@ -84,10 +86,10 @@ const halves = [
   transition: --split 0.5s ease;
 }
 .split-first {
-  --split: 22%;
+  --split: 34%;
 }
 .split-second {
-  --split: -22%;
+  --split: -34%;
 }
 
 .half {
@@ -144,7 +146,7 @@ const halves = [
 }
 .split-first .half-first .shot,
 .split-second .half-second .shot {
-  transform: scale(calc(var(--zoom) * 0.92));
+  transform: scale(1);
 }
 
 .label {
@@ -162,6 +164,34 @@ const halves = [
 .half-second .label {
   right: 14px;
   bottom: 14px;
+}
+
+/*
+ * Next to the text (lg and up) the picture is turned towards it: its right edge comes forward,
+ * the left one recedes. Pointing at it turns it back to the front.
+ */
+@media (min-width: 64rem) {
+  .stage {
+    perspective: 1200px;
+  }
+  .split {
+    transform: rotateY(-22deg) rotateX(5deg);
+    transform-origin: 60% 50%;
+    transition:
+      --split 0.5s ease,
+      transform 0.6s ease;
+  }
+  .split:hover,
+  .split:focus-within {
+    transform: none;
+  }
+}
+
+@media (min-width: 64rem) and (prefers-reduced-motion: reduce) {
+  .split:hover,
+  .split:focus-within {
+    transform: rotateY(-22deg) rotateX(5deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

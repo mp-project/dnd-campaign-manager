@@ -28,7 +28,9 @@
     "quest": "Quest “The seal of the north gate” with rewards: experience points, gold, an item and reputation changes",
     "character": "Character sheet of Arvel Merad with armor class, hit points, spell slots and abilities",
     "sessions": "Planned sessions with date, place, content and the players' replies",
-    "marketplace": "Marketplace with monsters, places and adventure packs by other game masters",
+    "marketplace": "Marketplace with the official rules content of the SRD 5.2 as a complete bundle and as bundles per area",
+    "marketplaceBundle": "Dialog “SRD 5.2 – complete bundle” with its areas: classes and subclasses, species, backgrounds and feats, spells, monsters, items and equipment",
+    "marketplaceCommunity": "Marketplace section “Campaigns & community” with campaigns, monsters, places and people by other game masters and the reviewed seal",
     "reputation": "Reputation overview with the standing of factions, people and regions and the history of the North Gate Watch with changes from story, quest, encounter and a manual correction"
   },
   "audience": {
@@ -253,8 +255,16 @@
   "marketplace": {
     "eyebrow": "Marketplace",
     "title": "Share and discover content",
-    "text": "Find monsters, places and whole adventures by other game masters for your ruleset and add them to your campaign – or publish your own. Reviewed content is marked.",
-    "demo": "See the marketplace in the demo"
+    "text": "Find monsters, places and whole adventures by other game masters for your ruleset and add them to your campaign – or publish your own. The official rules content of the SRD 5.2 comes as a complete bundle, per area or item by item; reviewed content is marked.",
+    "demo": "See the marketplace in the demo",
+    "fan": {
+      "label": "Views of the marketplace",
+      "official": "Official content",
+      "bundle": "Complete bundle",
+      "community": "Community content",
+      "spread": "Tap to spread out",
+      "gather": "Tap to gather"
+    }
   },
   "cta": {
     "title": "Ready for the next adventure?",

@@ -210,6 +210,27 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
+  it("shows the marketplace as a fan of three cards that spreads out on a click", async () => {
+    const { wrapper } = await open();
+    const section = wrapper.find("section[aria-labelledby=landing-marketplace]");
+    const fan = section.find("[role=group]");
+    expect(fan.attributes("aria-label")).toBe("Ansichten des Marktplatzes");
+    expect(fan.findAll(".label").map((label) => label.text())).toEqual([
+      "Offizielle Inhalte",
+      "Gesamtpaket",
+      "Community-Inhalte",
+    ]);
+    const button = section.find("button[aria-expanded]");
+    expect(button.attributes("aria-expanded")).toBe("false");
+    expect(button.text()).toBe("Antippen zum Auffächern");
+    await fan.trigger("click");
+    expect(button.attributes("aria-expanded")).toBe("true");
+    expect(button.text()).toBe("Antippen zum Zusammenlegen");
+    await button.trigger("click");
+    expect(button.attributes("aria-expanded")).toBe("false");
+    wrapper.unmount();
+  });
+
   it("links the logo to the start page in the active language", async () => {
     const german = await open();
     expect(german.wrapper.find("header a").attributes("href")).toBe("/");
@@ -282,14 +303,21 @@ describe("landing page", () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
     const alts = wrapper.findAll("img[alt]").map((image) => image.attributes("alt")).filter(Boolean);
-    expect(alts).toHaveLength(9);
+    expect(alts).toHaveLength(11);
     expect(alts.slice(0, 2)).toEqual([
       expect.stringContaining("Charakterbogen von Arvel Merad"),
       expect.stringContaining("Akt-Board der Storyline"),
     ]);
-    expect(alts).toEqual(expect.arrayContaining([expect.stringContaining("Weltkarte von Elaria"), expect.stringContaining("Marktplatz")]));
+    expect(alts).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Weltkarte von Elaria"),
+        expect.stringContaining("Marktplatz"),
+        expect.stringContaining("SRD 5.2 – Gesamtpaket"),
+        expect.stringContaining("Kampagnen & Community"),
+      ]),
+    );
     // Below the hero the pictures load only when needed.
-    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(7);
+    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(9);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

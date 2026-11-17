@@ -28,7 +28,9 @@
     "quest": "Quest „Das Siegel des Nordtors“ mit Belohnungen: Erfahrungspunkte, Gold, Gegenstand und Ruf-Änderungen",
     "character": "Charakterbogen von Arvel Merad mit Rüstungsklasse, Trefferpunkten, Zauberplätzen und Attributen",
     "sessions": "Geplante Sessions mit Termin, Ort, Inhalten und den Zu- und Absagen der Spieler",
-    "marketplace": "Marktplatz mit Monstern, Orten und Abenteuer-Paketen anderer Spielleitungen",
+    "marketplace": "Marktplatz mit offiziellen Regelinhalten aus dem SRD 5.2 als Gesamtpaket und Paketen je Bereich",
+    "marketplaceBundle": "Dialog „SRD 5.2 – Gesamtpaket“ mit seinen Bereichen: Klassen und Unterklassen, Spezies, Hintergründe und Talente, Zauber, Monster, Gegenstände und Ausrüstung",
+    "marketplaceCommunity": "Marktplatz-Bereich „Kampagnen & Community“ mit Kampagnen, Monstern, Orten und Personen anderer Spielleitungen und dem Geprüft-Siegel",
     "reputation": "Ruf-Übersicht mit Haltungen von Fraktionen, Personen und Regionen und dem Verlauf der Nordtorwache mit Änderungen aus Story, Quest, Encounter und manueller Korrektur"
   },
   "audience": {
@@ -253,8 +255,16 @@
   "marketplace": {
     "eyebrow": "Marktplatz",
     "title": "Inhalte teilen und entdecken",
-    "text": "Finde Monster, Orte und ganze Abenteuer anderer Spielleitungen für dein Regelwerk und übernimm sie in deine Kampagne – oder veröffentliche deine eigenen. Geprüfte Inhalte sind gekennzeichnet.",
-    "demo": "Marktplatz in der Demo ansehen"
+    "text": "Finde Monster, Orte und ganze Abenteuer anderer Spielleitungen für dein Regelwerk und übernimm sie in deine Kampagne – oder veröffentliche deine eigenen. Die offiziellen Regelinhalte aus dem SRD 5.2 gibt es als Gesamtpaket, je Bereich oder einzeln; geprüfte Inhalte sind gekennzeichnet.",
+    "demo": "Marktplatz in der Demo ansehen",
+    "fan": {
+      "label": "Ansichten des Marktplatzes",
+      "official": "Offizielle Inhalte",
+      "bundle": "Gesamtpaket",
+      "community": "Community-Inhalte",
+      "spread": "Antippen zum Auffächern",
+      "gather": "Antippen zum Zusammenlegen"
+    }
   },
   "cta": {
     "title": "Bereit für das nächste Abenteuer?",

@@ -3,6 +3,8 @@ import type { MessageKey } from "@/core/i18n/keys";
 import character from "./assets/screens/character.webp";
 import map from "./assets/screens/map.webp";
 import marketplace from "./assets/screens/marketplace.webp";
+import marketplaceBundle from "./assets/screens/marketplace-bundle.webp";
+import marketplaceCommunity from "./assets/screens/marketplace-community.webp";
 import quest from "./assets/screens/quest.webp";
 import reputation from "./assets/screens/reputation.webp";
 import sessions from "./assets/screens/sessions.webp";
@@ -26,4 +28,6 @@ export const SCREENS = {
   reputation: { src: reputation, alt: "landing.screens.reputation", demoPath: "/kampagne/welt/ruf" },
   sessions: { src: sessions, alt: "landing.screens.sessions", demoPath: "/kampagne/sessions" },
   marketplace: { src: marketplace, alt: "landing.screens.marketplace", demoPath: "/marketplace" },
+  marketplaceBundle: { src: marketplaceBundle, alt: "landing.screens.marketplaceBundle", demoPath: "/marketplace" },
+  marketplaceCommunity: { src: marketplaceCommunity, alt: "landing.screens.marketplaceCommunity", demoPath: "/marketplace" },
 } satisfies Record<string, Screen>;

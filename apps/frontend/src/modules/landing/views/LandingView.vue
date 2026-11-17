@@ -22,6 +22,7 @@ import { usePageMeta } from "@/core/i18n/pageMeta";
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
 import InventoryShowcase from "../components/InventoryShowcase.vue";
+import MarketplaceFan from "../components/MarketplaceFan.vue";
 import LanguageSwitch from "../components/LanguageSwitch.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
@@ -33,6 +34,7 @@ import { type Screen, SCREENS } from "../screens";
 const { t } = useAppI18n();
 const demo = demoUrl();
 const marketplaceDemo = demoScreenUrl(SCREENS.marketplace.demoPath);
+
 const base = import.meta.env.BASE_URL;
 
 usePageMeta({ title: () => t("landing.meta.title"), description: () => t("landing.meta.description") });
@@ -437,7 +439,7 @@ const reputationPoints: MessageKey[] = [
         </div>
       </section>
 
-      <!-- Marketplace: the screen tilted in space, straightening up when pointed at -->
+      <!-- Marketplace: official content, the complete bundle and community content as a fan of cards -->
       <section
         class="relative overflow-hidden"
         aria-labelledby="landing-marketplace"
@@ -472,12 +474,7 @@ const reputationPoints: MessageKey[] = [
               {{ t("landing.marketplace.demo") }}
             </BaseButton>
           </div>
-          <div class="tilt-stage">
-            <ScreenFrame
-              :screen="SCREENS.marketplace"
-              class="tilt"
-            />
-          </div>
+          <MarketplaceFan />
         </div>
       </section>
 
@@ -571,26 +568,5 @@ const reputationPoints: MessageKey[] = [
 
 .marketplace-glow {
   background: radial-gradient(ellipse at 70% 50%, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent 60%);
-}
-
-.tilt-stage {
-  perspective: 1800px;
-}
-.tilt {
-  transform: rotateY(-14deg) rotateX(6deg) rotateZ(1deg);
-  transform-origin: 40% 50%;
-  box-shadow: 30px 40px 60px -20px color-mix(in srgb, var(--color-navy-950) 90%, transparent);
-  transition: transform 0.6s ease;
-}
-.tilt-stage:hover .tilt,
-.tilt:focus-within,
-.tilt:focus-visible {
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tilt {
-    transition: none;
-  }
 }
 </style>

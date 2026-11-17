@@ -2,7 +2,7 @@
 /**
  * Public start page, one address per language (`/`, `/en`): what Chronik is for, who it serves,
  * the main features with screenshots of the clickdummy, further features as a slider, the
- * reputation system, the marketplace and the way to the demo and to the registration. It asks the API nothing: a visitor without a session would otherwise
+ * inventory, the reputation system, the marketplace and the way to the demo and to the registration. It asks the API nothing: a visitor without a session would otherwise
  * cost a failed refresh. Who already has a profile loaded in this tab gets the way into the app
  * instead of the sign-in.
  */
@@ -20,6 +20,8 @@ import type { MessageKey } from "@/core/i18n/keys";
 import { usePageMeta } from "@/core/i18n/pageMeta";
 
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
+import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
+import InventoryShowcase from "../components/InventoryShowcase.vue";
 import LanguageSwitch from "../components/LanguageSwitch.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
@@ -39,29 +41,13 @@ usePageMeta({ title: () => t("landing.meta.title"), description: () => t("landin
 const me = useQuery({ ...meQuery, enabled: false });
 const signedIn = computed(() => !!me.data.value);
 
-type Feature = {
-  id: string;
-  icon: IconName;
-  title: MessageKey;
-  text: MessageKey;
-  points: MessageKey[];
+type Feature = FeatureRowData & {
   screen: Screen;
-  /** Where the picture goes from md on: beside the text, or across the full width below it. */
-  layout: "left" | "right" | "wide";
   /** A wide feature can show its screen as a moving stage instead of a still picture. */
   showcase?: "storylineTour" | "characterSheet";
-  /** On a navy band across the page, like the footer, instead of the light backdrop. */
-  dark?: boolean;
 };
 
 const SHOWCASES = { storylineTour: StorylineTour, characterSheet: CharacterSheetShowcase } as const;
-
-/** Grid of a feature row and order of its text, per layout. */
-const LAYOUT = {
-  left: { row: "md:grid-cols-[3fr_2fr]", text: "md:order-last" },
-  right: { row: "md:grid-cols-[2fr_3fr]", text: "" },
-  wide: { row: "", text: "md:grid md:grid-cols-2 md:gap-x-12" },
-} as const;
 
 const audience: Array<{ id: string; icon: IconName; title: MessageKey; text: MessageKey }> = [
   { id: "gm", icon: "orig-krone", title: "landing.audience.gameMasters.title", text: "landing.audience.gameMasters.text" },
@@ -132,6 +118,16 @@ const features: Feature[] = [
     layout: "right",
   },
 ];
+
+/** After the further features: the inventory as a list that sorts, takes in and uses items. */
+const inventory: FeatureRowData = {
+  id: "inventory",
+  icon: "orig-truhe",
+  title: "landing.features.inventory.title",
+  text: "landing.features.inventory.text",
+  points: ["landing.features.inventory.point1", "landing.features.inventory.point2", "landing.features.inventory.point3"],
+  layout: "left",
+};
 
 const more: MoreItem[] = [
   { id: "encounters", icon: "nav-encounter", title: "landing.more.encounters.title", text: "landing.more.encounters.text" },
@@ -329,80 +325,20 @@ const reputationPoints: MessageKey[] = [
             {{ t("landing.features.intro") }}
           </p>
         </div>
-        <div
+        <FeatureRow
           v-for="feature in features"
           :key="feature.id"
-          :class="
-            feature.dark
-              ? 'feature-dark relative my-7 overflow-hidden border-y border-navy-line bg-navy-950 py-14 text-parchment md:my-10 md:py-20'
-              : 'py-7 md:py-10'
-          "
+          :feature="feature"
         >
-          <div
-            v-if="feature.dark"
-            class="feature-dark-glow pointer-events-none absolute inset-0"
+          <component
+            :is="SHOWCASES[feature.showcase]"
+            v-if="feature.showcase"
           />
-          <article
-            class="relative mx-auto grid max-w-300 items-center gap-6 px-4 md:gap-12 md:px-10"
-            :class="[LAYOUT[feature.layout].row, feature.layout === 'wide' && 'md:gap-8']"
-            :aria-labelledby="`landing-feature-${feature.id}`"
-          >
-            <div :class="LAYOUT[feature.layout].text">
-              <div>
-                <div class="flex items-center gap-4">
-                  <span
-                    class="flex size-14 shrink-0 items-center justify-center rounded-full text-gold-light"
-                    :class="feature.dark ? 'border border-gold bg-navy-900' : 'bg-navy-950'"
-                  >
-                    <Icon
-                      :name="feature.icon"
-                      :size="32"
-                    />
-                  </span>
-                  <h3
-                    :id="`landing-feature-${feature.id}`"
-                    class="section-title text-[24px]"
-                    :class="feature.dark && 'text-parchment'"
-                  >
-                    {{ t(feature.title) }}
-                  </h3>
-                </div>
-                <p
-                  class="mt-4 text-[17px]"
-                  :class="feature.dark ? 'text-parchment/85' : 'text-ink-2'"
-                >
-                  {{ t(feature.text) }}
-                </p>
-              </div>
-              <ul
-                class="mt-4 flex flex-col gap-2"
-                :class="feature.layout === 'wide' && 'md:mt-0 md:self-end'"
-              >
-                <li
-                  v-for="point in feature.points"
-                  :key="point"
-                  class="flex items-start gap-2"
-                >
-                  <Icon
-                    name="ui-check"
-                    :size="20"
-                    class="mt-0.5 shrink-0"
-                    :class="feature.dark ? 'text-gold-light' : 'text-ok'"
-                  />
-                  <span>{{ t(point) }}</span>
-                </li>
-              </ul>
-            </div>
-            <component
-              :is="SHOWCASES[feature.showcase]"
-              v-if="feature.showcase"
-            />
-            <ScreenFrame
-              v-else
-              :screen="feature.screen"
-            />
-          </article>
-        </div>
+          <ScreenFrame
+            v-else
+            :screen="feature.screen"
+          />
+        </FeatureRow>
       </section>
 
       <!-- Further features: dark like the footer, as a slider of framed cards -->
@@ -430,6 +366,16 @@ const reputationPoints: MessageKey[] = [
             class="mt-10"
           />
         </div>
+      </section>
+
+      <!-- Inventory: a living list of Arvel's items -->
+      <section
+        class="bg-backdrop py-7 text-ink md:py-10"
+        aria-labelledby="landing-feature-inventory"
+      >
+        <FeatureRow :feature="inventory">
+          <InventoryShowcase />
+        </FeatureRow>
       </section>
 
       <!-- Reputation: grows with the story, adjustable by hand -->
@@ -618,10 +564,6 @@ const reputationPoints: MessageKey[] = [
 </template>
 
 <style scoped>
-.feature-dark-glow {
-  background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 60%);
-}
-
 .more-glow {
   background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-gold) 12%, transparent), transparent 55%);
 }

@@ -195,6 +195,21 @@ describe("landing page", () => {
     vi.useRealTimers();
   });
 
+  it("lets the visitor sort the inventory and use an item, the carrying load following", async () => {
+    const { wrapper } = await open();
+    const article = wrapper.find("article[aria-labelledby=landing-feature-inventory]");
+    expect(article.find("h3").text()).toBe("Inventar verwalten");
+    const names = () => article.findAll("li .font-heading.font-bold").map((name) => name.text());
+    expect(names()[0]).toBe("Bronzenes Siegel");
+    expect(article.text()).toContain("18 / 105 kg");
+    await article.findAll("[role=radio]")[2]!.trigger("click");
+    expect(names().slice(0, 2)).toEqual(["Fackel", "Rationen"]);
+    await article.find("button[aria-label='Heiltrank benutzen']").trigger("click");
+    expect(article.text()).toContain("17,8 / 105 kg");
+    expect(article.text()).toContain("Heiltrank getrunken: +9 TP");
+    wrapper.unmount();
+  });
+
   it("links the logo to the start page in the active language", async () => {
     const german = await open();
     expect(german.wrapper.find("header a").attributes("href")).toBe("/");

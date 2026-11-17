@@ -85,6 +85,13 @@
       "point1": "Spieler per E-Mail einladen und Rollen vergeben",
       "point2": "Sessions planen und nachbereiten",
       "point3": "Eigene Spieleransicht für den Spieltisch, auch mobil"
+    },
+    "inventory": {
+      "title": "Inventar verwalten",
+      "text": "Jeder Charakter trägt seine Gegenstände mit Anzahl, Kategorie und Gewicht: Beute aufnehmen, sortieren, benutzen oder einem anderen Charakter geben – die Traglast rechnet mit.",
+      "point1": "Gegenstände aus dem Kompendium oder als eigene Einträge",
+      "point2": "Sortieren und filtern nach Name, Kategorie und Anzahl",
+      "point3": "Benutzen, ausrüsten und an die Gruppe weitergeben"
     }
   },
   "storylineTour": {
@@ -146,6 +153,50 @@
       "hit": "Treffer: {n} Schaden",
       "cast": "Zauber gewirkt: Grad {n}",
       "rest": "Lange Rast"
+    }
+  },
+  "inventory": {
+    "title": "Inventar",
+    "owner": "Arvel Merad · Paladin 7 / Kleriker 2",
+    "add": "Gegenstand hinzufügen",
+    "sortLabel": "Sortieren nach",
+    "sort": {
+      "name": "Name",
+      "category": "Kategorie",
+      "quantity": "Anzahl"
+    },
+    "use": "Benutzen",
+    "useItem": "{item} benutzen",
+    "worn": "Getragen",
+    "healing": "+{n} TP",
+    "load": "Traglast",
+    "loadValue": "{load} / {capacity} kg",
+    "events": {
+      "loot": "Beute aufgenommen: {item}",
+      "sorted": "Sortiert nach {by}",
+      "potion": "Heiltrank getrunken: +{n} TP",
+      "used": "{item} benutzt – noch {n}",
+      "give": "{item} an Liora gegeben",
+      "bought": "Gekauft: {item}"
+    },
+    "items": {
+      "longsword": "Langschwert",
+      "javelin": "Wurfspeer",
+      "potion": "Heiltrank",
+      "rations": "Rationen",
+      "torch": "Fackel",
+      "rope": "Seil (15 m)",
+      "pack": "Reisebeutel",
+      "seal": "Bronzenes Siegel",
+      "spellbook": "Zauberbuch"
+    },
+    "categories": {
+      "weapon": "Waffe",
+      "consumable": "Verbrauch",
+      "provisions": "Proviant",
+      "adventuring": "Abenteuer",
+      "container": "Behälter",
+      "quest": "Questgegenstand"
     }
   },
   "more": {

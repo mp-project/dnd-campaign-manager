@@ -83,7 +83,7 @@ const features: Feature[] = [
     screen: SCREENS.storyline,
     layout: "wide",
     showcase: "storylineTour",
-    dark: true,
+    band: "navy",
   },
   {
     id: "quests",
@@ -107,6 +107,7 @@ const features: Feature[] = [
     screen: SCREENS.character,
     layout: "wide",
     showcase: "characterSheet",
+    band: "parchment",
   },
   {
     id: "sessions",
@@ -306,7 +307,7 @@ const reputationPoints: MessageKey[] = [
         </div>
       </section>
 
-      <!-- Main features, each with a screen of the clickdummy; dark ones as a navy band across the page -->
+      <!-- Main features, each with a screen of the clickdummy; some as a navy or parchment band across the page -->
       <section
         class="bg-backdrop pb-7 text-ink md:pb-10"
         aria-labelledby="landing-features"

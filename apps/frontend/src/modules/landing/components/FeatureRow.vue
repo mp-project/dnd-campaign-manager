@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
  * One feature of the start page: icon, title, text and check points beside or above its picture
- * (default slot). Dark features run as a navy band across the page.
+ * (default slot). Features with a `band` run as a navy or parchment band across the page.
  */
+import { computed } from "vue";
+
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import { useAppI18n } from "@/core/i18n";
@@ -16,11 +18,20 @@ export type FeatureRowData = {
   points: MessageKey[];
   /** Where the picture goes from md on: beside the text, or across the full width below it. */
   layout: "left" | "right" | "wide";
-  /** On a navy band across the page, like the footer, instead of the light backdrop. */
-  dark?: boolean;
+  /**
+   * A band across the page instead of the light backdrop: `navy` like the footer, `parchment`
+   * with the paper texture, to set a feature apart from its light neighbours.
+   */
+  band?: "navy" | "parchment";
 };
 
-defineProps<{ feature: FeatureRowData }>();
+const props = defineProps<{ feature: FeatureRowData }>();
+const dark = computed(() => props.feature.band === "navy");
+
+const BAND = {
+  navy: "relative my-7 overflow-hidden border-y border-navy-line bg-navy-950 py-14 text-parchment md:my-10 md:py-20",
+  parchment: "parchment on-parchment relative my-7 overflow-hidden border-y border-gold/60 py-14 md:my-10 md:py-20",
+} as const;
 defineSlots<{ default(): unknown }>();
 const { t } = useAppI18n();
 
@@ -34,14 +45,10 @@ const LAYOUT = {
 
 <template>
   <div
-    :class="
-      feature.dark
-        ? 'relative my-7 overflow-hidden border-y border-navy-line bg-navy-950 py-14 text-parchment md:my-10 md:py-20'
-        : 'py-7 md:py-10'
-    "
+    :class="feature.band ? BAND[feature.band] : 'py-7 md:py-10'"
   >
     <div
-      v-if="feature.dark"
+      v-if="dark"
       class="feature-dark-glow pointer-events-none absolute inset-0"
     />
     <article
@@ -54,7 +61,7 @@ const LAYOUT = {
           <div class="flex items-center gap-4">
             <span
               class="flex size-14 shrink-0 items-center justify-center rounded-full text-gold-light"
-              :class="feature.dark ? 'border border-gold bg-navy-900' : 'bg-navy-950'"
+              :class="dark ? 'border border-gold bg-navy-900' : 'bg-navy-950'"
             >
               <Icon
                 :name="feature.icon"
@@ -64,14 +71,14 @@ const LAYOUT = {
             <h3
               :id="`landing-feature-${feature.id}`"
               class="section-title text-[24px]"
-              :class="feature.dark && 'text-parchment'"
+              :class="dark && 'text-parchment'"
             >
               {{ t(feature.title) }}
             </h3>
           </div>
           <p
             class="mt-4 text-[17px]"
-            :class="feature.dark ? 'text-parchment/85' : 'text-ink-2'"
+            :class="dark ? 'text-parchment/85' : 'text-ink-2'"
           >
             {{ t(feature.text) }}
           </p>
@@ -89,7 +96,7 @@ const LAYOUT = {
               name="ui-check"
               :size="20"
               class="mt-0.5 shrink-0"
-              :class="feature.dark ? 'text-gold-light' : 'text-ok'"
+              :class="dark ? 'text-gold-light' : 'text-ok'"
             />
             <span>{{ t(point) }}</span>
           </li>

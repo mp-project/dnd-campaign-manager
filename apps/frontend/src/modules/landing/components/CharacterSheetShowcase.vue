@@ -2,13 +2,14 @@
 /**
  * The character feature as the sheet with its most important values beside it: the screenshot of
  * Arvel Merad's sheet stays large, and armor class, hit points, spell slots and a Strength check sit
- * around it, tied to their place by golden lines (on phones they line up below it). Nothing moves
+ * around it, tied to their place by golden lines (on phones two above and two below it, the lines
+ * measured from the rendered layout). Nothing moves
  * around; the values change: the sheet plays a small adventure in which Arvel takes hits and casts
  * spells until a long rest, shown over the sheet, fills hit points and spell slots again. The
  * Strength check is a d20 the visitor can roll. With reduced motion the adventure doesn't play by
  * itself; the die still rolls.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import Icon from "@/components/base/Icon.vue";
 import { useAppI18n, useGlossary } from "@/core/i18n";
@@ -109,11 +110,14 @@ const rollText = computed(() => {
 // ---- Playing while in view --------------------------------------------------------------------
 
 const stage = ref<HTMLElement | null>(null);
+const sheetEl = ref<HTMLElement | null>(null);
+const screenEl = ref<HTMLElement | null>(null);
 const revealed = ref(false);
 const reduceMotion = ref(false);
 let visible = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let visibility: IntersectionObserver | undefined;
+let resize: ResizeObserver | undefined;
 
 function schedule(delay: number) {
   if (timer) clearTimeout(timer);
@@ -128,6 +132,11 @@ function schedule(delay: number) {
 }
 
 onMounted(() => {
+  measureLines();
+  if (typeof ResizeObserver !== "undefined" && sheetEl.value) {
+    resize = new ResizeObserver(() => measureLines());
+    resize.observe(sheetEl.value);
+  }
   reduceMotion.value = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !stage.value) {
     revealed.value = true;
@@ -150,6 +159,7 @@ onBeforeUnmount(() => {
   if (timer) clearTimeout(timer);
   if (rollTimer) clearInterval(rollTimer);
   visibility?.disconnect();
+  resize?.disconnect();
 });
 
 /**
@@ -158,11 +168,46 @@ onBeforeUnmount(() => {
  * and height.
  */
 const pieces = {
-  ac: { x: -6, y: 22, ax: 24.6, ay: 41, ex: 4, ey: 40 },
+  ac: { x: -11, y: 22, ax: 24.6, ay: 41, ex: 2.6, ey: 35 },
   hp: { x: 50, y: -10, ax: 42.3, ay: 37, ex: 56, ey: 4 },
   slots: { x: 80, y: 42, ax: 56, ay: 53, ex: 82, ey: 54 },
   dice: { x: 16, y: 88, ax: 38, ay: 69, ex: 26, ey: 92 },
 } as const;
+
+type PieceId = keyof typeof pieces;
+type Line = { id: PieceId; x1: number; y1: number; x2: number; y2: number };
+
+/**
+ * Phones: the values sit in rows above and below the sheet, so their lines are measured from the
+ * rendered layout (px within the sheet). Each line runs from the value's place on the sheet to the
+ * nearest edge of its card, straight up or down where the card's width allows it.
+ */
+const mobileLines = ref<Line[]>([]);
+const mobileSize = ref({ width: 0, height: 0 });
+
+function measureLines() {
+  const box = sheetEl.value?.getBoundingClientRect();
+  const screen = screenEl.value?.getBoundingClientRect();
+  if (!box || !screen || window.matchMedia?.("(min-width: 48rem)").matches) {
+    mobileLines.value = [];
+    return;
+  }
+  const lines: Line[] = [];
+  for (const id of Object.keys(pieces) as PieceId[]) {
+    const card = sheetEl.value?.querySelector(`[data-piece="${id}"]`)?.getBoundingClientRect();
+    if (!card) continue;
+    const x1 = screen.left - box.left + (pieces[id].ax / 100) * screen.width;
+    const y1 = screen.top - box.top + (pieces[id].ay / 100) * screen.height;
+    const above = card.bottom <= screen.top + 1;
+    const inset = Math.min(24, card.width / 2);
+    const x2 = Math.min(Math.max(x1, card.left - box.left + inset), card.right - box.left - inset);
+    const y2 = (above ? card.bottom : card.top) - box.top;
+    lines.push({ id, x1, y1, x2, y2 });
+  }
+  mobileSize.value = { width: box.width, height: box.height };
+  mobileLines.value = lines;
+}
+void nextTick(measureLines);
 
 const pieceStyle = (id: keyof typeof pieces) => ({ "--x": pieces[id].x, "--y": pieces[id].y });
 const eventIcon: Record<EventKind, "ui-swords" | "ui-sparkle" | "ui-hourglass"> = {
@@ -203,84 +248,120 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
       </Transition>
     </div>
 
-    <div class="sheet">
-      <ScreenFrame :screen="SCREENS.character" />
+    <div
+      ref="sheetEl"
+      class="sheet"
+    >
+      <div
+        ref="screenEl"
+        class="screen"
+      >
+        <ScreenFrame :screen="SCREENS.character" />
 
-      <!-- The long rest, over the sheet -->
-      <Transition name="rest">
-        <div
-          v-if="resting"
-          class="rest-veil"
+        <!-- The long rest, over the sheet -->
+        <Transition name="rest">
+          <div
+            v-if="resting"
+            class="rest-veil"
+            aria-hidden="true"
+          >
+            <div class="rest-card">
+              <Icon
+                name="ui-hourglass"
+                :size="32"
+                class="text-gold-light"
+              />
+              <p class="font-heading text-[22px] font-bold text-parchment md:text-[28px]">
+                {{ t(restTitle) }}
+              </p>
+              <p class="text-[14px] text-parchment/85 md:text-[16px]">
+                {{ t("landing.characterSheet.restText") }}
+              </p>
+            </div>
+          </div>
+        </Transition>
+
+        <svg
+          class="links"
+          viewBox="0 0 160 100"
           aria-hidden="true"
         >
-          <div class="rest-card">
-            <Icon
-              name="ui-hourglass"
-              :size="32"
-              class="text-gold-light"
-            />
-            <p class="font-heading text-[22px] font-bold text-parchment md:text-[28px]">
-              {{ t(restTitle) }}
-            </p>
-            <p class="text-[14px] text-parchment/85 md:text-[16px]">
-              {{ t("landing.characterSheet.restText") }}
-            </p>
-          </div>
-        </div>
-      </Transition>
+          <line
+            v-for="(piece, id) in pieces"
+            :key="id"
+            :x1="piece.ax * 1.6"
+            :y1="piece.ay"
+            :x2="piece.ex * 1.6"
+            :y2="piece.ey"
+            class="link"
+          />
+        </svg>
+        <span
+          v-for="(piece, id) in pieces"
+          :key="`dot-${id}`"
+          class="anchor"
+          :style="{ left: `${piece.ax}%`, top: `${piece.ay}%` }"
+          aria-hidden="true"
+        />
+      </div>
 
+      <!-- Phones: lines from the sheet to the rows above and below it -->
       <svg
-        class="links"
-        viewBox="0 0 160 100"
+        v-if="mobileLines.length"
+        class="mobile-links"
+        :viewBox="`0 0 ${mobileSize.width} ${mobileSize.height}`"
         aria-hidden="true"
       >
-        <line
-          v-for="(piece, id) in pieces"
-          :key="id"
-          :x1="piece.ax * 1.6"
-          :y1="piece.ay"
-          :x2="piece.ex * 1.6"
-          :y2="piece.ey"
-          class="link"
-        />
+        <g
+          v-for="line in mobileLines"
+          :key="line.id"
+        >
+          <line
+            :x1="line.x1"
+            :y1="line.y1"
+            :x2="line.x2"
+            :y2="line.y2"
+            class="mobile-link"
+          />
+          <circle
+            :cx="line.x2"
+            :cy="line.y2"
+            r="3"
+            class="mobile-link-end"
+          />
+        </g>
       </svg>
-      <span
-        v-for="(piece, id) in pieces"
-        :key="`dot-${id}`"
-        class="anchor"
-        :style="{ left: `${piece.ax}%`, top: `${piece.ay}%` }"
-        aria-hidden="true"
-      />
 
       <ul class="pieces">
         <!-- Armor class as the sheet's shield -->
         <li
-          class="piece"
+          class="piece piece-ac"
+          :data-piece="'ac'"
           :style="pieceStyle('ac')"
           aria-hidden="true"
         >
           <div class="piece-shield">
-            <svg
-              viewBox="0 0 100 116"
-              class="shield"
-            >
-              <path
-                d="M50 4 94 18v38c0 28-19 46-44 56C25 102 6 84 6 56V18Z"
-                class="shield-body"
-              />
-              <path
-                d="M50 12 86 23.5V56c0 23-15.5 38.5-36 47-20.5-8.5-36-24-36-47V23.5Z"
-                class="shield-line"
-              />
-            </svg>
-            <span class="shield-value">18</span>
+            <span class="shield">
+              <svg viewBox="0 0 100 116">
+                <path
+                  d="M50 4 94 18v38c0 28-19 46-44 56C25 102 6 84 6 56V18Z"
+                  class="shield-body"
+                />
+                <path
+                  d="M50 12 86 23.5V56c0 23-15.5 38.5-36 47-20.5-8.5-36-24-36-47V23.5Z"
+                  class="shield-line"
+                />
+              </svg>
+              <span class="shield-value">18</span>
+            </span>
             <span class="piece-label mt-1 text-center">{{ term("armorClass") }}</span>
           </div>
         </li>
 
         <!-- Hit points -->
         <li
-          class="piece"
+          class="piece piece-hp"
+          :data-piece="'hp'"
           :style="pieceStyle('hp')"
           aria-hidden="true"
         >
@@ -330,7 +411,8 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
 
         <!-- Spell slots -->
         <li
-          class="piece"
+          class="piece piece-slots"
+          :data-piece="'slots'"
           :style="pieceStyle('slots')"
           aria-hidden="true"
         >
@@ -352,7 +434,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
                 :key="level"
                 class="flex items-center gap-2 text-[14px] text-ink-2"
               >
-                <span class="w-14 shrink-0">{{ t("landing.characterSheet.slotLevel", { n: level + 1 }) }}</span>
+                <span class="w-12 shrink-0 md:w-14">{{ t("landing.characterSheet.slotLevel", { n: level + 1 }) }}</span>
                 <span
                   v-for="slot in max"
                   :key="slot"
@@ -376,7 +458,8 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
 
         <!-- Strength check: a d20 to roll -->
         <li
-          class="piece"
+          class="piece piece-dice"
+          :data-piece="'dice'"
           :style="pieceStyle('dice')"
         >
           <button
@@ -436,6 +519,9 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
 .sheet {
   position: relative;
   container-type: inline-size;
+}
+.screen {
+  position: relative;
 }
 
 /* ---- What happened ---- */
@@ -497,7 +583,8 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  /* Above the lines and anchors (z-index 1), below the value cards (2, later in the page). */
+  z-index: 2;
   display: flex;
   width: 100%;
   aspect-ratio: 16 / 10;
@@ -530,12 +617,41 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   opacity: 0;
 }
 
-/* ---- Lines and anchors (wide screens only) ---- */
-.links,
-.anchor {
+/* ---- Lines and anchors ---- */
+.links {
   display: none;
 }
+.anchor {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid var(--color-gold-light);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-gold-light) 35%, transparent);
+  pointer-events: none;
+}
+.mobile-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.mobile-link {
+  stroke: var(--color-gold);
+  stroke-width: 1.5;
+}
+.mobile-link-end {
+  fill: var(--color-gold);
+}
 @media (min-width: 48rem) {
+  .mobile-links {
+    display: none;
+  }
   .links {
     position: absolute;
     top: 0;
@@ -547,15 +663,10 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
     pointer-events: none;
   }
   .anchor {
-    position: absolute;
-    display: block;
+    z-index: auto;
     width: 14px;
     height: 14px;
     margin: -7px 0 0 -7px;
-    border: 2px solid var(--color-gold-light);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--color-gold-light) 35%, transparent);
-    pointer-events: none;
   }
 }
 .link {
@@ -563,34 +674,51 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   stroke-width: 0.3;
 }
 
-/* ---- Pieces: a grid below the sheet on phones, around it from md on ---- */
+/*
+ * ---- Pieces: on phones armor class and hit points above the sheet, the check and the spell slots
+ * below it (each below or above its place on the sheet, so the lines don't cross); around it from md on
+ */
 .pieces {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 16px;
+  display: contents;
 }
 .piece {
+  position: relative;
+  z-index: 2;
   opacity: 0;
   transition: opacity 0.6s ease;
 }
 .revealed .piece {
   opacity: 1;
 }
-@media (min-width: 48rem) {
-  .pieces {
-    display: contents;
+@media (max-width: 47.99rem) {
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+    row-gap: 28px;
   }
+  .screen {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .piece-ac {
+    grid-area: 1 / 1;
+  }
+  .piece-hp {
+    grid-area: 1 / 2;
+  }
+  .piece-dice {
+    grid-area: 3 / 1;
+  }
+  .piece-slots {
+    grid-area: 3 / 2;
+  }
+}
+@media (min-width: 48rem) {
   .piece {
     position: absolute;
     left: calc(var(--x) * 1%);
     top: calc(var(--y) * 0.625cqw);
-    z-index: 2;
-  }
-}
-@media (max-width: 47.99rem) {
-  .piece:nth-child(n + 3) {
-    grid-column: 1 / -1;
   }
 }
 
@@ -718,13 +846,18 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
     background: var(--color-parchment-card);
     box-shadow: var(--shadow-soft);
   }
-  .shield {
-    width: 72px;
-  }
 }
+/* The shield and its value: the value sits in the shield's optical middle, above the tip. */
 .shield {
+  position: relative;
+  display: block;
   width: 104px;
   filter: drop-shadow(0 10px 14px color-mix(in srgb, var(--color-navy-950) 40%, transparent));
+}
+.shield svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .shield-body {
   fill: var(--color-primary);
@@ -738,7 +871,11 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
 }
 .shield-value {
   position: absolute;
-  top: 28px;
+  top: 44%;
+  right: 0;
+  left: 0;
+  transform: translateY(-50%);
+  text-align: center;
   color: var(--color-parchment-card);
   font-family: var(--font-heading);
   font-size: 40px;
@@ -746,9 +883,11 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   line-height: 1;
 }
 @media (max-width: 47.99rem) {
+  .shield {
+    width: 64px;
+  }
   .shield-value {
-    top: 30px;
-    font-size: 28px;
+    font-size: 24px;
   }
 }
 @media (min-width: 48rem) {
@@ -772,6 +911,17 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
 @media (min-width: 48rem) {
   .dice-card {
     width: 17rem;
+  }
+}
+@media (max-width: 47.99rem) {
+  .dice-card {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+  }
+  .dice-card > .flex {
+    align-items: center;
+    text-align: center;
   }
 }
 .dice-card:hover {

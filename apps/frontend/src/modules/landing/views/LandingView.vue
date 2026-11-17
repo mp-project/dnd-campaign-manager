@@ -12,8 +12,8 @@ import { computed } from "vue";
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
-import BrandMark from "@/components/layout/BrandMark.vue";
 import CompassRose from "@/components/layout/CompassRose.vue";
+import SiteHeader from "@/components/layout/SiteHeader.vue";
 import { meQuery } from "@/core/auth/session";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
@@ -160,55 +160,50 @@ const reputationPoints: MessageKey[] = [
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <header class="border-b border-navy-line">
-      <div class="mx-auto flex max-w-300 items-center gap-2 px-4 py-3 md:px-10 md:py-4">
-        <BrandMark class="min-w-0" />
-        <div class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          <a
-            v-if="demo"
-            :href="demo"
-            target="_blank"
-            rel="noopener"
-            class="hidden min-h-11 items-center px-2 text-[15px] hover:underline md:inline-flex"
-          >
-            {{ t("landing.header.demo") }}
-          </a>
-          <LanguageSwitch />
-          <BaseButton
-            v-if="signedIn"
-            to="/dashboard"
-            variant="outline-gold"
-            size="sm"
-          >
-            {{ t("landing.header.toApp") }}
-          </BaseButton>
-          <template v-else>
-            <RouterLink
-              :to="{ name: 'auth-login' }"
-              class="hidden min-h-11 items-center px-2 text-[15px] hover:underline sm:inline-flex"
-            >
-              {{ t("landing.header.signIn") }}
-            </RouterLink>
-            <BaseButton
-              :to="{ name: 'auth-login' }"
-              variant="outline-gold"
-              size="sm"
-              class="sm:hidden"
-            >
-              {{ t("landing.header.signIn") }}
-            </BaseButton>
-            <BaseButton
-              :to="{ name: 'auth-register' }"
-              variant="outline-gold"
-              size="sm"
-              class="hidden sm:inline-flex"
-            >
-              {{ t("landing.header.register") }}
-            </BaseButton>
-          </template>
-        </div>
-      </div>
-    </header>
+    <SiteHeader width="page">
+      <a
+        v-if="demo"
+        :href="demo"
+        target="_blank"
+        rel="noopener"
+        class="hidden min-h-11 items-center px-2 text-[15px] hover:underline md:inline-flex"
+      >
+        {{ t("landing.header.demo") }}
+      </a>
+      <LanguageSwitch />
+      <BaseButton
+        v-if="signedIn"
+        to="/dashboard"
+        variant="outline-gold"
+        size="sm"
+      >
+        {{ t("landing.header.toApp") }}
+      </BaseButton>
+      <template v-else>
+        <RouterLink
+          :to="{ name: 'auth-login' }"
+          class="hidden min-h-11 items-center px-2 text-[15px] hover:underline sm:inline-flex"
+        >
+          {{ t("landing.header.signIn") }}
+        </RouterLink>
+        <BaseButton
+          :to="{ name: 'auth-login' }"
+          variant="outline-gold"
+          size="sm"
+          class="sm:hidden"
+        >
+          {{ t("landing.header.signIn") }}
+        </BaseButton>
+        <BaseButton
+          :to="{ name: 'auth-register' }"
+          variant="outline-gold"
+          size="sm"
+          class="hidden sm:inline-flex"
+        >
+          {{ t("landing.header.register") }}
+        </BaseButton>
+      </template>
+    </SiteHeader>
 
     <main class="flex-1">
       <!-- Hero: dark like the app's shell, with storyline and character sheet split diagonally -->

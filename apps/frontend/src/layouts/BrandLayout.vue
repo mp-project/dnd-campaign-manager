@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
  * Brand layout of the pages outside the app (sign-in, legal notice, privacy): navy background,
- * header with the brand and a switch link, a parchment card with the compass rose, title and
- * subtitle, and the legal links in the footer. `size`: `narrow` for short forms, `wide` for text.
+ * the sticky site header with the brand and a switch link, a parchment card with the compass
+ * rose, title and subtitle, and the legal links in the footer. `size`: `narrow` for short forms, `wide` for text.
  */
-import BrandMark from "@/components/layout/BrandMark.vue";
 import CompassRose from "@/components/layout/CompassRose.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
+import SiteHeader from "@/components/layout/SiteHeader.vue";
 import { useAppI18n } from "@/core/i18n";
 
 withDefaults(defineProps<{ title: string; subtitle?: string; size?: "narrow" | "default" | "wide" }>(), {
@@ -20,16 +20,15 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
 </script>
 
 <template>
-  <div class="relative flex min-h-dvh flex-col overflow-hidden bg-navy-950 text-parchment">
-    <header class="relative z-10 flex items-center gap-4 border-b border-navy-line px-4 py-3 md:px-10 md:py-4">
-      <BrandMark />
+  <div class="relative flex min-h-dvh flex-col overflow-clip bg-navy-950 text-parchment">
+    <SiteHeader>
       <div
         v-if="$slots.switch"
-        class="ml-auto hidden text-[15px] sm:block"
+        class="hidden text-[15px] sm:block"
       >
         <slot name="switch" />
       </div>
-    </header>
+    </SiteHeader>
 
     <main class="relative z-10 flex flex-1 items-start justify-center px-4 py-6 md:items-center md:py-10">
       <ParchmentFrame

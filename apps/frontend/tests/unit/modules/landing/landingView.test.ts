@@ -131,6 +131,17 @@ describe("landing page", () => {
       "Nichts geht verloren",
       "Deutsch und Englisch",
     ]);
+    // Each card carries its own motif; revealing shows the king.
+    const motifs = cards.map((card) => card.find("img[loading=lazy]").attributes("src") ?? "");
+    expect(motifs.map((src) => src.match(/more\/(\w+)\./)?.[1])).toEqual([
+      "encounters",
+      "factions",
+      "sounds",
+      "compendium",
+      "reveals",
+      "history",
+      "languages",
+    ]);
     expect(cards[0]!.attributes("aria-label")).toBe("Karte 1 von 7");
     expect(cards.at(-1)!.text()).toContain("aktuell Deutsch und Englisch");
     wrapper.unmount();
@@ -147,8 +158,121 @@ describe("landing page", () => {
       "Encounter",
       "Manuell anpassen",
     ]);
-    expect(section.find("img").attributes("alt")).toContain("Ruf-Übersicht");
+    // The watercolour behind it is decoration; the screen is the picture with a description.
+    expect(section.find("img:not([alt=''])").attributes("alt")).toContain("Ruf-Übersicht");
     expect(section.find("a").attributes("href")).toBe("https://demo.example.com/#/kampagne/welt/ruf");
+    wrapper.unmount();
+  });
+
+  it("rides over the storyline board scene by scene, on the route the visitor chooses", async () => {
+    vi.stubEnv("VITE_DEMO_URL", "https://demo.example.com/");
+    const { wrapper } = await open();
+    const article = wrapper.find("article[aria-labelledby=landing-feature-storylines]");
+    // At first the whole board with a hint, no scene.
+    expect(article.text()).toContain("zwei Routen, die sich am alten Tor wieder treffen");
+    const steps = () => article.findAll("ol button");
+    expect(steps().map((step) => step.text())).toEqual([
+      "1Spuren im Nebel",
+      "2Die Wache bestechen",
+      "3Am alten Tor",
+      "4Torwache",
+    ]);
+    await steps()[2]!.trigger("click");
+    expect(steps()[2]!.attributes("aria-current")).toBe("step");
+    expect(article.text()).toContain("Szene 3 von 4 · Offizieller Weg");
+    await article.findAll("[role=radio]")[1]!.trigger("click");
+    expect(steps().map((step) => step.text())).toContain("4Das versiegelte Gewölbe");
+    expect(steps()[0]!.attributes("aria-current")).toBe("step");
+    expect(article.text()).toContain("Szene 1 von 4 · Geheimer Zugang");
+    // The stage leads nowhere itself; the demo link sits below it.
+    expect(article.find("a").attributes("href")).toBe(
+      "https://demo.example.com/#/kampagne/abenteuer/storylines/schatten-elaria/akt",
+    );
+    wrapper.unmount();
+  });
+
+  it("lets the visitor roll the character's Strength check", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const { wrapper } = await open();
+    const article = wrapper.find("article[aria-labelledby=landing-feature-characters]");
+    expect(article.text()).toContain("Rüstungsklasse");
+    expect(article.text()).toContain("Trefferpunkte");
+    const die = article.find("button[aria-label='Stärke-Probe würfeln']");
+    expect(die.text()).toContain("Antippen und würfeln");
+    await die.trigger("click");
+    await vi.runAllTimersAsync();
+    expect(die.text()).toContain("11 + 2 = 13");
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("lets the visitor sort the inventory and use an item, the carrying load following", async () => {
+    const { wrapper } = await open();
+    const article = wrapper.find("article[aria-labelledby=landing-feature-inventory]");
+    expect(article.find("h3").text()).toBe("Inventar verwalten");
+    const names = () => article.findAll("li .font-heading.font-bold").map((name) => name.text());
+    expect(names()[0]).toBe("Bronzenes Siegel");
+    expect(article.text()).toContain("18 / 105 kg");
+    await article.findAll("[role=radio]")[2]!.trigger("click");
+    expect(names().slice(0, 2)).toEqual(["Fackel", "Rationen"]);
+    await article.find("button[aria-label='Heiltrank benutzen']").trigger("click");
+    expect(article.text()).toContain("17,8 / 105 kg");
+    expect(article.text()).toContain("Heiltrank getrunken: +9 TP");
+    wrapper.unmount();
+  });
+
+  it("shows the marketplace as a fan of three cards that spreads out on a click", async () => {
+    const { wrapper } = await open();
+    const section = wrapper.find("section[aria-labelledby=landing-marketplace]");
+    const fan = section.find("[role=group]");
+    expect(fan.attributes("aria-label")).toBe("Ansichten des Marktplatzes");
+    expect(fan.findAll(".label").map((label) => label.text())).toEqual([
+      "Offizielle Inhalte",
+      "Gesamtpaket",
+      "Community-Inhalte",
+    ]);
+    const button = section.find("button[aria-expanded]");
+    expect(button.attributes("aria-expanded")).toBe("false");
+    expect(button.text()).toBe("Antippen zum Auffächern");
+    await fan.trigger("click");
+    expect(button.attributes("aria-expanded")).toBe("true");
+    expect(button.text()).toBe("Antippen zum Zusammenlegen");
+    await button.trigger("click");
+    expect(button.attributes("aria-expanded")).toBe("false");
+    wrapper.unmount();
+  });
+
+  it("opens a table of contents from the compass on phones and closes it again", async () => {
+    const { wrapper } = await open();
+    const compass = wrapper.find("button[aria-controls=landing-menu]");
+    expect(compass.attributes("aria-expanded")).toBe("false");
+    expect(compass.attributes("aria-label")).toBe("Menü öffnen");
+    await compass.trigger("click");
+    expect(compass.attributes("aria-expanded")).toBe("true");
+    expect(compass.attributes("aria-label")).toBe("Menü schließen");
+    const menu = document.getElementById("landing-menu")!;
+    expect([...menu.querySelectorAll(".chapter-link")].map((link) => [...link.querySelectorAll(".flex-1 > span")].map((part) => part.textContent?.trim()).join(" | "))).toEqual([
+      "Kapitel I | Für wen | Spielleitungen, Spieler und Co-Autoren",
+      "Kapitel II | Funktionen | Storylines, Charaktere und Sessions",
+      "Kapitel III | Und außerdem | Encounter, Fraktionen, Musik und mehr",
+      "Kapitel IV | Marktplatz | Offizielle Inhalte und Community",
+      "Kapitel V | Ruf-System | Haltungen, die mit der Geschichte wachsen",
+    ]);
+    expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).toEqual(
+      expect.arrayContaining(["Registrieren", "Anmelden"]),
+    );
+    // A chapter closes the menu and moves the page to its section.
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+    menu.querySelector<HTMLAnchorElement>(".chapter-link")!.click();
+    await flushPromises();
+    expect(scrollTo).toHaveBeenCalledOnce();
+    expect(compass.attributes("aria-expanded")).toBe("false");
+    // Escape closes it as well.
+    await compass.trigger("click");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await flushPromises();
+    expect(compass.attributes("aria-expanded")).toBe("false");
     wrapper.unmount();
   });
 
@@ -220,18 +344,30 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
-  it("shows the clickdummy's screens, the hero split into character sheet and storyline", async () => {
+  it("shows the clickdummy's screens below a hero of pure illustration", async () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
     const alts = wrapper.findAll("img[alt]").map((image) => image.attributes("alt")).filter(Boolean);
     expect(alts).toHaveLength(9);
-    expect(alts.slice(0, 2)).toEqual([
-      expect.stringContaining("Charakterbogen von Arvel Merad"),
-      expect.stringContaining("Akt-Board der Storyline"),
-    ]);
-    expect(alts).toEqual(expect.arrayContaining([expect.stringContaining("Weltkarte von Elaria"), expect.stringContaining("Marktplatz")]));
-    // Below the hero the pictures load only when needed.
-    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(7);
+    // The hero's dragon is decoration and loads first; everything else waits until needed.
+    const hero = wrapper.find("section[aria-labelledby=landing-title] img");
+    expect(hero.attributes("aria-hidden")).toBe("true");
+    expect(hero.attributes("loading")).toBeUndefined();
+    expect(alts).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Charakterbogen von Arvel Merad"),
+        expect.stringContaining("Akt-Board der Storyline"),
+        expect.stringContaining("Weltkarte von Elaria"),
+        expect.stringContaining("Marktplatz"),
+        expect.stringContaining("SRD 5.2 – Gesamtpaket"),
+        expect.stringContaining("Kampagnen & Community"),
+      ]),
+    );
+    // Below the hero the pictures load only when needed: the screens, the slider's motifs and
+    // the decoration (landscapes, watercolours, props), which screen readers don't see.
+    const lazy = wrapper.findAll("img[loading=lazy]");
+    expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(9);
+    expect(lazy).toHaveLength(9 + 7 + 16);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

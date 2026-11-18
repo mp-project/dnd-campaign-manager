@@ -10,6 +10,22 @@
     "language": "Sprache wählen",
     "demo": "Demo"
   },
+  "menu": {
+    "open": "Menü öffnen",
+    "close": "Menü schließen",
+    "title": "Inhalt",
+    "audience": "Für wen",
+    "features": "Funktionen",
+    "more": "Und außerdem",
+    "reputation": "Ruf-System",
+    "marketplace": "Marktplatz",
+    "chapter": "Kapitel {number}",
+    "audienceHint": "Spielleitungen, Spieler und Co-Autoren",
+    "featuresHint": "Storylines, Charaktere und Sessions",
+    "moreHint": "Encounter, Fraktionen, Musik und mehr",
+    "reputationHint": "Haltungen, die mit der Geschichte wachsen",
+    "marketplaceHint": "Offizielle Inhalte und Community"
+  },
   "hero": {
     "eyebrow": "Kampagnenverwaltung für D&D 5E",
     "title": "Deine Kampagne. Deine Welt. An einem Ort.",
@@ -17,9 +33,7 @@
     "register": "Konto erstellen",
     "demo": "Demo ansehen",
     "demoHint": "Die Demo zeigt eine Beispielkampagne und braucht keine Anmeldung.",
-    "toApp": "Zu meinen Kampagnen",
-    "splitStoryline": "Storyline-Canvas",
-    "splitCharacter": "Charakterbogen"
+    "toApp": "Zu meinen Kampagnen"
   },
   "screens": {
     "open": "In der Demo öffnen",
@@ -28,7 +42,9 @@
     "quest": "Quest „Das Siegel des Nordtors“ mit Belohnungen: Erfahrungspunkte, Gold, Gegenstand und Ruf-Änderungen",
     "character": "Charakterbogen von Arvel Merad mit Rüstungsklasse, Trefferpunkten, Zauberplätzen und Attributen",
     "sessions": "Geplante Sessions mit Termin, Ort, Inhalten und den Zu- und Absagen der Spieler",
-    "marketplace": "Marktplatz mit Monstern, Orten und Abenteuer-Paketen anderer Spielleitungen",
+    "marketplace": "Marktplatz mit offiziellen Regelinhalten aus dem SRD 5.2 als Gesamtpaket und Paketen je Bereich",
+    "marketplaceBundle": "Dialog „SRD 5.2 – Gesamtpaket“ mit seinen Bereichen: Klassen und Unterklassen, Spezies, Hintergründe und Talente, Zauber, Monster, Gegenstände und Ausrüstung",
+    "marketplaceCommunity": "Marktplatz-Bereich „Kampagnen & Community“ mit Kampagnen, Monstern, Orten und Personen anderer Spielleitungen und dem Geprüft-Siegel",
     "reputation": "Ruf-Übersicht mit Haltungen von Fraktionen, Personen und Regionen und dem Verlauf der Nordtorwache mit Änderungen aus Story, Quest, Encounter und manueller Korrektur"
   },
   "audience": {
@@ -85,6 +101,118 @@
       "point1": "Spieler per E-Mail einladen und Rollen vergeben",
       "point2": "Sessions planen und nachbereiten",
       "point3": "Eigene Spieleransicht für den Spieltisch, auch mobil"
+    },
+    "inventory": {
+      "title": "Inventar verwalten",
+      "text": "Jeder Charakter trägt seine Gegenstände mit Anzahl, Kategorie und Gewicht: Beute aufnehmen, sortieren, benutzen oder einem anderen Charakter geben – die Traglast rechnet mit.",
+      "point1": "Gegenstände aus dem Kompendium oder als eigene Einträge",
+      "point2": "Sortieren und filtern nach Name, Kategorie und Anzahl",
+      "point3": "Benutzen, ausrüsten und an die Gruppe weitergeben"
+    }
+  },
+  "storylineTour": {
+    "routesLabel": "Route wählen",
+    "stopsLabel": "Szenen der Route",
+    "position": "Szene {n} von {total}",
+    "play": "Kamerafahrt starten",
+    "pause": "Kamerafahrt anhalten",
+    "overview": "Ganzes Board zeigen",
+    "closer": "Zur Szene heranfahren",
+    "overviewHint": "Akt I der Storyline „Der Nebelpakt“: zwei Routen, die sich am alten Tor wieder treffen.",
+    "routes": {
+      "official": "Offizieller Weg",
+      "secret": "Geheimer Zugang"
+    },
+    "stops": {
+      "start": {
+        "title": "Spuren im Nebel",
+        "text": "Nebel liegt über dem Hafen. Die Gruppe entscheidet, wie sie in die Festung gelangt."
+      },
+      "bribe": {
+        "title": "Die Wache bestechen",
+        "text": "Ab 10 Gold öffnet ein diskreter Handel den Weg – Hauptmann Rovan erwartet eine Gegenleistung."
+      },
+      "gate": {
+        "title": "Am alten Tor",
+        "text": "Beide Wege treffen hier wieder aufeinander: Die Szene führt zusammen, was die Gruppe vorher getrennt erlebt hat."
+      },
+      "watch": {
+        "title": "Torwache",
+        "text": "Weiter in Akt II – nur wer bestochen hat oder Rovans Vertrauen besitzt, kommt hierher."
+      },
+      "tunnel": {
+        "title": "Den Tunnel nehmen",
+        "text": "Unter der Kaimauer liegt ein verborgener Zugang, aus der Tiefe dringen leise Stimmen."
+      },
+      "below": {
+        "title": "Unter der Festung",
+        "text": "Nur bei Nacht: Wer schleicht, findet hinter dem Tunnel ein altes Gewölbe."
+      },
+      "vault": {
+        "title": "Das versiegelte Gewölbe",
+        "text": "Drei Siegel verschließen die Tür. Eines davon liegt schon im Gepäck der Gruppe."
+      }
+    }
+  },
+  "characterSheet": {
+    "slots": "Zauberplätze",
+    "slotLevel": "Grad {n}",
+    "check": "Stärke-Probe",
+    "roll": "Stärke-Probe würfeln",
+    "rollPrompt": "Antippen und würfeln",
+    "rolling": "Der W20 rollt …",
+    "rollResult": "{roll} + {modifier} = {total}",
+    "critical": "Natürliche 20! Gesamt {total}",
+    "restored": "Alle wieder da",
+    "restText": "Trefferpunkte und Zauberplätze sind wieder voll.",
+    "events": {
+      "hit": "Treffer: {n} Schaden",
+      "cast": "Zauber gewirkt: Grad {n}",
+      "rest": "Lange Rast"
+    }
+  },
+  "inventory": {
+    "title": "Inventar",
+    "owner": "Arvel Merad · Paladin 7 / Kleriker 2",
+    "add": "Gegenstand hinzufügen",
+    "sortLabel": "Sortieren nach",
+    "sort": {
+      "name": "Name",
+      "category": "Kategorie",
+      "quantity": "Anzahl"
+    },
+    "use": "Benutzen",
+    "useItem": "{item} benutzen",
+    "worn": "Getragen",
+    "healing": "+{n} TP",
+    "load": "Traglast",
+    "loadValue": "{load} / {capacity} kg",
+    "events": {
+      "loot": "Beute aufgenommen: {item}",
+      "sorted": "Sortiert nach {by}",
+      "potion": "Heiltrank getrunken: +{n} TP",
+      "used": "{item} benutzt – noch {n}",
+      "give": "{item} an Liora gegeben",
+      "bought": "Gekauft: {item}"
+    },
+    "items": {
+      "longsword": "Langschwert",
+      "javelin": "Wurfspeer",
+      "potion": "Heiltrank",
+      "rations": "Rationen",
+      "torch": "Fackel",
+      "rope": "Seil (15 m)",
+      "pack": "Reisebeutel",
+      "seal": "Bronzenes Siegel",
+      "spellbook": "Zauberbuch"
+    },
+    "categories": {
+      "weapon": "Waffe",
+      "consumable": "Verbrauch",
+      "provisions": "Proviant",
+      "adventuring": "Abenteuer",
+      "container": "Behälter",
+      "quest": "Questgegenstand"
     }
   },
   "more": {
@@ -141,8 +269,16 @@
   "marketplace": {
     "eyebrow": "Marktplatz",
     "title": "Inhalte teilen und entdecken",
-    "text": "Finde Monster, Orte und ganze Abenteuer anderer Spielleitungen für dein Regelwerk und übernimm sie in deine Kampagne – oder veröffentliche deine eigenen. Geprüfte Inhalte sind gekennzeichnet.",
-    "demo": "Marktplatz in der Demo ansehen"
+    "text": "Finde Monster, Orte und ganze Abenteuer anderer Spielleitungen für dein Regelwerk und übernimm sie in deine Kampagne – oder veröffentliche deine eigenen. Die offiziellen Regelinhalte aus dem SRD 5.2 gibt es als Gesamtpaket, je Bereich oder einzeln; geprüfte Inhalte sind gekennzeichnet.",
+    "demo": "Marktplatz in der Demo ansehen",
+    "fan": {
+      "label": "Ansichten des Marktplatzes",
+      "official": "Offizielle Inhalte",
+      "bundle": "Gesamtpaket",
+      "community": "Community-Inhalte",
+      "spread": "Antippen zum Auffächern",
+      "gather": "Antippen zum Zusammenlegen"
+    }
   },
   "cta": {
     "title": "Bereit für das nächste Abenteuer?",

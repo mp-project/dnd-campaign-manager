@@ -10,6 +10,22 @@
     "language": "Choose language",
     "demo": "Demo"
   },
+  "menu": {
+    "open": "Open menu",
+    "close": "Close menu",
+    "title": "Contents",
+    "audience": "Who it's for",
+    "features": "Features",
+    "more": "And more",
+    "reputation": "Reputation",
+    "marketplace": "Marketplace",
+    "chapter": "Chapter {number}",
+    "audienceHint": "Game masters, players and co-authors",
+    "featuresHint": "Storylines, characters and sessions",
+    "moreHint": "Encounters, factions, music and more",
+    "reputationHint": "Standing that grows with the story",
+    "marketplaceHint": "Official and community content"
+  },
   "hero": {
     "eyebrow": "Campaign manager for D&D 5E",
     "title": "Your campaign. Your world. In one place.",
@@ -17,9 +33,7 @@
     "register": "Create an account",
     "demo": "Try the demo",
     "demoHint": "The demo shows an example campaign and needs no account.",
-    "toApp": "Go to my campaigns",
-    "splitStoryline": "Storyline canvas",
-    "splitCharacter": "Character sheet"
+    "toApp": "Go to my campaigns"
   },
   "screens": {
     "open": "Open in the demo",
@@ -28,7 +42,9 @@
     "quest": "Quest “The seal of the north gate” with rewards: experience points, gold, an item and reputation changes",
     "character": "Character sheet of Arvel Merad with armor class, hit points, spell slots and abilities",
     "sessions": "Planned sessions with date, place, content and the players' replies",
-    "marketplace": "Marketplace with monsters, places and adventure packs by other game masters",
+    "marketplace": "Marketplace with the official rules content of the SRD 5.2 as a complete bundle and as bundles per area",
+    "marketplaceBundle": "Dialog “SRD 5.2 – complete bundle” with its areas: classes and subclasses, species, backgrounds and feats, spells, monsters, items and equipment",
+    "marketplaceCommunity": "Marketplace section “Campaigns & community” with campaigns, monsters, places and people by other game masters and the reviewed seal",
     "reputation": "Reputation overview with the standing of factions, people and regions and the history of the North Gate Watch with changes from story, quest, encounter and a manual correction"
   },
   "audience": {
@@ -85,6 +101,118 @@
       "point1": "Invite players by email and assign roles",
       "point2": "Plan sessions and follow up on them",
       "point3": "A player view for the table, mobile too"
+    },
+    "inventory": {
+      "title": "Manage inventory",
+      "text": "Every character carries their items with quantity, category and weight: take in loot, sort, use or hand items to another character – the carrying load keeps up.",
+      "point1": "Items from the compendium or as your own entries",
+      "point2": "Sort and filter by name, category and quantity",
+      "point3": "Use, equip and pass items on to the party"
+    }
+  },
+  "storylineTour": {
+    "routesLabel": "Choose a route",
+    "stopsLabel": "Scenes of the route",
+    "position": "Scene {n} of {total}",
+    "play": "Start the camera ride",
+    "pause": "Pause the camera ride",
+    "overview": "Show the whole board",
+    "closer": "Move in on the scene",
+    "overviewHint": "Act I of the storyline “The Mist Pact”: two routes that meet again at the old gate.",
+    "routes": {
+      "official": "Official way",
+      "secret": "Secret passage"
+    },
+    "stops": {
+      "start": {
+        "title": "Traces in the mist",
+        "text": "Mist lies over the harbour. The group decides how to get into the fortress."
+      },
+      "bribe": {
+        "title": "Bribe the guard",
+        "text": "From 10 gold on, a discreet deal opens the way – Captain Rovan expects something in return."
+      },
+      "gate": {
+        "title": "At the old gate",
+        "text": "Both ways meet again here: the scene brings together what the group went through apart."
+      },
+      "watch": {
+        "title": "Gate watch",
+        "text": "On into act II – only those who paid a bribe or earned Rovan's trust get here."
+      },
+      "tunnel": {
+        "title": "Take the tunnel",
+        "text": "Beneath the quay wall lies a hidden passage; quiet voices rise from the depths."
+      },
+      "below": {
+        "title": "Beneath the fortress",
+        "text": "At night only: whoever sneaks finds an old vault behind the tunnel."
+      },
+      "vault": {
+        "title": "The sealed vault",
+        "text": "Three seals lock the door. One of them is already in the group's pack."
+      }
+    }
+  },
+  "characterSheet": {
+    "slots": "Spell slots",
+    "slotLevel": "Level {n}",
+    "check": "Strength check",
+    "roll": "Roll a Strength check",
+    "rollPrompt": "Tap to roll",
+    "rolling": "The d20 is rolling …",
+    "rollResult": "{roll} + {modifier} = {total}",
+    "critical": "Natural 20! Total {total}",
+    "restored": "All back",
+    "restText": "Hit points and spell slots are full again.",
+    "events": {
+      "hit": "Hit: {n} damage",
+      "cast": "Spell cast: level {n}",
+      "rest": "Long rest"
+    }
+  },
+  "inventory": {
+    "title": "Inventory",
+    "owner": "Arvel Merad · Paladin 7 / Cleric 2",
+    "add": "Add item",
+    "sortLabel": "Sort by",
+    "sort": {
+      "name": "Name",
+      "category": "Category",
+      "quantity": "Quantity"
+    },
+    "use": "Use",
+    "useItem": "Use {item}",
+    "worn": "Worn",
+    "healing": "+{n} HP",
+    "load": "Carrying load",
+    "loadValue": "{load} / {capacity} kg",
+    "events": {
+      "loot": "Loot taken: {item}",
+      "sorted": "Sorted by {by}",
+      "potion": "Potion drunk: +{n} HP",
+      "used": "{item} used – {n} left",
+      "give": "{item} given to Liora",
+      "bought": "Bought: {item}"
+    },
+    "items": {
+      "longsword": "Longsword",
+      "javelin": "Javelin",
+      "potion": "Potion of Healing",
+      "rations": "Rations",
+      "torch": "Torch",
+      "rope": "Rope (15 m)",
+      "pack": "Traveler's pack",
+      "seal": "Bronze seal",
+      "spellbook": "Spellbook"
+    },
+    "categories": {
+      "weapon": "Weapon",
+      "consumable": "Consumable",
+      "provisions": "Provisions",
+      "adventuring": "Adventuring gear",
+      "container": "Container",
+      "quest": "Quest item"
     }
   },
   "more": {
@@ -141,8 +269,16 @@
   "marketplace": {
     "eyebrow": "Marketplace",
     "title": "Share and discover content",
-    "text": "Find monsters, places and whole adventures by other game masters for your ruleset and add them to your campaign – or publish your own. Reviewed content is marked.",
-    "demo": "See the marketplace in the demo"
+    "text": "Find monsters, places and whole adventures by other game masters for your ruleset and add them to your campaign – or publish your own. The official rules content of the SRD 5.2 comes as a complete bundle, per area or item by item; reviewed content is marked.",
+    "demo": "See the marketplace in the demo",
+    "fan": {
+      "label": "Views of the marketplace",
+      "official": "Official content",
+      "bundle": "Complete bundle",
+      "community": "Community content",
+      "spread": "Tap to spread out",
+      "gather": "Tap to gather"
+    }
   },
   "cta": {
     "title": "Ready for the next adventure?",

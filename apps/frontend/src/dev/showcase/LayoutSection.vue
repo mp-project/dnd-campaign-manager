@@ -7,6 +7,7 @@ import CompassRose from "@/components/layout/CompassRose.vue";
 import NavFooter from "@/components/layout/NavFooter.vue";
 import NavTree from "@/components/layout/NavTree.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
+import SiteHeader from "@/components/layout/SiteHeader.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import TabNav from "@/components/page/TabNav.vue";
@@ -253,6 +254,34 @@ const playerBottom: BottomNavTarget[] = [
       >
         <BrandMark />
         <BrandMark compact />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="SiteHeader"
+      description="Kopf der Seiten außerhalb der App; sticky, beim Scrollen schmaler und leicht transparent"
+    >
+      <ShowcaseVariant
+        label="oben"
+        dark
+      >
+        <SiteHeader
+          :condensed="false"
+          class="w-full"
+        >
+          <span class="text-[15px]">Anmelden</span>
+        </SiteHeader>
+      </ShowcaseVariant>
+      <ShowcaseVariant
+        label="gescrollt"
+        dark
+      >
+        <SiteHeader
+          condensed
+          class="w-full"
+        >
+          <span class="text-[15px]">Anmelden</span>
+        </SiteHeader>
       </ShowcaseVariant>
     </ShowcaseComponent>
 

@@ -34,8 +34,8 @@ const chapters = computed(() =>
       { section: "landing-audience", icon: "ui-users", label: "landing.menu.audience", hint: "landing.menu.audienceHint" },
       { section: "landing-features", icon: "ui-scroll", label: "landing.menu.features", hint: "landing.menu.featuresHint" },
       { section: "landing-more", icon: "ui-sparkle", label: "landing.menu.more", hint: "landing.menu.moreHint" },
-      { section: "landing-reputation", icon: "ui-flag", label: "landing.menu.reputation", hint: "landing.menu.reputationHint" },
       { section: "landing-marketplace", icon: "ui-building", label: "landing.menu.marketplace", hint: "landing.menu.marketplaceHint" },
+      { section: "landing-reputation", icon: "ui-flag", label: "landing.menu.reputation", hint: "landing.menu.reputationHint" },
     ] satisfies { section: string; icon: IconName; label: MessageKey; hint: MessageKey }[]
   ).map((chapter, index) => ({ ...chapter, numeral: NUMERALS[index] })),
 );

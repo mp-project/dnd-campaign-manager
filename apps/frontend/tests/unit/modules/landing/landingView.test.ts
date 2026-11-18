@@ -158,7 +158,8 @@ describe("landing page", () => {
       "Encounter",
       "Manuell anpassen",
     ]);
-    expect(section.find("img").attributes("alt")).toContain("Ruf-Übersicht");
+    // The watercolour behind it is decoration; the screen is the picture with a description.
+    expect(section.find("img:not([alt=''])").attributes("alt")).toContain("Ruf-Übersicht");
     expect(section.find("a").attributes("href")).toBe("https://demo.example.com/#/kampagne/welt/ruf");
     wrapper.unmount();
   });
@@ -255,8 +256,8 @@ describe("landing page", () => {
       "Kapitel I | Für wen | Spielleitungen, Spieler und Co-Autoren",
       "Kapitel II | Funktionen | Storylines, Charaktere und Sessions",
       "Kapitel III | Und außerdem | Encounter, Fraktionen, Musik und mehr",
-      "Kapitel IV | Ruf-System | Haltungen, die mit der Geschichte wachsen",
-      "Kapitel V | Marktplatz | Offizielle Inhalte und Community",
+      "Kapitel IV | Marktplatz | Offizielle Inhalte und Community",
+      "Kapitel V | Ruf-System | Haltungen, die mit der Geschichte wachsen",
     ]);
     expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).toEqual(
       expect.arrayContaining(["Registrieren", "Anmelden"]),
@@ -343,25 +344,30 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
-  it("shows the clickdummy's screens, the hero split into character sheet and storyline", async () => {
+  it("shows the clickdummy's screens below a hero of pure illustration", async () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
     const alts = wrapper.findAll("img[alt]").map((image) => image.attributes("alt")).filter(Boolean);
-    expect(alts).toHaveLength(11);
-    expect(alts.slice(0, 2)).toEqual([
-      expect.stringContaining("Charakterbogen von Arvel Merad"),
-      expect.stringContaining("Akt-Board der Storyline"),
-    ]);
+    expect(alts).toHaveLength(9);
+    // The hero's dragon is decoration and loads first; everything else waits until needed.
+    const hero = wrapper.find("section[aria-labelledby=landing-title] img");
+    expect(hero.attributes("aria-hidden")).toBe("true");
+    expect(hero.attributes("loading")).toBeUndefined();
     expect(alts).toEqual(
       expect.arrayContaining([
+        expect.stringContaining("Charakterbogen von Arvel Merad"),
+        expect.stringContaining("Akt-Board der Storyline"),
         expect.stringContaining("Weltkarte von Elaria"),
         expect.stringContaining("Marktplatz"),
         expect.stringContaining("SRD 5.2 – Gesamtpaket"),
         expect.stringContaining("Kampagnen & Community"),
       ]),
     );
-    // Below the hero the pictures load only when needed (the screens and the slider's motifs).
-    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(9 + 7);
+    // Below the hero the pictures load only when needed: the screens, the slider's motifs and
+    // the decoration (landscapes, watercolours, props), which screen readers don't see.
+    const lazy = wrapper.findAll("img[loading=lazy]");
+    expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(9);
+    expect(lazy).toHaveLength(9 + 7 + 16);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

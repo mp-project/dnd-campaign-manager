@@ -632,6 +632,26 @@
   transform: translateX(100%);
 }
 
+/* Glide into view on first sight (`v-reveal` of the start page) */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms);
+}
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* `.table` collides with Tailwind's display utility (layer "utilities") → enforce it unlayered */
 .table.hidden {
   display: none;

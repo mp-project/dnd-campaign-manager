@@ -33,9 +33,7 @@
     "register": "Create an account",
     "demo": "Try the demo",
     "demoHint": "The demo shows an example campaign and needs no account.",
-    "toApp": "Go to my campaigns",
-    "splitStoryline": "Storyline canvas",
-    "splitCharacter": "Character sheet"
+    "toApp": "Go to my campaigns"
   },
   "screens": {
     "open": "Open in the demo",

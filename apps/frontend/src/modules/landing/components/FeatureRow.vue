@@ -1,7 +1,10 @@
 <script setup lang="ts">
 /**
  * One feature of the start page: icon, title, text and check points beside or above its picture
- * (default slot). Features with a `band` run as a navy or parchment band across the page.
+ * (default slot). Features with a `band` run as a navy or parchment band across the page; a navy
+ * band carries a drawn landscape on its upper edge. A `scene` (a watercolour) stands faintly at
+ * the outer edge on the side of the text, fading towards the middle; the `decor` slot takes
+ * props placed absolutely in the row. The row glides into view on first sight.
  */
 import { computed } from "vue";
 
@@ -9,6 +12,9 @@ import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+
+import { vReveal } from "../reveal";
+import LandscapeEdge from "./LandscapeEdge.vue";
 
 export type FeatureRowData = {
   id: string;
@@ -23,16 +29,18 @@ export type FeatureRowData = {
    * with the paper texture, to set a feature apart from its light neighbours.
    */
   band?: "navy" | "parchment";
+  /** A watercolour at the outer edge of the given side, behind the text. */
+  scene?: { src: string; side: "left" | "right" };
 };
 
 const props = defineProps<{ feature: FeatureRowData }>();
 const dark = computed(() => props.feature.band === "navy");
 
 const BAND = {
-  navy: "relative my-7 overflow-hidden border-y border-navy-line bg-navy-950 py-14 text-parchment md:my-10 md:py-20",
-  parchment: "parchment on-parchment relative my-7 overflow-hidden border-y border-gold/60 py-14 md:my-10 md:py-20",
+  navy: "navy-shade relative z-10 mt-24 mb-7 overflow-x-clip bg-navy-950 py-14 text-parchment md:mt-36 md:mb-10 md:py-20",
+  parchment: "parchment on-parchment relative my-7 overflow-x-clip border-y border-gold/60 py-14 md:my-10 md:py-20",
 } as const;
-defineSlots<{ default(): unknown }>();
+defineSlots<{ default(): unknown; decor?(): unknown }>();
 const { t } = useAppI18n();
 
 /** Grid of a feature row and order of its text, per layout. */
@@ -45,13 +53,25 @@ const LAYOUT = {
 
 <template>
   <div
-    :class="feature.band ? BAND[feature.band] : 'py-7 md:py-10'"
+    :class="feature.band ? BAND[feature.band] : 'relative overflow-x-clip py-7 md:py-10'"
   >
+    <LandscapeEdge v-if="dark" />
     <div
       v-if="dark"
       class="feature-dark-glow pointer-events-none absolute inset-0"
     />
+    <img
+      v-if="feature.scene"
+      :src="feature.scene.src"
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      class="feature-scene"
+      :class="`scene-${feature.scene.side}`"
+    >
     <article
+      v-reveal
       class="relative mx-auto grid max-w-400 items-center gap-6 px-4 md:gap-12 md:px-10"
       :class="[LAYOUT[feature.layout].row, feature.layout === 'wide' && 'md:gap-8']"
       :aria-labelledby="`landing-feature-${feature.id}`"
@@ -103,11 +123,52 @@ const LAYOUT = {
         </ul>
       </div>
       <slot />
+      <slot name="decor" />
     </article>
   </div>
 </template>
 
 <style scoped>
+.feature-scene {
+  position: absolute;
+  top: 0;
+  width: auto;
+  max-width: 70%;
+  height: 320px;
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0.32;
+}
+.scene-left {
+  left: -2rem;
+  object-position: left;
+  mask-image: linear-gradient(to right, black 30%, transparent 90%);
+}
+.scene-right {
+  right: -2rem;
+  object-position: right;
+  mask-image: linear-gradient(to left, black 30%, transparent 90%);
+}
+@media (min-width: 768px) {
+  .feature-scene {
+    top: 50%;
+    max-width: 40%;
+    height: min(115%, 620px);
+    opacity: 0.36;
+    transform: translateY(-50%);
+  }
+  .scene-left {
+    left: 0;
+  }
+  .scene-right {
+    right: 0;
+  }
+}
+
+.navy-shade {
+  box-shadow: 0 22px 36px -18px color-mix(in srgb, var(--color-navy-950) 55%, transparent);
+}
+
 .feature-dark-glow {
   background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 60%);
 }

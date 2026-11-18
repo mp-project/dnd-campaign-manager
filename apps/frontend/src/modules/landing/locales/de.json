@@ -33,9 +33,7 @@
     "register": "Konto erstellen",
     "demo": "Demo ansehen",
     "demoHint": "Die Demo zeigt eine Beispielkampagne und braucht keine Anmeldung.",
-    "toApp": "Zu meinen Kampagnen",
-    "splitStoryline": "Storyline-Canvas",
-    "splitCharacter": "Charakterbogen"
+    "toApp": "Zu meinen Kampagnen"
   },
   "screens": {
     "open": "In der Demo öffnen",

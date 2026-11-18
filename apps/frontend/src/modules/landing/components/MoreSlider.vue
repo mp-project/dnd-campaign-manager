@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * The further features of the start page as a slider on navy: cards in a golden frame with corner
- * ornaments and a medallion, swiped on touch screens and moved with the arrows or the dots
- * elsewhere (one card per step). Arrows and dots only show while not every card fits. On every
+ * ornaments and a medallion, swiped on touch screens, dragged with the mouse and moved with the
+ * arrows or the dots (one card per step). Arrows and dots only show while not every card fits. On every
  * width the next card is cut off at the edge and fades out, so the track reads as a slider.
  *
  * Each card carries a motif that leans on its upper edge. The motifs are as wide as the card
@@ -70,6 +70,62 @@ function goTo(target: number) {
   el.scrollTo({ left: next * step(), behavior: reduce ? "auto" : "smooth" });
 }
 
+/**
+ * Dragging with the mouse (touch scrolls natively). Snapping is off while the track follows the
+ * pointer; on release it settles on a card: a short pull returns, a longer one moves at least one
+ * card in its direction. A drag swallows the click that ends it.
+ */
+const DRAG_THRESHOLD = 6;
+const FLICK_DISTANCE = 40;
+const dragging = ref(false);
+let drag: { pointerId: number; startX: number; startLeft: number; moved: boolean } | null = null;
+let settleTimer: number | undefined;
+
+function onPointerDown(event: PointerEvent) {
+  const el = track.value;
+  if (!el || event.pointerType !== "mouse" || event.button !== 0 || maxIndex.value === 0) return;
+  window.clearTimeout(settleTimer);
+  drag = { pointerId: event.pointerId, startX: event.clientX, startLeft: el.scrollLeft, moved: false };
+}
+
+function onPointerMove(event: PointerEvent) {
+  const el = track.value;
+  if (!el || !drag || event.pointerId !== drag.pointerId) return;
+  const dx = event.clientX - drag.startX;
+  if (!drag.moved) {
+    if (Math.abs(dx) < DRAG_THRESHOLD) return;
+    drag.moved = true;
+    dragging.value = true;
+    el.setPointerCapture?.(event.pointerId);
+  }
+  el.scrollLeft = drag.startLeft - dx;
+}
+
+function onPointerUp(event: PointerEvent) {
+  const el = track.value;
+  if (!el || !drag || event.pointerId !== drag.pointerId) return;
+  const { moved, startLeft } = drag;
+  drag = null;
+  if (!moved) return;
+  el.releasePointerCapture?.(event.pointerId);
+  const size = step();
+  const pulled = el.scrollLeft - startLeft;
+  const position = size > 0 ? el.scrollLeft / size : 0;
+  let target = Math.round(position);
+  if (pulled > FLICK_DISTANCE) target = Math.max(target, Math.ceil(startLeft / size + 0.01));
+  if (pulled < -FLICK_DISTANCE) target = Math.min(target, Math.floor(startLeft / size - 0.01));
+  goTo(target);
+  // Snapping comes back once the glide has settled, so it doesn't pull against it.
+  settleTimer = window.setTimeout(() => (dragging.value = false), 450);
+}
+
+/** The click at the end of a drag would otherwise land on whatever lies under the pointer. */
+function onClickCapture(event: MouseEvent) {
+  if (!dragging.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 let observer: ResizeObserver | undefined;
 onMounted(() => {
   measure();
@@ -78,7 +134,10 @@ onMounted(() => {
     observer.observe(track.value);
   }
 });
-onBeforeUnmount(() => observer?.disconnect());
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  window.clearTimeout(settleTimer);
+});
 </script>
 
 <template>
@@ -90,8 +149,14 @@ onBeforeUnmount(() => observer?.disconnect());
     <ul
       ref="track"
       class="more-track no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-5 overflow-x-auto px-4 py-3 sm:mx-0 sm:scroll-px-0 sm:px-0"
-      :class="{ 'fade-start': !atStart, 'fade-end': !atEnd }"
+      :class="{ 'fade-start': !atStart, 'fade-end': !atEnd, 'can-drag': maxIndex > 0, 'is-dragging': dragging }"
       @scroll.passive="measure"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerUp"
+      @click.capture="onClickCapture"
+      @dragstart.prevent
     >
       <li
         v-for="(item, position) in props.items"
@@ -198,6 +263,17 @@ onBeforeUnmount(() => observer?.disconnect());
     black calc(100% - var(--fade-end)),
     transparent
   );
+}
+.more-track.can-drag {
+  cursor: grab;
+}
+.more-track.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+.more-track.is-dragging .more-slide {
+  pointer-events: none;
 }
 .more-track.fade-start {
   --fade-start: 3rem;

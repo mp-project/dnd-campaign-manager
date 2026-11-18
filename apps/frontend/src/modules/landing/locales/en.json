@@ -10,6 +10,22 @@
     "language": "Choose language",
     "demo": "Demo"
   },
+  "menu": {
+    "open": "Open menu",
+    "close": "Close menu",
+    "title": "Contents",
+    "audience": "Who it's for",
+    "features": "Features",
+    "more": "And more",
+    "reputation": "Reputation",
+    "marketplace": "Marketplace",
+    "chapter": "Chapter {number}",
+    "audienceHint": "Game masters, players and co-authors",
+    "featuresHint": "Storylines, characters and sessions",
+    "moreHint": "Encounters, factions, music and more",
+    "reputationHint": "Standing that grows with the story",
+    "marketplaceHint": "Official and community content"
+  },
   "hero": {
     "eyebrow": "Campaign manager for D&D 5E",
     "title": "Your campaign. Your world. In one place.",

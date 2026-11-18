@@ -49,7 +49,7 @@ const items = computed<DropdownItem[]>(() => {
       >
         <Icon
           name="ui-globe"
-          :size="22"
+          :size="26"
         />
       </button>
     </template>

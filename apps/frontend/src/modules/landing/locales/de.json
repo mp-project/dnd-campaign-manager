@@ -10,6 +10,22 @@
     "language": "Sprache wählen",
     "demo": "Demo"
   },
+  "menu": {
+    "open": "Menü öffnen",
+    "close": "Menü schließen",
+    "title": "Inhalt",
+    "audience": "Für wen",
+    "features": "Funktionen",
+    "more": "Und außerdem",
+    "reputation": "Ruf-System",
+    "marketplace": "Marktplatz",
+    "chapter": "Kapitel {number}",
+    "audienceHint": "Spielleitungen, Spieler und Co-Autoren",
+    "featuresHint": "Storylines, Charaktere und Sessions",
+    "moreHint": "Encounter, Fraktionen, Musik und mehr",
+    "reputationHint": "Haltungen, die mit der Geschichte wachsen",
+    "marketplaceHint": "Offizielle Inhalte und Community"
+  },
   "hero": {
     "eyebrow": "Kampagnenverwaltung für D&D 5E",
     "title": "Deine Kampagne. Deine Welt. An einem Ort.",

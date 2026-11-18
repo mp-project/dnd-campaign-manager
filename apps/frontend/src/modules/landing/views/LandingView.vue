@@ -22,6 +22,7 @@ import { usePageMeta } from "@/core/i18n/pageMeta";
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
 import InventoryShowcase from "../components/InventoryShowcase.vue";
+import LandingMenu from "../components/LandingMenu.vue";
 import MarketplaceFan from "../components/MarketplaceFan.vue";
 import LanguageSwitch from "../components/LanguageSwitch.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
@@ -159,7 +160,7 @@ const reputationPoints: MessageKey[] = [
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <SiteHeader width="page">
+    <SiteHeader>
       <a
         v-if="demo"
         :href="demo"
@@ -175,33 +176,30 @@ const reputationPoints: MessageKey[] = [
         to="/dashboard"
         variant="outline-gold"
         size="sm"
+        class="hidden md:inline-flex"
       >
         {{ t("landing.header.toApp") }}
       </BaseButton>
       <template v-else>
         <RouterLink
           :to="{ name: 'auth-login' }"
-          class="hidden min-h-11 items-center px-2 text-[15px] hover:underline sm:inline-flex"
+          class="hidden min-h-11 items-center px-2 text-[15px] hover:underline md:inline-flex"
         >
           {{ t("landing.header.signIn") }}
         </RouterLink>
         <BaseButton
-          :to="{ name: 'auth-login' }"
-          variant="outline-gold"
-          size="sm"
-          class="sm:hidden"
-        >
-          {{ t("landing.header.signIn") }}
-        </BaseButton>
-        <BaseButton
           :to="{ name: 'auth-register' }"
           variant="outline-gold"
           size="sm"
-          class="hidden sm:inline-flex"
+          class="hidden md:inline-flex"
         >
           {{ t("landing.header.register") }}
         </BaseButton>
       </template>
+      <LandingMenu
+        :signed-in="signedIn"
+        :demo="demo"
+      />
     </SiteHeader>
 
     <main class="flex-1">
@@ -217,7 +215,7 @@ const reputationPoints: MessageKey[] = [
           class="pointer-events-none absolute inset-x-0 bottom-0 w-full opacity-10"
         >
         <div
-          class="relative mx-auto grid max-w-300 items-center gap-10 px-4 py-12 md:px-10 md:py-20 lg:grid-cols-[5fr_6fr]"
+          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 py-12 md:px-10 md:py-20 lg:grid-cols-[5fr_6fr]"
         >
           <div>
             <p class="eyebrow text-gold-light">
@@ -276,7 +274,7 @@ const reputationPoints: MessageKey[] = [
         class="parchment on-parchment text-ink"
         aria-labelledby="landing-audience"
       >
-        <div class="mx-auto max-w-300 px-4 py-14 md:px-10 md:py-20">
+        <div class="mx-auto max-w-400 px-4 py-14 md:px-10 md:py-20">
           <h2
             id="landing-audience"
             class="page-title text-center"
@@ -314,7 +312,7 @@ const reputationPoints: MessageKey[] = [
         class="bg-backdrop pb-7 text-ink md:pb-10"
         aria-labelledby="landing-features"
       >
-        <div class="mx-auto max-w-300 px-4 pt-14 pb-5 md:px-10 md:pt-20 md:pb-2">
+        <div class="mx-auto max-w-400 px-4 pt-14 pb-5 md:px-10 md:pt-20 md:pb-2">
           <p class="eyebrow text-center text-brand">
             {{ t("landing.features.eyebrow") }}
           </p>
@@ -350,7 +348,7 @@ const reputationPoints: MessageKey[] = [
         aria-labelledby="landing-more"
       >
         <div class="more-glow pointer-events-none absolute inset-0" />
-        <div class="relative mx-auto max-w-300 px-4 py-14 md:px-10 md:py-20">
+        <div class="relative mx-auto max-w-400 px-4 py-14 md:px-10 md:py-20">
           <p class="eyebrow text-center text-gold-light">
             {{ t("landing.more.eyebrow") }}
           </p>
@@ -387,7 +385,7 @@ const reputationPoints: MessageKey[] = [
         aria-labelledby="landing-reputation"
       >
         <div
-          class="mx-auto grid max-w-300 items-center gap-10 px-4 py-14 md:px-10 md:py-20 lg:grid-cols-[3fr_2fr]"
+          class="mx-auto grid max-w-400 items-center gap-10 px-4 py-14 md:px-10 md:py-20 lg:grid-cols-[3fr_2fr]"
         >
           <div class="lg:order-last">
             <p class="eyebrow text-brand">
@@ -446,7 +444,7 @@ const reputationPoints: MessageKey[] = [
       >
         <div class="marketplace-glow pointer-events-none absolute inset-0" />
         <div
-          class="relative mx-auto grid max-w-300 items-center gap-10 px-4 py-14 md:px-10 md:py-24 lg:grid-cols-[2fr_3fr]"
+          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 py-14 md:px-10 md:py-24 lg:grid-cols-[2fr_3fr]"
         >
           <div>
             <p class="eyebrow text-gold-light">

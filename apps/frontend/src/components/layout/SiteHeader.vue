@@ -3,14 +3,14 @@
  * Header of the pages outside the app (start page, legal pages, sign-in): brand on the left,
  * actions in the default slot on the right. It stays at the top while the page scrolls and, once
  * the page has left the top, gets slimmer and lets the page shine through slightly.
- * `width`: `page` keeps the content in the start page's column, `full` spans the window;
- * `condensed` fixes the state (building blocks page) instead of following the scroll position.
+ * Its content keeps to the column of the public pages (1600 px). `condensed` fixes the state
+ * (building blocks page) instead of following the scroll position.
  */
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
 import BrandMark from "./BrandMark.vue";
 
-withDefaults(defineProps<{ width?: "page" | "full"; condensed?: boolean }>(), { width: "full", condensed: undefined });
+withDefaults(defineProps<{ condensed?: boolean }>(), { condensed: undefined });
 defineSlots<{ default?(): unknown }>();
 
 /** Scroll distance in px after which the header condenses. */
@@ -33,8 +33,7 @@ onBeforeUnmount(() => window.removeEventListener("scroll", update));
     :class="{ 'is-condensed': condensed ?? scrolled }"
   >
     <div
-      class="site-header-inner flex items-center gap-2 px-4 md:px-10"
-      :class="width === 'page' ? 'mx-auto max-w-300' : ''"
+      class="site-header-inner mx-auto flex max-w-400 items-center gap-2 px-4 md:px-10"
     >
       <BrandMark class="site-header-brand min-w-0" />
       <div

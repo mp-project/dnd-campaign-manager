@@ -52,7 +52,7 @@ const LAYOUT = {
       class="feature-dark-glow pointer-events-none absolute inset-0"
     />
     <article
-      class="relative mx-auto grid max-w-300 items-center gap-6 px-4 md:gap-12 md:px-10"
+      class="relative mx-auto grid max-w-400 items-center gap-6 px-4 md:gap-12 md:px-10"
       :class="[LAYOUT[feature.layout].row, feature.layout === 'wide' && 'md:gap-8']"
       :aria-labelledby="`landing-feature-${feature.id}`"
     >

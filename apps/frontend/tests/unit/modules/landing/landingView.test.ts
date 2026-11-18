@@ -231,6 +231,39 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
+  it("opens a table of contents from the compass on phones and closes it again", async () => {
+    const { wrapper } = await open();
+    const compass = wrapper.find("button[aria-controls=landing-menu]");
+    expect(compass.attributes("aria-expanded")).toBe("false");
+    expect(compass.attributes("aria-label")).toBe("Menü öffnen");
+    await compass.trigger("click");
+    expect(compass.attributes("aria-expanded")).toBe("true");
+    expect(compass.attributes("aria-label")).toBe("Menü schließen");
+    const menu = document.getElementById("landing-menu")!;
+    expect([...menu.querySelectorAll(".chapter-link")].map((link) => [...link.querySelectorAll(".flex-1 > span")].map((part) => part.textContent?.trim()).join(" | "))).toEqual([
+      "Kapitel I | Für wen | Spielleitungen, Spieler und Co-Autoren",
+      "Kapitel II | Funktionen | Storylines, Charaktere und Sessions",
+      "Kapitel III | Und außerdem | Encounter, Fraktionen, Musik und mehr",
+      "Kapitel IV | Ruf-System | Haltungen, die mit der Geschichte wachsen",
+      "Kapitel V | Marktplatz | Offizielle Inhalte und Community",
+    ]);
+    expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).toEqual(
+      expect.arrayContaining(["Registrieren", "Anmelden"]),
+    );
+    // A chapter closes the menu and moves the page to its section.
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+    menu.querySelector<HTMLAnchorElement>(".chapter-link")!.click();
+    await flushPromises();
+    expect(scrollTo).toHaveBeenCalledOnce();
+    expect(compass.attributes("aria-expanded")).toBe("false");
+    // Escape closes it as well.
+    await compass.trigger("click");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await flushPromises();
+    expect(compass.attributes("aria-expanded")).toBe("false");
+    wrapper.unmount();
+  });
+
   it("links the logo to the start page in the active language", async () => {
     const german = await open();
     expect(german.wrapper.find("header a").attributes("href")).toBe("/");

@@ -26,6 +26,13 @@ import LandingMenu from "../components/LandingMenu.vue";
 import MarketplaceFan from "../components/MarketplaceFan.vue";
 import LanguageSwitch from "../components/LanguageSwitch.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
+import compendiumArt from "../assets/more/compendium.webp";
+import encountersArt from "../assets/more/encounters.webp";
+import factionsArt from "../assets/more/factions.webp";
+import historyArt from "../assets/more/history.webp";
+import languagesArt from "../assets/more/languages.webp";
+import revealsArt from "../assets/more/reveals.webp";
+import soundsArt from "../assets/more/sounds.webp";
 import ScreenFrame from "../components/ScreenFrame.vue";
 import SplitShowcase from "../components/SplitShowcase.vue";
 import StorylineTour from "../components/StorylineTour.vue";
@@ -134,13 +141,13 @@ const inventory: FeatureRowData = {
 };
 
 const more: MoreItem[] = [
-  { id: "encounters", icon: "nav-encounter", title: "landing.more.encounters.title", text: "landing.more.encounters.text" },
-  { id: "factions", icon: "nav-fraktionen", title: "landing.more.factions.title", text: "landing.more.factions.text" },
-  { id: "sounds", icon: "nav-musik-sounds", title: "landing.more.sounds.title", text: "landing.more.sounds.text" },
-  { id: "compendium", icon: "nav-kompendium", title: "landing.more.compendium.title", text: "landing.more.compendium.text" },
-  { id: "reveals", icon: "nav-freigaben", title: "landing.more.reveals.title", text: "landing.more.reveals.text" },
-  { id: "history", icon: "ui-hourglass", title: "landing.more.history.title", text: "landing.more.history.text" },
-  { id: "languages", icon: "ui-globe", title: "landing.more.languages.title", text: "landing.more.languages.text" },
+  { id: "encounters", icon: "nav-encounter", title: "landing.more.encounters.title", text: "landing.more.encounters.text", art: encountersArt },
+  { id: "factions", icon: "nav-fraktionen", title: "landing.more.factions.title", text: "landing.more.factions.text", art: factionsArt },
+  { id: "sounds", icon: "nav-musik-sounds", title: "landing.more.sounds.title", text: "landing.more.sounds.text", art: soundsArt },
+  { id: "compendium", icon: "nav-kompendium", title: "landing.more.compendium.title", text: "landing.more.compendium.text", art: compendiumArt },
+  { id: "reveals", icon: "nav-freigaben", title: "landing.more.reveals.title", text: "landing.more.reveals.text", art: revealsArt },
+  { id: "history", icon: "ui-hourglass", title: "landing.more.history.title", text: "landing.more.history.text", art: historyArt },
+  { id: "languages", icon: "ui-globe", title: "landing.more.languages.title", text: "landing.more.languages.text", art: languagesArt },
 ];
 
 /** What moves a reputation, in the order of the reputation screen's sources. */

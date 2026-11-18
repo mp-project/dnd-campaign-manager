@@ -131,6 +131,17 @@ describe("landing page", () => {
       "Nichts geht verloren",
       "Deutsch und Englisch",
     ]);
+    // Each card carries its own motif; revealing shows the king.
+    const motifs = cards.map((card) => card.find("img[loading=lazy]").attributes("src") ?? "");
+    expect(motifs.map((src) => src.match(/more\/(\w+)\./)?.[1])).toEqual([
+      "encounters",
+      "factions",
+      "sounds",
+      "compendium",
+      "reveals",
+      "history",
+      "languages",
+    ]);
     expect(cards[0]!.attributes("aria-label")).toBe("Karte 1 von 7");
     expect(cards.at(-1)!.text()).toContain("aktuell Deutsch und Englisch");
     wrapper.unmount();
@@ -349,8 +360,8 @@ describe("landing page", () => {
         expect.stringContaining("Kampagnen & Community"),
       ]),
     );
-    // Below the hero the pictures load only when needed.
-    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(9);
+    // Below the hero the pictures load only when needed (the screens and the slider's motifs).
+    expect(wrapper.findAll("img[loading=lazy]")).toHaveLength(9 + 7);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

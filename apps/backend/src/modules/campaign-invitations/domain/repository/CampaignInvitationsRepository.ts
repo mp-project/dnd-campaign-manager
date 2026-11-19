@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import type { AppDatabase } from "#core/db/pool";
 import { campaignInvitations } from "#src/modules/campaign-invitations/domain/entities/CampaignInvitationsTable";
@@ -37,10 +37,26 @@ export class CampaignInvitationsRepository {
     return invitation ?? null;
   }
 
-  async findPendingByCampaignEmail(
+  async findByIdForUpdate(db: AppDatabase, invitationId: string): Promise<CampaignInvitationRow | null> {
+    const [invitation] = await db
+      .select()
+      .from(campaignInvitations)
+      .where(and(eq(campaignInvitations.id, invitationId), isNull(campaignInvitations.deletedAt)))
+      .for("update")
+      .limit(1);
+
+    return invitation ?? null;
+  }
+
+  /**
+   * The pending invitation of the same way: by user tag for the account, by email for the address
+   * (only invitations by email). The two never meet, so a refused duplicate tells nothing about
+   * which address belongs to which account.
+   */
+  async findPendingByCampaignTarget(
     db: AppDatabase,
     campaignId: string,
-    email: string,
+    target: { targetUserId: string } | { email: string },
   ): Promise<CampaignInvitationRow | null> {
     const [invitation] = await db
       .select()
@@ -48,7 +64,9 @@ export class CampaignInvitationsRepository {
       .where(
         and(
           eq(campaignInvitations.campaignId, campaignId),
-          eq(campaignInvitations.email, email),
+          "targetUserId" in target
+            ? eq(campaignInvitations.targetUserId, target.targetUserId)
+            : and(isNull(campaignInvitations.targetUserId), eq(campaignInvitations.email, target.email)),
           eq(campaignInvitations.status, "PENDING"),
           isNull(campaignInvitations.deletedAt),
         ),
@@ -56,6 +74,37 @@ export class CampaignInvitationsRepository {
       .limit(1);
 
     return invitation ?? null;
+  }
+
+  /**
+   * Ends the other pending invitations of an account to a campaign once it joined: by user tag for
+   * the account and by email for its address (`isAddressedTo`).
+   */
+  async revokeOtherPendingForAccount(
+    db: AppDatabase,
+    input: { campaignId: string; exceptInvitationId: string; userId: string; email: string; now: Date },
+  ): Promise<void> {
+    await db
+      .update(campaignInvitations)
+      .set({
+        status: "REVOKED",
+        revokedAt: input.now,
+        version: sql`${campaignInvitations.version} + 1`,
+        updatedAt: input.now,
+        updatedBy: input.userId,
+      })
+      .where(
+        and(
+          eq(campaignInvitations.campaignId, input.campaignId),
+          ne(campaignInvitations.id, input.exceptInvitationId),
+          eq(campaignInvitations.status, "PENDING"),
+          isNull(campaignInvitations.deletedAt),
+          or(
+            eq(campaignInvitations.targetUserId, input.userId),
+            and(isNull(campaignInvitations.targetUserId), eq(campaignInvitations.email, input.email)),
+          ),
+        ),
+      );
   }
 
   async create(
@@ -132,12 +181,14 @@ export class CampaignInvitationsRepository {
     // email is null when the user's address is not verified: it must not reveal invitations.
     input: { userId: string; email: string | null; now: Date },
   ): Promise<CampaignInvitationRow[]> {
+    // The rule of `CampaignInvitationsService.isAddressedTo`: by user tag the account, by email
+    // address whoever has it (verified).
     const target =
       input.email === null
         ? eq(campaignInvitations.targetUserId, input.userId)
         : or(
             eq(campaignInvitations.targetUserId, input.userId),
-            eq(campaignInvitations.email, input.email),
+            and(isNull(campaignInvitations.targetUserId), eq(campaignInvitations.email, input.email)),
           );
 
     return db

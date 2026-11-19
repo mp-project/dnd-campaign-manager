@@ -17,6 +17,7 @@ export const CampaignInvitationBaseSchema = z.strictObject({
   role: CampaignMembershipBaseSchema.shape.role,
   status: z.enum(campaignInvitationStatusEnum.enumValues),
   expiresAt: isoDateTimeDto,
+  createdAt: isoDateTimeDto,
 });
 
 export type CampaignInvitationBaseDto = z.infer<typeof CampaignInvitationBaseSchema>;

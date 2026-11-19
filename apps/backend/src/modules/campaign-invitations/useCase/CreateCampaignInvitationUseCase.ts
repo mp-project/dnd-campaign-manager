@@ -43,15 +43,21 @@ export class CreateCampaignInvitationUseCase {
       invitation = await this.invitationsService.transactionManager.inTransaction(async (tx) => {
         await repository.updateExpired(tx, now, campaignId);
 
-        const existing = await repository.findPendingByCampaignEmail(tx, campaignId, target.email);
+        const existing = await repository.findPendingByCampaignTarget(
+          tx,
+          campaignId,
+          target.userId ? { targetUserId: target.userId } : { email: target.email },
+        );
 
         if (existing) {
-          throw new ConflictError("A pending invitation already exists for this email");
+          throw new ConflictError("A pending invitation already exists for this target");
         }
 
         return repository.create(tx, {
           campaignId,
           email: target.email,
+          // Only an invitation by user tag names the account; one by email address belongs to
+          // whoever has that address (no account is looked up for it).
           targetUserId: target.userId,
           role: input.role,
           tokenHash,
@@ -61,7 +67,7 @@ export class CreateCampaignInvitationUseCase {
       });
     } catch (error) {
       if (this.invitationsService.isUniqueViolation(error)) {
-        throw new ConflictError("A pending invitation already exists for this email");
+        throw new ConflictError("A pending invitation already exists for this target");
       }
 
       throw error;

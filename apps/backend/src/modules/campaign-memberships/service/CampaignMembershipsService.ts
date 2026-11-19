@@ -41,7 +41,7 @@ export class CampaignMembershipsService {
   async resolveMemberAccess(
     context: RequestContext,
     campaignId: string,
-  ): Promise<{ actorId: string; canManage: boolean }> {
+  ): Promise<{ actorId: string; canManage: boolean; ownerUserId: string }> {
     const actorId = await this.requireActorId(context);
     const { campaign, membership } = await this.getAccess(actorId, campaignId);
 
@@ -55,6 +55,7 @@ export class CampaignMembershipsService {
 
     return {
       actorId,
+      ownerUserId: campaign.ownerUserId,
       canManage:
         isSysAdminRole(context.systemRole) ||
         campaign.ownerUserId === actorId ||

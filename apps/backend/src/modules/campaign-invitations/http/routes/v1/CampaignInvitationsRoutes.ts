@@ -9,6 +9,7 @@ import {
   CampaignInvitationItemParamsSchema,
   CampaignInvitationLookupQuerySchema,
   CampaignInvitationParamsSchema,
+  MyCampaignInvitationParamsSchema,
 } from "#src/modules/campaign-invitations/domain/dto/RequestCampaignInvitationDto";
 import {
   AcceptCampaignInvitationResponseSchema,
@@ -18,7 +19,9 @@ import {
   MyCampaignInvitationListResponseSchema,
 } from "#src/modules/campaign-invitations/domain/dto/ResponseCampaignInvitationDto";
 import { AcceptCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/AcceptCampaignInvitationController";
+import { AcceptMyCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/AcceptMyCampaignInvitationController";
 import { CreateCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/CreateCampaignInvitationController";
+import { DeclineMyCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/DeclineMyCampaignInvitationController";
 import { DeleteCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/DeleteCampaignInvitationController";
 import { ListCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListCampaignInvitationsController";
 import { ListMyCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListMyCampaignInvitationsController";
@@ -32,6 +35,8 @@ export type CampaignInvitationsRouteControllers = {
   deleteCampaignInvitationController: DeleteCampaignInvitationController;
   acceptCampaignInvitationController: AcceptCampaignInvitationController;
   listMyCampaignInvitationsController: ListMyCampaignInvitationsController;
+  acceptMyCampaignInvitationController: AcceptMyCampaignInvitationController;
+  declineMyCampaignInvitationController: DeclineMyCampaignInvitationController;
 };
 
 const tags = ["Campaign Invitations"];
@@ -174,5 +179,52 @@ export function registerCampaignInvitationsRoutes(
       },
     },
     controllers.listMyCampaignInvitationsController.handle,
+  );
+
+  app.post(
+    "/me/invitations/:invitationId/accept",
+    {
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.accept } },
+      schema: {
+        tags,
+        operationId: "acceptMyCampaignInvitation",
+        security,
+        params: MyCampaignInvitationParamsSchema,
+        response: {
+          200: AcceptCampaignInvitationResponseSchema,
+          400: errorResponseDto,
+          401: errorResponseDto,
+          403: errorResponseDto,
+          404: errorResponseDto,
+          409: errorResponseDto,
+        },
+      },
+    },
+    controllers.acceptMyCampaignInvitationController.handle,
+  );
+
+  app.post(
+    "/me/invitations/:invitationId/decline",
+    {
+      config: { permission: { key: CAMPAIGN_INVITATION_PERMISSIONS.accept } },
+      schema: {
+        tags,
+        operationId: "declineMyCampaignInvitation",
+        security,
+        params: MyCampaignInvitationParamsSchema,
+        response: {
+          204: z.null(),
+          400: errorResponseDto,
+          401: errorResponseDto,
+          403: errorResponseDto,
+          404: errorResponseDto,
+          409: errorResponseDto,
+        },
+      },
+    },
+    async (request, reply) => {
+      await controllers.declineMyCampaignInvitationController.handle(request);
+      return reply.code(204).send();
+    },
   );
 }

@@ -7,17 +7,16 @@ import { CampaignInvitationsService } from "#src/modules/campaign-invitations/se
 
 /**
  * Lists the pending invitations addressed to the current user (by user id, or by email once the
- * address is verified).
+ * address is verified), with the campaign's name and who invited them.
  */
 export class ListMyCampaignInvitationsUseCase {
   constructor(private readonly invitationsService: CampaignInvitationsService) {}
 
   async execute(context: RequestContext): Promise<MyCampaignInvitationListResponseDto> {
     const user = await this.invitationsService.requireAuthenticatedUser(context);
-    const { db, repository, transactionManager } = this.invitationsService;
+    const { db, repository } = this.invitationsService;
+    // Expired ones are left out by the query; marking them is the campaign's list's business.
     const now = new Date();
-
-    await transactionManager.inTransaction((tx) => repository.updateExpired(tx, now));
 
     const invitations = await repository.listPendingForUser(db, {
       userId: user.id,
@@ -26,6 +25,8 @@ export class ListMyCampaignInvitationsUseCase {
       now,
     });
 
-    return toMyCampaignInvitationListResponse(invitations);
+    const open = await this.invitationsService.withoutMemberships(invitations, user.id);
+
+    return toMyCampaignInvitationListResponse(await this.invitationsService.describeForInvitee(open));
   }
 }

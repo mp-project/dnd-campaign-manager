@@ -44,10 +44,17 @@ export const campaignInvitations = pgTable(
   },
   (table) => [
     uniqueIndex("campaign_invitations_token_hash_unique_idx").on(table.tokenHash),
+    // One pending invitation per way of inviting: by user tag per account, by email per address.
+    // Kept apart, so a refused duplicate never links an address to an account.
+    uniqueIndex("campaign_invitations_campaign_target_pending_unique_idx")
+      .on(table.campaignId, table.targetUserId)
+      .where(
+        sql`${table.deletedAt} is null and ${table.status} = 'PENDING' and ${table.targetUserId} is not null`,
+      ),
     uniqueIndex("campaign_invitations_campaign_email_pending_unique_idx")
       .on(table.campaignId, table.email)
       .where(
-        sql`${table.deletedAt} is null and ${table.status} = 'PENDING'`,
+        sql`${table.deletedAt} is null and ${table.status} = 'PENDING' and ${table.targetUserId} is null`,
       ),
     index("campaign_invitations_target_status_idx").on(table.targetUserId, table.status),
     index("campaign_invitations_campaign_status_idx").on(table.campaignId, table.status),

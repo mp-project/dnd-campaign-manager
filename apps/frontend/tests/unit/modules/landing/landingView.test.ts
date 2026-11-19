@@ -192,7 +192,6 @@ describe("landing page", () => {
   });
 
   it("lets the visitor roll the character's Strength check", async () => {
-    vi.useFakeTimers();
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     const { wrapper } = await open();
     const article = wrapper.find("article[aria-labelledby=landing-feature-characters]");
@@ -201,10 +200,9 @@ describe("landing page", () => {
     const die = article.find("button[aria-label='Stärke-Probe würfeln']");
     expect(die.text()).toContain("Antippen und würfeln");
     await die.trigger("click");
-    await vi.runAllTimersAsync();
-    expect(die.text()).toContain("11 + 2 = 13");
+    // The roll is a GSAP timeline on GSAP's own clock, which fake timers don't drive.
+    await vi.waitFor(() => expect(die.text()).toContain("11 + 2 = 13"), { timeout: 3000 });
     wrapper.unmount();
-    vi.useRealTimers();
   });
 
   it("lets the visitor sort the inventory and use an item, the carrying load following", async () => {

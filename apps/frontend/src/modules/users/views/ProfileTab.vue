@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Profile: display name, language and time zone can be changed here; user tag and email are shown
- * (the email changes under sign-in & security, with a confirmation from the new address).
- * The profile's language applies right after saving.
+ * Profile: display name, language, time zone and reduced motion can be changed here; user tag and
+ * email are shown (the email changes under sign-in & security, with a confirmation from the new
+ * address). The profile's language and reduced motion apply right after saving.
  */
 import { SUPPORTED_LOCALES } from "@dnd/i18n";
 import { useQueryClient } from "@tanstack/vue-query";
@@ -14,6 +14,7 @@ import BaseButton from "@/components/base/BaseButton.vue";
 import FormField from "@/components/base/FormField.vue";
 import SelectInput from "@/components/base/SelectInput.vue";
 import TextInput from "@/components/base/TextInput.vue";
+import ToggleSwitch from "@/components/base/ToggleSwitch.vue";
 import type { Option } from "@/components/base/types";
 import FormFooter from "@/components/page/FormFooter.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
@@ -29,7 +30,7 @@ const { t } = useAppI18n();
 const queryClient = useQueryClient();
 const me = useMe();
 
-const form = reactive({ displayName: "", locale: "", timezone: "" });
+const form = reactive({ displayName: "", locale: "", timezone: "", reducedMotion: false });
 const nameError = ref("");
 const saved = ref(false);
 const failure = ref("");
@@ -39,7 +40,12 @@ const busy = ref(false);
 let base = { ...form };
 
 function valuesOf(profile: Me) {
-  return { displayName: profile.displayName, locale: profile.settings.locale, timezone: profile.settings.timezone };
+  return {
+    displayName: profile.displayName,
+    locale: profile.settings.locale,
+    timezone: profile.settings.timezone,
+    reducedMotion: profile.settings.reducedMotion,
+  };
 }
 
 function reset(profile: Me | undefined): void {
@@ -55,7 +61,7 @@ watch(
     if (!profile) return;
     const next = valuesOf(profile);
     for (const key of Object.keys(next) as Array<keyof typeof next>) {
-      if (form[key] === base[key]) form[key] = next[key];
+      if (form[key] === base[key]) (form as Record<typeof key, unknown>)[key] = next[key];
     }
     base = next;
   },
@@ -96,9 +102,10 @@ async function save(): Promise<void> {
     const settings = {
       ...(form.locale !== profile.settings.locale ? { locale: form.locale } : {}),
       ...(form.timezone !== profile.settings.timezone ? { timezone: form.timezone } : {}),
+      ...(form.reducedMotion !== profile.settings.reducedMotion ? { reducedMotion: form.reducedMotion } : {}),
     };
     // Each answer is kept at once, so a failing second request doesn't hide what the first saved.
-    // The profile watcher applies language and time zone from here.
+    // The profile watcher applies language, time zone and reduced motion from here.
     if (displayName !== profile.displayName) {
       queryClient.setQueryData(meQuery.queryKey, await updateProfile({ displayName }));
     }
@@ -239,6 +246,12 @@ async function save(): Promise<void> {
             />
           </FormField>
         </div>
+        <ToggleSwitch
+          v-model="form.reducedMotion"
+          :label="t('users.profile.reducedMotion')"
+          :description="t('users.profile.reducedMotionHint')"
+          class="border-t border-line pt-4"
+        />
       </div>
     </section>
 

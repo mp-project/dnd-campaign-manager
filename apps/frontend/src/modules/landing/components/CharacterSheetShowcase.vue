@@ -6,15 +6,18 @@
  * measured from the rendered layout). Nothing moves
  * around; the values change: the sheet plays a small adventure in which Arvel takes hits and casts
  * spells until a long rest, shown over the sheet, fills hit points and spell slots again. The
- * Strength check is a d20 the visitor can roll. With reduced motion the adventure doesn't play by
- * itself; the die still rolls.
+ * Strength check is a d20 the visitor can roll. The values pop in the first time the sheet is in
+ * view; changes move with GSAP (bars, the jumping number, rising deltas, the spinning die). With
+ * reduced motion the adventure doesn't play by itself and the die shows its result at once.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import Icon from "@/components/base/Icon.vue";
 import { useAppI18n, useGlossary } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { gsap, motionEase, ScrollTrigger } from "@/core/motion/gsap";
 import { useReducedMotion } from "@/core/motion/reducedMotion";
+import { useGsap } from "@/core/motion/useGsap";
 
 import { SCREENS } from "../screens";
 import ScreenFrame from "./ScreenFrame.vue";
@@ -75,30 +78,46 @@ function apply(kind: EventKind) {
 const roll = ref<number | null>(null);
 const rolling = ref(false);
 const shown = ref(20);
-let rollTimer: ReturnType<typeof setInterval> | undefined;
+const die = ref<HTMLElement | null>(null);
+let rollAnimation: gsap.core.Timeline | undefined;
 
 const d20 = () => Math.floor(Math.random() * 20) + 1;
 
+/** The die spins twice and grows while its face flickers, then lands on the result with a bounce. */
 function rollCheck() {
   if (rolling.value) return;
   const result = d20();
-  if (reduceMotion.value) {
-    roll.value = result;
-    shown.value = result;
-    return;
-  }
-  rolling.value = true;
-  let flips = 0;
-  rollTimer = setInterval(() => {
-    flips += 1;
-    shown.value = d20();
-    if (flips < 10) return;
-    clearInterval(rollTimer);
-    rollTimer = undefined;
+  const finish = () => {
     shown.value = result;
     roll.value = result;
     rolling.value = false;
-  }, 70);
+  };
+  if (reduceMotion.value || !die.value) {
+    finish();
+    return;
+  }
+  rolling.value = true;
+  const faces = { flip: 0 };
+  let last = 0;
+  rollAnimation = gsap
+    .timeline({ onComplete: finish })
+    .to(die.value, { rotation: "+=720", duration: 0.9, ease: motionEase("out") }, 0)
+    .to(die.value, { scale: 1.3, duration: 0.3, ease: motionEase("out") }, 0)
+    .to(
+      faces,
+      {
+        flip: 12,
+        duration: 0.85,
+        ease: "none",
+        onUpdate: () => {
+          if (Math.floor(faces.flip) === last) return;
+          last = Math.floor(faces.flip);
+          shown.value = d20();
+        },
+      },
+      0,
+    )
+    .to(die.value, { scale: 1, duration: 0.5, ease: motionEase("spring") }, 0.75);
 }
 
 const rollText = computed(() => {
@@ -108,29 +127,115 @@ const rollText = computed(() => {
   return t("landing.characterSheet.rollResult", { roll: roll.value, modifier: STRENGTH_MODIFIER, total });
 });
 
+// ---- Values that change -----------------------------------------------------------------------
+
+const hpValue = ref<HTMLElement | null>(null);
+const hpBar = ref<HTMLElement | null>(null);
+const tempBar = ref<HTMLElement | null>(null);
+
+/** The bars follow the hit points; the temporary ones sit right after them. A long rest fills slower. */
+function paintBars(immediate: boolean) {
+  if (!hpBar.value || !tempBar.value) return;
+  const hp = sheet.value.hp / MAX_HP;
+  const temp = sheet.value.temp / MAX_HP;
+  const vars = { duration: resting.value ? 1.6 : 0.8, ease: motionEase("out") };
+  if (immediate || reduceMotion.value) {
+    gsap.set(hpBar.value, { scaleX: hp });
+    gsap.set(tempBar.value, { xPercent: hp * 100, scaleX: temp });
+    return;
+  }
+  gsap.to(hpBar.value, { ...vars, scaleX: hp });
+  gsap.to(tempBar.value, { ...vars, xPercent: hp * 100, scaleX: temp });
+}
+
+watch(
+  () => sheet.value.hp,
+  () => {
+    paintBars(false);
+    if (reduceMotion.value || !hpValue.value) return;
+    // The number jumps when it changes.
+    gsap.fromTo(hpValue.value, { scale: 1.45 }, { scale: 1, duration: 0.7, ease: motionEase("spring") });
+  },
+);
+watch(() => sheet.value.temp, () => paintBars(false));
+
+/** Deltas rise from the value, grow and fade away upwards. */
+function deltaEnter(el: Element, done: () => void) {
+  if (reduceMotion.value) return done();
+  gsap.fromTo(
+    el,
+    { autoAlpha: 0, y: 14, scale: 0.7 },
+    { autoAlpha: 1, y: 0, scale: 1.2, duration: 0.5, ease: motionEase("spring"), onComplete: done },
+  );
+}
+function deltaLeave(el: Element, done: () => void) {
+  if (reduceMotion.value) return done();
+  gsap.to(el, { autoAlpha: 0, y: -22, scale: 1, duration: 0.6, ease: motionEase("out"), onComplete: done });
+}
+
 // ---- Playing while in view --------------------------------------------------------------------
 
 const stage = ref<HTMLElement | null>(null);
 const sheetEl = ref<HTMLElement | null>(null);
 const screenEl = ref<HTMLElement | null>(null);
-const revealed = ref(false);
 const reduceMotion = useReducedMotion();
-let visible = false;
-let timer: ReturnType<typeof setTimeout> | undefined;
-let visibility: IntersectionObserver | undefined;
+let next: gsap.core.Tween | undefined;
 let resize: ResizeObserver | undefined;
 
+/** The next event of the adventure; each one plans the one after it. */
 function schedule(delay: number) {
-  if (timer) clearTimeout(timer);
-  timer = setTimeout(() => {
-    timer = undefined;
-    if (!visible) return;
+  next?.kill();
+  next = gsap.delayedCall(delay / 1000, () => {
     const kind = STORY[step.value % STORY.length]!;
     step.value += 1;
     apply(kind);
     schedule(kind === "rest" ? REST_MS : EVENT_MS);
-  }, delay);
+  });
 }
+
+/**
+ * The values around the sheet pop in one after another the first time it is in view, then the
+ * adventure plays; it rests while the sheet is out of view. With reduced motion everything is
+ * there at once and nothing plays by itself.
+ */
+useGsap(stage, ({ reduced }) => {
+  paintBars(true);
+  if (reduced) return;
+  const cards = gsap.utils.toArray<HTMLElement>(".piece > *");
+  gsap.set(cards, { autoAlpha: 0, y: 30, scale: 0.75 });
+  let started = false;
+  ScrollTrigger.create({
+    trigger: stage.value,
+    start: "top 70%",
+    end: "bottom 30%",
+    onToggle: (self) => {
+      if (!self.isActive) {
+        next?.pause();
+        return;
+      }
+      if (started) {
+        next?.resume();
+        return;
+      }
+      started = true;
+      gsap.to(cards, {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.7,
+        ease: motionEase("spring"),
+        stagger: 0.15,
+        clearProps: "transform,opacity,visibility",
+      });
+      schedule(EVENT_MS);
+    },
+  });
+  return () => {
+    next?.kill();
+    next = undefined;
+    rollAnimation?.progress(1);
+  };
+});
 
 onMounted(() => {
   measureLines();
@@ -138,29 +243,9 @@ onMounted(() => {
     resize = new ResizeObserver(() => measureLines());
     resize.observe(sheetEl.value);
   }
-  if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !stage.value) {
-    revealed.value = true;
-    return;
-  }
-  visibility = new IntersectionObserver(
-    ([entry]) => {
-      if (!entry) return;
-      visible = entry.isIntersecting;
-      if (!visible) return;
-      revealed.value = true;
-      if (!timer) schedule(EVENT_MS);
-    },
-    { threshold: 0.35 },
-  );
-  visibility.observe(stage.value);
 });
 
-onBeforeUnmount(() => {
-  if (timer) clearTimeout(timer);
-  if (rollTimer) clearInterval(rollTimer);
-  visibility?.disconnect();
-  resize?.disconnect();
-});
+onBeforeUnmount(() => resize?.disconnect());
 
 /**
  * Where each value sits around the sheet (`x`/`y`, top left corner), the place on the sheet it
@@ -222,7 +307,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   <div
     ref="stage"
     class="stage"
-    :class="{ revealed, resting }"
+    :class="{ resting }"
   >
     <!-- What just happened in the adventure -->
     <div
@@ -379,8 +464,8 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
             </p>
             <p class="mt-1 font-heading text-[26px] leading-none text-heading">
               <span
-                :key="sheet.hp"
-                class="bump"
+                ref="hpValue"
+                class="inline-block"
               >{{ sheet.hp }}</span>
               <span
                 v-if="sheet.temp"
@@ -390,15 +475,19 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
             </p>
             <div class="bar mt-2">
               <span
-                class="bar-hp"
-                :style="{ width: `${(sheet.hp / MAX_HP) * 100}%` }"
+                ref="hpBar"
+                class="bar-fill bar-hp"
               />
               <span
-                class="bar-temp"
-                :style="{ width: `${(sheet.temp / MAX_HP) * 100}%` }"
+                ref="tempBar"
+                class="bar-fill bar-temp"
               />
             </div>
-            <Transition name="delta">
+            <Transition
+              :css="false"
+              @enter="deltaEnter"
+              @leave="deltaLeave"
+            >
               <span
                 v-if="event?.hpDelta"
                 :key="step"
@@ -445,10 +534,15 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
               </li>
             </ul>
             <p class="slot-note">
-              <Transition name="delta">
+              <Transition
+                :css="false"
+                @enter="deltaEnter"
+                @leave="deltaLeave"
+              >
                 <span
                   v-if="event?.slotDelta"
                   :key="step"
+                  class="inline-block"
                   :class="event.kind === 'rest' ? 'text-ok' : 'text-danger'"
                 >{{ event.slotDelta }}</span>
               </Transition>
@@ -469,8 +563,9 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
             @click="rollCheck"
           >
             <span
+              ref="die"
               class="die"
-              :class="{ 'die-rolling': rolling, 'die-critical': roll === 20 && !rolling }"
+              :class="{ 'die-critical': roll === 20 && !rolling }"
               aria-hidden="true"
             >
               <svg viewBox="0 0 100 100">
@@ -681,14 +776,10 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
 .pieces {
   display: contents;
 }
+/* The cards inside pop in with GSAP the first time the sheet is in view. */
 .piece {
   position: relative;
   z-index: 2;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-.revealed .piece {
-  opacity: 1;
 }
 @media (max-width: 47.99rem) {
   .sheet {
@@ -755,31 +846,20 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   font-weight: 700;
 }
 
-.bump {
-  display: inline-block;
-  animation: bump 0.5s ease;
-}
-@keyframes bump {
-  40% {
-    transform: scale(1.18);
-  }
-}
 
 .bar {
-  display: flex;
+  position: relative;
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--color-neutral-soft);
 }
-.bar-hp,
-.bar-temp {
-  display: block;
-  height: 100%;
-  transition: width 0.8s ease;
-}
-.restoring .bar-hp {
-  transition-duration: 1.6s;
+/* Both span the bar and are scaled by GSAP; the temporary hit points are moved behind the others. */
+.bar-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
 }
 .bar-hp {
   background: var(--color-brand);
@@ -815,16 +895,6 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   font-family: var(--font-heading);
   font-size: 15px;
   font-weight: 700;
-}
-.delta-enter-active {
-  transition: opacity 0.3s ease;
-}
-.delta-leave-active {
-  transition: opacity 0.5s ease;
-}
-.delta-enter-from,
-.delta-leave-to {
-  opacity: 0;
 }
 
 /* ---- Armor class ---- */
@@ -959,33 +1029,12 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   font-size: 17px;
   font-weight: 700;
 }
-.die-rolling {
-  animation: die-spin 0.7s cubic-bezier(0.3, 0.7, 0.4, 1);
-}
 .die-critical .die-body {
   fill: var(--color-primary);
 }
-@keyframes die-spin {
-  0% {
-    transform: rotate(0) scale(1);
-  }
-  50% {
-    transform: rotate(320deg) scale(1.15);
-  }
-  100% {
-    transform: rotate(720deg) scale(1);
-  }
-}
 
-:root[data-reduced-motion] .piece,
-:root[data-reduced-motion] .bar-hp,
-:root[data-reduced-motion] .bar-temp,
 :root[data-reduced-motion] .slot,
 :root[data-reduced-motion] .piece-card {
   transition: none;
-}
-:root[data-reduced-motion] .bump,
-:root[data-reduced-motion] .die-rolling {
-  animation: none;
 }
 </style>

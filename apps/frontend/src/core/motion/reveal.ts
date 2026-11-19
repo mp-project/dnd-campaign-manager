@@ -40,28 +40,6 @@ function show(el: HTMLElement): void {
   gsap.set(el, { clearProps: CLEAR });
 }
 
-let refreshQueued = false;
-/**
- * Pictures that load late (lazy) move everything below them, and ScrollTrigger measured before.
- * One refresh per frame after such loads keeps the starting points right.
- */
-function refreshAfterImages(): void {
-  if (typeof document === "undefined") return;
-  document.addEventListener(
-    "load",
-    (event) => {
-      if (!(event.target instanceof HTMLImageElement) || waiting.size === 0 || refreshQueued) return;
-      refreshQueued = true;
-      requestAnimationFrame(() => {
-        refreshQueued = false;
-        ScrollTrigger.refresh();
-      });
-    },
-    true,
-  );
-}
-refreshAfterImages();
-
 export const vReveal: Directive<HTMLElement, RevealValue> = {
   mounted(el, binding) {
     if (reducedMotion.value) return;

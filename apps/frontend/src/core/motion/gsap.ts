@@ -36,5 +36,23 @@ export function motionEase(name: MotionEase): string {
 
 gsap.defaults({ duration: motionDuration("base"), ease: motionEase("out") });
 
+let refreshQueued = false;
+/**
+ * Pictures that load late (lazy) move everything below them, and ScrollTrigger measured before.
+ * One refresh per frame after such loads keeps every trigger's start and end right.
+ */
+document.addEventListener(
+  "load",
+  (event) => {
+    if (!(event.target instanceof HTMLImageElement) || refreshQueued || ScrollTrigger.getAll().length === 0) return;
+    refreshQueued = true;
+    requestAnimationFrame(() => {
+      refreshQueued = false;
+      ScrollTrigger.refresh();
+    });
+  },
+  true,
+);
+
 export { gsap, ScrollTrigger };
 export { motionDuration } from "./tokens";

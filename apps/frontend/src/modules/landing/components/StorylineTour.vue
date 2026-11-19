@@ -3,11 +3,14 @@
  * The storyline feature as a camera ride over the clickdummy's act board, on navy: a capture of
  * the board at 2.5 times its size (so it stays sharp when the camera moves in) fills a large stage, the camera moves from scene to scene along one route, and a golden thread weaves
  * itself between the scenes it passed. Visitors switch between the two routes of the board, jump to
- * a scene, pause the ride or show the whole board. The ride starts once the stage is in view and
- * pauses while pointed at or focused; with reduced motion it doesn't play by itself and jumps
- * instead of moving. The frame of the stage leads nowhere; the demo link sits below it.
+ * a scene, pause the ride or show the whole board. Along a route the camera pans from scene to
+ * scene; to the other route it pulls back on the way to its start and moves in again. Then the
+ * thread and the scene's frame draw themselves (GSAP). The ride starts
+ * once the stage is in view and rests while it is out of view; with reduced motion it doesn't
+ * play by itself and jumps instead of moving. The frame of the stage leads nowhere; the demo link
+ * sits below it.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
@@ -15,7 +18,9 @@ import IconButton from "@/components/base/IconButton.vue";
 import SegmentedControl from "@/components/base/SegmentedControl.vue";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { gsap, motionEase, ScrollTrigger } from "@/core/motion/gsap";
 import { useReducedMotion } from "@/core/motion/reducedMotion";
+import { useGsap } from "@/core/motion/useGsap";
 
 import board from "../assets/screens/storyline-board.webp";
 import { demoScreenUrl } from "../demo";
@@ -34,7 +39,8 @@ const demo = demoScreenUrl(screen.demoPath);
 const BOARD_WIDTH = 2106;
 const BOARD_HEIGHT = 860;
 const RATIO = BOARD_HEIGHT / BOARD_WIDTH;
-const STEP_MS = 2800;
+/** How long the ride rests on a scene once the camera arrived and its frame is drawn. */
+const REST_MS = 800;
 
 const start: Stop = {
   id: "start",
@@ -76,7 +82,6 @@ const index = ref(0);
 /** The whole board instead of one scene: at first, and when asked for. */
 const overview = ref(true);
 const playing = ref(false);
-const paused = ref(false);
 const reduceMotion = useReducedMotion();
 
 const route = computed(() => routes[routeId.value]);
@@ -88,46 +93,137 @@ const routeOptions = computed(() =>
 // ---- Camera ---------------------------------------------------------------------------------
 
 const frame = ref<HTMLElement | null>(null);
+const stage = ref<HTMLElement | null>(null);
 const size = ref({ width: 0, height: 0 });
+
+type Camera = { x: number; y: number; zoom: number };
+type Point = { x: number; y: number };
+
+const centerOf = (entry: Stop): Point => ({ x: entry.x + entry.width / 2, y: entry.y + entry.height / 2 });
 
 /**
  * The stage is the board at the frame's width, moved and scaled from its top left corner. A scene
  * shows about 1050 pixels of the board on wide frames and 580 on phones (about three and one and
- * a half scene cards), so its text stays readable; the camera never leaves the board.
+ * a half scene cards), so its text stays readable; `pullBack` below 1 shows more of the board
+ * around `focus` (the camera's arc between two scenes). The camera never leaves the board; without
+ * a focus it shows the whole board.
  */
-const camera = computed(() => {
+function cameraAt(focus: Point | null, pullBack = 1): Camera {
   const { width, height } = size.value;
   if (!width || !height) return { x: 0, y: 0, zoom: 1 };
   const stageHeight = width * RATIO;
-  if (overview.value) return { x: 0, y: Math.max(0, (height - stageHeight) / 2), zoom: 1 };
+  if (!focus) return { x: 0, y: Math.max(0, (height - stageHeight) / 2), zoom: 1 };
+  const fill = height / stageHeight;
   const visible = Math.min(1050, Math.max(580, width * 0.94));
-  const zoom = Math.max(BOARD_WIDTH / visible, height / stageHeight);
+  const zoom = Math.max(fill, Math.max(BOARD_WIDTH / visible, fill) * pullBack);
   const scale = (width / BOARD_WIDTH) * zoom;
-  const focusX = (stop.value.x + stop.value.width / 2) * scale;
-  const focusY = (stop.value.y + stop.value.height / 2) * scale;
   const clamp = (value: number, min: number) => Math.min(0, Math.max(min, value));
   // On phones the caption covers the lower part of the stage, so the scene sits higher.
   const centerY = width < 768 ? height * 0.34 : height / 2;
   return {
-    x: clamp(width / 2 - focusX, width - width * zoom),
-    y: clamp(centerY - focusY, height - stageHeight * zoom),
+    x: clamp(width / 2 - focus.x * scale, width - width * zoom),
+    y: clamp(centerY - focus.y * scale, height - stageHeight * zoom),
     zoom,
   };
-});
+}
 
-const stageStyle = computed(() => ({
-  width: `${size.value.width}px`,
-  height: `${size.value.width * RATIO}px`,
-  transform: `translate(${camera.value.x}px, ${camera.value.y}px) scale(${camera.value.zoom})`,
-}));
+const stageStyle = computed(() => ({ width: `${size.value.width}px`, height: `${size.value.width * RATIO}px` }));
+
+// ---- Motion ---------------------------------------------------------------------------------
+
+/**
+ * How long the camera travels. Along a route it pans from scene to scene; to the other route it
+ * pulls back on the way to its start and moves in again.
+ */
+const MOVE = { pan: 1, out: 0.6, in: 0.8 };
+/** How far the camera pulls back when it changes routes. */
+const PULL_BACK = 0.62;
+
+/** The step animation running now: camera, then thread and scene frame. */
+let ride: gsap.core.Timeline | undefined;
+/** The scene and route the camera shows now: a new route makes the camera pull back on its way. */
+let shown: Stop | null = null;
+let shownRoute: RouteId = routeId.value;
+
+const transform = (camera: Camera) => ({ x: camera.x, y: camera.y, scale: camera.zoom });
+
+/**
+ * Threads up to the current scene are drawn, the scene's frame is drawn and glows, passed scenes
+ * keep a faint frame. Changes move in `timeline` from `at` on, or jump without one.
+ */
+function paintRoute(timeline?: gsap.core.Timeline, at = 0): void {
+  const root = stage.value;
+  if (!root) return;
+  const apply = (el: Element, vars: gsap.TweenVars, duration: number, offset = 0) => {
+    if (timeline) timeline.to(el, { ...vars, duration, ease: motionEase("out") }, at + offset);
+    else gsap.set(el, vars);
+  };
+  root.querySelectorAll(".thread").forEach((el, position) => {
+    const drawn = !overview.value && index.value > position;
+    // Threads that disappear do so at once, so a step back doesn't unwind slowly.
+    if (drawn) apply(el, { strokeDashoffset: 0 }, 0.9);
+    else gsap.set(el, { strokeDashoffset: 1 });
+  });
+  root.querySelectorAll(".scene-mark").forEach((el, position) => {
+    const current = !overview.value && position === index.value;
+    const passed = !overview.value && position < index.value;
+    if (current) {
+      apply(el, { opacity: 1 }, 0.3, 0.35);
+      apply(el, { strokeDashoffset: 0 }, 0.7, 0.35);
+    } else if (passed) apply(el, { opacity: 0.55, strokeDashoffset: 0 }, 0.4);
+    else apply(el, { opacity: 0, strokeDashoffset: 1 }, 0.3);
+  });
+}
+
+/** Moves the camera to the current view: at once (resize, reduced motion), or as a ride. */
+function showView(immediate: boolean): void {
+  const el = stage.value;
+  if (!el) return;
+  ride?.kill();
+  ride = undefined;
+  const target = overview.value ? null : stop.value;
+  const camera = cameraAt(target && centerOf(target));
+  const from = shown;
+  const routeChanged = shownRoute !== routeId.value;
+  shown = target;
+  shownRoute = routeId.value;
+
+  if (immediate || reduceMotion.value) {
+    gsap.set(el, transform(camera));
+    paintRoute();
+    return;
+  }
+
+  ride = gsap.timeline();
+  if (from && target && routeChanged) {
+    const a = centerOf(from);
+    const b = centerOf(target);
+    const middle = cameraAt({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, PULL_BACK);
+    ride
+      .to(el, { ...transform(middle), duration: MOVE.out, ease: motionEase("in-out") })
+      .to(el, { ...transform(camera), duration: MOVE.in, ease: motionEase("out") });
+  } else {
+    ride.to(el, { ...transform(camera), duration: MOVE.pan, ease: motionEase("in-out") });
+  }
+  paintRoute(ride, ride.duration() - 0.35);
+  // The ride goes on once this step is done and the scene had a moment.
+  if (playing.value) schedule(ride.duration() * 1000 + REST_MS);
+}
+
+watch([routeId, index, overview], () => showView(false), { flush: "post" });
+watch(size, () => showView(true), { flush: "post" });
 
 // ---- Ride -----------------------------------------------------------------------------------
 
-let timer: ReturnType<typeof setInterval> | undefined;
+/**
+ * Out of view the ride rests. Pointing at the stage doesn't: after scrolling the pointer often
+ * stays on it by chance, and the ride would stand still; the pause button stops it on purpose.
+ */
+const outOfView = ref(false);
+let next: gsap.core.Tween | undefined;
 
 /** One step of the ride: next scene, at the end of a route the other route from its start. */
 function advance() {
-  if (paused.value) return;
   if (overview.value) {
     overview.value = false;
     return;
@@ -140,29 +236,35 @@ function advance() {
   index.value = 0;
 }
 
-function play() {
-  stopTimer();
-  playing.value = true;
-  timer = setInterval(advance, STEP_MS);
+/** The next step after `delay`; the step itself schedules the one after it (`showView`). */
+function schedule(delay: number) {
+  next?.kill();
+  next = gsap.delayedCall(delay / 1000, advance);
+  if (outOfView.value) next.pause();
 }
 
-function stopTimer() {
-  if (timer) clearInterval(timer);
-  timer = undefined;
+watch(outOfView, (isOut) => {
+  if (!next) return;
+  if (isOut) next.pause();
+  else next.resume();
+});
+
+/** From the overview the ride starts with the first scene; otherwise it rests there first. */
+function play() {
+  playing.value = true;
+  if (overview.value) overview.value = false;
+  else schedule(REST_MS);
 }
 
 function pause() {
-  stopTimer();
+  next?.kill();
+  next = undefined;
   playing.value = false;
 }
 
 function togglePlay() {
-  if (playing.value) {
-    pause();
-    return;
-  }
-  if (overview.value) overview.value = false;
-  play();
+  if (playing.value) pause();
+  else play();
 }
 
 /** What the visitor chooses stops the ride: they look around themselves now. */
@@ -190,7 +292,6 @@ const selectedRoute = computed({
 });
 
 let resize: ResizeObserver | undefined;
-let visibility: IntersectionObserver | undefined;
 let started = false;
 
 function measure() {
@@ -204,47 +305,45 @@ onMounted(() => {
     resize = new ResizeObserver(measure);
     resize.observe(frame.value);
   }
-  if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !frame.value) return;
-  // The ride starts the first time the stage is well in view and rests while it is out of view.
-  visibility = new IntersectionObserver(
-    ([entry]) => {
-      if (!entry) return;
-      if (entry.isIntersecting && !started) {
-        started = true;
-        overview.value = false;
-        play();
-      } else if (!entry.isIntersecting && playing.value) {
-        paused.value = true;
-      } else if (entry.isIntersecting) {
-        paused.value = false;
-      }
-    },
-    { threshold: 0.45 },
-  );
-  visibility.observe(frame.value);
 });
 
-onBeforeUnmount(() => {
-  stopTimer();
-  resize?.disconnect();
-  visibility?.disconnect();
+/**
+ * The ride starts the first time the stage is well in view and rests while it is out of view;
+ * with reduced motion it doesn't play by itself.
+ */
+useGsap(frame, ({ reduced }) => {
+  showView(true);
+  if (!reduced && frame.value) {
+    ScrollTrigger.create({
+      trigger: frame.value,
+      start: "top 75%",
+      end: "bottom 25%",
+      onToggle: (self) => {
+        outOfView.value = !self.isActive;
+        if (self.isActive && !started) {
+          started = true;
+          play();
+        }
+      },
+    });
+  } else if (reduced) pause();
+  return () => {
+    ride?.kill();
+    pause();
+  };
 });
+
+onBeforeUnmount(() => resize?.disconnect());
 </script>
 
 <template>
-  <div
-    class="tour"
-    :class="{ 'tour-still': reduceMotion }"
-  >
+  <div class="tour">
     <div
       ref="frame"
       class="tour-frame shadow-soft"
-      @mouseenter="paused = true"
-      @mouseleave="paused = false"
-      @focusin="paused = true"
-      @focusout="paused = false"
     >
       <div
+        ref="stage"
         class="tour-stage"
         :style="stageStyle"
       >
@@ -268,7 +367,6 @@ onBeforeUnmount(() => {
             :d="thread"
             pathLength="1"
             class="thread"
-            :class="{ 'thread-drawn': !overview && index > position }"
           />
           <rect
             v-for="(entry, position) in route.stops"
@@ -280,7 +378,7 @@ onBeforeUnmount(() => {
             rx="10"
             pathLength="1"
             class="scene-mark"
-            :class="{ 'scene-current': !overview && position === index, 'scene-passed': !overview && position < index }"
+            :class="{ 'scene-current': !overview && position === index }"
           />
         </svg>
       </div>
@@ -425,9 +523,8 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 0;
   left: 0;
+  /* Moved and scaled by GSAP. No will-change: the browser paints the picture again at the final scale, so it ends up sharp. */
   transform-origin: 0 0;
-  /* No will-change: the browser paints the picture again at the final scale, so it ends up sharp. */
-  transition: transform 1.1s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .tour-threads {
@@ -447,10 +544,6 @@ onBeforeUnmount(() => {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   filter: drop-shadow(0 0 6px var(--color-gold));
-  transition: stroke-dashoffset 0.8s ease 0.35s;
-}
-.thread-drawn {
-  stroke-dashoffset: 0;
 }
 .scene-mark {
   fill: none;
@@ -459,17 +552,9 @@ onBeforeUnmount(() => {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   opacity: 0;
-  transition:
-    stroke-dashoffset 0.6s ease 0.7s,
-    opacity 0.3s ease;
 }
-.scene-passed {
-  opacity: 0.55;
-  stroke-dashoffset: 0;
-}
+/* Threads and scene frames are drawn by GSAP (`stroke-dashoffset`, `opacity`); the glow stays CSS. */
 .scene-current {
-  opacity: 1;
-  stroke-dashoffset: 0;
   filter: drop-shadow(0 0 10px var(--color-gold-light));
   animation: scene-glow 2.4s ease-in-out 1.3s infinite;
 }
@@ -513,16 +598,17 @@ onBeforeUnmount(() => {
 .caption-enter-active,
 .caption-leave-active {
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    opacity var(--motion-duration-slow) var(--motion-ease-out),
+    transform var(--motion-duration-slow) var(--motion-ease-out);
 }
+/* The caption follows once the camera arrived. */
 .caption-enter-active {
-  transition-delay: 0.55s;
+  transition-delay: 0.9s;
 }
 .caption-enter-from,
 .caption-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(18px);
 }
 
 .step {
@@ -594,23 +680,6 @@ onBeforeUnmount(() => {
   }
 }
 
-.tour-still .tour-stage,
-.tour-still .thread,
-.tour-still .scene-mark,
-.tour-still .caption-enter-active,
-.tour-still .caption-leave-active {
-  transition: none;
-}
-.tour-still .scene-current {
-  animation: none;
-}
-:root[data-reduced-motion] .tour-stage,
-:root[data-reduced-motion] .thread,
-:root[data-reduced-motion] .scene-mark,
-:root[data-reduced-motion] .caption-enter-active,
-:root[data-reduced-motion] .caption-leave-active {
-  transition: none;
-}
 :root[data-reduced-motion] .scene-current {
   animation: none;
 }

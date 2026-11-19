@@ -8,7 +8,8 @@ import { useReducedMotion } from "./reducedMotion";
  * (selector text finds only the component's own elements), and everything it created is reverted
  * on unmount. `reduced` says whether to move at all: with reduced motion `setup` sets the end
  * state instead of animating. When the setting changes, the context is reverted and `setup` runs
- * again. A function returned from `setup` runs on revert (timers, listeners).
+ * again. A function returned from `setup` runs on revert (timers, listeners, animations started
+ * later outside the context).
  */
 export function useGsap(
   scope: Ref<HTMLElement | undefined | null>,

@@ -140,7 +140,12 @@ jobs:
         run: npm run i18n:check --workspace @dnd/frontend
       - run: npm run test:unit --workspace @dnd/contracts
       - run: npm run test:unit --workspace @dnd/frontend
+      # The frontend build prerenders the public pages in Chromium.
+      - run: npx playwright install --with-deps chromium
       - run: npm run build --workspace @dnd/frontend
+        env:
+          # A placeholder: canonical links, sitemap and prerendered pages need an absolute address.
+          VITE_SITE_URL: https://chronik.example
 
   # The generated frontend API types depend on both sides, so a change to either checks them.
   # Exporting the OpenAPI document needs no database.

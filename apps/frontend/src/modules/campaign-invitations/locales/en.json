@@ -1,0 +1,79 @@
+{
+  "list": {
+    "caption": "Pending invitations",
+    "columns": {
+      "target": "Invited",
+      "role": "Role",
+      "sent": "Sent",
+      "expires": "Valid until"
+    },
+    "empty": "No pending invitations.",
+    "note": "You can take an invitation back at any time. Accepted invitations appear under members.",
+    "actionsFor": "Actions for {target}",
+    "revoke": "Take back",
+    "revokeTitle": "Take back the invitation?",
+    "revokeText": "The link in the invitation to {target} stops working. You can invite again later.",
+    "sentOn": "sent {date}",
+    "until": "valid until {date}",
+    "accountGone": "Account no longer exists"
+  },
+  "invite": {
+    "title": "Invite players",
+    "section": "Invitation",
+    "sectionHint": "Whom you invite and in which role",
+    "intro": "Invite to the campaign {campaign}. The invitation arrives by email with a link to accept it.",
+    "by": "Invite by",
+    "byEmail": "Email address",
+    "byTag": "User tag",
+    "email": "Email address",
+    "emailHint": "No account needed: whoever has none creates one when accepting.",
+    "userTag": "User tag",
+    "userTagHint": "It's in the profile, e.g. mira#123456.",
+    "check": "Check",
+    "found": "Found: {name}",
+    "notFound": "There is no account with this user tag.",
+    "role": "Role",
+    "roleHints": {
+      "PLAYER": "Sees their own character and everything revealed to players.",
+      "EDITOR": "Works on the world and its content and also sees drafts."
+    },
+    "expires": "Valid for",
+    "days": "{count} day | {count} day | {count} days",
+    "send": "Send invitation",
+    "validation": {
+      "email": "Please enter a valid email address.",
+      "userTag": "Please enter a user tag."
+    },
+    "conflict": "This address has a pending invitation already, or the person is a member."
+  },
+  "mine": {
+    "title": "Invitations",
+    "count": "One invitation is waiting | One invitation is waiting | {count} invitations are waiting",
+    "from": "From {name} · as {role}",
+    "fromUnknown": "As {role}",
+    "until": "Valid until {date}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "declined": "Invitation to {campaign} declined."
+  },
+  "accept": {
+    "title": "Accept invitation",
+    "subtitle": "You have been invited to a campaign.",
+    "signedInAs": "Signed in as {name} ({email}).",
+    "question": "Do you want to join the campaign?",
+    "submit": "Accept invitation",
+    "toDashboard": "Go to the dashboard",
+    "signInFirst": "Sign in, or create an account with the email address the invitation was sent to. You'll continue here afterwards.",
+    "signIn": "Sign in",
+    "register": "Create an account",
+    "noToken": "This link is incomplete. Open the link from the invitation email again or look for your invitations on the dashboard.",
+    "switchAccount": "Sign in with another account"
+  },
+  "errors": {
+    "notFound": "This invitation no longer exists, or it is meant for another email address than your account's.",
+    "expired": "This invitation has expired. Ask the game master for a new one.",
+    "changed": "This invitation has just been answered or taken back.",
+    "unverified": "Confirm your account's email address first, then you can accept the invitation.",
+    "member": "You are a member of this campaign already, so the invitation is settled."
+  }
+}

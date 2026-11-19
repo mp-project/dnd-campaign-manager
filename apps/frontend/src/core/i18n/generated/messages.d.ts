@@ -2,6 +2,8 @@
 
 export type MessageSchema = {
   "auth": typeof import("../../../modules/auth/locales/de.json");
+  "campaign-invitations": typeof import("../../../modules/campaign-invitations/locales/de.json");
+  "campaign-memberships": typeof import("../../../modules/campaign-memberships/locales/de.json");
   "campaigns": typeof import("../../../modules/campaigns/locales/de.json");
   "common": typeof import("../../../locales/de/common.json");
   "contact": typeof import("../../../modules/contact/locales/de.json");

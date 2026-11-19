@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "sharing": "Sharing"
+  },
+  "title": "Sharing",
+  "subtitle": "Manage your campaign's members and invitations",
+  "mobileSubtitle": "Members and invitations",
+  "breadcrumbCampaign": "Campaign",
+  "invite": "Invite players",
+  "inviteShort": "Invite",
+  "tabsLabel": "Sharing sections",
+  "tabs": {
+    "members": "Members",
+    "membersCount": "Members ({count})",
+    "invitations": "Invitations",
+    "invitationsCount": "Invitations ({count})"
+  },
+  "members": {
+    "caption": "Members of the campaign",
+    "columns": {
+      "member": "Member",
+      "role": "Role",
+      "joined": "Member since"
+    },
+    "you": "You",
+    "empty": "No members yet. Invite your group.",
+    "actionsFor": "Actions for {name}",
+    "changeRole": "Change role",
+    "roleOf": "Role of {name}",
+    "roleHint": "Co-authors work on the world and its content and also see drafts. Players see their character and whatever has been revealed to them.",
+    "remove": "Remove from the campaign",
+    "removeTitle": "Remove {name}?",
+    "removeText": "{name} loses access to this campaign. Characters and content stay. You can invite them again later.",
+    "removeSelfText": "You leave this campaign and lose access to it. The game master can invite you again.",
+    "removeConfirm": "Remove",
+    "ownerHint": "The game master owns the campaign; their role can't be changed."
+  }
+}

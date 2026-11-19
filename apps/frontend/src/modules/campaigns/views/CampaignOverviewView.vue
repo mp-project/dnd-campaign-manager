@@ -20,9 +20,10 @@ import { errorMessageKey } from "@/core/api/errors";
 import { useCurrentCampaign } from "@/core/campaign/campaign";
 import { useAppI18n } from "@/core/i18n";
 import { useFormat } from "@/core/i18n/format";
+import { membersQuery } from "@/modules/campaign-memberships/queries";
 
 import RoleBadge from "../components/RoleBadge.vue";
-import { membersQuery, rulesetsQuery } from "../queries";
+import { rulesetsQuery } from "../queries";
 
 const { t } = useAppI18n();
 const { date, number } = useFormat();
@@ -156,7 +157,7 @@ function initials(name: string): string {
                 <span class="name-link block truncate">{{ member.displayName }}</span>
                 <span class="meta block truncate">{{ member.userTag }}</span>
               </span>
-              <RoleBadge :role="member.role" />
+              <RoleBadge :role="member.isOwner ? 'OWNER' : member.role" />
             </li>
           </ul>
         </SectionCard>

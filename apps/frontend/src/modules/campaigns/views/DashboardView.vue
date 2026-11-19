@@ -2,7 +2,8 @@
 /**
  * Start page after signing in: the account's campaigns, split into those it leads (game master)
  * and those it joined, with search and a filter; "Kampagne erstellen" for accounts allowed to.
- * Owned campaigns open the game master's area, joined ones as player the player view.
+ * Owned campaigns open the game master's area, joined ones as player the player view. Pending
+ * invitations show above them (`MyInvitationsCard` of `campaign-invitations`).
  */
 import { useQuery } from "@tanstack/vue-query";
 import { computed, ref } from "vue";
@@ -18,6 +19,7 @@ import { errorMessageKey } from "@/core/api/errors";
 import { type Campaign, useMyCampaigns } from "@/core/campaign/campaign";
 import { useAppI18n } from "@/core/i18n";
 import { useCan } from "@/core/permissions/useCan";
+import MyInvitationsCard from "@/modules/campaign-invitations/components/MyInvitationsCard.vue";
 
 import CampaignCard from "../components/CampaignCard.vue";
 import CreateCampaignDialog from "../components/CreateCampaignDialog.vue";
@@ -95,6 +97,8 @@ function reset(): void {
       />
     </template>
   </PageHeader>
+
+  <MyInvitationsCard class="mb-5" />
 
   <p
     v-if="campaigns.isPending.value"

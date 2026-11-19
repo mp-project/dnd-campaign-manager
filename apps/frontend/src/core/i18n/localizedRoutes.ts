@@ -41,3 +41,9 @@ export function useHomePath() {
   const { locale } = useAppI18n();
   return computed(() => localizedPath("", matchLocale(String(locale.value)) ?? DEFAULT_LOCALE));
 }
+
+/** A public page made with `localizedRoutes` (its base `name`) in the active language, as a link target. */
+export function useLocalizedPage(name: string) {
+  const { locale } = useAppI18n();
+  return computed(() => ({ name: localizedRouteName(name, matchLocale(String(locale.value)) ?? DEFAULT_LOCALE) }));
+}

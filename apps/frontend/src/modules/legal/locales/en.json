@@ -70,6 +70,10 @@
       "title": "Emails",
       "body": "We send you the emails your account needs: confirmation codes, password reset links, notices about changes to your email address and invitations to campaigns."
     },
+    "contact": {
+      "title": "Contact form",
+      "body": "When you write to us through the contact form, we process your first name, last name, email address, topic and message to answer your request. The details reach our team by email and are not stored in the app. We delete the email once your request is settled and no retention obligation applies."
+    },
     "push": {
       "title": "Push notifications",
       "body": "If you allow push notifications, we use the Pusher Beams service for them, which receives an identifier of your browser. You can turn the notifications off in your browser at any time."

@@ -10,8 +10,9 @@ import { createAppI18n, setLocale } from "@/core/i18n";
 import { localizedPath, localizedRouteName } from "@/core/i18n/localizedRoutes";
 import { defineFrontendModule } from "@/core/modules";
 import { authModule } from "@/modules/auth";
+import { contactModule } from "@/modules/contact";
 import { landingModule } from "@/modules/landing";
-import { demoScreenUrl, demoUrl } from "@/modules/landing/demo";
+import { demoScreenUrl, demoUrl } from "@/core/demo";
 import LandingView from "@/modules/landing/views/LandingView.vue";
 import { legalModule } from "@/modules/legal";
 
@@ -25,7 +26,7 @@ const pages = defineFrontendModule({
 function landingRouter() {
   return createRouter({
     history: createMemoryHistory(),
-    routes: buildRoutes([landingModule, authModule, legalModule, pages]),
+    routes: buildRoutes([landingModule, authModule, legalModule, contactModule, pages]),
   });
 }
 
@@ -108,7 +109,15 @@ describe("landing page", () => {
       ]),
     );
     expect(wrapper.find("#landing-marketplace").text()).toBe("Inhalte teilen und entdecken");
-    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/login", "/datenschutz", "/impressum"]));
+    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/login", "/datenschutz", "/impressum", "/faq"]));
+    // The header leads to the FAQ, the footer to privacy, imprint and FAQ.
+    expect(wrapper.find("header").findAll("a").map((link) => link.text())).toContain("Häufige Fragen");
+    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
+      "/datenschutz",
+      "/impressum",
+      "/faq",
+      "/kontakt",
+    ]);
     expect(hrefs(wrapper)).not.toContain("/dashboard");
     // Visitors without a session cost the API nothing.
     expect(fetchSpy).not.toHaveBeenCalled();

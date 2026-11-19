@@ -1,7 +1,7 @@
 /**
  * Address of the public demo (the clickdummy, served by its own container on a subdomain), set at
- * build time with `VITE_DEMO_URL`. Only absolute http(s) addresses count; without one the start
- * page leaves the demo links out.
+ * build time with `VITE_DEMO_URL`. Only absolute http(s) addresses count; without one the public
+ * pages leave the demo links out.
  */
 export function demoUrl(value: string | undefined = import.meta.env.VITE_DEMO_URL): string | null {
   const url = value?.trim();

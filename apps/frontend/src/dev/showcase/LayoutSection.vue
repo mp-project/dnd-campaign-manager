@@ -7,6 +7,7 @@ import CompassRose from "@/components/layout/CompassRose.vue";
 import NavFooter from "@/components/layout/NavFooter.vue";
 import NavTree from "@/components/layout/NavTree.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
+import SiteFooter from "@/components/layout/SiteFooter.vue";
 import SiteHeader from "@/components/layout/SiteHeader.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
@@ -282,6 +283,35 @@ const playerBottom: BottomNavTarget[] = [
         >
           <span class="text-[15px]">Anmelden</span>
         </SiteHeader>
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="SiteFooter"
+      description="Fuß aller öffentlichen Seiten: Ruinen, deren Bergkamm in den Abschnitt darüber ragt, eigener Inhalt (Standard: Aufruf der Startseite) und die Links zu Datenschutz, Impressum und FAQ"
+    >
+      <ShowcaseVariant
+        label="Standard: Aufruf der Startseite"
+        dark
+      >
+        <div class="w-full pt-24">
+          <SiteFooter heading-id="showcase-site-footer" />
+        </div>
+      </ShowcaseVariant>
+      <ShowcaseVariant
+        label="eigener Inhalt"
+        dark
+      >
+        <div class="w-full pt-24">
+          <SiteFooter>
+            <h2 class="mt-4 font-heading text-[28px] font-bold text-parchment">
+              Noch Fragen?
+            </h2>
+            <p class="mt-3 text-parchment/85">
+              Die häufigsten Antworten stehen in den FAQ.
+            </p>
+          </SiteFooter>
+        </div>
       </ShowcaseVariant>
     </ShowcaseComponent>
 

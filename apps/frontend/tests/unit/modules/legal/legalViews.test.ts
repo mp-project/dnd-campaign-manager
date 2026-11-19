@@ -5,6 +5,8 @@ import { createMemoryHistory, createRouter, createWebHistory } from "vue-router"
 import { buildRoutes } from "@/app/router";
 import { defineFrontendModule } from "@/core/modules";
 import { authModule } from "@/modules/auth";
+import { contactModule } from "@/modules/contact";
+import { landingModule } from "@/modules/landing";
 import { legalModule } from "@/modules/legal";
 import ImprintView from "@/modules/legal/views/ImprintView.vue";
 import PrivacyView from "@/modules/legal/views/PrivacyView.vue";
@@ -17,7 +19,7 @@ const pages = defineFrontendModule({
 });
 
 async function open(component: typeof ImprintView, url: string, locale = "de") {
-  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, legalModule, pages]) });
+  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, legalModule, landingModule, contactModule, pages]) });
   await router.push(url);
   const { wrapper } = await mountWithApp(component, { router, locale });
   return { wrapper, router };
@@ -37,14 +39,24 @@ describe("legal pages", () => {
     const { wrapper } = await open(PrivacyView, "/datenschutz", "en");
     expect(wrapper.find("h1").text()).toBe("Privacy");
     expect(wrapper.text()).toContain("Signing in with Google or Discord");
-    const footer = wrapper.find("footer").findAll("a").map((link) => link.attributes("href"));
-    expect(footer).toEqual(["/datenschutz", "/impressum"]);
+    // The footer of every public page: the start page's call to action, then privacy, imprint and FAQ.
+    const footer = wrapper.find("footer");
+    expect(footer.find("h2").text()).toBe("Ready for the next adventure?");
+    expect(footer.findAll("a").map((link) => link.attributes("href"))).toEqual(
+      expect.arrayContaining(["/registrieren", "/login"]),
+    );
+    expect(footer.find("nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
+      "/datenschutz",
+      "/impressum",
+      "/en/faq",
+      "/en/kontakt",
+    ]);
     wrapper.unmount();
   });
 
   it("goes back where the visitor came from", async () => {
     // The browser history knows the previous page of the app (`state.back`).
-    const router = createRouter({ history: createWebHistory(), routes: buildRoutes([authModule, legalModule, pages]) });
+    const router = createRouter({ history: createWebHistory(), routes: buildRoutes([authModule, legalModule, landingModule, contactModule, pages]) });
     await router.push("/login");
     await router.push("/impressum");
     const { wrapper } = await mountWithApp(ImprintView, { router });

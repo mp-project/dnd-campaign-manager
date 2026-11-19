@@ -210,5 +210,16 @@
   },
   "seo": {
     "imageAlt": "Chronik – campaign manager for D&D 5E: a dragon over moonlit ruins"
+  },
+  "siteFooter": {
+    "title": "Ready for the next adventure?",
+    "text": "Try the demo, or create your account and set up your first campaign.",
+    "register": "Create an account",
+    "toApp": "Go to my campaigns",
+    "demo": "Try the demo",
+    "signIn": "Already have an account? Sign in",
+    "faq": "FAQ",
+    "navLabel": "Legal and help",
+    "contact": "Contact"
   }
 }

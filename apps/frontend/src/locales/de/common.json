@@ -210,5 +210,16 @@
   },
   "seo": {
     "imageAlt": "Chronik – Kampagnenverwaltung für D&D 5E: ein Drache über mondbeschienenen Ruinen"
+  },
+  "siteFooter": {
+    "title": "Bereit für das nächste Abenteuer?",
+    "text": "Sieh dir die Demo an oder erstelle dein Konto und lege deine erste Kampagne an.",
+    "register": "Konto erstellen",
+    "toApp": "Zu meinen Kampagnen",
+    "demo": "Demo ansehen",
+    "signIn": "Schon ein Konto? Anmelden",
+    "faq": "Häufige Fragen",
+    "navLabel": "Rechtliches und Hilfe",
+    "contact": "Kontakt"
   }
 }

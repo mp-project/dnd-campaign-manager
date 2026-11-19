@@ -70,6 +70,10 @@
       "title": "E-Mails",
       "body": "Wir schicken dir E-Mails, die für dein Konto nötig sind: Bestätigungscodes, Links zum Zurücksetzen des Passworts, Hinweise zu Änderungen deiner E-Mail-Adresse und Einladungen in Kampagnen."
     },
+    "contact": {
+      "title": "Kontaktformular",
+      "body": "Wenn du uns über das Kontaktformular schreibst, verarbeiten wir Vorname, Nachname, E-Mail-Adresse, Thema und Nachricht, um deine Anfrage zu beantworten. Die Angaben gehen per E-Mail an unser Team und werden nicht in der App gespeichert. Wir löschen die E-Mail, sobald deine Anfrage erledigt ist und keine Aufbewahrungspflicht besteht."
+    },
     "push": {
       "title": "Push-Benachrichtigungen",
       "body": "Wenn du Push-Benachrichtigungen erlaubst, nutzen wir dafür den Dienst Pusher Beams. Dabei wird eine Kennung deines Browsers übermittelt. Du kannst die Benachrichtigungen jederzeit in deinem Browser abschalten."

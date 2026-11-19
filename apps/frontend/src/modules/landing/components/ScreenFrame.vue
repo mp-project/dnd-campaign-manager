@@ -6,7 +6,7 @@
 import Icon from "@/components/base/Icon.vue";
 import { useAppI18n } from "@/core/i18n";
 
-import { demoScreenUrl } from "../demo";
+import { demoScreenUrl } from "@/core/demo";
 import { SCREEN_HEIGHT, SCREEN_WIDTH, type Screen } from "../screens";
 
 const props = defineProps<{ screen: Screen }>();

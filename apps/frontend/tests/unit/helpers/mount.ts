@@ -1,3 +1,4 @@
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { mount, type ComponentMountingOptions } from "@vue/test-utils";
 import type { Component } from "vue";
 import { createMemoryHistory, createRouter, type Router } from "vue-router";
@@ -28,8 +29,9 @@ export function testRouter() {
 }
 
 /**
- * Mounts a component the way the app runs it: German messages (or `locale`) and a router (a
- * catch-all one, or `router` with real routes).
+ * Mounts a component the way the app runs it: German messages (or `locale`), a router (a
+ * catch-all one, or `router` with real routes) and a query client (an empty one, unless the test
+ * passes its own `VueQueryPlugin`).
  * Attached to the document, so teleported content (menus, dialogs) can be found in `document.body`.
  */
 export async function mountWithApp<C extends Component>(
@@ -38,10 +40,13 @@ export async function mountWithApp<C extends Component>(
 ) {
   const { locale = "de", global, router = testRouter(), ...rest } = options;
   const i18n = await i18nFor(locale);
+  const plugins = global?.plugins ?? [];
+  const ownQueryClient = plugins.some((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) === VueQueryPlugin);
+  const queryPlugin = ownQueryClient ? [] : [[VueQueryPlugin, { queryClient: new QueryClient() }]];
   const wrapper = mount(component, {
     attachTo: document.body,
     ...rest,
-    global: { ...global, plugins: [i18n, router, ...(global?.plugins ?? [])] },
+    global: { ...global, plugins: [i18n, router, ...queryPlugin, ...plugins] },
   } as ComponentMountingOptions<C>);
   return { wrapper, router };
 }

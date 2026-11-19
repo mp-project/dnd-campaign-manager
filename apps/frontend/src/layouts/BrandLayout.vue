@@ -2,19 +2,19 @@
 /**
  * Brand layout of the pages outside the app (sign-in, legal notice, privacy): navy background,
  * the sticky site header with the brand and a switch link, a parchment card with the compass
- * rose, title and subtitle, and the legal links in the footer. `size`: `narrow` for short forms, `wide` for text.
+ * rose, title and subtitle, and the footer of every public page (`SiteFooter`). `size`: `narrow`
+ * for short forms, `wide` for text. The `closing` slot replaces the footer's call to action.
  */
 import CompassRose from "@/components/layout/CompassRose.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
+import SiteFooter from "@/components/layout/SiteFooter.vue";
 import SiteHeader from "@/components/layout/SiteHeader.vue";
-import { useAppI18n } from "@/core/i18n";
 
 withDefaults(defineProps<{ title: string; subtitle?: string; size?: "narrow" | "default" | "wide" }>(), {
   subtitle: undefined,
   size: "default",
 });
-defineSlots<{ default(): unknown; switch?(): unknown; footer?(): unknown }>();
-const { t } = useAppI18n();
+defineSlots<{ default(): unknown; switch?(): unknown; footer?(): unknown; closing?(): unknown }>();
 
 const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } as const;
 </script>
@@ -30,7 +30,7 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
       </div>
     </SiteHeader>
 
-    <main class="relative z-10 flex flex-1 items-start justify-center px-4 py-6 md:items-center md:py-10">
+    <main class="relative z-10 flex flex-1 items-start justify-center px-4 pt-6 pb-16 md:items-center md:pt-10 md:pb-28">
       <ParchmentFrame
         class="w-full rounded-card px-5 py-7 text-ink shadow-soft md:px-12 md:py-9"
         :class="WIDTH[size]"
@@ -74,23 +74,13 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
       </ParchmentFrame>
     </main>
 
-    <footer class="relative z-10 flex items-center justify-center gap-4 border-t border-navy-line py-3 text-[14px] text-parchment/80">
-      <RouterLink
-        :to="{ name: 'legal-privacy' }"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
+    <SiteFooter>
+      <template
+        v-if="$slots.closing"
+        #default
       >
-        {{ t("common.legal.privacy") }}
-      </RouterLink>
-      <span
-        class="h-4 w-px bg-navy-line"
-        aria-hidden="true"
-      />
-      <RouterLink
-        :to="{ name: 'legal-imprint' }"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
-      >
-        {{ t("common.legal.imprint") }}
-      </RouterLink>
-    </footer>
+        <slot name="closing" />
+      </template>
+    </SiteFooter>
   </div>
 </template>

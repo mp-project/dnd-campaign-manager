@@ -21,7 +21,11 @@ export function buildRoutes(modules: readonly FrontendModule[]): RouteRecordRaw[
   return [
     // Development only: all building blocks on one page (not in the production build).
     ...(import.meta.env.DEV
-      ? [{ path: "/_bausteine", name: "dev-components", component: () => import("@/dev/ComponentsShowcase.vue") }]
+      ? [
+          { path: "/_bausteine", name: "dev-components", component: () => import("@/dev/ComponentsShowcase.vue") },
+          // The preview pictures of the public pages, photographed by `npm run og:images`.
+          { path: "/_vorschaubild/:variant(start|seite)", name: "dev-og-image", component: () => import("@/dev/OgImageView.vue") },
+        ]
       : []),
     // Before the account area, whose parent also sits at `/`: the start page (the bare area's empty
     // child) must win there, not the shell without a page. The catch-all ranks last anyway.

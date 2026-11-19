@@ -15,6 +15,7 @@ import PasswordInput from "@/components/base/PasswordInput.vue";
 import TextInput from "@/components/base/TextInput.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import { useAppI18n } from "@/core/i18n";
+import { usePageMeta } from "@/core/seo/pageMeta";
 import BrandLayout from "@/layouts/BrandLayout.vue";
 import { isDisplayName, isEmail, isPassword, PASSWORD_MIN_LENGTH } from "@/core/auth/accountRules";
 
@@ -26,6 +27,7 @@ import { browserSettings, isUsername, optionalUsername } from "../form";
 import { useAuthRedirect } from "../redirect";
 
 const { t, locale } = useAppI18n();
+usePageMeta({ title: () => t("auth.register.title"), description: () => t("auth.register.description") });
 const errorText = useAuthErrorText();
 const router = useRouter();
 

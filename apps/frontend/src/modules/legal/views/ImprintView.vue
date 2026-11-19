@@ -18,6 +18,7 @@ const sections: LegalSection[] = [
   <LegalDocument
     title="legal.imprint.title"
     subtitle="legal.imprint.subtitle"
+    description="legal.imprint.description"
     :sections="sections"
   />
 </template>

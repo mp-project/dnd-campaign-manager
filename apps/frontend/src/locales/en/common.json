@@ -207,5 +207,8 @@
     "label": "Hit points {hp} of {max}",
     "labelWithTemp": "Hit points {hp} of {max}, {temp} temporary",
     "temp": "{temp} temporary HP"
+  },
+  "seo": {
+    "imageAlt": "Chronik – campaign manager for D&D 5E: a dragon over moonlit ruins"
   }
 }

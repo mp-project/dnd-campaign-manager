@@ -207,5 +207,8 @@
     "label": "Trefferpunkte {hp} von {max}",
     "labelWithTemp": "Trefferpunkte {hp} von {max}, {temp} temporär",
     "temp": "{temp} temporäre TP"
+  },
+  "seo": {
+    "imageAlt": "Chronik – Kampagnenverwaltung für D&D 5E: ein Drache über mondbeschienenen Ruinen"
   }
 }

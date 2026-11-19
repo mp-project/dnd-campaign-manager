@@ -17,6 +17,7 @@ import InfoNote from "@/components/page/InfoNote.vue";
 import { isApiError } from "@/core/api/errors";
 import { clearSessionCache } from "@/core/api/queryClient";
 import { useAppI18n } from "@/core/i18n";
+import { usePageMeta } from "@/core/seo/pageMeta";
 import BrandLayout from "@/layouts/BrandLayout.vue";
 import { isEmail } from "@/core/auth/accountRules";
 
@@ -28,6 +29,7 @@ import { emailFromHistory } from "../form";
 import { useAuthRedirect } from "../redirect";
 
 const { t } = useAppI18n();
+usePageMeta({ title: () => t("auth.login.title"), description: () => t("auth.login.description") });
 const errorText = useAuthErrorText();
 const route = useRoute();
 const router = useRouter();

@@ -36,7 +36,8 @@
     "content": {
       "title": "Inhalte der Nutzerinnen und Nutzer",
       "body": "Kampagnen, Notizen, Bilder und andere Inhalte legen die Nutzerinnen und Nutzer selbst an. Für diese Inhalte sind sie selbst verantwortlich. Hinweise auf rechtswidrige Inhalte nehmen wir unter der oben genannten Adresse entgegen und prüfen sie umgehend."
-    }
+    },
+    "description": "Impressum von Chronik: Anbieter, Kontakt und Verantwortliche für die Kampagnenverwaltung für D&D 5E."
   },
   "privacy": {
     "title": "Datenschutz",
@@ -80,6 +81,7 @@
     "rights": {
       "title": "Deine Rechte",
       "body": "Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Wende dich dafür an die oben genannte Adresse. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren."
-    }
+    },
+    "description": "Datenschutzerklärung von Chronik: welche Daten die Kampagnenverwaltung speichert, wofür und welche Rechte du hast."
   }
 }

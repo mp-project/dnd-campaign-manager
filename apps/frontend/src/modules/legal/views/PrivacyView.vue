@@ -20,6 +20,7 @@ const sections: LegalSection[] = [
   <LegalDocument
     title="legal.privacy.title"
     subtitle="legal.privacy.subtitle"
+    description="legal.privacy.description"
     :sections="sections"
   />
 </template>

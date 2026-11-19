@@ -17,7 +17,7 @@ import SiteHeader from "@/components/layout/SiteHeader.vue";
 import { meQuery } from "@/core/auth/session";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
-import { usePageMeta } from "@/core/i18n/pageMeta";
+import { usePageMeta } from "@/core/seo/pageMeta";
 import { vReveal } from "@/core/motion/reveal";
 
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";

@@ -14,7 +14,8 @@
     "test:unit:watch": "vitest",
     "api:types": "npm run -s openapi:export --workspace @dnd/backend -- ../frontend/.openapi/openapi.json && openapi-typescript .openapi/openapi.json -o src/core/api/generated/schema.d.ts",
     "i18n:check": "node scripts/i18n.ts check",
-    "i18n:types": "node scripts/i18n.ts types"
+    "i18n:types": "node scripts/i18n.ts types",
+    "og:images": "node scripts/og-images.ts"
   },
   "dependencies": {
     "@dnd/contracts": "0.1.0",

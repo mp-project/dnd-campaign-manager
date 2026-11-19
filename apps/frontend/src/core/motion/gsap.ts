@@ -6,11 +6,12 @@
  */
 import { gsap } from "gsap";
 import { CustomEase } from "gsap/CustomEase";
+import { Flip } from "gsap/Flip";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { type MotionEase, motionBezier, motionDuration } from "./tokens";
 
-gsap.registerPlugin(ScrollTrigger, CustomEase);
+gsap.registerPlugin(ScrollTrigger, CustomEase, Flip);
 
 /** GSAP's nearest curve, where a token is missing (tests without CSS). */
 const FALLBACK_EASES: Record<MotionEase, string> = {
@@ -54,5 +55,5 @@ document.addEventListener(
   true,
 );
 
-export { gsap, ScrollTrigger };
+export { Flip, gsap, ScrollTrigger };
 export { motionDuration } from "./tokens";

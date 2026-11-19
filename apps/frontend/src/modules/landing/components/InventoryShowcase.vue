@@ -3,10 +3,11 @@
  * The inventory feature as a living list of Arvel Merad's items: it plays a small loop in which
  * loot is taken in, the list sorts itself by category and by quantity, a healing potion is drunk,
  * the spellbook goes to another character and a new potion is bought. Rows move to their new
- * place, the carrying load follows the quantities. The visitor can sort and use items; the loop
- * then stops and leaves the list to them. With reduced motion the loop doesn't play by itself.
+ * place (GSAP Flip), new ones slide in and gone ones out, pressed buttons spring, quantities jump
+ * and the carrying load follows. The visitor can sort and use items; the loop then stops and
+ * leaves the list to them. With reduced motion nothing moves and the loop doesn't play by itself.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
@@ -15,7 +16,9 @@ import SegmentedControl from "@/components/base/SegmentedControl.vue";
 import { useAppI18n } from "@/core/i18n";
 import { useFormat } from "@/core/i18n/format";
 import type { MessageKey } from "@/core/i18n/keys";
+import { Flip, gsap, motionEase, ScrollTrigger } from "@/core/motion/gsap";
 import { useReducedMotion } from "@/core/motion/reducedMotion";
+import { useGsap } from "@/core/motion/useGsap";
 
 import bronzeSeal from "../assets/items/bronzenes-siegel.webp";
 import potion from "../assets/items/heiltrank.webp";
@@ -76,31 +79,33 @@ const lit = ref<ItemId | null>(null);
 const event = ref<{ key: number; icon: IconName; label: string; tone: "add" | "use" | "sort" | "give" } | null>(null);
 const delta = ref<{ key: number; id: ItemId; text: string } | null>(null);
 let eventKey = 0;
-/** Light and rising number end after their animation (also without one, under reduced motion). */
+/** Light and rising number end after a moment (also under reduced motion). */
 const FLASH_MS = 1600;
-let flashTimer: ReturnType<typeof setTimeout> | undefined;
+let flashCall: gsap.core.Tween | undefined;
 
-/** The button just pressed (by the visitor or by the loop), red for a moment. */
+/** The button just pressed (by the visitor or by the loop): red for a moment, it gives and springs back. */
 const PRESS_MS = 700;
 const pressed = ref<ItemId | "add" | null>(null);
-let pressTimer: ReturnType<typeof setTimeout> | undefined;
+let pressCall: gsap.core.Tween | undefined;
 
 function press(id: ItemId | "add") {
-  if (pressTimer) clearTimeout(pressTimer);
-  pressed.value = null;
-  // A fresh frame, so pressing the same button again plays the animation again.
-  requestAnimationFrame(() => {
-    pressed.value = id;
-    pressTimer = setTimeout(() => (pressed.value = null), PRESS_MS);
-  });
+  pressed.value = id;
+  pressCall?.kill();
+  pressCall = gsap.delayedCall(PRESS_MS / 1000, () => (pressed.value = null));
+  const button = panel.value?.querySelector(`[data-press="${id}"]`);
+  if (!button || reduceMotion.value) return;
+  gsap
+    .timeline()
+    .to(button, { scale: 0.86, duration: 0.12, ease: motionEase("out") })
+    .to(button, { scale: 1, duration: 0.6, ease: "elastic.out(1.2, 0.4)" });
 }
 
 function flash() {
-  if (flashTimer) clearTimeout(flashTimer);
-  flashTimer = setTimeout(() => {
+  flashCall?.kill();
+  flashCall = gsap.delayedCall(FLASH_MS / 1000, () => {
     lit.value = null;
     delta.value = null;
-  }, FLASH_MS);
+  });
 }
 
 const itemName = (id: ItemId) => t(`landing.inventory.items.${id}` as MessageKey);
@@ -135,7 +140,11 @@ function announce(icon: IconName, label: string, tone: "add" | "use" | "sort" | 
 
 function changeQty(id: ItemId, by: number) {
   const row = rows.value.find((entry) => entry.id === id);
-  if (row) row.qty = Math.max(0, row.qty + by);
+  if (!row) return;
+  row.qty = Math.max(0, row.qty + by);
+  // The quantity jumps when it changes.
+  const qty = panel.value?.querySelector(`[data-qty="${id}"]`);
+  if (qty && !reduceMotion.value) gsap.fromTo(qty, { scale: 1.6 }, { scale: 1, duration: 0.6, ease: motionEase("spring") });
 }
 
 function addSpellbook() {
@@ -189,28 +198,28 @@ const STORY: Array<() => void> = [
 ];
 
 const stage = ref<HTMLElement | null>(null);
+const panel = ref<HTMLElement | null>(null);
+const list = ref<HTMLElement | null>(null);
+const loadBar = ref<HTMLElement | null>(null);
 const reduceMotion = useReducedMotion();
 let step = 0;
-let visible = false;
 let stopped = false;
-let timer: ReturnType<typeof setTimeout> | undefined;
-let visibility: IntersectionObserver | undefined;
+let next: gsap.core.Tween | undefined;
 
+/** The next event of the loop; each one plans the one after it. */
 function schedule() {
-  if (timer) clearTimeout(timer);
-  timer = setTimeout(() => {
-    timer = undefined;
-    if (!visible || stopped) return;
+  next?.kill();
+  next = gsap.delayedCall(EVENT_MS / 1000, () => {
     STORY[step % STORY.length]!();
     step += 1;
     schedule();
-  }, EVENT_MS);
+  });
 }
 
 function takeOver() {
   stopped = true;
-  if (timer) clearTimeout(timer);
-  timer = undefined;
+  next?.kill();
+  next = undefined;
 }
 
 function chooseSort(key: SortKey) {
@@ -228,24 +237,99 @@ function addByHand() {
   addSpellbook();
 }
 
-onMounted(() => {
-  if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !stage.value) return;
-  visibility = new IntersectionObserver(
-    ([entry]) => {
-      if (!entry) return;
-      visible = entry.isIntersecting;
-      if (visible && !timer && !stopped) schedule();
-    },
-    { threshold: 0.35 },
+// ---- Motion -----------------------------------------------------------------------------------
+
+/** The carrying load as a bar, scaled instead of resized. */
+function paintLoad(immediate: boolean) {
+  if (!loadBar.value) return;
+  const scaleX = Math.min(1, load.value / CAPACITY);
+  if (immediate || reduceMotion.value) gsap.set(loadBar.value, { scaleX });
+  else gsap.to(loadBar.value, { scaleX, duration: 0.8, ease: motionEase("out") });
+}
+watch(load, () => paintLoad(false));
+
+/** When the order changes, every row glides from its old place to its new one (Flip). */
+const order = () => sorted.value.map((row) => row.id).join();
+let before: Flip.FlipState | undefined;
+const rowsIn = () => gsap.utils.toArray<HTMLElement>(list.value?.querySelectorAll(".row:not(.row-leaving)") ?? []);
+watch(order, () => (before = reduceMotion.value ? undefined : Flip.getState(rowsIn())), { flush: "pre" });
+watch(
+  order,
+  () => {
+    if (!before) return;
+    Flip.from(before, { targets: rowsIn(), duration: 0.7, ease: motionEase("in-out") });
+    before = undefined;
+  },
+  { flush: "post" },
+);
+
+/** New rows slide in from the right, rows that go slide out to the left while the others close up. */
+function rowEnter(el: Element, done: () => void) {
+  if (reduceMotion.value) return done();
+  gsap.fromTo(
+    el,
+    { autoAlpha: 0, x: 60, scale: 0.94 },
+    { autoAlpha: 1, x: 0, scale: 1, duration: 0.6, ease: motionEase("out"), clearProps: "transform,opacity,visibility", onComplete: done },
   );
-  visibility.observe(stage.value);
+}
+function rowLeave(el: Element, done: () => void) {
+  if (reduceMotion.value) return done();
+  const row = el as HTMLElement;
+  row.classList.add("row-leaving");
+  gsap.set(row, { position: "absolute", top: row.offsetTop, left: 0, right: 0 });
+  gsap.to(row, { autoAlpha: 0, x: -60, duration: 0.5, ease: motionEase("in-out"), onComplete: done });
+}
+
+/** The row that changed lights up and swells for a moment. */
+watch(lit, async (id) => {
+  if (!id || reduceMotion.value) return;
+  await nextTick();
+  const row = list.value?.querySelector(`[data-row="${id}"]`);
+  if (!row) return;
+  gsap
+    .timeline()
+    .fromTo(row, { scale: 1 }, { scale: 1.04, duration: 0.25, ease: motionEase("out") })
+    .to(row, { scale: 1, duration: 0.5, ease: motionEase("spring") });
+});
+
+/** What a use or a purchase changed rises beside the quantity and fades away upwards. */
+function deltaEnter(el: Element, done: () => void) {
+  if (reduceMotion.value) return done();
+  gsap.fromTo(el, { autoAlpha: 0, y: 14, scale: 0.7 }, { autoAlpha: 1, y: 0, scale: 1.15, duration: 0.5, ease: motionEase("spring"), onComplete: done });
+}
+function deltaLeave(el: Element, done: () => void) {
+  if (reduceMotion.value) return done();
+  gsap.to(el, { autoAlpha: 0, y: -18, duration: 0.5, ease: motionEase("out"), onComplete: done });
+}
+
+/**
+ * The loop plays while the list is in view and stops for good once the visitor takes over; with
+ * reduced motion it doesn't play by itself.
+ */
+useGsap(stage, ({ reduced }) => {
+  paintLoad(true);
+  if (!reduced) {
+    ScrollTrigger.create({
+      trigger: stage.value,
+      start: "top 70%",
+      end: "bottom 30%",
+      onToggle: (self) => {
+        if (stopped) return;
+        if (!self.isActive) next?.pause();
+        else if (next) next.resume();
+        else schedule();
+      },
+    });
+  }
+  return () => {
+    next?.kill();
+    next = undefined;
+  };
 });
 
 onBeforeUnmount(() => {
-  if (timer) clearTimeout(timer);
-  if (flashTimer) clearTimeout(flashTimer);
-  if (pressTimer) clearTimeout(pressTimer);
-  visibility?.disconnect();
+  flashCall?.kill();
+  pressCall?.kill();
 });
 
 const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbook"));
@@ -281,6 +365,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
     </div>
 
     <section
+      ref="panel"
       class="panel"
       :aria-label="t('landing.inventory.title')"
     >
@@ -305,6 +390,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
           :disabled="hasSpellbook && pressed !== 'add'"
           class="pressable add"
           :class="{ 'is-pressed': pressed === 'add' }"
+          data-press="add"
           :aria-label="t('landing.inventory.add')"
           @click="addByHand"
         >
@@ -320,77 +406,87 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
         @update:model-value="chooseSort($event as SortKey)"
       />
 
-      <TransitionGroup
-        tag="ul"
-        name="row"
-        class="relative mt-2 flex flex-col gap-1 md:mt-3 md:gap-1.5"
-      >
-        <li
-          v-for="row in sorted"
-          :key="row.id"
-          class="row"
-          :class="{ 'row-lit': lit === row.id, 'row-empty': row.qty === 0 }"
+      <div ref="list">
+        <TransitionGroup
+          tag="ul"
+          :css="false"
+          class="relative mt-2 flex flex-col gap-1 md:mt-3 md:gap-1.5"
+          @enter="rowEnter"
+          @leave="rowLeave"
         >
-          <span class="thumb">
-            <img
-              v-if="row.image"
-              :src="row.image"
-              alt=""
-              width="40"
-              height="40"
-              class="size-full object-contain"
-            >
-            <Icon
-              v-else-if="row.icon"
-              :name="row.icon"
-              :size="24"
-              class="text-gold"
-            />
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="block truncate font-heading text-[14px] leading-tight font-bold text-heading md:text-[16px]">
-              {{ itemName(row.id) }}
+          <li
+            v-for="row in sorted"
+            :key="row.id"
+            class="row"
+            :data-row="row.id"
+            :class="{ 'row-lit': lit === row.id, 'row-empty': row.qty === 0 }"
+          >
+            <span class="thumb">
+              <img
+                v-if="row.image"
+                :src="row.image"
+                alt=""
+                width="40"
+                height="40"
+                class="size-full object-contain"
+              >
+              <Icon
+                v-else-if="row.icon"
+                :name="row.icon"
+                :size="24"
+                class="text-gold"
+              />
             </span>
-            <span class="flex flex-wrap items-center gap-x-2 text-[12px] leading-tight text-ink-2 md:text-[13px]">
-              {{ categoryName(row.category) }}
-              <span
-                v-if="row.worn"
-                class="worn"
-              >{{ t("landing.inventory.worn") }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-heading text-[14px] leading-tight font-bold text-heading md:text-[16px]">
+                {{ itemName(row.id) }}
+              </span>
+              <span class="flex flex-wrap items-center gap-x-2 text-[12px] leading-tight text-ink-2 md:text-[13px]">
+                {{ categoryName(row.category) }}
+                <span
+                  v-if="row.worn"
+                  class="worn"
+                >{{ t("landing.inventory.worn") }}</span>
+              </span>
             </span>
-          </span>
-          <span class="qty">
-            <span class="text-ink-3">×</span>
-            <span
-              :key="row.qty"
-              class="bump"
-            >{{ row.qty }}</span>
-            <Transition name="delta">
+            <span class="qty">
+              <span class="text-ink-3">×</span>
               <span
-                v-if="delta && delta.id === row.id"
-                :key="delta.key"
-                class="delta"
-                :class="delta.text.startsWith('−') ? 'text-danger' : 'text-ok'"
-                aria-hidden="true"
-              >{{ delta.text }}</span>
-            </Transition>
-          </span>
-          <span class="action">
-            <BaseButton
-              v-if="row.usable"
-              size="xs"
-              variant="secondary"
-              :disabled="row.qty === 0 && pressed !== row.id"
-              class="pressable"
-              :class="{ 'is-pressed': pressed === row.id }"
-              :aria-label="t('landing.inventory.useItem', { item: itemName(row.id) })"
-              @click="useByHand(row.id)"
-            >
-              {{ t("landing.inventory.use") }}
-            </BaseButton>
-          </span>
-        </li>
-      </TransitionGroup>
+                :data-qty="row.id"
+                class="inline-block"
+              >{{ row.qty }}</span>
+              <Transition
+                :css="false"
+                @enter="deltaEnter"
+                @leave="deltaLeave"
+              >
+                <span
+                  v-if="delta && delta.id === row.id"
+                  :key="delta.key"
+                  class="delta"
+                  :class="delta.text.startsWith('−') ? 'text-danger' : 'text-ok'"
+                  aria-hidden="true"
+                >{{ delta.text }}</span>
+              </Transition>
+            </span>
+            <span class="action">
+              <BaseButton
+                v-if="row.usable"
+                size="xs"
+                variant="secondary"
+                :disabled="row.qty === 0 && pressed !== row.id"
+                class="pressable"
+                :class="{ 'is-pressed': pressed === row.id }"
+                :data-press="row.id"
+                :aria-label="t('landing.inventory.useItem', { item: itemName(row.id) })"
+                @click="useByHand(row.id)"
+              >
+                {{ t("landing.inventory.use") }}
+              </BaseButton>
+            </span>
+          </li>
+        </TransitionGroup>
+      </div>
 
       <!-- Carrying load follows the quantities -->
       <div class="mt-2 border-t border-gold/60 pt-2 md:mt-4 md:pt-3">
@@ -409,8 +505,8 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
         </p>
         <div class="bar mt-2">
           <span
+            ref="loadBar"
             class="bar-fill"
-            :style="{ width: `${Math.min(100, (load / CAPACITY) * 100)}%` }"
           />
         </div>
       </div>
@@ -556,7 +652,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
     min-width: 0;
   }
 }
-/* Pressed buttons turn red for a moment, give a little and send out a ring. */
+/* Pressed buttons turn red for a moment; GSAP lets them give and spring back. */
 .pressable {
   transition:
     background-color 0.3s ease,
@@ -567,33 +663,6 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-parchment-card);
-  animation: press 0.6s ease;
-}
-@keyframes press {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 55%, transparent);
-  }
-  30% {
-    transform: scale(0.92);
-  }
-  60% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-primary) 0%, transparent);
-  }
-}
-
-.bump {
-  display: inline-block;
-  animation: bump 0.5s ease;
-}
-@keyframes bump {
-  40% {
-    transform: scale(1.25);
-  }
 }
 
 /* What a use or a purchase changed, rising beside the quantity. */
@@ -611,57 +680,22 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   font-size: 17px;
   font-weight: 700;
   pointer-events: none;
-  animation: rise 1.6s ease forwards;
-}
-@keyframes rise {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  20%,
-  70% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-}
-
-/* Rows move to their new place when the order changes, and fade in and out. */
-.row-move,
-.row-enter-active,
-.row-leave-active {
-  transition:
-    transform 0.6s cubic-bezier(0.3, 0.7, 0.4, 1),
-    opacity 0.4s ease;
-}
-.row-enter-from {
-  opacity: 0;
-  transform: translateX(24px);
-}
-.row-leave-to {
-  opacity: 0;
-  transform: translateX(-24px);
-}
-.row-leave-active {
-  position: absolute;
-  right: 0;
-  left: 0;
 }
 
 .bar {
+  position: relative;
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--color-neutral-soft);
 }
+/* Scaled by GSAP to the share of the capacity. */
 .bar-fill {
-  display: block;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   background: var(--color-brand);
-  transition: width 0.8s ease;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
 }
 
 /*
@@ -708,16 +742,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
     font-size: 14px;
   }
 }
-:root[data-reduced-motion] .row-move,
-:root[data-reduced-motion] .row-enter-active,
-:root[data-reduced-motion] .row-leave-active,
-:root[data-reduced-motion] .bar-fill {
-  transition: none;
-}
-:root[data-reduced-motion] .row-lit,
-:root[data-reduced-motion] .pressable.is-pressed,
-:root[data-reduced-motion] .bump,
-:root[data-reduced-motion] .delta {
+:root[data-reduced-motion] .row-lit {
   animation: none;
 }
 </style>

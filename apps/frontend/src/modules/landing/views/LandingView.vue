@@ -18,6 +18,7 @@ import { meQuery } from "@/core/auth/session";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
 import { usePageMeta } from "@/core/i18n/pageMeta";
+import { vReveal } from "@/core/motion/reveal";
 
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
@@ -51,7 +52,6 @@ import LandscapeEdge from "../components/LandscapeEdge.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
 import StorylineTour from "../components/StorylineTour.vue";
 import { demoScreenUrl, demoUrl } from "../demo";
-import { vReveal } from "../reveal";
 import { type Screen, SCREENS } from "../screens";
 
 const { t } = useAppI18n();
@@ -85,21 +85,21 @@ const audience: Array<{ id: string; icon: IconName; title: MessageKey; text: Mes
     icon: "orig-krone",
     title: "landing.audience.gameMasters.title",
     text: "landing.audience.gameMasters.text",
-    figure: { src: audienceGameMasterArt, left: -10.5, top: -31.8, width: 72 },
+    figure: { src: audienceGameMasterArt, left: -9, top: -37, width: 72 },
   },
   {
     id: "players",
     icon: "orig-wuerfel",
     title: "landing.audience.players.title",
     text: "landing.audience.players.text",
-    figure: { src: audiencePlayerArt, left: 66.5, top: -22, width: 45.5 },
+    figure: { src: audiencePlayerArt, left: 66.5, top: -25, width: 45.5 },
   },
   {
     id: "editors",
     icon: "orig-buch",
     title: "landing.audience.editors.title",
     text: "landing.audience.editors.text",
-    figure: { src: audienceEditorArt, left: 62, top: -27, width: 64.5 },
+    figure: { src: audienceEditorArt, left: 50, top: -30.3, width: 56 },
   },
 ];
 
@@ -333,11 +333,11 @@ const reputationPoints: MessageKey[] = [
           <p class="mx-auto mt-3 max-w-160 text-center text-[17px] text-ink-2">
             {{ t("landing.audience.intro") }}
           </p>
-          <ul class="mt-32 grid gap-x-5 gap-y-36 md:mt-28 md:grid-cols-3 lg:mt-40">
+          <ul class="mx-auto mt-32 grid max-w-md gap-y-36 px-6 md:mt-28 md:px-0 md:max-w-none md:grid-cols-3 md:gap-x-4 lg:mt-40 lg:gap-x-8 xl:gap-x-12">
             <li
               v-for="(item, position) in audience"
               :key="item.id"
-              v-reveal="position * 120"
+              v-reveal="{ from: 'zoom', delay: position * 160 }"
               class="audience-card card relative flex flex-col items-center px-6 py-7 text-center shadow-soft"
             >
               <img
@@ -770,9 +770,8 @@ const reputationPoints: MessageKey[] = [
 .audience-card {
   container-type: inline-size;
   transition:
-    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms),
-    transform 0.4s ease,
-    box-shadow 0.4s ease;
+    transform var(--motion-duration-slow) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-slow) var(--motion-ease-standard);
 }
 .audience-figure {
   z-index: 1;

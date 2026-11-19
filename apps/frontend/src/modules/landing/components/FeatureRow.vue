@@ -4,7 +4,8 @@
  * (default slot). Features with a `band` run as a navy or parchment band across the page; a navy
  * band carries a drawn landscape on its upper edge. A `scene` (a watercolour) stands faintly at
  * the outer edge on the side of the text, fading towards the middle; the `decor` slot takes
- * props placed absolutely in the row. The row glides into view on first sight.
+ * props placed absolutely in the row. On first sight the row rises into view and its text follows
+ * from its own side.
  */
 import { computed } from "vue";
 
@@ -12,8 +13,8 @@ import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { type RevealFrom, vReveal } from "@/core/motion/reveal";
 
-import { vReveal } from "../reveal";
 import LandscapeEdge from "./LandscapeEdge.vue";
 
 export type FeatureRowData = {
@@ -43,12 +44,12 @@ const BAND = {
 defineSlots<{ default(): unknown; decor?(): unknown }>();
 const { t } = useAppI18n();
 
-/** Grid of a feature row and order of its text, per layout. */
+/** Grid of a feature row, order of its text and the side the text moves in from, per layout. */
 const LAYOUT = {
-  left: { row: "md:grid-cols-[3fr_2fr]", text: "md:order-last" },
-  right: { row: "md:grid-cols-[2fr_3fr]", text: "" },
-  wide: { row: "", text: "md:grid md:grid-cols-2 md:gap-x-12" },
-} as const;
+  left: { row: "md:grid-cols-[3fr_2fr]", text: "md:order-last", textFrom: "right" },
+  right: { row: "md:grid-cols-[2fr_3fr]", text: "", textFrom: "left" },
+  wide: { row: "", text: "md:grid md:grid-cols-2 md:gap-x-12", textFrom: "below" },
+} as const satisfies Record<FeatureRowData["layout"], { row: string; text: string; textFrom: RevealFrom }>;
 </script>
 
 <template>
@@ -76,7 +77,10 @@ const LAYOUT = {
       :class="[LAYOUT[feature.layout].row, feature.layout === 'wide' && 'md:gap-8']"
       :aria-labelledby="`landing-feature-${feature.id}`"
     >
-      <div :class="LAYOUT[feature.layout].text">
+      <div
+        v-reveal="{ from: LAYOUT[feature.layout].textFrom, delay: 180 }"
+        :class="LAYOUT[feature.layout].text"
+      >
         <div>
           <div class="flex items-center gap-4">
             <span

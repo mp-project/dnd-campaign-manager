@@ -201,7 +201,8 @@ describe("landing page", () => {
     const die = article.find("button[aria-label='Stärke-Probe würfeln']");
     expect(die.text()).toContain("Antippen und würfeln");
     await die.trigger("click");
-    await vi.runAllTimersAsync();
+    // A fixed window: GSAP's ScrollTrigger keeps a frame loop running, so "all timers" never ends.
+    await vi.advanceTimersByTimeAsync(5000);
     expect(die.text()).toContain("11 + 2 = 13");
     wrapper.unmount();
     vi.useRealTimers();

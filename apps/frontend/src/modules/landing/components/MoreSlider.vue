@@ -17,6 +17,7 @@ import IconButton from "@/components/base/IconButton.vue";
 import type { IconName } from "@/components/base/iconNames";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { useReducedMotion } from "@/core/motion/reducedMotion";
 
 export type MoreItem = { id: string; icon: IconName; title: MessageKey; text: MessageKey; art: string };
 
@@ -62,12 +63,13 @@ function measure() {
   index.value = atEnd.value ? maxIndex.value : Math.min(maxIndex.value, Math.round(el.scrollLeft / size));
 }
 
+const reduceMotion = useReducedMotion();
+
 function goTo(target: number) {
   const el = track.value;
   if (!el) return;
-  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const next = Math.min(Math.max(target, 0), maxIndex.value);
-  el.scrollTo({ left: next * step(), behavior: reduce ? "auto" : "smooth" });
+  el.scrollTo({ left: next * step(), behavior: reduceMotion.value ? "auto" : "smooth" });
 }
 
 /**
@@ -369,14 +371,12 @@ onBeforeUnmount(() => {
   border-radius: 999px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .more-slide,
-  .more-card,
-  .dot span {
-    transition: none;
-  }
-  .more-slide:hover {
-    transform: none;
-  }
+:root[data-reduced-motion] .more-slide,
+:root[data-reduced-motion] .more-card,
+:root[data-reduced-motion] .dot span {
+  transition: none;
+}
+:root[data-reduced-motion] .more-slide:hover {
+  transform: none;
 }
 </style>

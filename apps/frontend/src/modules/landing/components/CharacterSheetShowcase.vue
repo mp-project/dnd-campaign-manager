@@ -14,6 +14,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import Icon from "@/components/base/Icon.vue";
 import { useAppI18n, useGlossary } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { useReducedMotion } from "@/core/motion/reducedMotion";
 
 import { SCREENS } from "../screens";
 import ScreenFrame from "./ScreenFrame.vue";
@@ -113,7 +114,7 @@ const stage = ref<HTMLElement | null>(null);
 const sheetEl = ref<HTMLElement | null>(null);
 const screenEl = ref<HTMLElement | null>(null);
 const revealed = ref(false);
-const reduceMotion = ref(false);
+const reduceMotion = useReducedMotion();
 let visible = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let visibility: IntersectionObserver | undefined;
@@ -137,7 +138,6 @@ onMounted(() => {
     resize = new ResizeObserver(() => measureLines());
     resize.observe(sheetEl.value);
   }
-  reduceMotion.value = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !stage.value) {
     revealed.value = true;
     return;
@@ -977,17 +977,15 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .piece,
-  .bar-hp,
-  .bar-temp,
-  .slot,
-  .piece-card {
-    transition: none;
-  }
-  .bump,
-  .die-rolling {
-    animation: none;
-  }
+:root[data-reduced-motion] .piece,
+:root[data-reduced-motion] .bar-hp,
+:root[data-reduced-motion] .bar-temp,
+:root[data-reduced-motion] .slot,
+:root[data-reduced-motion] .piece-card {
+  transition: none;
+}
+:root[data-reduced-motion] .bump,
+:root[data-reduced-motion] .die-rolling {
+  animation: none;
 }
 </style>

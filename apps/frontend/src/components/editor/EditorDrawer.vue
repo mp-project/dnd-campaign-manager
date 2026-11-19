@@ -8,6 +8,7 @@
  * `v-model` is the active section; the default slot gets `{ section }`. Saving is the page's:
  * `save` is emitted, the page sends the request (`busy` meanwhile) and closes on success.
  * Discard, the close button, Esc and a click on the backdrop close (`closeTo`, else back).
+ * It slides in when it opens; closing leaves with the route, without a transition.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { type RouteLocationRaw, useRouter } from "vue-router";
@@ -84,161 +85,171 @@ onBeforeUnmount(() => {
     defer
   >
     <div class="absolute inset-0 z-30 flex justify-end">
-      <div
-        class="absolute inset-0 hidden bg-navy-950/55 md:block"
-        aria-hidden="true"
-        @click="!busy && close()"
-      />
-      <ParchmentFrame
-        ref="dialog"
-        tag="section"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="title"
-        tabindex="-1"
-        class="relative flex h-full w-full flex-col md:shadow-drawer"
-        :style="{ maxWidth: `min(100%, ${width})` }"
+      <Transition
+        name="fade"
+        appear
       >
-        <header class="mx-4 flex shrink-0 items-center gap-3 border-b border-gold/60 pt-4 pb-3 md:mx-6 md:gap-4 md:pt-5 md:pb-4">
-          <CompassRose
-            :size="62"
-            tone="parchment"
-            class="hidden md:block"
-          />
-          <Icon
-            v-if="icon"
-            :name="icon"
-            :size="44"
-            class="shrink-0 text-brand md:hidden"
-          />
-          <!-- Title and status below each other on mobile, so the title breaks between words. -->
-          <div class="flex min-w-0 flex-1 flex-col items-start gap-1 md:flex-row md:flex-wrap md:items-center md:gap-x-4">
-            <h2 class="page-title min-w-0 text-[22px]! md:text-[clamp(26px,2.6vw,38px)]!">
-              {{ title }}
-            </h2>
-            <StatusBadge
-              v-if="status"
-              :status="status"
-              class="shrink-0"
-            />
-          </div>
-          <CloseButton
-            :icon-size="26"
-            :label="t('common.editor.close')"
-            class="ml-auto shrink-0"
-            :disabled="busy"
-            @click="close"
-          />
-        </header>
-
-        <!-- Section tabs (mobile) -->
         <div
-          v-if="sections.length > 1"
-          class="mx-4 shrink-0 border-b border-line md:hidden"
+          class="absolute inset-0 hidden bg-navy-950/55 md:block"
+          aria-hidden="true"
+          @click="!busy && close()"
+        />
+      </Transition>
+      <Transition
+        name="slide-right"
+        appear
+      >
+        <ParchmentFrame
+          ref="dialog"
+          tag="section"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="title"
+          tabindex="-1"
+          class="relative flex h-full w-full flex-col md:shadow-drawer"
+          :style="{ maxWidth: `min(100%, ${width})` }"
         >
-          <div
-            ref="strip"
-            role="tablist"
-            :aria-label="t('common.editor.sections')"
-            class="no-scrollbar flex gap-1 overflow-x-auto py-2.5"
-          >
-            <button
-              v-for="section in sections"
-              :key="section.id"
-              type="button"
-              role="tab"
-              :aria-selected="active === section.id"
-              class="min-h-11 shrink-0 rounded-control px-4 whitespace-nowrap"
-              :class="active === section.id ? 'bg-primary text-parchment-card' : 'text-ink'"
-              @click="active = section.id"
-            >
-              {{ section.mobileLabel ?? section.label }}
-            </button>
-          </div>
-        </div>
+          <header class="mx-4 flex shrink-0 items-center gap-3 border-b border-gold/60 pt-4 pb-3 md:mx-6 md:gap-4 md:pt-5 md:pb-4">
+            <CompassRose
+              :size="62"
+              tone="parchment"
+              class="hidden md:block"
+            />
+            <Icon
+              v-if="icon"
+              :name="icon"
+              :size="44"
+              class="shrink-0 text-brand md:hidden"
+            />
+            <!-- Title and status below each other on mobile, so the title breaks between words. -->
+            <div class="flex min-w-0 flex-1 flex-col items-start gap-1 md:flex-row md:flex-wrap md:items-center md:gap-x-4">
+              <h2 class="page-title min-w-0 text-[22px]! md:text-[clamp(26px,2.6vw,38px)]!">
+                {{ title }}
+              </h2>
+              <StatusBadge
+                v-if="status"
+                :status="status"
+                class="shrink-0"
+              />
+            </div>
+            <CloseButton
+              :icon-size="26"
+              :label="t('common.editor.close')"
+              class="ml-auto shrink-0"
+              :disabled="busy"
+              @click="close"
+            />
+          </header>
 
-        <div class="flex min-h-0 flex-1">
-          <!-- Section navigation (desktop) -->
-          <nav
+          <!-- Section tabs (mobile) -->
+          <div
             v-if="sections.length > 1"
-            :aria-label="t('common.editor.sections')"
-            class="scroll-thin-light hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-line py-4 pl-4 md:flex"
+            class="mx-4 shrink-0 border-b border-line md:hidden"
           >
-            <ul class="flex flex-col gap-1 pr-3">
-              <li
+            <div
+              ref="strip"
+              role="tablist"
+              :aria-label="t('common.editor.sections')"
+              class="no-scrollbar flex gap-1 overflow-x-auto py-2.5"
+            >
+              <button
                 v-for="section in sections"
                 :key="section.id"
+                type="button"
+                role="tab"
+                :aria-selected="active === section.id"
+                class="min-h-11 shrink-0 rounded-control px-4 whitespace-nowrap"
+                :class="active === section.id ? 'bg-primary text-parchment-card' : 'text-ink'"
+                @click="active = section.id"
               >
-                <button
-                  type="button"
-                  class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2.5 py-1 text-left text-[15.5px] leading-tight"
-                  :class="active === section.id ? 'bg-primary text-parchment-card shadow-primary' : 'text-ink hover:bg-parchment-sunk'"
-                  :aria-current="active === section.id ? 'step' : undefined"
-                  @click="active = section.id"
-                >
-                  <Icon
-                    :name="section.icon ?? 'ui-file'"
-                    :size="22"
-                    class="shrink-0"
-                  /><span class="min-w-0 break-words">{{ section.label }}</span>
-                </button>
-              </li>
-            </ul>
-            <!-- Only with enough height; otherwise it would touch the footer. -->
-            <div
-              v-if="quote"
-              class="mt-auto hidden flex-col items-center px-3 pt-6 text-center [@media(min-height:880px)]:flex"
-            >
-              <p class="font-serif text-[15px] leading-snug text-ink italic">
-                {{ quote }}
-              </p>
-              <span class="mt-3 h-px w-10 bg-gold" />
+                {{ section.mobileLabel ?? section.label }}
+              </button>
             </div>
-          </nav>
-
-          <div
-            ref="body"
-            class="scroll-thin-light min-w-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5"
-          >
-            <div
-              v-if="current && sections.length > 1"
-              class="mb-4 hidden md:block"
-            >
-              <h3 class="section-title text-[26px]!">
-                {{ current.label }}
-              </h3>
-              <p
-                v-if="current.description"
-                class="text-ink-2"
-              >
-                {{ current.description }}
-              </p>
-            </div>
-            <slot :section="active" />
           </div>
-        </div>
 
-        <footer class="mx-4 flex shrink-0 items-stretch justify-between gap-3 border-t border-line py-3 md:mx-6 md:items-center md:py-4">
-          <BaseButton
-            class="shrink-0 md:min-w-36"
-            :disabled="busy"
-            @click="close"
-          >
-            {{ t("common.actions.discard") }}
-          </BaseButton>
-          <slot name="footer-extra" />
-          <BaseButton
-            variant="primary"
-            icon="aktion-speichern"
-            :icon-size="22"
-            class="min-w-0 flex-1 md:flex-none"
-            :disabled="busy"
-            @click="emit('save')"
-          >
-            {{ saveLabel ?? t("common.actions.save") }}
-          </BaseButton>
-        </footer>
-      </ParchmentFrame>
+          <div class="flex min-h-0 flex-1">
+            <!-- Section navigation (desktop) -->
+            <nav
+              v-if="sections.length > 1"
+              :aria-label="t('common.editor.sections')"
+              class="scroll-thin-light hidden w-[220px] shrink-0 flex-col overflow-y-auto border-r border-line py-4 pl-4 md:flex"
+            >
+              <ul class="flex flex-col gap-1 pr-3">
+                <li
+                  v-for="section in sections"
+                  :key="section.id"
+                >
+                  <button
+                    type="button"
+                    class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2.5 py-1 text-left text-[15.5px] leading-tight"
+                    :class="active === section.id ? 'bg-primary text-parchment-card shadow-primary' : 'text-ink hover:bg-parchment-sunk'"
+                    :aria-current="active === section.id ? 'step' : undefined"
+                    @click="active = section.id"
+                  >
+                    <Icon
+                      :name="section.icon ?? 'ui-file'"
+                      :size="22"
+                      class="shrink-0"
+                    /><span class="min-w-0 break-words">{{ section.label }}</span>
+                  </button>
+                </li>
+              </ul>
+              <!-- Only with enough height; otherwise it would touch the footer. -->
+              <div
+                v-if="quote"
+                class="mt-auto hidden flex-col items-center px-3 pt-6 text-center [@media(min-height:880px)]:flex"
+              >
+                <p class="font-serif text-[15px] leading-snug text-ink italic">
+                  {{ quote }}
+                </p>
+                <span class="mt-3 h-px w-10 bg-gold" />
+              </div>
+            </nav>
+
+            <div
+              ref="body"
+              class="scroll-thin-light min-w-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5"
+            >
+              <div
+                v-if="current && sections.length > 1"
+                class="mb-4 hidden md:block"
+              >
+                <h3 class="section-title text-[26px]!">
+                  {{ current.label }}
+                </h3>
+                <p
+                  v-if="current.description"
+                  class="text-ink-2"
+                >
+                  {{ current.description }}
+                </p>
+              </div>
+              <slot :section="active" />
+            </div>
+          </div>
+
+          <footer class="mx-4 flex shrink-0 items-stretch justify-between gap-3 border-t border-line py-3 md:mx-6 md:items-center md:py-4">
+            <BaseButton
+              class="shrink-0 md:min-w-36"
+              :disabled="busy"
+              @click="close"
+            >
+              {{ t("common.actions.discard") }}
+            </BaseButton>
+            <slot name="footer-extra" />
+            <BaseButton
+              variant="primary"
+              icon="aktion-speichern"
+              :icon-size="22"
+              class="min-w-0 flex-1 md:flex-none"
+              :disabled="busy"
+              @click="emit('save')"
+            >
+              {{ saveLabel ?? t("common.actions.save") }}
+            </BaseButton>
+          </footer>
+        </ParchmentFrame>
+      </Transition>
     </div>
   </Teleport>
 </template>

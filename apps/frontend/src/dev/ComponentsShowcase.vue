@@ -14,11 +14,13 @@ import FieldsSection from "./showcase/FieldsSection.vue";
 import IconsSection from "./showcase/IconsSection.vue";
 import LayoutSection from "./showcase/LayoutSection.vue";
 import MenusSection from "./showcase/MenusSection.vue";
+import MotionSection from "./showcase/MotionSection.vue";
 import PageSection from "./showcase/PageSection.vue";
 import ThemeSection from "./showcase/ThemeSection.vue";
 
 const sections = [
   { id: "theme", label: "Theme" },
+  { id: "motion", label: "Bewegung" },
   { id: "buttons", label: "Buttons" },
   { id: "badges", label: "Badges, Status, Avatare" },
   { id: "icons", label: "Icons" },
@@ -68,6 +70,7 @@ const sections = [
         </nav>
       </header>
       <ThemeSection />
+      <MotionSection />
       <ButtonsSection />
       <BadgesSection />
       <IconsSection />

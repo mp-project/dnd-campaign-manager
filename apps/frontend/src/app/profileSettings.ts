@@ -3,12 +3,14 @@ import { hashKey, type QueryClient } from "@tanstack/vue-query";
 import { type Me, meQuery } from "@/core/auth/session";
 import { type AppI18n, setLocale } from "@/core/i18n";
 import { setTimeZone } from "@/core/i18n/settings";
+import { setUserReducedMotion } from "@/core/motion/reducedMotion";
 
 /**
- * Once the profile is loaded (after sign-in, or with a running session at start), its language
- * and time zone apply: the profile wins over the browser's choice. A language picked in development
- * with `?lang=` stays for that page load. `after` is the start language's loading, which must not
- * finish after the profile's and overwrite it.
+ * Once the profile is loaded (after sign-in, or with a running session at start), its language,
+ * time zone and reduced motion apply: the profile wins over the browser's choice. A language picked
+ * in development with `?lang=` stays for that page load. `after` is the start language's loading,
+ * which must not finish after the profile's and overwrite it. Without a profile (signed out, the
+ * query cleared) the user's reduced motion no longer applies; the system setting still does.
  */
 export function applyProfileSettings(
   queryClient: QueryClient,
@@ -19,9 +21,17 @@ export function applyProfileSettings(
   const hash = hashKey(meQuery.queryKey);
 
   return queryClient.getQueryCache().subscribe((event) => {
-    if (event.type !== "updated" || event.query.queryHash !== hash) return;
+    if (event.query.queryHash !== hash) return;
+    if (event.type === "removed") {
+      applied = null;
+      setUserReducedMotion(false);
+      return;
+    }
+    if (event.type !== "updated") return;
     const settings = (event.query.state.data as Me | undefined)?.settings;
-    if (!settings || (applied?.locale === settings.locale && applied.timezone === settings.timezone)) return;
+    if (!settings) return;
+    setUserReducedMotion(settings.reducedMotion);
+    if (applied?.locale === settings.locale && applied.timezone === settings.timezone) return;
 
     applied = settings;
     setTimeZone(settings.timezone);

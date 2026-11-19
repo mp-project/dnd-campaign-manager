@@ -15,6 +15,7 @@ import SegmentedControl from "@/components/base/SegmentedControl.vue";
 import { useAppI18n } from "@/core/i18n";
 import { useFormat } from "@/core/i18n/format";
 import type { MessageKey } from "@/core/i18n/keys";
+import { useReducedMotion } from "@/core/motion/reducedMotion";
 
 import bronzeSeal from "../assets/items/bronzenes-siegel.webp";
 import potion from "../assets/items/heiltrank.webp";
@@ -188,7 +189,7 @@ const STORY: Array<() => void> = [
 ];
 
 const stage = ref<HTMLElement | null>(null);
-const reduceMotion = ref(false);
+const reduceMotion = useReducedMotion();
 let step = 0;
 let visible = false;
 let stopped = false;
@@ -228,7 +229,6 @@ function addByHand() {
 }
 
 onMounted(() => {
-  reduceMotion.value = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   if (reduceMotion.value || typeof IntersectionObserver === "undefined" || !stage.value) return;
   visibility = new IntersectionObserver(
     ([entry]) => {
@@ -708,18 +708,16 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
     font-size: 14px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .row-move,
-  .row-enter-active,
-  .row-leave-active,
-  .bar-fill {
-    transition: none;
-  }
-  .row-lit,
-  .pressable.is-pressed,
-  .bump,
-  .delta {
-    animation: none;
-  }
+:root[data-reduced-motion] .row-move,
+:root[data-reduced-motion] .row-enter-active,
+:root[data-reduced-motion] .row-leave-active,
+:root[data-reduced-motion] .bar-fill {
+  transition: none;
+}
+:root[data-reduced-motion] .row-lit,
+:root[data-reduced-motion] .pressable.is-pressed,
+:root[data-reduced-motion] .bump,
+:root[data-reduced-motion] .delta {
+  animation: none;
 }
 </style>

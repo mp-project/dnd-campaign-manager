@@ -15,6 +15,7 @@ import IconButton from "@/components/base/IconButton.vue";
 import SegmentedControl from "@/components/base/SegmentedControl.vue";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { useReducedMotion } from "@/core/motion/reducedMotion";
 
 import board from "../assets/screens/storyline-board.webp";
 import { demoScreenUrl } from "../demo";
@@ -76,7 +77,7 @@ const index = ref(0);
 const overview = ref(true);
 const playing = ref(false);
 const paused = ref(false);
-const reduceMotion = ref(false);
+const reduceMotion = useReducedMotion();
 
 const route = computed(() => routes[routeId.value]);
 const stop = computed(() => route.value.stops[index.value] ?? start);
@@ -198,7 +199,6 @@ function measure() {
 }
 
 onMounted(() => {
-  reduceMotion.value = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   measure();
   if (typeof ResizeObserver !== "undefined" && frame.value) {
     resize = new ResizeObserver(measure);
@@ -604,16 +604,14 @@ onBeforeUnmount(() => {
 .tour-still .scene-current {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .tour-stage,
-  .thread,
-  .scene-mark,
-  .caption-enter-active,
-  .caption-leave-active {
-    transition: none;
-  }
-  .scene-current {
-    animation: none;
-  }
+:root[data-reduced-motion] .tour-stage,
+:root[data-reduced-motion] .thread,
+:root[data-reduced-motion] .scene-mark,
+:root[data-reduced-motion] .caption-enter-active,
+:root[data-reduced-motion] .caption-leave-active {
+  transition: none;
+}
+:root[data-reduced-motion] .scene-current {
+  animation: none;
 }
 </style>

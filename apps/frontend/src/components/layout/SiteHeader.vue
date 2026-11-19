@@ -85,15 +85,13 @@ onBeforeUnmount(() => window.removeEventListener("scroll", update));
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .site-header,
-  .site-header-inner,
-  .site-header-brand {
-    transition:
-      padding 200ms ease,
-      transform 200ms ease,
-      background-color 200ms ease,
-      box-shadow 200ms ease;
-  }
+:root:not([data-reduced-motion]) .site-header,
+:root:not([data-reduced-motion]) .site-header-inner,
+:root:not([data-reduced-motion]) .site-header-brand {
+  transition:
+    padding 200ms ease,
+    transform 200ms ease,
+    background-color 200ms ease,
+    box-shadow 200ms ease;
 }
 </style>

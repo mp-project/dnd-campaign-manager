@@ -215,10 +215,8 @@ function toggle() {
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fan,
-  .card {
-    transition: none;
-  }
+:root[data-reduced-motion] .fan,
+:root[data-reduced-motion] .card {
+  transition: none;
 }
 </style>

@@ -16,6 +16,7 @@ import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { useReducedMotion } from "@/core/motion/reducedMotion";
 
 const props = defineProps<{ signedIn: boolean; demo: string | null }>();
 
@@ -83,13 +84,14 @@ function toggle(): void {
   else void show();
 }
 
+const reduceMotion = useReducedMotion();
+
 function goTo(section: string): void {
   close(false);
   const target = document.querySelector(`[aria-labelledby="${section}"]`);
   if (!(target instanceof HTMLElement)) return;
   const header = trigger.value?.closest("header")?.offsetHeight ?? 0;
-  const smooth = !media("(prefers-reduced-motion: reduce)")?.matches;
-  window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - header, behavior: smooth ? "smooth" : "auto" });
+  window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - header, behavior: reduceMotion.value ? "auto" : "smooth" });
 }
 
 watch(() => route.fullPath, () => close(false));
@@ -442,31 +444,29 @@ li + li .chapter-link::before {
   color: var(--color-brand);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .compass {
-    transition: background-size 0.3s ease;
-  }
-  .compass-rose {
-    transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.64, 1);
-  }
-  .scroll {
-    transition: clip-path 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .scroll-veil {
-    transition: opacity 0.3s ease;
-  }
-  .chapter-link,
-  .chapter-arrow {
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      transform 0.2s ease;
-  }
-  .is-open .chapter {
-    transition:
-      opacity 0.3s ease,
-      transform 0.3s ease;
-    transition-delay: calc(0.15s + var(--i) * 50ms);
-  }
+:root:not([data-reduced-motion]) .compass {
+  transition: background-size 0.3s ease;
+}
+:root:not([data-reduced-motion]) .compass-rose {
+  transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+:root:not([data-reduced-motion]) .scroll {
+  transition: clip-path 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root:not([data-reduced-motion]) .scroll-veil {
+  transition: opacity 0.3s ease;
+}
+:root:not([data-reduced-motion]) .chapter-link,
+:root:not([data-reduced-motion]) .chapter-arrow {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+:root:not([data-reduced-motion]) .is-open .chapter {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  transition-delay: calc(0.15s + var(--i) * 50ms);
 }
 </style>

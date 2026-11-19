@@ -99,12 +99,22 @@
   --breakpoint-md: 48rem;
 }
 
-/* Material values that are no utilities (paper texture). */
+/* Values that are no utilities: paper texture and motion. */
 :root {
   --parchment-glow: rgb(255 250 241 / 0.9);
   --parchment-shade: rgb(232 220 198 / 0.35);
   --parchment-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23132C44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+
+  /* Motion: one tempo for the same movement, read by CSS and scripts (`@/core/motion`). */
+  --motion-duration-fast: 150ms;
+  --motion-duration-base: 220ms;
+  --motion-duration-slow: 400ms;
+  --motion-duration-reveal: 800ms;
+  --motion-ease-standard: ease;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 /* ---------- Base ---------- */
@@ -607,9 +617,10 @@
 }
 
 /* ---------- Transitions ---------- */
+/* Vue `<Transition name="…">` classes for the app UI, on the motion tokens. */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.18s ease;
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-standard);
 }
 .fade-enter-from,
 .fade-leave-to {
@@ -617,7 +628,7 @@
 }
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: transform 0.22s ease;
+  transition: transform var(--motion-duration-base) var(--motion-ease-out);
 }
 .slide-left-enter-from,
 .slide-left-leave-to {
@@ -625,11 +636,19 @@
 }
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.24s ease;
+  transition: transform var(--motion-duration-base) var(--motion-ease-out);
 }
 .slide-right-enter-from,
 .slide-right-leave-to {
   transform: translateX(100%);
+}
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform var(--motion-duration-base) var(--motion-ease-out);
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
 }
 
 /* Glide into view on first sight (`v-reveal` of the start page) */
@@ -637,19 +656,44 @@
   opacity: 0;
   transform: translateY(28px);
   transition:
-    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms),
-    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms);
+    opacity var(--motion-duration-reveal) var(--motion-ease-out) var(--reveal-delay, 0ms),
+    transform var(--motion-duration-reveal) var(--motion-ease-out) var(--reveal-delay, 0ms);
 }
 .reveal.is-revealed {
   opacity: 1;
   transform: none;
 }
+
+/*
+ * Reduced motion, for every transition and animation at once: the system setting, or
+ * `data-reduced-motion` on <html> (system or the user's setting, `@/core/motion/reducedMotion`).
+ * Durations become nearly zero instead of `none`, so Vue transitions and `animationend` still finish.
+ */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
   }
+}
+:root[data-reduced-motion] *,
+:root[data-reduced-motion] *::before,
+:root[data-reduced-motion] *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+:root[data-reduced-motion] .reveal {
+  opacity: 1;
+  transform: none;
 }
 
 /* `.table` collides with Tailwind's display utility (layer "utilities") → enforce it unlayered */

@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
         aria-hidden="true"
       />
     </Transition>
-    <Transition name="fade">
+    <Transition :name="mobile ? 'slide-up' : 'fade'">
       <form
         v-if="editor.open"
         ref="panel"

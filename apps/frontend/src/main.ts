@@ -19,6 +19,7 @@ import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
 import { createAppQueryClient } from "./core/api/queryClient";
+import { installReducedMotion } from "./core/motion/reducedMotion";
 import { NAV_ITEMS } from "./core/navigation/navigation";
 import { startPushNotifications } from "./services/pushNotifications";
 
@@ -26,6 +27,7 @@ const app = createApp(App);
 const queryClient = createAppQueryClient();
 const i18n = createAppI18n();
 
+installReducedMotion();
 onSessionExpired(() => handleSessionExpired(router, queryClient));
 
 installGuards(router, queryClient);

@@ -94,6 +94,21 @@ describe("profile", () => {
     expect(wrapper.find('[role="status"]').text()).toBe("Dein Profil ist gespeichert.");
   });
 
+  it("saves reduced motion as a setting", async () => {
+    server.answers["PATCH /api/v1/me/settings"] = { status: 200, body: { ...ME, settings: { ...ME.settings, reducedMotion: true } } };
+    const { wrapper, queryClient } = await open(ProfileTab, "/konto/profil");
+
+    const toggle = wrapper.find('[role="switch"]');
+    expect(toggle.attributes("aria-label")).toBe("Bewegung reduzieren");
+    expect(toggle.attributes("aria-checked")).toBe("false");
+    await toggle.trigger("click");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(server.calls).toEqual([{ method: "PATCH", path: "/api/v1/me/settings", body: { reducedMotion: true } }]);
+    expect((queryClient.getQueryData(["me", "profile"]) as Me).settings.reducedMotion).toBe(true);
+  });
+
   it("keeps a saved name when saving the settings fails afterwards", async () => {
     server.answers["PATCH /api/v1/me"] = { status: 200, body: { ...ME, displayName: "Ada L." } };
     server.answers["PATCH /api/v1/me/settings"] = { status: 503, body: { error: { code: "SERVICE_UNAVAILABLE", message: "-" } } };

@@ -25,6 +25,8 @@
     "language": "Sprache",
     "timezone": "Zeitzone",
     "timezoneHint": "Für Termine und Zeitangaben in der App.",
+    "reducedMotion": "Bewegung reduzieren",
+    "reducedMotionHint": "Animationen entfallen, Inhalte erscheinen sofort. Gilt zusätzlich zur Einstellung deines Geräts.",
     "save": "Profil speichern",
     "saved": "Dein Profil ist gespeichert."
   },

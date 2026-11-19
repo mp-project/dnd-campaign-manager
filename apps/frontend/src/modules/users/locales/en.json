@@ -25,6 +25,8 @@
     "language": "Language",
     "timezone": "Time zone",
     "timezoneHint": "For dates and times in the app.",
+    "reducedMotion": "Reduce motion",
+    "reducedMotionHint": "Animations are skipped and content appears at once. Applies on top of your device setting.",
     "save": "Save profile",
     "saved": "Your profile is saved."
   },

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "clean": "rimraf dist",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node scripts/seo-files.ts && node scripts/prerender.ts",
     "start": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,vue}\"",
@@ -14,7 +14,8 @@
     "test:unit:watch": "vitest",
     "api:types": "npm run -s openapi:export --workspace @dnd/backend -- ../frontend/.openapi/openapi.json && openapi-typescript .openapi/openapi.json -o src/core/api/generated/schema.d.ts",
     "i18n:check": "node scripts/i18n.ts check",
-    "i18n:types": "node scripts/i18n.ts types"
+    "i18n:types": "node scripts/i18n.ts types",
+    "og:images": "node scripts/og-images.ts"
   },
   "dependencies": {
     "@dnd/contracts": "0.1.0",
@@ -22,6 +23,7 @@
     "@fontsource-variable/lora": "^5.3.0",
     "@fontsource/libre-baskerville": "^5.3.0",
     "@tanstack/vue-query": "^5.107.1",
+    "altcha-lib": "2.8.0",
     "dompurify": "^3.4.18",
     "gsap": "^3.15.1",
     "openapi-fetch": "^0.17.0",

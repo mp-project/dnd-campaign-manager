@@ -8,7 +8,9 @@
     "register": "Registrieren",
     "toApp": "Zur App",
     "language": "Sprache wählen",
-    "demo": "Demo"
+    "demo": "Demo",
+    "faq": "Häufige Fragen",
+    "home": "Startseite"
   },
   "menu": {
     "open": "Menü öffnen",
@@ -280,9 +282,137 @@
       "gather": "Antippen zum Zusammenlegen"
     }
   },
-  "cta": {
-    "title": "Bereit für das nächste Abenteuer?",
-    "text": "Sieh dir die Demo an oder erstelle dein Konto und lege deine erste Kampagne an.",
-    "signIn": "Schon ein Konto? Anmelden"
+  "faq": {
+    "meta": {
+      "title": "FAQ zur D&D-Kampagnenverwaltung",
+      "description": "Häufige Fragen zu Chronik, der Kampagnenverwaltung für D&D 5E: Kampagnen planen, Charaktere erstellen und verwalten, Spieler einladen, Homebrew-Inhalte, Spielsessions und dein Konto."
+    },
+    "breadcrumb": "Häufige Fragen",
+    "hero": {
+      "eyebrow": "Hilfe zur D&D-Kampagnenverwaltung",
+      "title": "Häufige Fragen",
+      "lead": "Wie du deine D&D-Kampagne mit Chronik planst, Charaktere erstellst und verwaltest, deine Gruppe einlädst und wer was zu sehen bekommt – die wichtigsten Antworten auf einen Blick."
+    },
+    "search": {
+      "label": "Fragen durchsuchen",
+      "placeholder": "Suchbegriff, z. B. Einladung",
+      "results": "Keine passende Frage | Eine passende Frage | {count} passende Fragen",
+      "empty": "Zu „{query}“ haben wir keine Frage gefunden. Versuch es mit einem anderen Begriff oder sieh dir die Themen an.",
+      "reset": "Suche zurücksetzen"
+    },
+    "topics": "Themen",
+    "questionCount": "{count} Fragen",
+    "expandAll": "Alle aufklappen",
+    "collapseAll": "Alle zuklappen",
+    "groups": {
+      "basics": {
+        "title": "Chronik kennenlernen",
+        "hint": "Was Chronik ist und für wen"
+      },
+      "campaign": {
+        "title": "Kampagne, Welt und Gruppe",
+        "hint": "Weltenbau, Einladungen, Rollen und Freigaben"
+      },
+      "table": {
+        "title": "Charaktere und Spielrunde",
+        "hint": "Charaktererstellung, Sessions und Verlauf"
+      },
+      "account": {
+        "title": "Konto und Sicherheit",
+        "hint": "Anmeldung, Geräte und Daten"
+      }
+    },
+    "questions": {
+      "what": {
+        "question": "Was ist Chronik?",
+        "answer": "Chronik ist eine Kampagnenverwaltung für D&D 5E (Dungeons & Dragons, 5. Edition). Spielleitungen planen darin ihre Kampagne und ihre Welt mit Orten, Personen und Fraktionen, verweben Storylines und Quests, verwalten die Charaktere ihrer Gruppe und laden zu Spielsessions ein – alles an einem Ort und miteinander verknüpft."
+      },
+      "audience": {
+        "question": "Für wen ist Chronik gedacht?",
+        "answer": "Für alle am Pen-and-Paper-Tisch: Spielleitungen (Dungeon Master) bereiten ihre D&D-Kampagne vor und leiten die Sessions, Spieler sehen ihren Charakter und alles, was die Spielleitung freigibt, und Co-Autoren arbeiten als Editor an Welt und Kompendium mit, ohne dass die Gruppe etwas zu früh zu sehen bekommt."
+      },
+      "rules": {
+        "question": "Welche D&D-Regelwerke unterstützt Chronik?",
+        "answer": "D&D 5E in den Ausgaben 2014 und 2024. Du wählst das Regelwerk je Kampagne; Kompendium, Charaktererstellung und Begriffe richten sich danach, so heißt es zum Beispiel „Volk“ nach den Regeln von 2014 und „Spezies“ nach denen von 2024."
+      },
+      "demo": {
+        "question": "Kann ich Chronik ausprobieren, ohne mich anzumelden?",
+        "answer": "Ja. Die Demo zeigt eine Beispielkampagne mit Welt, Storylines, Charakterbogen und Spieleransicht und braucht kein Konto. Wenn dir gefällt, was du siehst, erstellst du dein Konto und legst deine erste eigene D&D-Kampagne an."
+      },
+      "languages": {
+        "question": "In welchen Sprachen gibt es Chronik?",
+        "answer": "Aktuell in Deutsch und Englisch, jeweils mit den D&D-Begriffen der passenden Regelwerksausgabe. Die Sprache stellst du in deinem Profil ein; ohne Einstellung richtet sich Chronik nach deinem Browser."
+      },
+      "world": {
+        "question": "Wie baue ich meine Spielwelt in Chronik auf?",
+        "answer": "Du legst Orte, Personen, Fraktionen und Notizen an und verknüpfst sie miteinander, sodass du beim Leiten der Kampagne schnell findest, wer wo lebt und wer mit wem verbündet ist. Karten und Bilder hängst du direkt an. Entwürfe bleiben verborgen, bis du sie freigibst."
+      },
+      "invite": {
+        "question": "Wie kommt meine Gruppe in die Kampagne?",
+        "answer": "Du lädst deine Mitspieler per E-Mail in deine Kampagne ein und legst dabei ihre Rolle fest. Wer die Einladung annimmt, findet die Kampagne danach in der eigenen Übersicht. Wer noch kein Konto hat, erstellt zuerst eines und bestätigt die E-Mail-Adresse."
+      },
+      "roles": {
+        "question": "Welche Rollen gibt es in einer Kampagne?",
+        "answer": "Die Spielleitung besitzt die Kampagne und entscheidet über alles. Editoren arbeiten an Welt und Inhalten mit und sehen dabei auch Entwürfe. Spieler sehen ihren Charakter und das, was für sie freigegeben ist. Die Rollen kannst du jederzeit ändern."
+      },
+      "visibility": {
+        "question": "Was sehen meine Spieler?",
+        "answer": "Nur, was du ihnen zeigst. Entwürfe und Notizen für die Spielleitung bleiben verborgen. Orte, Personen oder Notizen gibst du gezielt frei – für alle oder für einzelne Spieler, auf Wunsch nur für eine bestimmte Zeit. So bleiben Geheimnisse und Wendungen deiner Kampagne geschützt, und eine Freigabe lässt sich jederzeit zurücknehmen."
+      },
+      "homebrew": {
+        "question": "Kann ich Homebrew-Inhalte und Hausregeln anlegen?",
+        "answer": "Ja. Neben den Inhalten des Regelwerks legst du für deine Kampagne eigene Klassen, Unterklassen, Spezies, Hintergründe, Talente, Zauber und Gegenstände an. Chronik prüft sie nach den Regeln von D&D 5E. Deine Spieler sehen sie, sobald du sie freigibst, und können sie dann bei der Charaktererstellung nutzen."
+      },
+      "creation": {
+        "question": "Wie erstelle ich einen D&D-Charakter mit Chronik?",
+        "answer": "Du wählst Spezies, Klasse und Hintergrund aus dem Kompendium deiner Kampagne, ab der passenden Stufe auch eine Unterklasse, verteilst die Attributswerte und suchst Talente, Zauber und Ausrüstung aus. Chronik prüft dabei Voraussetzungen und Auswahlmöglichkeiten nach dem Regelwerk der Kampagne, sodass am Ende ein regelkonformer Charakter steht."
+      },
+      "characters": {
+        "question": "Wie verwalte ich Charaktere und Charakterbögen?",
+        "answer": "Jeder Charakter hat einen digitalen Charakterbogen. Spieler pflegen ihren eigenen Charakter, die Spielleitung behält den Überblick über alle Spielercharaktere und NSCs. Werte wie Rüstungsklasse, Trefferpunkte oder Zauberplätze rechnet Chronik aus Spezies, Klasse, Hintergrund, Talenten und Ausrüstung, und das Inventar zählt die Traglast mit."
+      },
+      "sessions": {
+        "question": "Wie plane ich Spielsessions mit meiner Gruppe?",
+        "answer": "Du planst die Termine deiner Spielrunde in der Kampagne, bereitest Begegnungen und Szenen vor und bereitest die Session danach nach. Am Spieltisch sehen deine Spieler in ihrer eigenen Ansicht, was du ihnen gerade zeigst."
+      },
+      "mobile": {
+        "question": "Kann ich Chronik am Handy nutzen?",
+        "answer": "Ja. Chronik passt sich an jede Bildschirmgröße an, und Spieler haben eine eigene Ansicht für den Spieltisch: Charakterbogen, Entdeckungen und Gruppe sind dort mit einem Tipp erreichbar."
+      },
+      "history": {
+        "question": "Was passiert, wenn ich mich vertue?",
+        "answer": "Nichts geht verloren. Chronik merkt sich jede Änderung an deinen Inhalten. Du siehst, wer wann was geändert hat, machst einzelne Änderungen rückgängig oder holst eine frühere Fassung zurück. Gelöschte Inhalte landen im Archiv und lassen sich wiederherstellen."
+      },
+      "media": {
+        "question": "Kann ich Bilder und Karten hochladen?",
+        "answer": "Ja. Bilder für Orte, Personen, Karten und Handouts lädst du direkt in deine Kampagne hoch. Große Dateien werden in Teilen übertragen, sodass ein Upload nach einem Verbindungsabbruch weiterlaufen kann. Der Speicherplatz ist je Kampagne begrenzt."
+      },
+      "signIn": {
+        "question": "Wie melde ich mich an?",
+        "answer": "Mit deiner E-Mail-Adresse und einem Passwort oder über ein bestehendes Konto bei einem Anbieter. Bei der Registrierung bestätigst du deine E-Mail-Adresse mit einem Code, den wir dir schicken."
+      },
+      "devices": {
+        "question": "Wie behalte ich den Überblick über meine Geräte?",
+        "answer": "In deinen Kontoeinstellungen siehst du alle Sitzungen und vertrauenswürdigen Geräte und beendest einzelne davon oder meldest dich überall auf einmal ab. Wenn du dein Passwort änderst, wirst du auf allen Geräten abgemeldet."
+      },
+      "privacy": {
+        "question": "Was passiert mit meinen Daten?",
+        "answer": "Welche Daten Chronik speichert, wofür und welche Rechte du hast, steht in unserer Datenschutzerklärung. Deine Kampagnen sehen nur die Personen, die du einlädst."
+      },
+      "motion": {
+        "question": "Kann ich Animationen abschalten?",
+        "answer": "Ja. Stell in deinem Profil „Bewegung reduzieren“ ein. Hat dein Gerät die Einstellung bereits aktiviert, hält sich Chronik ohnehin daran."
+      }
+    },
+    "links": {
+      "demo": "Demo ansehen",
+      "register": "Konto erstellen",
+      "privacy": "Zur Datenschutzerklärung"
+    },
+    "contact": {
+      "title": "Deine Frage ist nicht dabei?",
+      "text": "Schreib uns über das Kontaktformular – zu Kampagnen, Charakteren, deinem Konto oder mit Ideen für Chronik.",
+      "link": "Zum Kontaktformular"
+    }
   }
 }

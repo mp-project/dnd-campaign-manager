@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, type Locale, matchLocale, SUPPORTED_LOCALES } from "@dnd/i18n";
+import { DEFAULT_LOCALE, type Locale, localizedPath, matchLocale, SUPPORTED_LOCALES } from "@dnd/i18n";
 import { computed } from "vue";
 import type { RouteRecordRaw } from "vue-router";
 
@@ -16,11 +16,8 @@ export function localizedRouteName(name: string, locale: Locale): string {
   return locale === DEFAULT_LOCALE ? name : `${name}.${locale}`;
 }
 
-/** Address of a public page (path relative to `/`, without slashes) in one language. */
-export function localizedPath(path: string, locale: Locale): string {
-  const segments = [locale === DEFAULT_LOCALE ? "" : locale, path].filter(Boolean);
-  return `/${segments.join("/")}`;
-}
+/** Address of a public page in one language (shared with the build's sitemap through `@dnd/i18n`). */
+export { localizedPath };
 
 /**
  * One route per supported language for a public page of the bare area (relative `path`, `""`
@@ -43,4 +40,10 @@ export function localizedRoutes(route: RouteRecordRaw & { path: string; name: st
 export function useHomePath() {
   const { locale } = useAppI18n();
   return computed(() => localizedPath("", matchLocale(String(locale.value)) ?? DEFAULT_LOCALE));
+}
+
+/** A public page made with `localizedRoutes` (its base `name`) in the active language, as a link target. */
+export function useLocalizedPage(name: string) {
+  const { locale } = useAppI18n();
+  return computed(() => ({ name: localizedRouteName(name, matchLocale(String(locale.value)) ?? DEFAULT_LOCALE) }));
 }

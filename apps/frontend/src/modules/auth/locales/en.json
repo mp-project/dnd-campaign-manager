@@ -53,12 +53,14 @@
     "passwordChanged": "Your password was changed. Sign in with your new password.",
     "signedOutPartially": "Signing out everywhere didn't work. This browser is signed out, but other sessions may still be active. Sign in and try again.",
     "notVerified": "Please confirm your email address first.",
-    "toActivation": "Confirm now"
+    "toActivation": "Confirm now",
+    "description": "Sign in to Chronik and carry on with your campaign: world, storylines, characters and sessions in one place."
   },
   "register": {
     "title": "Create account",
     "subtitle": "Begin your next story.",
-    "submit": "Create account"
+    "submit": "Create account",
+    "description": "Create your Chronik account, the campaign manager for D&D 5E – for game masters and their groups."
   },
   "activate": {
     "title": "Confirm your email",

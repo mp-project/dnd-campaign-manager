@@ -2,15 +2,40 @@
   admin off
 }
 
+# Search engines per environment (APP_ENV): only production may be indexed. Development and stage
+# answer every request with X-Robots-Tag and their robots.txt forbids everything, so stage never
+# shows up in search results, also not through links pointing at it.
+(robots-production) {
+}
+(robots-stage) {
+  header X-Robots-Tag "noindex, nofollow"
+  handle /robots.txt {
+    respond "User-agent: *
+Disallow: /
+" 200
+  }
+}
+(robots-development) {
+  import robots-stage
+}
+
 {$FRONTEND_DOMAIN} {
   tls internal
   encode zstd gzip
+  import robots-{$APP_ENV:production}
   reverse_proxy frontend:80
 }
 
+# The API is no page: never indexed, in any environment.
 {$API_DOMAIN} {
   tls internal
   encode zstd gzip
+  header X-Robots-Tag "noindex, nofollow"
+  handle /robots.txt {
+    respond "User-agent: *
+Disallow: /
+" 200
+  }
   reverse_proxy backend:{$BACKEND_PORT}
 }
 
@@ -18,5 +43,6 @@
 # In production the links point to the external storage (STORAGE_S3_PUBLIC_ENDPOINT).
 {$S3_DOMAIN} {
   tls internal
+  header X-Robots-Tag "noindex, nofollow"
   reverse_proxy rustfs:9000
 }

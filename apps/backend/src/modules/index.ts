@@ -27,6 +27,7 @@ import { spellsModule } from "#src/modules/spells/index";
 import { subclassesModule } from "#src/modules/subclasses/index";
 import { backgroundsModule } from "#src/modules/backgrounds/index";
 import { historyModule } from "#src/modules/history/index";
+import { contactModule } from "#src/modules/contact/index";
 
 export const systemModule: AppModule = {
   name: "system",
@@ -39,6 +40,7 @@ export const systemModule: AppModule = {
 export const defaultAppModules: readonly AppModule[] = [
   systemModule,
   authModule,
+  contactModule,
   historyModule,
   usersModule,
   rulesetModule,

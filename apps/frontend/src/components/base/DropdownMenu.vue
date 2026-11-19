@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Action menu ("more", "take over" …). The list is teleported to <body> and positioned fixed, so
- * containers with overflow-hidden never cut it; with too little room below it opens upwards.
+ * containers with overflow-hidden never cut it. It always opens downwards; with too little room
+ * below, the list gets shorter and scrolls (at most 70 % of the window).
  * An item's `action` gets the menu's root element (anchor for the value editor).
  */
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -35,7 +36,9 @@ const router = useRouter();
 const open = ref(false);
 const root = ref<HTMLElement>();
 const menu = ref<HTMLElement>();
-const position = ref<{ left?: string; top?: string }>({});
+const position = ref<{ left?: string; top?: string; maxHeight?: string }>({});
+/** The list never gets shorter than this, so a menu at the window's lower edge stays usable. */
+const MIN_HEIGHT = 120;
 
 function toggle(): void {
   open.value = !open.value;
@@ -55,14 +58,14 @@ function onDocumentClick(event: MouseEvent): void {
 function place(): void {
   if (!open.value || !root.value) return;
   const rect = root.value.getBoundingClientRect();
-  const height = menu.value?.offsetHeight ?? 220;
   const width = Math.max(menu.value?.offsetWidth ?? 224, 224);
-  const upwards = rect.bottom + 4 + height > window.innerHeight - 8 && rect.top - 4 - height > 8;
+  const top = rect.bottom + 4;
+  const room = Math.max(MIN_HEIGHT, window.innerHeight - top - 8);
   const left = Math.min(
     Math.max(8, props.align === "right" ? rect.right - width : rect.left),
     window.innerWidth - width - 8,
   );
-  position.value = { left: `${left}px`, top: `${upwards ? rect.top - 4 - height : rect.bottom + 4}px` };
+  position.value = { left: `${left}px`, top: `${top}px`, maxHeight: `${Math.min(room, window.innerHeight * 0.7)}px` };
 }
 
 watch(open, async (isOpen) => {
@@ -123,7 +126,7 @@ onBeforeUnmount(() => {
           ref="menu"
           role="menu"
           :style="position"
-          class="fixed z-80 max-h-[70vh] min-w-56 overflow-y-auto rounded-card border py-1 shadow-soft"
+          class="fixed z-80 min-w-56 overflow-y-auto rounded-card border py-1 shadow-soft"
           :class="dark ? 'border-navy-line bg-navy-900 text-parchment' : 'border-line bg-parchment-card text-ink'"
           @keydown.esc="close"
           @keydown.down.prevent="moveFocus(1)"

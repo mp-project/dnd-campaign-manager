@@ -8,7 +8,9 @@
     "register": "Sign up",
     "toApp": "Open the app",
     "language": "Choose language",
-    "demo": "Demo"
+    "demo": "Demo",
+    "faq": "FAQ",
+    "home": "Home"
   },
   "menu": {
     "open": "Open menu",
@@ -280,9 +282,137 @@
       "gather": "Tap to gather"
     }
   },
-  "cta": {
-    "title": "Ready for the next adventure?",
-    "text": "Try the demo, or create your account and set up your first campaign.",
-    "signIn": "Already have an account? Sign in"
+  "faq": {
+    "meta": {
+      "title": "FAQ on managing D&D campaigns",
+      "description": "Frequently asked questions about Chronik, the campaign manager for D&D 5E: planning campaigns, creating and managing characters, inviting players, homebrew content, game sessions and your account."
+    },
+    "breadcrumb": "FAQ",
+    "hero": {
+      "eyebrow": "Help with your D&D campaign manager",
+      "title": "Frequently asked questions",
+      "lead": "How to plan your D&D campaign with Chronik, create and manage characters, invite your group and decide who gets to see what – the most important answers at a glance."
+    },
+    "search": {
+      "label": "Search the questions",
+      "placeholder": "Search term, e.g. invitation",
+      "results": "No matching question | One matching question | {count} matching questions",
+      "empty": "We found no question about “{query}”. Try another term or browse the topics.",
+      "reset": "Clear search"
+    },
+    "topics": "Topics",
+    "questionCount": "{count} questions",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "groups": {
+      "basics": {
+        "title": "Getting to know Chronik",
+        "hint": "What Chronik is and who it's for"
+      },
+      "campaign": {
+        "title": "Campaign, world and group",
+        "hint": "Worldbuilding, invitations, roles and reveals"
+      },
+      "table": {
+        "title": "Characters and game night",
+        "hint": "Character creation, sessions and history"
+      },
+      "account": {
+        "title": "Account and security",
+        "hint": "Sign-in, devices and data"
+      }
+    },
+    "questions": {
+      "what": {
+        "question": "What is Chronik?",
+        "answer": "Chronik is a campaign manager for D&D 5E (Dungeons & Dragons, 5th edition). Game masters use it to plan their campaign and their world with locations, people and factions, weave storylines and quests, manage their group's characters and invite them to game sessions – all in one place and linked together."
+      },
+      "audience": {
+        "question": "Who is Chronik for?",
+        "answer": "For everyone at the tabletop RPG table: game masters (dungeon masters) prepare their D&D campaign and run the sessions, players see their character and everything the game master reveals, and co-authors work on the world and the compendium as editors without the group seeing anything too early."
+      },
+      "rules": {
+        "question": "Which D&D rulesets does Chronik support?",
+        "answer": "D&D 5E in its 2014 and 2024 editions. You choose the ruleset per campaign; the compendium, character creation and the terms follow it, so the 2014 rules speak of “races” and the 2024 rules of “species”."
+      },
+      "demo": {
+        "question": "Can I try Chronik without signing up?",
+        "answer": "Yes. The demo shows an example campaign with its world, storylines, character sheet and player view, and needs no account. If you like what you see, create your account and set up your first D&D campaign of your own."
+      },
+      "languages": {
+        "question": "Which languages is Chronik available in?",
+        "answer": "Currently German and English, each with the D&D terms of the matching ruleset edition. You set the language in your profile; without a setting, Chronik follows your browser."
+      },
+      "world": {
+        "question": "How do I build my world in Chronik?",
+        "answer": "You create locations, people, factions and notes and link them together, so while running the campaign you quickly find who lives where and who is allied with whom. You attach maps and pictures right there. Drafts stay hidden until you reveal them."
+      },
+      "invite": {
+        "question": "How does my group join the campaign?",
+        "answer": "You invite your fellow players to your campaign by email and set their role as you do. Whoever accepts the invitation finds the campaign in their overview. Anyone without an account creates one first and confirms their email address."
+      },
+      "roles": {
+        "question": "Which roles are there in a campaign?",
+        "answer": "The game master owns the campaign and decides everything. Editors work on the world and its content and also see drafts. Players see their character and whatever has been revealed to them. You can change roles at any time."
+      },
+      "visibility": {
+        "question": "What do my players see?",
+        "answer": "Only what you show them. Drafts and notes for the game master stay hidden. You reveal locations, people or notes to everyone or to single players, for a limited time if you like. That keeps your campaign's secrets and twists safe, and you can take a reveal back at any time."
+      },
+      "homebrew": {
+        "question": "Can I create homebrew content and house rules?",
+        "answer": "Yes. Besides the content of the ruleset, you create your own classes, subclasses, species, backgrounds, feats, spells and items for your campaign. Chronik checks them against the D&D 5E rules. Your players see them once you release them and can then use them in character creation."
+      },
+      "creation": {
+        "question": "How do I create a D&D character with Chronik?",
+        "answer": "You choose species, class and background from your campaign's compendium, a subclass from the matching level, assign ability scores and pick feats, spells and equipment. Chronik checks prerequisites and choices against the campaign's ruleset, so you end up with a character that follows the rules."
+      },
+      "characters": {
+        "question": "How do I manage characters and character sheets?",
+        "answer": "Every character has a digital character sheet. Players look after their own character, the game master keeps track of all player characters and NPCs. Chronik works out values such as armor class, hit points and spell slots from species, class, background, feats and equipment, and the inventory keeps count of the carrying load."
+      },
+      "sessions": {
+        "question": "How do I plan game sessions with my group?",
+        "answer": "You schedule your group's game nights in the campaign, prepare encounters and scenes, and follow up on the session afterwards. At the table, your players see what you are showing them in a view of their own."
+      },
+      "mobile": {
+        "question": "Can I use Chronik on my phone?",
+        "answer": "Yes. Chronik adapts to every screen size, and players have a view of their own for the table: their character sheet, discoveries and group are a tap away."
+      },
+      "history": {
+        "question": "What if I make a mistake?",
+        "answer": "Nothing gets lost. Chronik remembers every change to your content. You see who changed what and when, undo single changes or bring back an earlier version. Deleted content goes to the archive and can be restored."
+      },
+      "media": {
+        "question": "Can I upload pictures and maps?",
+        "answer": "Yes. You upload pictures for locations, people, maps and handouts straight into your campaign. Large files are sent in parts, so an upload can carry on after a lost connection. Storage is limited per campaign."
+      },
+      "signIn": {
+        "question": "How do I sign in?",
+        "answer": "With your email address and a password, or with an existing account at a provider. When you register, you confirm your email address with a code we send you."
+      },
+      "devices": {
+        "question": "How do I keep track of my devices?",
+        "answer": "Your account settings list all your sessions and trusted devices; you can end single ones or sign out everywhere at once. Changing your password signs you out on every device."
+      },
+      "privacy": {
+        "question": "What happens to my data?",
+        "answer": "Our privacy policy explains which data Chronik stores, what for, and which rights you have. Your campaigns are seen only by the people you invite."
+      },
+      "motion": {
+        "question": "Can I turn off animations?",
+        "answer": "Yes. Switch on “Reduce motion” in your profile. If your device already has that setting turned on, Chronik follows it anyway."
+      }
+    },
+    "links": {
+      "demo": "Try the demo",
+      "register": "Create an account",
+      "privacy": "Read the privacy policy"
+    },
+    "contact": {
+      "title": "Your question isn't here?",
+      "text": "Write to us through the contact form – about campaigns, characters, your account or with ideas for Chronik.",
+      "link": "Go to the contact form"
+    }
   }
 }

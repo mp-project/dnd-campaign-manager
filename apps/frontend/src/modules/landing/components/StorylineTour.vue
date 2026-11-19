@@ -23,7 +23,7 @@ import { useReducedMotion } from "@/core/motion/reducedMotion";
 import { useGsap } from "@/core/motion/useGsap";
 
 import board from "../assets/screens/storyline-board.webp";
-import { demoScreenUrl } from "../demo";
+import { demoScreenUrl } from "@/core/demo";
 import { SCREENS } from "../screens";
 
 type RouteId = "official" | "secret";

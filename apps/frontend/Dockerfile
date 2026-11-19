@@ -25,10 +25,15 @@ ARG VITE_PUSHER_BEAMS_INSTANCE_ID=
 ENV VITE_PUSHER_BEAMS_INSTANCE_ID=$VITE_PUSHER_BEAMS_INSTANCE_ID
 ARG VITE_DEMO_URL=
 ENV VITE_DEMO_URL=$VITE_DEMO_URL
+ARG VITE_SITE_URL=
+ENV VITE_SITE_URL=$VITE_SITE_URL
+# The build prerenders the public pages in Chromium; only this stage carries it, not the image.
+RUN npx playwright install --with-deps chromium
 COPY . .
 RUN npm run build --workspace @dnd/frontend
 
 FROM nginx:1.27-alpine AS production
+COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/apps/frontend/dist /usr/share/nginx/html
 HEALTHCHECK --interval=30s --timeout=3s --retries=5 \
   CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1

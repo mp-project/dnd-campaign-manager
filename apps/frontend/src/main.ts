@@ -20,6 +20,7 @@ import { onSessionExpired } from "./core/api/client";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
 import { createAppQueryClient } from "./core/api/queryClient";
 import { installReducedMotion } from "./core/motion/reducedMotion";
+import { installAppHead } from "./core/seo/appHead";
 import { NAV_ITEMS } from "./core/navigation/navigation";
 import { startPushNotifications } from "./services/pushNotifications";
 
@@ -31,6 +32,7 @@ installReducedMotion();
 onSessionExpired(() => handleSessionExpired(router, queryClient));
 
 installGuards(router, queryClient);
+installAppHead(router);
 watchCampaignAccess(router, queryClient);
 
 app.use(createPinia());

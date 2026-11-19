@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Contact",
+    "description": "Write to the team behind Chronik, the campaign manager for D&D 5E: questions, help with problems, feedback and ideas about campaigns and characters."
+  },
+  "title": "Contact",
+  "subtitle": "Questions, feedback or a problem with your campaign? Write to us.",
+  "faqHint": "Many answers are already in the frequently asked questions.",
+  "faqLink": "Go to the FAQ",
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "emailHint": "That's where we send our answer.",
+    "topic": "Topic",
+    "topicPlaceholder": "Choose a topic",
+    "message": "Message",
+    "messageCounter": "{count} / {max} characters",
+    "privacy": "I have read the privacy policy and agree that my details are processed to answer my request.",
+    "website": "Website (please leave empty)"
+  },
+  "topics": {
+    "GENERAL": "General question",
+    "SUPPORT": "Help and problems",
+    "FEEDBACK": "Feedback and ideas",
+    "PRIVACY": "Privacy",
+    "PARTNERSHIP": "Press and partnerships",
+    "OTHER": "Other"
+  },
+  "validation": {
+    "firstName": "Please enter your first name.",
+    "lastName": "Please enter your last name.",
+    "email": "Please enter a valid email address.",
+    "topic": "Please choose a topic.",
+    "message": "Please write at least {min} characters.",
+    "privacy": "Please confirm that you have read the privacy policy."
+  },
+  "submit": "Send message",
+  "retryAfter": "Too many messages in a short time. Try again in a minute. | Too many messages in a short time. Try again in a minute. | Too many messages in a short time. Try again in {minutes} minutes.",
+  "challengeFailed": "The form's security check didn't work. Please try again.",
+  "success": {
+    "title": "Thank you for your message!",
+    "text": "We have received it and will answer you at {email}.",
+    "again": "Write another message"
+  }
+}

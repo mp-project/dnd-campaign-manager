@@ -49,6 +49,7 @@ export function createSmtpEmailPort(config: SmtpEmailConfig): EmailPort {
         subject: message.subject,
         text: message.text,
         html: message.html,
+        ...(message.replyTo ? { replyTo: message.replyTo } : {}),
       });
     },
   };

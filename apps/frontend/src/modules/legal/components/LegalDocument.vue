@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * A legal text in the brand layout: sections with heading and text (line breaks kept), the date
- * of the version and a way back. Reachable without an account.
+ * of the version and a way back, with its own title and description for search engines.
+ * Reachable without an account.
  */
 import { useRouter } from "vue-router";
 
@@ -9,12 +10,14 @@ import BaseButton from "@/components/base/BaseButton.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
+import { usePageMeta } from "@/core/seo/pageMeta";
 import BrandLayout from "@/layouts/BrandLayout.vue";
 
 export type LegalSection = { id: string; title: MessageKey; body: MessageKey };
 
-defineProps<{ title: MessageKey; subtitle: MessageKey; sections: LegalSection[] }>();
+const props = defineProps<{ title: MessageKey; subtitle: MessageKey; description: MessageKey; sections: LegalSection[] }>();
 const { t } = useAppI18n();
+usePageMeta({ title: () => t(props.title), description: () => t(props.description) });
 const router = useRouter();
 
 /** Back where the visitor came from in this app; opened directly (new tab, link), to the start page. */

@@ -3,6 +3,8 @@ export type EmailMessage = {
   subject: string;
   text: string;
   html?: string;
+  /** Address the recipient's answer goes to (e.g. the sender of a contact form). */
+  replyTo?: string;
 };
 
 export type EmailPort = {

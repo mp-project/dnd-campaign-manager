@@ -177,7 +177,9 @@
   "notFound": {
     "title": "Page not found",
     "body": "This page doesn't exist, or you have no access to it.",
-    "back": "To the dashboard"
+    "back": "To the dashboard",
+    "home": "To the start page",
+    "help": "Maybe this helps:"
   },
   "legal": {
     "privacy": "Privacy",
@@ -207,5 +209,19 @@
     "label": "Hit points {hp} of {max}",
     "labelWithTemp": "Hit points {hp} of {max}, {temp} temporary",
     "temp": "{temp} temporary HP"
+  },
+  "seo": {
+    "imageAlt": "Chronik – campaign manager for D&D 5E: a dragon over moonlit ruins"
+  },
+  "siteFooter": {
+    "title": "Ready for the next adventure?",
+    "text": "Try the demo, or create your account and set up your first campaign.",
+    "register": "Create an account",
+    "toApp": "Go to my campaigns",
+    "demo": "Try the demo",
+    "signIn": "Already have an account? Sign in",
+    "faq": "FAQ",
+    "navLabel": "Legal and help",
+    "contact": "Contact"
   }
 }

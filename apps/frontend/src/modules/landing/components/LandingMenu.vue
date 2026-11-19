@@ -2,14 +2,15 @@
 /**
  * Menu of the start page on phones. The trigger is a simple compass rose instead of a burger, its
  * north point red: opening turns it south, towards the menu, closing back north. A parchment scroll unrolls below the
- * header with the page's table of contents (chapters with a golden seal, number and a line on what they hold) and the ways in
- * (registration or sign-in, demo, or the app for a profile already loaded). A chapter closes the
+ * header with the page's table of contents (`chapters`: sections of the page with a golden seal, number and a line on what
+ * they hold), the ways in (registration or sign-in, demo, or the app for a profile already loaded) and a link to another
+ * public page (`pageLink`, e.g. the FAQ from the start page). A chapter closes the
  * scroll and moves the page to its section below the sticky header. Escape, the dimmed page and
  * the compass close it; focus returns to the compass. From md on the header shows its links and
  * the menu is not rendered. With reduced motion nothing turns or unrolls.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { type RouteLocationRaw, useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
@@ -18,7 +19,15 @@ import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
 import { useReducedMotion } from "@/core/motion/reducedMotion";
 
-const props = defineProps<{ signedIn: boolean; demo: string | null }>();
+/** A section of the page (`section`: the id its `aria-labelledby` names) as a chapter of the menu. */
+export type MenuChapter = { section: string; icon: IconName; label: MessageKey; hint: MessageKey };
+
+const props = defineProps<{
+  signedIn: boolean;
+  demo: string | null;
+  chapters: readonly MenuChapter[];
+  pageLink?: { to: RouteLocationRaw; label: MessageKey; icon: IconName };
+}>();
 
 const { t } = useAppI18n();
 const route = useRoute();
@@ -28,18 +37,8 @@ const top = ref(0);
 const trigger = ref<HTMLButtonElement | null>(null);
 const panel = ref<HTMLElement | null>(null);
 
-const NUMERALS = ["I", "II", "III", "IV", "V"];
-const chapters = computed(() =>
-  (
-    [
-      { section: "landing-audience", icon: "ui-users", label: "landing.menu.audience", hint: "landing.menu.audienceHint" },
-      { section: "landing-features", icon: "ui-scroll", label: "landing.menu.features", hint: "landing.menu.featuresHint" },
-      { section: "landing-more", icon: "ui-sparkle", label: "landing.menu.more", hint: "landing.menu.moreHint" },
-      { section: "landing-marketplace", icon: "ui-building", label: "landing.menu.marketplace", hint: "landing.menu.marketplaceHint" },
-      { section: "landing-reputation", icon: "ui-flag", label: "landing.menu.reputation", hint: "landing.menu.reputationHint" },
-    ] satisfies { section: string; icon: IconName; label: MessageKey; hint: MessageKey }[]
-  ).map((chapter, index) => ({ ...chapter, numeral: NUMERALS[index] })),
-);
+const NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+const chapters = computed(() => props.chapters.map((chapter, index) => ({ ...chapter, numeral: NUMERALS[index] ?? String(index + 1) })));
 const base = import.meta.env.BASE_URL;
 
 /** The scroll hangs from the header's lower edge, which moves while the header condenses. */
@@ -256,6 +255,15 @@ const label = computed(() => t(open.value ? "landing.menu.close" : "landing.menu
                 block
               >
                 {{ t("landing.hero.demo") }}
+              </BaseButton>
+              <BaseButton
+                v-if="props.pageLink"
+                :to="props.pageLink.to"
+                variant="ghost"
+                :icon="props.pageLink.icon"
+                block
+              >
+                {{ t(props.pageLink.label) }}
               </BaseButton>
             </div>
           </div>

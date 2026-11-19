@@ -34,6 +34,8 @@ import OAuthCallbackView from "@/modules/auth/views/OAuthCallbackView.vue";
 import RegisterView from "@/modules/auth/views/RegisterView.vue";
 import ResetPasswordView from "@/modules/auth/views/ResetPasswordView.vue";
 import UserMenu from "@/components/layout/UserMenu.vue";
+import { contactModule } from "@/modules/contact";
+import { landingModule } from "@/modules/landing";
 import { legalModule } from "@/modules/legal";
 
 import { mountWithApp } from "../../helpers/mount";
@@ -48,7 +50,7 @@ const AUTH = "/api/v1/auth";
 const error = (status: number, code: string) => ({ status, body: { error: { code, message: "-" } } });
 
 async function open(component: Component, url: string) {
-  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, legalModule, pages]) });
+  const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, legalModule, landingModule, contactModule, pages]) });
   await router.push(url);
   const queryClient = new QueryClient();
   queryClient.setQueryData(["me", "profile"], { id: "previous-account" });

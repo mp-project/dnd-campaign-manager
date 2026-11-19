@@ -36,7 +36,8 @@
     "content": {
       "title": "Content of our users",
       "body": "Campaigns, notes, images and other content are created by our users, who are responsible for it. We accept reports of unlawful content at the address above and review them promptly."
-    }
+    },
+    "description": "Legal notice of Chronik: provider, contact and those responsible for the campaign manager for D&D 5E."
   },
   "privacy": {
     "title": "Privacy",
@@ -69,6 +70,10 @@
       "title": "Emails",
       "body": "We send you the emails your account needs: confirmation codes, password reset links, notices about changes to your email address and invitations to campaigns."
     },
+    "contact": {
+      "title": "Contact form",
+      "body": "When you write to us through the contact form, we process your first name, last name, email address, topic and message to answer your request. The details reach our team by email and are not stored in the app. We delete the email once your request is settled and no retention obligation applies."
+    },
     "push": {
       "title": "Push notifications",
       "body": "If you allow push notifications, we use the Pusher Beams service for them, which receives an identifier of your browser. You can turn the notifications off in your browser at any time."
@@ -80,6 +85,7 @@
     "rights": {
       "title": "Your rights",
       "body": "You have the right to access, rectification, erasure, restriction of processing, data portability and objection. Contact us at the address above. You may also lodge a complaint with a data protection supervisory authority."
-    }
+    },
+    "description": "Privacy policy of Chronik: what data the campaign manager stores, what for, and which rights you have."
   }
 }

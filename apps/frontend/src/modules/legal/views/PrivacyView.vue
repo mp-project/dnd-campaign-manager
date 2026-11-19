@@ -10,6 +10,7 @@ const sections: LegalSection[] = [
   { id: "cookies", title: "legal.privacy.cookies.title", body: "legal.privacy.cookies.body" },
   { id: "security", title: "legal.privacy.security.title", body: "legal.privacy.security.body" },
   { id: "email", title: "legal.privacy.email.title", body: "legal.privacy.email.body" },
+  { id: "contact", title: "legal.privacy.contact.title", body: "legal.privacy.contact.body" },
   { id: "push", title: "legal.privacy.push.title", body: "legal.privacy.push.body" },
   { id: "retention", title: "legal.privacy.retention.title", body: "legal.privacy.retention.body" },
   { id: "rights", title: "legal.privacy.rights.title", body: "legal.privacy.rights.body" },
@@ -20,6 +21,7 @@ const sections: LegalSection[] = [
   <LegalDocument
     title="legal.privacy.title"
     subtitle="legal.privacy.subtitle"
+    description="legal.privacy.description"
     :sections="sections"
   />
 </template>

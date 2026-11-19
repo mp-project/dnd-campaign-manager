@@ -22,6 +22,16 @@ export function matchLocale(tag: string | null | undefined): Locale | null {
 }
 
 /**
+ * Address of a public page (path relative to `/`, without slashes) in one language: German without
+ * a prefix (`/`, `/impressum`), every other language under `/<lang>/…` (`/en`, `/en/faq`). The app
+ * itself has no language in its URLs.
+ */
+export function localizedPath(path: string, locale: Locale): string {
+  const segments = [locale === DEFAULT_LOCALE ? "" : locale, path].filter(Boolean);
+  return `/${segments.join("/")}`;
+}
+
+/**
  * The first candidate that names a supported language, otherwise German. Callers pass them in order
  * of precedence: profile → last choice in this browser → browser languages.
  */

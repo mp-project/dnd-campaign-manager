@@ -6,27 +6,32 @@
  * cost a failed refresh. Who already has a profile loaded in this tab gets the way into the app
  * instead of the sign-in.
  */
+import { SUPPORTED_LOCALES } from "@dnd/i18n";
 import { useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
+import { useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import CompassRose from "@/components/layout/CompassRose.vue";
-import SiteHeader from "@/components/layout/SiteHeader.vue";
+import SiteFooter from "@/components/layout/SiteFooter.vue";
 import { meQuery } from "@/core/auth/session";
+import { demoScreenUrl, demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
-import { usePageMeta } from "@/core/i18n/pageMeta";
+import { localizedPath, useLocalizedPage } from "@/core/i18n/localizedRoutes";
+import { usePageMeta } from "@/core/seo/pageMeta";
+import { siteUrl } from "@/core/seo/site";
 import { vReveal } from "@/core/motion/reveal";
 
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
 import InventoryShowcase from "../components/InventoryShowcase.vue";
-import LandingMenu from "../components/LandingMenu.vue";
+import type { MenuChapter } from "../components/LandingMenu.vue";
 import MarketplaceFan from "../components/MarketplaceFan.vue";
-import LanguageSwitch from "../components/LanguageSwitch.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
+import PublicHeader from "../components/PublicHeader.vue";
 import compendiumArt from "../assets/more/compendium.webp";
 import encountersArt from "../assets/more/encounters.webp";
 import factionsArt from "../assets/more/factions.webp";
@@ -42,7 +47,6 @@ import castleRuinScene from "../assets/deco/castle-ruin.webp";
 import coastScene from "../assets/deco/coast.webp";
 import coinArt from "../assets/deco/coin.webp";
 import forestEdgeScene from "../assets/deco/forest-edge.webp";
-import footerArt from "../assets/deco/footer-ruins.webp";
 import heroArt from "../assets/deco/hero-dragon.webp";
 import purseArt from "../assets/deco/purse.webp";
 import riverTownScene from "../assets/deco/river-town.webp";
@@ -51,18 +55,26 @@ import swordArt from "../assets/deco/sword.webp";
 import LandscapeEdge from "../components/LandscapeEdge.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
 import StorylineTour from "../components/StorylineTour.vue";
-import { demoScreenUrl, demoUrl } from "../demo";
 import { type Screen, SCREENS } from "../screens";
+import { startPageStructuredData } from "../structuredData";
 
 const { t } = useAppI18n();
+const faqPage = useLocalizedPage("landing-faq");
 const demo = demoUrl();
 const marketplaceDemo = demoScreenUrl(SCREENS.marketplace.demoPath);
-
-usePageMeta({ title: () => t("landing.meta.title"), description: () => t("landing.meta.description") });
 
 // Only what this tab already knows: never fetched here.
 const me = useQuery({ ...meQuery, enabled: false });
 const signedIn = computed(() => !!me.data.value);
+
+/** The page's sections as chapters of the phone menu. */
+const chapters: MenuChapter[] = [
+  { section: "landing-audience", icon: "ui-users", label: "landing.menu.audience", hint: "landing.menu.audienceHint" },
+  { section: "landing-features", icon: "ui-scroll", label: "landing.menu.features", hint: "landing.menu.featuresHint" },
+  { section: "landing-more", icon: "ui-sparkle", label: "landing.menu.more", hint: "landing.menu.moreHint" },
+  { section: "landing-marketplace", icon: "ui-building", label: "landing.menu.marketplace", hint: "landing.menu.marketplaceHint" },
+  { section: "landing-reputation", icon: "ui-flag", label: "landing.menu.reputation", hint: "landing.menu.reputationHint" },
+];
 
 type Feature = FeatureRowData & {
   screen: Screen;
@@ -181,6 +193,25 @@ const inventory: FeatureRowData = {
   layout: "left",
 };
 
+const route = useRoute();
+usePageMeta({
+  title: () => t("landing.meta.title"),
+  description: () => t("landing.meta.description"),
+  structuredData: () => {
+    const locale = route.meta.locale ?? "de";
+    return startPageStructuredData({
+      site: siteUrl(),
+      url: `${siteUrl()}${localizedPath("", locale)}`,
+      locale,
+      name: t("common.app.name"),
+      description: t("landing.meta.description"),
+      languages: SUPPORTED_LOCALES,
+      // The main features as the app's feature list, in the page's language.
+      features: [...features, inventory].map((feature) => t(feature.title)),
+    });
+  },
+});
+
 const more: MoreItem[] = [
   { id: "encounters", icon: "nav-encounter", title: "landing.more.encounters.title", text: "landing.more.encounters.text", art: encountersArt },
   { id: "factions", icon: "nav-fraktionen", title: "landing.more.factions.title", text: "landing.more.factions.text", art: factionsArt },
@@ -208,47 +239,10 @@ const reputationPoints: MessageKey[] = [
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <SiteHeader>
-      <a
-        v-if="demo"
-        :href="demo"
-        target="_blank"
-        rel="noopener"
-        class="hidden min-h-11 items-center px-2 text-[15px] hover:underline md:inline-flex"
-      >
-        {{ t("landing.header.demo") }}
-      </a>
-      <LanguageSwitch />
-      <BaseButton
-        v-if="signedIn"
-        to="/dashboard"
-        variant="outline-gold"
-        size="sm"
-        class="hidden md:inline-flex"
-      >
-        {{ t("landing.header.toApp") }}
-      </BaseButton>
-      <template v-else>
-        <RouterLink
-          :to="{ name: 'auth-login' }"
-          class="hidden min-h-11 items-center px-2 text-[15px] hover:underline md:inline-flex"
-        >
-          {{ t("landing.header.signIn") }}
-        </RouterLink>
-        <BaseButton
-          :to="{ name: 'auth-register' }"
-          variant="outline-gold"
-          size="sm"
-          class="hidden md:inline-flex"
-        >
-          {{ t("landing.header.register") }}
-        </BaseButton>
-      </template>
-      <LandingMenu
-        :signed-in="signedIn"
-        :demo="demo"
-      />
-    </SiteHeader>
+    <PublicHeader
+      :chapters="chapters"
+      :page-link="{ to: faqPage, label: 'landing.header.faq', icon: 'orig-info' }"
+    />
 
     <main class="flex-1">
       <!-- Hero: dark like the app's shell, with storyline and character sheet split diagonally -->
@@ -613,98 +607,9 @@ const reputationPoints: MessageKey[] = [
           <ScreenFrame :screen="SCREENS.reputation" />
         </div>
       </section>
-
-      <!-- Closing call to action -->
-      <section
-        class="closing relative flex items-center overflow-x-clip"
-        aria-labelledby="landing-cta"
-      >
-        <img
-          :src="footerArt"
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          decoding="async"
-          class="closing-art pointer-events-none absolute"
-        >
-        <div
-          v-reveal
-          class="relative mx-auto flex max-w-200 flex-col items-center px-4 pt-20 pb-16 text-center md:pt-28 md:pb-20"
-        >
-          <div
-            class="flex items-center justify-center gap-4"
-            aria-hidden="true"
-          >
-            <span class="h-px w-16 bg-gold/70" />
-            <CompassRose :size="56" />
-            <span class="h-px w-16 bg-gold/70" />
-          </div>
-          <h2
-            id="landing-cta"
-            class="mt-4 font-heading text-[28px] leading-tight font-bold text-parchment md:text-[36px]"
-          >
-            {{ t("landing.cta.title") }}
-          </h2>
-          <p class="mt-3 max-w-150 text-[17px] text-parchment/85">
-            {{ t("landing.cta.text") }}
-          </p>
-          <div class="mt-8 flex flex-wrap justify-center gap-3">
-            <BaseButton
-              v-if="signedIn"
-              to="/dashboard"
-              variant="primary"
-              icon-right="aktion-weiter"
-            >
-              {{ t("landing.hero.toApp") }}
-            </BaseButton>
-            <BaseButton
-              v-else
-              :to="{ name: 'auth-register' }"
-              variant="primary"
-            >
-              {{ t("landing.hero.register") }}
-            </BaseButton>
-            <BaseButton
-              v-if="demo"
-              as="a"
-              :href="demo"
-              target="_blank"
-              rel="noopener"
-              variant="outline-gold"
-              icon="aktion-ansehen"
-            >
-              {{ t("landing.hero.demo") }}
-            </BaseButton>
-          </div>
-          <RouterLink
-            v-if="!signedIn"
-            :to="{ name: 'auth-login' }"
-            class="mt-5 inline-flex min-h-11 items-center text-[15px] text-gold-light underline underline-offset-4"
-          >
-            {{ t("landing.cta.signIn") }}
-          </RouterLink>
-        </div>
-      </section>
     </main>
 
-    <footer class="relative flex items-center justify-center gap-4 border-t border-navy-line/60 py-3 text-[14px] text-parchment/80">
-      <RouterLink
-        :to="{ name: 'legal-privacy' }"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
-      >
-        {{ t("common.legal.privacy") }}
-      </RouterLink>
-      <span
-        class="h-4 w-px bg-navy-line"
-        aria-hidden="true"
-      />
-      <RouterLink
-        :to="{ name: 'legal-imprint' }"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
-      >
-        {{ t("common.legal.imprint") }}
-      </RouterLink>
-    </footer>
+    <SiteFooter heading-id="landing-cta" />
   </div>
 </template>
 
@@ -746,24 +651,6 @@ const reputationPoints: MessageKey[] = [
   .hero-art {
     mask-image: linear-gradient(to bottom, transparent, black 10%);
   }
-}
-
-/*
- * Closing: gothic ruins under a golden circle (1800 × 602). Rows above 22.2 % are the mountain
- * ridge, which rises into the parchment above; the rest carries the call to action and fades into
- * the footer's navy.
- */
-.closing {
-  --closing-art-width: max(100vw, 1100px);
-  min-height: calc(var(--closing-art-width) * 602 / 1800 * 0.778);
-}
-.closing-art {
-  top: 0;
-  left: 50%;
-  width: var(--closing-art-width);
-  max-width: none;
-  transform: translate(-50%, -22.2%);
-  mask-image: linear-gradient(to bottom, black 65%, transparent);
 }
 
 /* The card is the container its figure is measured against (`cqw` for the height above it). */

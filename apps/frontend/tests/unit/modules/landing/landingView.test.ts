@@ -10,8 +10,9 @@ import { createAppI18n, setLocale } from "@/core/i18n";
 import { localizedPath, localizedRouteName } from "@/core/i18n/localizedRoutes";
 import { defineFrontendModule } from "@/core/modules";
 import { authModule } from "@/modules/auth";
+import { contactModule } from "@/modules/contact";
 import { landingModule } from "@/modules/landing";
-import { demoScreenUrl, demoUrl } from "@/modules/landing/demo";
+import { demoScreenUrl, demoUrl } from "@/core/demo";
 import LandingView from "@/modules/landing/views/LandingView.vue";
 import { legalModule } from "@/modules/legal";
 
@@ -25,7 +26,7 @@ const pages = defineFrontendModule({
 function landingRouter() {
   return createRouter({
     history: createMemoryHistory(),
-    routes: buildRoutes([landingModule, authModule, legalModule, pages]),
+    routes: buildRoutes([landingModule, authModule, legalModule, contactModule, pages]),
   });
 }
 
@@ -108,7 +109,15 @@ describe("landing page", () => {
       ]),
     );
     expect(wrapper.find("#landing-marketplace").text()).toBe("Inhalte teilen und entdecken");
-    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/login", "/datenschutz", "/impressum"]));
+    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/login", "/datenschutz", "/impressum", "/faq"]));
+    // The header leads to the FAQ, the footer to privacy, imprint and FAQ.
+    expect(wrapper.find("header").findAll("a").map((link) => link.text())).toContain("Häufige Fragen");
+    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
+      "/datenschutz",
+      "/impressum",
+      "/faq",
+      "/kontakt",
+    ]);
     expect(hrefs(wrapper)).not.toContain("/dashboard");
     // Visitors without a session cost the API nothing.
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -309,6 +318,33 @@ describe("landing page", () => {
     wrapper.unmount();
     expect(document.head.querySelector("link[rel=canonical]")).toBeNull();
     expect(document.head.querySelector("meta[name=description]")).toBeNull();
+  });
+
+  it("describes site, publisher and app for search engines", async () => {
+    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    const { wrapper } = await open({ url: "/en", locale: "en" });
+    const data = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map((script) =>
+      JSON.parse(script.textContent ?? ""),
+    );
+    expect(data.map((entry) => entry["@type"])).toEqual(["Organization", "WebSite", "SoftwareApplication"]);
+    const [organization, website, app] = data;
+    expect(organization).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://chronik.example/#organization",
+      name: "Chronik",
+      url: "https://chronik.example/",
+    });
+    expect(website).toMatchObject({ url: "https://chronik.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
+    expect(app).toMatchObject({
+      applicationCategory: "GameApplication",
+      operatingSystem: "Web",
+      availableLanguage: ["de", "en"],
+      isPartOf: { "@id": website["@id"] },
+    });
+    expect(app.featureList).toEqual(expect.arrayContaining(["Manage characters", "Manage inventory"]));
+    wrapper.unmount();
+    expect(document.head.querySelector('script[type="application/ld+json"]')).toBeNull();
   });
 
   it("shows English texts", async () => {

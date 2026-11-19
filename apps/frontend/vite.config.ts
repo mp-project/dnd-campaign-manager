@@ -8,9 +8,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const frontendHost = env.FRONTEND_HOST ?? "localhost";
   const frontendPort = Number(env.FRONTEND_PORT ?? "5173");
+  /** Public address of the site; index.html takes it for its default preview picture. */
+  const siteUrl = (env.VITE_SITE_URL ?? "").trim().replace(/\/+$/, "");
 
   return {
-    plugins: [vue(), tailwindcss()],
+    plugins: [
+      vue(),
+      tailwindcss(),
+      {
+        // Vite would leave `%VITE_SITE_URL%` as it is when the variable is not set.
+        name: "site-url-in-index-html",
+        transformIndexHtml: (html) => html.replaceAll("%SITE_URL%", siteUrl),
+      },
+    ],
     define: {
       // vue-i18n: Composition API only, so the legacy API and the global $t components drop out of the bundle.
       __VUE_I18N_FULL_INSTALL__: false,

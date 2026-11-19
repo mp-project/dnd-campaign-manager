@@ -53,12 +53,14 @@
     "passwordChanged": "Dein Passwort ist geändert. Melde dich mit dem neuen Passwort an.",
     "signedOutPartially": "Das Abmelden auf allen Geräten hat nicht geklappt. Dieser Browser ist abgemeldet, andere Sitzungen können noch bestehen. Melde dich an und versuche es erneut.",
     "notVerified": "Bitte bestätige zuerst deine E-Mail-Adresse.",
-    "toActivation": "Zur Bestätigung"
+    "toActivation": "Zur Bestätigung",
+    "description": "Melde dich bei Chronik an und mach mit deiner Kampagne weiter: Welt, Storylines, Charaktere und Sessions an einem Ort."
   },
   "register": {
     "title": "Konto erstellen",
     "subtitle": "Beginne deine nächste Geschichte.",
-    "submit": "Konto erstellen"
+    "submit": "Konto erstellen",
+    "description": "Erstelle dein Konto bei Chronik, der Kampagnenverwaltung für D&D 5E – für Spielleitungen und ihre Gruppen."
   },
   "activate": {
     "title": "E-Mail bestätigen",

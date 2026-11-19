@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_PUSHER_BEAMS_INSTANCE_ID?: string;
   /** Absolute address of the public demo (the clickdummy on its own subdomain); empty hides the demo links. */
   readonly VITE_DEMO_URL?: string;
+  /** Public address of the site (`https://<domain>`) for canonical links, previews and the sitemap; empty = the current origin. */
+  readonly VITE_SITE_URL?: string;
 }
 
 interface ImportMeta {

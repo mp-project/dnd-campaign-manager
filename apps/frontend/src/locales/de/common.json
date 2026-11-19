@@ -177,7 +177,9 @@
   "notFound": {
     "title": "Seite nicht gefunden",
     "body": "Diese Seite gibt es nicht, oder du hast keinen Zugriff darauf.",
-    "back": "Zum Dashboard"
+    "back": "Zum Dashboard",
+    "home": "Zur Startseite",
+    "help": "Vielleicht hilft dir das weiter:"
   },
   "legal": {
     "privacy": "Datenschutz",
@@ -207,5 +209,19 @@
     "label": "Trefferpunkte {hp} von {max}",
     "labelWithTemp": "Trefferpunkte {hp} von {max}, {temp} temporär",
     "temp": "{temp} temporäre TP"
+  },
+  "seo": {
+    "imageAlt": "Chronik – Kampagnenverwaltung für D&D 5E: ein Drache über mondbeschienenen Ruinen"
+  },
+  "siteFooter": {
+    "title": "Bereit für das nächste Abenteuer?",
+    "text": "Sieh dir die Demo an oder erstelle dein Konto und lege deine erste Kampagne an.",
+    "register": "Konto erstellen",
+    "toApp": "Zu meinen Kampagnen",
+    "demo": "Demo ansehen",
+    "signIn": "Schon ein Konto? Anmelden",
+    "faq": "Häufige Fragen",
+    "navLabel": "Rechtliches und Hilfe",
+    "contact": "Kontakt"
   }
 }

@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Kontakt",
+    "description": "Schreib dem Team von Chronik, der Kampagnenverwaltung für D&D 5E: Fragen, Hilfe bei Problemen, Feedback und Ideen zu Kampagnen und Charakteren."
+  },
+  "title": "Kontakt",
+  "subtitle": "Fragen, Feedback oder ein Problem mit deiner Kampagne? Schreib uns.",
+  "faqHint": "Viele Antworten stehen schon in den häufigen Fragen.",
+  "faqLink": "Zu den häufigen Fragen",
+  "fields": {
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "email": "E-Mail-Adresse",
+    "emailHint": "Dorthin schicken wir unsere Antwort.",
+    "topic": "Thema",
+    "topicPlaceholder": "Thema wählen",
+    "message": "Nachricht",
+    "messageCounter": "{count} / {max} Zeichen",
+    "privacy": "Ich habe die Datenschutzerklärung gelesen und bin einverstanden, dass meine Angaben zur Beantwortung meiner Anfrage verarbeitet werden.",
+    "website": "Website (bitte leer lassen)"
+  },
+  "topics": {
+    "GENERAL": "Allgemeine Frage",
+    "SUPPORT": "Hilfe und Probleme",
+    "FEEDBACK": "Feedback und Ideen",
+    "PRIVACY": "Datenschutz",
+    "PARTNERSHIP": "Presse und Kooperation",
+    "OTHER": "Sonstiges"
+  },
+  "validation": {
+    "firstName": "Bitte gib deinen Vornamen an.",
+    "lastName": "Bitte gib deinen Nachnamen an.",
+    "email": "Bitte gib eine gültige E-Mail-Adresse an.",
+    "topic": "Bitte wähle ein Thema.",
+    "message": "Bitte schreib mindestens {min} Zeichen.",
+    "privacy": "Bitte bestätige, dass du die Datenschutzerklärung gelesen hast."
+  },
+  "submit": "Nachricht senden",
+  "retryAfter": "Zu viele Nachrichten in kurzer Zeit. Versuch es in einer Minute erneut. | Zu viele Nachrichten in kurzer Zeit. Versuch es in einer Minute erneut. | Zu viele Nachrichten in kurzer Zeit. Versuch es in {minutes} Minuten erneut.",
+  "challengeFailed": "Die Sicherheitsprüfung des Formulars hat nicht geklappt. Bitte versuch es noch einmal.",
+  "success": {
+    "title": "Danke für deine Nachricht!",
+    "text": "Wir haben sie erhalten und antworten dir an {email}.",
+    "again": "Weitere Nachricht schreiben"
+  }
+}

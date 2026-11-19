@@ -320,6 +320,33 @@ describe("landing page", () => {
     expect(document.head.querySelector("meta[name=description]")).toBeNull();
   });
 
+  it("describes site, publisher and app for search engines", async () => {
+    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    const { wrapper } = await open({ url: "/en", locale: "en" });
+    const data = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map((script) =>
+      JSON.parse(script.textContent ?? ""),
+    );
+    expect(data.map((entry) => entry["@type"])).toEqual(["Organization", "WebSite", "SoftwareApplication"]);
+    const [organization, website, app] = data;
+    expect(organization).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://chronik.example/#organization",
+      name: "Chronik",
+      url: "https://chronik.example/",
+    });
+    expect(website).toMatchObject({ url: "https://chronik.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
+    expect(app).toMatchObject({
+      applicationCategory: "GameApplication",
+      operatingSystem: "Web",
+      availableLanguage: ["de", "en"],
+      isPartOf: { "@id": website["@id"] },
+    });
+    expect(app.featureList).toEqual(expect.arrayContaining(["Manage characters", "Manage inventory"]));
+    wrapper.unmount();
+    expect(document.head.querySelector('script[type="application/ld+json"]')).toBeNull();
+  });
+
   it("shows English texts", async () => {
     const { wrapper } = await open({ url: "/en", locale: "en" });
     expect(wrapper.find("h1").text()).toBe("Your campaign. Your world. In one place.");

@@ -6,8 +6,10 @@
  * cost a failed refresh. Who already has a profile loaded in this tab gets the way into the app
  * instead of the sign-in.
  */
+import { SUPPORTED_LOCALES } from "@dnd/i18n";
 import { useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
+import { useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
@@ -18,8 +20,9 @@ import { meQuery } from "@/core/auth/session";
 import { demoScreenUrl, demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
-import { useLocalizedPage } from "@/core/i18n/localizedRoutes";
+import { localizedPath, useLocalizedPage } from "@/core/i18n/localizedRoutes";
 import { usePageMeta } from "@/core/seo/pageMeta";
+import { siteUrl } from "@/core/seo/site";
 import { vReveal } from "@/core/motion/reveal";
 
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
@@ -53,13 +56,12 @@ import LandscapeEdge from "../components/LandscapeEdge.vue";
 import ScreenFrame from "../components/ScreenFrame.vue";
 import StorylineTour from "../components/StorylineTour.vue";
 import { type Screen, SCREENS } from "../screens";
+import { startPageStructuredData } from "../structuredData";
 
 const { t } = useAppI18n();
 const faqPage = useLocalizedPage("landing-faq");
 const demo = demoUrl();
 const marketplaceDemo = demoScreenUrl(SCREENS.marketplace.demoPath);
-
-usePageMeta({ title: () => t("landing.meta.title"), description: () => t("landing.meta.description") });
 
 // Only what this tab already knows: never fetched here.
 const me = useQuery({ ...meQuery, enabled: false });
@@ -190,6 +192,25 @@ const inventory: FeatureRowData = {
   points: ["landing.features.inventory.point1", "landing.features.inventory.point2", "landing.features.inventory.point3"],
   layout: "left",
 };
+
+const route = useRoute();
+usePageMeta({
+  title: () => t("landing.meta.title"),
+  description: () => t("landing.meta.description"),
+  structuredData: () => {
+    const locale = route.meta.locale ?? "de";
+    return startPageStructuredData({
+      site: siteUrl(),
+      url: `${siteUrl()}${localizedPath("", locale)}`,
+      locale,
+      name: t("common.app.name"),
+      description: t("landing.meta.description"),
+      languages: SUPPORTED_LOCALES,
+      // The main features as the app's feature list, in the page's language.
+      features: [...features, inventory].map((feature) => t(feature.title)),
+    });
+  },
+});
 
 const more: MoreItem[] = [
   { id: "encounters", icon: "nav-encounter", title: "landing.more.encounters.title", text: "landing.more.encounters.text", art: encountersArt },

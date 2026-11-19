@@ -6,7 +6,8 @@ import {
 import { CampaignMembershipsService } from "#src/modules/campaign-memberships/service/CampaignMembershipsService";
 
 /**
- * Lists active members; managers get the full view, players the reduced one.
+ * Lists active members; managers get the full view, players the reduced one. Both mark the
+ * campaign's owner (the game master), whose membership is an editor's.
  */
 export class ListCampaignMembersUseCase {
   constructor(private readonly membershipsService: CampaignMembershipsService) {}
@@ -15,9 +16,9 @@ export class ListCampaignMembersUseCase {
     context: RequestContext,
     campaignId: string,
   ): Promise<CampaignMemberListResponseDto> {
-    const { canManage } = await this.membershipsService.resolveMemberAccess(context, campaignId);
+    const { canManage, ownerUserId } = await this.membershipsService.resolveMemberAccess(context, campaignId);
     const members = await this.membershipsService.listMembers(campaignId);
 
-    return toCampaignMemberListResponse(members, canManage);
+    return toCampaignMemberListResponse(members, canManage, ownerUserId);
   }
 }

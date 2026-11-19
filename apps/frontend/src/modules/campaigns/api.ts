@@ -1,7 +1,6 @@
 import { api, type ApiData, unwrap } from "@/core/api/client";
 
 export type Ruleset = ApiData<"listRulesets">["data"][number];
-export type CampaignMember = ApiData<"listCampaignMembers">["data"][number];
 
 export function createCampaign(body: { name: string; rulesetId: string; description?: string }) {
   return unwrap(api.POST("/api/v1/campaigns", { body }));
@@ -10,8 +9,4 @@ export function createCampaign(body: { name: string; rulesetId: string; descript
 /** The rulesets a new campaign can use (active ones). */
 export function listRulesets() {
   return unwrap(api.GET("/api/v1/ruleset", { params: { query: { status: "ACTIVE" } } }));
-}
-
-export function listMembers(campaignId: string) {
-  return unwrap(api.GET("/api/v1/campaigns/{campaignId}/members", { params: { path: { campaignId } } }));
 }

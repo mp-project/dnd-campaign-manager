@@ -1,0 +1,79 @@
+{
+  "list": {
+    "caption": "Offene Einladungen",
+    "columns": {
+      "target": "Eingeladen",
+      "role": "Rolle",
+      "sent": "Gesendet",
+      "expires": "Gültig bis"
+    },
+    "empty": "Keine offenen Einladungen.",
+    "note": "Einladungen lassen sich jederzeit zurückziehen. Angenommene Einladungen erscheinen unter Mitglieder.",
+    "actionsFor": "Aktionen für {target}",
+    "revoke": "Zurückziehen",
+    "revokeTitle": "Einladung zurückziehen?",
+    "revokeText": "Der Link in der Einladung an {target} gilt danach nicht mehr. Du kannst später erneut einladen.",
+    "sentOn": "gesendet {date}",
+    "until": "gültig bis {date}",
+    "accountGone": "Konto nicht mehr vorhanden"
+  },
+  "invite": {
+    "title": "Spieler einladen",
+    "section": "Einladung",
+    "sectionHint": "Wen du einlädst und in welcher Rolle",
+    "intro": "Zur Kampagne {campaign} einladen. Die Einladung kommt per E-Mail mit einem Link zum Annehmen.",
+    "by": "Einladen per",
+    "byEmail": "E-Mail-Adresse",
+    "byTag": "Benutzer-Tag",
+    "email": "E-Mail-Adresse",
+    "emailHint": "Auch ohne Konto: Wer noch keins hat, erstellt es beim Annehmen.",
+    "userTag": "Benutzer-Tag",
+    "userTagHint": "Steht im Profil, z. B. mira#123456.",
+    "check": "Prüfen",
+    "found": "Gefunden: {name}",
+    "notFound": "Zu diesem Benutzer-Tag gibt es kein Konto.",
+    "role": "Rolle",
+    "roleHints": {
+      "PLAYER": "Sieht den eigenen Charakter und alles, was für Spieler freigegeben ist.",
+      "EDITOR": "Arbeitet an Welt und Inhalten mit und sieht dabei auch Entwürfe."
+    },
+    "expires": "Gültig für",
+    "days": "{count} Tag | {count} Tag | {count} Tage",
+    "send": "Einladung senden",
+    "validation": {
+      "email": "Bitte gib eine gültige E-Mail-Adresse an.",
+      "userTag": "Bitte gib einen Benutzer-Tag an."
+    },
+    "conflict": "Für diese Adresse gibt es schon eine offene Einladung, oder die Person ist bereits Mitglied."
+  },
+  "mine": {
+    "title": "Einladungen",
+    "count": "Eine Einladung wartet | Eine Einladung wartet | {count} Einladungen warten",
+    "from": "Von {name} · als {role}",
+    "fromUnknown": "Als {role}",
+    "until": "Gültig bis {date}",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "declined": "Einladung zu {campaign} abgelehnt."
+  },
+  "accept": {
+    "title": "Einladung annehmen",
+    "subtitle": "Du wurdest zu einer Kampagne eingeladen.",
+    "signedInAs": "Angemeldet als {name} ({email}).",
+    "question": "Möchtest du der Kampagne beitreten?",
+    "submit": "Einladung annehmen",
+    "toDashboard": "Zum Dashboard",
+    "signInFirst": "Melde dich an oder erstelle ein Konto mit der E-Mail-Adresse, an die die Einladung ging. Danach geht es hier weiter.",
+    "signIn": "Anmelden",
+    "register": "Konto erstellen",
+    "noToken": "Dieser Link ist unvollständig. Öffne den Link aus der Einladungs-E-Mail noch einmal oder sieh im Dashboard nach deinen Einladungen.",
+    "switchAccount": "Mit anderem Konto anmelden"
+  },
+  "errors": {
+    "notFound": "Diese Einladung gibt es nicht mehr, oder sie gilt für eine andere E-Mail-Adresse als die deines Kontos.",
+    "expired": "Diese Einladung ist abgelaufen. Bitte die Spielleitung um eine neue.",
+    "changed": "Diese Einladung wurde gerade schon beantwortet oder zurückgezogen.",
+    "unverified": "Bestätige zuerst die E-Mail-Adresse deines Kontos, dann kannst du die Einladung annehmen.",
+    "member": "Du bist bereits Mitglied dieser Kampagne. Die Einladung ist damit erledigt."
+  }
+}

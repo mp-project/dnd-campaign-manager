@@ -16,6 +16,9 @@ export const CampaignMemberResponseSchema = CampaignMembershipBaseSchema.pick({
   status: true,
   joinedAt: true,
   version: true,
+}).extend({
+  /** The campaign's owner (game master); their membership is an editor's and can't be changed. */
+  isOwner: z.boolean(),
 });
 
 /**
@@ -26,7 +29,7 @@ export const CampaignMemberLimitedResponseSchema = CampaignMembershipBaseSchema.
   userTag: true,
   displayName: true,
   role: true,
-});
+}).extend({ isOwner: z.boolean() });
 
 export const CampaignMemberListItemResponseSchema = z.union([
   CampaignMemberResponseSchema,
@@ -84,12 +87,14 @@ export function toUpdateCampaignMembershipResponse(
 export function toCampaignMemberListResponse(
   members: CampaignMember[],
   canManage: boolean,
+  ownerUserId: string,
 ): CampaignMemberListResponseDto {
-  const data = members.map(({ membership, userTag, displayName }) =>
-    canManage
-      ? { ...toCampaignMembershipResponse(membership), userTag, displayName }
-      : { id: membership.id, userTag, displayName, role: membership.role },
-  );
+  const data = members.map(({ membership, userTag, displayName }) => {
+    const isOwner = membership.userId === ownerUserId;
+    return canManage
+      ? { ...toCampaignMembershipResponse(membership), userTag, displayName, isOwner }
+      : { id: membership.id, userTag, displayName, role: membership.role, isOwner };
+  });
 
   return createStandardListResponse({
     data,

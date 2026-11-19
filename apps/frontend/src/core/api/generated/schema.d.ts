@@ -1418,6 +1418,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/invitations/{invitationId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["acceptMyCampaignInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/invitations/{invitationId}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["declineMyCampaignInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaigns/{campaignId}/assets": {
         parameters: {
             query?: never;
@@ -9003,6 +9035,7 @@ export interface operations {
                             /** Format: date-time */
                             joinedAt: string | null;
                             version: number;
+                            isOwner: boolean;
                         } | {
                             /** Format: uuid */
                             id: string;
@@ -9010,6 +9043,7 @@ export interface operations {
                             displayName: string;
                             /** @enum {string} */
                             role: "EDITOR" | "PLAYER";
+                            isOwner: boolean;
                         })[];
                         pageInfo: {
                             limit: number;
@@ -9404,13 +9438,15 @@ export interface operations {
                             /** Format: uuid */
                             id: string;
                             /** Format: email */
-                            email: string;
+                            email: string | null;
                             /** @enum {string} */
                             role: "EDITOR" | "PLAYER";
                             /** @enum {string} */
                             status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
                             /** Format: date-time */
                             expiresAt: string;
+                            /** Format: date-time */
+                            createdAt: string;
                             userTag: string | null;
                         }[];
                         pageInfo: {
@@ -9504,13 +9540,15 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         /** Format: email */
-                        email: string;
+                        email: string | null;
                         /** @enum {string} */
                         role: "EDITOR" | "PLAYER";
                         /** @enum {string} */
                         status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
                         /** Format: date-time */
                         expiresAt: string;
+                        /** Format: date-time */
+                        createdAt: string;
                         userTag: string | null;
                     };
                 };
@@ -9911,14 +9949,229 @@ export interface operations {
                             role: "EDITOR" | "PLAYER";
                             /** Format: date-time */
                             expiresAt: string;
+                            /** Format: date-time */
+                            createdAt: string;
                             /** Format: uuid */
                             invitationId: string;
+                            campaignName: string;
+                            invitedByName: string | null;
                         }[];
                     };
                 };
             };
             /** @description Default Response */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    acceptMyCampaignInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        campaignId: string;
+                        /** @enum {string} */
+                        role: "EDITOR" | "PLAYER";
+                        /** Format: uuid */
+                        membershipId: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    declineMyCampaignInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": null;
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

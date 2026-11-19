@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "sharing": "Freigaben"
+  },
+  "title": "Freigaben",
+  "subtitle": "Mitglieder und Einladungen deiner Kampagne verwalten",
+  "mobileSubtitle": "Mitglieder und Einladungen",
+  "breadcrumbCampaign": "Kampagne",
+  "invite": "Spieler einladen",
+  "inviteShort": "Einladen",
+  "tabsLabel": "Bereiche der Freigaben",
+  "tabs": {
+    "members": "Mitglieder",
+    "membersCount": "Mitglieder ({count})",
+    "invitations": "Einladungen",
+    "invitationsCount": "Einladungen ({count})"
+  },
+  "members": {
+    "caption": "Mitglieder der Kampagne",
+    "columns": {
+      "member": "Mitglied",
+      "role": "Rolle",
+      "joined": "Dabei seit"
+    },
+    "you": "Du",
+    "empty": "Noch keine Mitglieder. Lade deine Gruppe ein.",
+    "actionsFor": "Aktionen für {name}",
+    "changeRole": "Rolle ändern",
+    "roleOf": "Rolle von {name}",
+    "roleHint": "Mitautoren arbeiten an Welt und Inhalten mit und sehen dabei auch Entwürfe. Spieler sehen ihren Charakter und das, was für sie freigegeben ist.",
+    "remove": "Aus der Kampagne entfernen",
+    "removeTitle": "{name} entfernen?",
+    "removeText": "{name} verliert den Zugang zu dieser Kampagne. Charaktere und Inhalte bleiben erhalten. Du kannst die Person später wieder einladen.",
+    "removeSelfText": "Du verlässt diese Kampagne und verlierst den Zugang. Die Spielleitung kann dich wieder einladen.",
+    "removeConfirm": "Entfernen",
+    "ownerHint": "Die Spielleitung besitzt die Kampagne; ihre Rolle lässt sich nicht ändern."
+  }
+}

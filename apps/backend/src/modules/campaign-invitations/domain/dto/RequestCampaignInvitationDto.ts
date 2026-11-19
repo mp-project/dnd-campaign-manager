@@ -10,6 +10,11 @@ export const CampaignInvitationItemParamsSchema = CampaignInvitationParamsSchema
   invitationId: CampaignInvitationBaseSchema.shape.id,
 });
 
+/** An invitation of the account's own list, answered by id (`/me/invitations/:invitationId/...`). */
+export const MyCampaignInvitationParamsSchema = z.strictObject({
+  invitationId: CampaignInvitationBaseSchema.shape.id,
+});
+
 export const AcceptCampaignInvitationSchema = z.strictObject({
   token: z.string().min(40).max(128),
 });

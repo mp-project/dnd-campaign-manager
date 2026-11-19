@@ -12,12 +12,16 @@ import { LookupCampaignInvitationTargetUseCase } from "#src/modules/campaign-inv
 import { DeleteCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/DeleteCampaignInvitationUseCase";
 import { AcceptCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/AcceptCampaignInvitationUseCase";
 import { ListMyCampaignInvitationsUseCase } from "#src/modules/campaign-invitations/useCase/ListMyCampaignInvitationsUseCase";
+import { AcceptMyCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/AcceptMyCampaignInvitationUseCase";
+import { DeclineMyCampaignInvitationUseCase } from "#src/modules/campaign-invitations/useCase/DeclineMyCampaignInvitationUseCase";
 import { CreateCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/CreateCampaignInvitationController";
 import { ListCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListCampaignInvitationsController";
 import { LookupCampaignInvitationTargetController } from "#src/modules/campaign-invitations/http/controller/LookupCampaignInvitationTargetController";
 import { DeleteCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/DeleteCampaignInvitationController";
 import { AcceptCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/AcceptCampaignInvitationController";
 import { ListMyCampaignInvitationsController } from "#src/modules/campaign-invitations/http/controller/ListMyCampaignInvitationsController";
+import { AcceptMyCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/AcceptMyCampaignInvitationController";
+import { DeclineMyCampaignInvitationController } from "#src/modules/campaign-invitations/http/controller/DeclineMyCampaignInvitationController";
 import {
   CAMPAIGN_MEMBERSHIPS_MODULE_DEPENDENCIES,
   type CampaignMembershipsModuleDependencies,
@@ -103,6 +107,12 @@ async function registerCampaignInvitationsModule(
       ),
       listMyCampaignInvitationsController: new ListMyCampaignInvitationsController(
         new ListMyCampaignInvitationsUseCase(service),
+      ),
+      acceptMyCampaignInvitationController: new AcceptMyCampaignInvitationController(
+        new AcceptMyCampaignInvitationUseCase(history, service),
+      ),
+      declineMyCampaignInvitationController: new DeclineMyCampaignInvitationController(
+        new DeclineMyCampaignInvitationUseCase(service),
       ),
     });
   });

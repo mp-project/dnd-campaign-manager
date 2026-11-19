@@ -541,13 +541,14 @@ describe("campaigns HTTP routes", () => {
           userTag: expect.stringMatching(/^.+#[0-9]{6}$/),
           displayName: "Other",
           role: "PLAYER",
+          isOwner: false,
         },
       ]),
     );
     expect(
       playerMemberRows.every(
         (item: Record<string, unknown>) =>
-          Object.keys(item).sort().join(",") === "displayName,id,role,userTag",
+          Object.keys(item).sort().join(",") === "displayName,id,isOwner,role,userTag",
       ),
     ).toBe(true);
 

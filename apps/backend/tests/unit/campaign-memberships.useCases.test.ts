@@ -127,10 +127,26 @@ describe("campaign membership use cases", () => {
           status: "ACTIVE",
           joinedAt: member.joinedAt.toISOString(),
           version: 1,
+          isOwner: false,
         },
       ],
       pageInfo: { limit: 1, nextCursor: null, total: 1 },
     });
+  });
+
+  it("marks the campaign's owner, whose membership is an editor's", async () => {
+    const owner = activeMember({ id: "99999999-9999-4999-8999-999999999999", userId: OWNER_ID });
+    const player = activeMember({ role: "PLAYER" });
+    const { listUseCase } = createUseCases({
+      findActiveByUser: jest.fn().mockResolvedValue(player),
+      listActiveByCampaign: jest.fn().mockResolvedValue([owner, player]),
+    });
+
+    const { data } = await listUseCase.execute(memberContext, CAMPAIGN_ID);
+    expect(data.map((member) => [member.role, member.isOwner])).toEqual([
+      ["EDITOR", true],
+      ["PLAYER", false],
+    ]);
   });
 
   it("returns the reduced member view to players", async () => {
@@ -147,6 +163,7 @@ describe("campaign membership use cases", () => {
           userTag: "member#000001",
           displayName: "Member",
           role: "PLAYER",
+          isOwner: false,
         },
       ],
       pageInfo: { limit: 1, nextCursor: null, total: 1 },

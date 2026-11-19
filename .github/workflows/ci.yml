@@ -4,9 +4,61 @@ on:
   push:
     branches: ["main"]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  validate:
+  # Decides which parts run. Pull requests run only the parts their changes touch;
+  # pushes to main and manual runs check everything.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.result.outputs.backend }}
+      frontend: ${{ steps.result.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - package.json
+              - package-lock.json
+              - tsconfig.json
+              - eslint.config.js
+              - .github/workflows/ci.yml
+            backend:
+              - apps/backend/**
+            frontend:
+              - apps/frontend/**
+              - packages/**
+              - scripts/**
+              - tests/**
+              - playwright.config.ts
+      - id: result
+        env:
+          EVENT: ${{ github.event_name }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+          BACKEND: ${{ steps.filter.outputs.backend }}
+          FRONTEND: ${{ steps.filter.outputs.frontend }}
+        run: |
+          if [ "$EVENT" != "pull_request" ] || [ "$SHARED" = "true" ]; then
+            BACKEND=true
+            FRONTEND=true
+          fi
+          echo "backend=${BACKEND:-false}" >> "$GITHUB_OUTPUT"
+          echo "frontend=${FRONTEND:-false}" >> "$GITHUB_OUTPUT"
+          echo "Backend: ${BACKEND:-false}, frontend: ${FRONTEND:-false}"
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -49,6 +101,26 @@ jobs:
       JWT_REFRESH_TTL: 7d
       LOG_LEVEL: warn
       CORS_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx eslint apps/backend
+      - run: npm run typecheck --workspace @dnd/backend
+      - run: npm run test:unit --workspace @dnd/backend
+      - run: npm run db:migrate
+      - run: npm run test:integration
+      - run: npm run build --workspace @dnd/backend
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
       VITE_API_BASE_URL: http://localhost:3000/api/v1
     steps:
       - uses: actions/checkout@v4
@@ -57,15 +129,54 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
+      - run: npx eslint apps/frontend packages scripts tests playwright.config.ts
+      - name: Typecheck frontend and shared packages
+        run: |
+          npm run typecheck --workspace @dnd/frontend
+          npm run typecheck --workspace @dnd/contracts
+          npm run typecheck --workspace @dnd/i18n
+          npm run typecheck --workspace @dnd/test-utils
+      - name: Messages complete in every language
+        run: npm run i18n:check --workspace @dnd/frontend
+      - run: npm run test:unit --workspace @dnd/contracts
+      - run: npm run test:unit --workspace @dnd/frontend
+      - run: npm run build --workspace @dnd/frontend
+
+  # The generated frontend API types depend on both sides, so a change to either checks them.
+  # Exporting the OpenAPI document needs no database.
+  api-types:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - name: API types match the backend
         run: |
           npm run api:types
           git diff --exit-code -- apps/frontend/src/core/api/generated
-      - name: Messages complete in every language
-        run: npm run i18n:check --workspace @dnd/frontend
-      - run: npm run test:unit
-      - run: npm run db:migrate
-      - run: npm run test:integration
-      - run: npm run build
+
+  # One check for branch protection: passes when every job that ran passed (skipped jobs are fine).
+  ci:
+    needs: [changes, backend, frontend, api-types]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required jobs passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              exit 1
+            fi
+          done

@@ -43,7 +43,7 @@ npm run test:unit --workspace @dnd/backend -- -t "registers module dependencies"
 npm run test:integration --workspace @dnd/backend -- tests/integration/campaigns.http.test.ts
 ```
 
-CI (`.github/workflows/ci.yml`) runs: `lint` → `typecheck` → `api:types` (fails if the generated types changed) → `i18n:check` → `test:unit` → `db:migrate` → `test:integration` → `build`.
+CI (`.github/workflows/ci.yml`) runs separate jobs per side, and pull requests run only the side their changes touch (`changes` job, path filter): `backend` (`apps/backend/**`: lint → typecheck → unit tests → `db:migrate` → integration tests → build), `frontend` (`apps/frontend/**`, `packages/**`, root `scripts/`, `tests/`, `playwright.config.ts`: lint → typecheck incl. packages → `i18n:check` → contracts and frontend unit tests → build with prerender) and `api-types` (either side; fails if the generated types changed). Root config (`package.json`, lockfile, `tsconfig.json`, `eslint.config.js`, the workflow) runs everything, as do pushes to `main` and manual runs. The `ci` job is the one check for branch protection (skipped jobs count as passed); add new paths to the filter when the layout changes.
 
 ### Database
 

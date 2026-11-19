@@ -44,8 +44,6 @@ export function jsonLd(value: unknown): string {
  * `canonical`, `hreflang` alternates (only for pages in more than one language, `x-default`
  * German), Open Graph, Twitter card and JSON-LD (`structuredData`). Addresses are absolute on the
  * site's address (`VITE_SITE_URL`). Everything is removed again when the page is left.
- * Once the page is rendered and its fonts are in, `<html data-prerendered="ready">` tells the
- * prerendering at build time (`scripts/prerender.ts`) that the page can be saved.
  */
 export function usePageMeta(options: {
   title: () => string;
@@ -113,15 +111,43 @@ export function usePageMeta(options: {
     });
   });
 
+  usePrerenderReady();
+
+  onBeforeUnmount(() => {
+    document.head.querySelectorAll(`[${MARK}]`).forEach((node) => node.remove());
+    document.title = appTitle;
+  });
+}
+
+/**
+ * Once the page is rendered and its fonts are in, `<html data-prerendered="ready">` tells the
+ * prerendering at build time (`scripts/prerender.ts`) that the page can be saved.
+ */
+function usePrerenderReady(): void {
   onMounted(async () => {
     await nextTick();
     await document.fonts?.ready;
     document.documentElement.dataset.prerendered = "ready";
   });
-
   onBeforeUnmount(() => {
     delete document.documentElement.dataset.prerendered;
-    document.head.querySelectorAll(`[${MARK}]`).forEach((node) => node.remove());
+  });
+}
+
+/**
+ * The head of an error page (not found): only the title (`<title> – <brand>`); `noindex` comes
+ * from `installAppHead`, and there is no canonical address or preview, since the page belongs to no
+ * address. Saved at build time as `dist/404.html`, which the server sends with status 404.
+ */
+export function useErrorPageHead(title: () => string): void {
+  const { t } = useAppI18n();
+  const appTitle = document.title;
+
+  watchEffect(() => {
+    document.title = `${title()} – ${t("common.app.name")}`;
+  });
+  usePrerenderReady();
+  onBeforeUnmount(() => {
     document.title = appTitle;
   });
 }

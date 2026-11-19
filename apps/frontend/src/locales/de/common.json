@@ -177,7 +177,9 @@
   "notFound": {
     "title": "Seite nicht gefunden",
     "body": "Diese Seite gibt es nicht, oder du hast keinen Zugriff darauf.",
-    "back": "Zum Dashboard"
+    "back": "Zum Dashboard",
+    "home": "Zur Startseite",
+    "help": "Vielleicht hilft dir das weiter:"
   },
   "legal": {
     "privacy": "Datenschutz",

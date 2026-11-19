@@ -388,6 +388,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contact/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["issueContactChallenge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sendContactMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/history/{entityType}/{entityId}": {
         parameters: {
             query?: never;
@@ -6333,6 +6365,170 @@ export interface operations {
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    issueContactChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        parameters: {
+                            algorithm: string;
+                            nonce: string;
+                            salt: string;
+                            cost: number;
+                            keyLength: number;
+                            keyPrefix: string;
+                            keySignature?: string;
+                            expiresAt?: number;
+                            data?: {
+                                [key: string]: (string | number | boolean) | null;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                        signature: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    sendContactMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    firstName: string;
+                    lastName: string;
+                    /** Format: email */
+                    email: string;
+                    /** @enum {string} */
+                    topic: "GENERAL" | "SUPPORT" | "FEEDBACK" | "PRIVACY" | "PARTNERSHIP" | "OTHER";
+                    message: string;
+                    /** @enum {boolean} */
+                    privacyAccepted: true;
+                    challenge: {
+                        challenge: {
+                            parameters: {
+                                algorithm: string;
+                                nonce: string;
+                                salt: string;
+                                cost: number;
+                                keyLength: number;
+                                keyPrefix: string;
+                                keySignature?: string;
+                                expiresAt?: number;
+                                data?: {
+                                    [key: string]: (string | number | boolean) | null;
+                                };
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            signature: string;
+                        };
+                        solution: {
+                            counter: number;
+                            derivedKey: string;
+                            time?: number;
+                        };
+                    };
+                    website?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "accepted";
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

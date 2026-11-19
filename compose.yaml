@@ -83,6 +83,10 @@ services:
       MAIL_SMTP_SECURE: "false"
       MAILPIT_UI_URL: ${COMPOSE_MAILPIT_UI_URL:-http://127.0.0.1:8025}
       EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
+      # Recipient of the contact form; empty = the form answers 503.
+      CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-}
+      # Signs the contact form's JS challenge; empty = random per container start.
+      CONTACT_CHALLENGE_SECRET: ${CONTACT_CHALLENGE_SECRET:-}
       STORAGE_DRIVER: s3
       STORAGE_S3_ENDPOINT: ${COMPOSE_STORAGE_S3_ENDPOINT:-http://rustfs:9000}
       STORAGE_S3_PUBLIC_ENDPOINT: ${COMPOSE_STORAGE_S3_PUBLIC_ENDPOINT:-https://s3.localhost:8443}
@@ -123,6 +127,10 @@ services:
       MAIL_SMTP_SECURE: "false"
       MAILPIT_UI_URL: ${COMPOSE_MAILPIT_UI_URL:-http://127.0.0.1:8025}
       EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
+      # Recipient of the contact form; empty = the form answers 503.
+      CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-}
+      # Signs the contact form's JS challenge; empty = random per container start.
+      CONTACT_CHALLENGE_SECRET: ${CONTACT_CHALLENGE_SECRET:-}
       STORAGE_DRIVER: s3
       STORAGE_S3_ENDPOINT: ${COMPOSE_STORAGE_S3_ENDPOINT:-http://rustfs:9000}
       STORAGE_S3_PUBLIC_ENDPOINT: ${COMPOSE_STORAGE_S3_PUBLIC_ENDPOINT:-https://s3.localhost:8443}

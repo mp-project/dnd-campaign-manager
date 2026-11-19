@@ -42,6 +42,16 @@ const optionalNonEmptyString = z.preprocess((value) => {
   return normalized.length === 0 ? undefined : normalized;
 }, z.string().min(1).optional());
 
+const optionalEmailString = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim();
+
+  return normalized.length === 0 ? undefined : normalized;
+}, z.string().email().optional());
+
 const optionalUrlString = z.preprocess((value) => {
   if (typeof value !== "string") {
     return value;
@@ -81,6 +91,13 @@ const envSchema = z
     MAILPIT_UI_URL: z.string().url().optional(),
     EMAIL_VERIFICATION_SECRET: z.string().min(16).optional(),
     EMAIL_VERIFICATION_CODE_TTL_HOURS: positiveInt.default(24),
+    // Where the contact form's messages go; without it the form answers 503.
+    CONTACT_EMAIL_TO: optionalEmailString,
+    // Signs the contact form's JS challenge; without it a random key per process (one instance only).
+    CONTACT_CHALLENGE_SECRET: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z.string().min(32).optional(),
+    ),
     // Create the default rulesets at start (once per version); off in tests, which start empty.
     DEFAULT_RULESETS_ON_START: booleanFromEnv.default(true),
     LOG_LEVEL: z

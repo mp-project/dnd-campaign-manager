@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The Questaria logo (dragon Q and word mark, white with the red wing for the navy surfaces it sits
- * on) with the motto below; leads to the start page in the active language. `compact` drops the
+ * The Questaria logo (dragon Q and word mark; for the navy surfaces it sits on the white ring and
+ * word mark with the red, gold-contoured dragon) with the motto below; leads to the start page in the active language. `compact` drops the
  * motto and makes the logo smaller. The link's label names the brand, so the picture is
  * decoration. The files are in `public/assets/brand` (from the brand package).
  */

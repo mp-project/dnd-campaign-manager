@@ -35,7 +35,7 @@ watch(
     panel.value?.querySelector<HTMLElement>("button, a")?.focus();
   },
 );
-/** The Questaria logo, white with the red wing on navy. */
+/** The Questaria logo for navy: white ring and word mark, red dragon with a gold contour. */
 const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
 </script>
 

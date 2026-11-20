@@ -41,7 +41,7 @@ const items = computed<DropdownItem[]>(() => {
     <template #trigger="{ toggle, open }">
       <button
         type="button"
-        class="inline-flex size-11 items-center justify-center rounded-full text-parchment/85 transition-colors hover:bg-navy-800 hover:text-parchment"
+        class="inline-flex size-11 items-center justify-center rounded-full text-gold-bright transition-colors hover:bg-navy-800"
         :aria-label="t('common.publicNav.language')"
         :title="t('common.publicNav.language')"
         :aria-expanded="open"

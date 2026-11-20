@@ -39,6 +39,7 @@
   /* Gold and decoration */
   --color-gold: #a8864f; /* frames, corner ornaments */
   --color-gold-light: #d8b777; /* active markers on navy */
+  --color-gold-bright: #d4af37; /* bright gold for special frames and highlights (e.g. language switch on navy) */
   --color-gold-soft: #cdb791; /* inner line of the double frame */
   --color-earth: #6b4e2a; /* domain icons for locations */
   --color-backdrop: #efe6d6; /* background behind the parchment frame */
@@ -336,7 +337,7 @@
     background: var(--color-navy-800);
   }
   .btn-outline-gold {
-    @apply border-gold-light/70 bg-transparent text-parchment;
+    @apply border-gold-bright bg-transparent text-parchment;
   }
   .btn-outline-gold:hover {
     background: var(--color-navy-800);

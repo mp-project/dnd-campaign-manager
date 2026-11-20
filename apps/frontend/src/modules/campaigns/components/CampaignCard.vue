@@ -7,7 +7,7 @@
 import Badge from "@/components/base/Badge.vue";
 import BaseButton from "@/components/base/BaseButton.vue";
 import StatusBadge from "@/components/base/StatusBadge.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import { type Campaign, campaignHomePath } from "@/core/campaign/campaign";
 import { useAppI18n } from "@/core/i18n";
 
@@ -23,7 +23,7 @@ const { t } = useAppI18n();
       class="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-[6px] bg-navy-900 sm:w-[112px] md:h-[96px] md:w-full"
       aria-hidden="true"
     >
-      <CompassRose
+      <WingSeal
         :size="48"
         tone="navy"
       />

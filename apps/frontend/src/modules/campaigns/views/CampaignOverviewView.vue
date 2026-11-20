@@ -11,7 +11,7 @@ import { computed } from "vue";
 import Avatar from "@/components/base/Avatar.vue";
 import StatusBadge from "@/components/base/StatusBadge.vue";
 import ExpandableText from "@/components/content/ExpandableText.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import SectionCard from "@/components/page/SectionCard.vue";
@@ -59,7 +59,7 @@ function initials(name: string): string {
   <template v-if="campaign">
     <AppBreadcrumb :items="breadcrumb" />
     <section class="relative mb-5 overflow-hidden rounded-card border border-gold bg-navy-950 text-parchment">
-      <CompassRose
+      <WingSeal
         :size="220"
         tone="navy"
         class="pointer-events-none absolute -top-10 -right-10 opacity-40"

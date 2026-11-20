@@ -14,7 +14,7 @@ import { useRoute } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import PublicHeader from "@/components/layout/PublicHeader.vue";
 import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
@@ -369,9 +369,9 @@ const reputationPoints: MessageKey[] = [
           v-reveal
           class="relative mx-auto max-w-400 px-4 pt-14 pb-5 md:px-10 md:pt-20 md:pb-2"
         >
-          <CompassRose
+          <WingSeal
             :size="96"
-            class="features-compass pointer-events-none absolute top-10 right-10 hidden lg:block"
+            class="features-seal pointer-events-none absolute top-10 right-10 hidden lg:block"
             aria-hidden="true"
           />
           <p class="eyebrow text-center text-brand">
@@ -665,7 +665,7 @@ const reputationPoints: MessageKey[] = [
   box-shadow: 0 18px 36px -20px color-mix(in srgb, var(--color-ink) 45%, transparent);
 }
 
-.features-compass {
+.features-seal {
   opacity: 0.45;
 }
 

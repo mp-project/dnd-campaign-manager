@@ -9,7 +9,6 @@ import CloseButton from "@/components/base/CloseButton.vue";
 import { useAppI18n } from "@/core/i18n";
 import { useShellStore } from "@/core/ui/shell";
 
-import CompassRose from "./CompassRose.vue";
 import NavFooter from "./NavFooter.vue";
 import ShellNavigation from "./ShellNavigation.vue";
 
@@ -36,6 +35,8 @@ watch(
     panel.value?.querySelector<HTMLElement>("button, a")?.focus();
   },
 );
+/** The Questaria logo, white with the red wing on navy. */
+const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
 </script>
 
 <template>
@@ -57,7 +58,13 @@ watch(
       @keydown.esc="shell.closeMobileNav()"
     >
       <div class="flex h-16 shrink-0 items-center gap-2 border-b border-navy-line px-4 text-parchment">
-        <CompassRose :size="38" /><span class="font-heading text-[23px] font-bold">{{ t("common.app.name") }}</span>
+        <img
+          :src="brandLogo"
+          :alt="t('common.app.name')"
+          width="2227"
+          height="682"
+          class="h-9 w-auto"
+        >
         <CloseButton
           class="ml-auto text-parchment"
           :label="t('common.shell.closeMenu')"

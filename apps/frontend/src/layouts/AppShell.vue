@@ -67,7 +67,7 @@ watch(
         :targets="nav.campaignBottom.value"
         :active="activeBottom"
         :label="t('common.shell.campaignNavigation')"
-        compass-first
+        seal-first
         @panel="(panel) => shell.openMobileNav(panel === 'content' ? 'content' : null)"
       />
     </div>

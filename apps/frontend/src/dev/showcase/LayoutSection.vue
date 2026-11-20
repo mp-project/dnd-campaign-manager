@@ -3,7 +3,6 @@ import { ref } from "vue";
 
 import BottomNav from "@/components/layout/BottomNav.vue";
 import BrandMark from "@/components/layout/BrandMark.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
 import NavFooter from "@/components/layout/NavFooter.vue";
 import NavTree from "@/components/layout/NavTree.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
@@ -13,6 +12,7 @@ import PublicHeader from "@/components/layout/PublicHeader.vue";
 import PublicMenu from "@/components/layout/PublicMenu.vue";
 import PublicNavLink from "@/components/layout/PublicNavLink.vue";
 import SiteHeader from "@/components/layout/SiteHeader.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import TabNav from "@/components/page/TabNav.vue";
@@ -140,7 +140,7 @@ const playerBottom: BottomNavTarget[] = [
           :targets="campaignBottom"
           active="content"
           label="Kampagnennavigation"
-          compass-first
+          seal-first
         />
       </ShowcaseVariant>
       <ShowcaseVariant
@@ -229,26 +229,6 @@ const playerBottom: BottomNavTarget[] = [
         <InfoNote tone="danger">
           E-Mail-Adresse oder Passwort ist falsch.
         </InfoNote>
-      </ShowcaseVariant>
-    </ShowcaseComponent>
-
-    <ShowcaseComponent
-      name="CompassRose"
-      description="tone: navy, light, active (auf Navy), parchment"
-    >
-      <ShowcaseVariant
-        label="navy / light / active"
-        dark
-      >
-        <CompassRose />
-        <CompassRose tone="light" />
-        <CompassRose tone="active" />
-      </ShowcaseVariant>
-      <ShowcaseVariant label="parchment, 64 px">
-        <CompassRose
-          tone="parchment"
-          :size="64"
-        />
       </ShowcaseVariant>
     </ShowcaseComponent>
 
@@ -366,6 +346,36 @@ const playerBottom: BottomNavTarget[] = [
         dark
       >
         <LanguageSwitch />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="WingSeal"
+      description="Flügelsiegel der Marke in Linien: Emblem in Footer, Karten, Köpfen und Editoren; Ton nach Untergrund"
+    >
+      <ShowcaseVariant
+        label="navy / light / active / eigene Farbe"
+        dark
+      >
+        <WingSeal :size="56" />
+        <WingSeal
+          :size="56"
+          tone="light"
+        />
+        <WingSeal
+          :size="56"
+          tone="active"
+        />
+        <WingSeal
+          :size="56"
+          class="text-gold-bright"
+        />
+      </ShowcaseVariant>
+      <ShowcaseVariant label="parchment">
+        <WingSeal
+          :size="64"
+          tone="parchment"
+        />
       </ShowcaseVariant>
     </ShowcaseComponent>
 

@@ -1,15 +1,15 @@
 <script setup lang="ts">
 /**
  * Brand layout of the pages outside the app (sign-in, contact, legal notice, privacy): navy
- * background, the header of every public page (`PublicHeader`), a parchment card with the compass
+ * background, the header of every public page (`PublicHeader`), a parchment card with the wing
  * rose, title and subtitle, the `switch` slot below the card (e.g. from sign-in to registration)
  * and the footer of every public page (`SiteFooter`). `size`: `narrow` for short forms, `wide` for
  * text. The `closing` slot replaces the footer's call to action.
  */
-import CompassRose from "@/components/layout/CompassRose.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
 import PublicHeader from "@/components/layout/PublicHeader.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 
 withDefaults(defineProps<{ title: string; subtitle?: string; size?: "narrow" | "default" | "wide" }>(), {
   subtitle: undefined,
@@ -34,7 +34,7 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
           aria-hidden="true"
         >
           <span class="h-px w-16 bg-gold/70" />
-          <CompassRose
+          <WingSeal
             :size="64"
             tone="parchment"
           />

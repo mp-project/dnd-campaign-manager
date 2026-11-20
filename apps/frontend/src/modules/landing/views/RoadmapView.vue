@@ -10,7 +10,7 @@ import { useRoute } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import StatusBadge from "@/components/base/StatusBadge.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import PublicHeader from "@/components/layout/PublicHeader.vue";
 import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
@@ -68,9 +68,9 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
         aria-labelledby="roadmap-title"
       >
         <div class="roadmap-glow pointer-events-none absolute inset-0" />
-        <CompassRose
+        <WingSeal
           :size="220"
-          class="roadmap-compass pointer-events-none absolute hidden lg:block"
+          class="roadmap-seal pointer-events-none absolute hidden lg:block"
           aria-hidden="true"
         />
         <div class="relative mx-auto max-w-400 px-4 pt-8 pb-14 md:px-10 md:pt-12 md:pb-20">
@@ -226,7 +226,7 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
     radial-gradient(ellipse at 85% 30%, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 55%),
     radial-gradient(ellipse at 10% 100%, color-mix(in srgb, var(--color-brand) 16%, transparent), transparent 50%);
 }
-.roadmap-compass {
+.roadmap-seal {
   top: 50%;
   right: 8%;
   opacity: 0.22;

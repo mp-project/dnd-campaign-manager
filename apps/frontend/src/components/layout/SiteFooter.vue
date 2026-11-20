@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
  * Footer of the pages outside the app (start page, FAQ, roadmap, legal pages, sign-in): gothic
- * ruins under a golden circle whose mountain ridge rises into the section above, the page's closing
- * content on them and a bar with the links to privacy and imprint (FAQ, roadmap and contact are in
- * the header). The content is the default slot; without one it is the call to action of the start
+ * ruins under a golden circle whose mountain ridge rises into the section above, the wing seal and
+ * the page's closing content on them and a bar with the links to privacy and imprint (FAQ, roadmap
+ * and contact are in the header). The content is the default slot; without one it is the call to action of the start
  * page (pre-registration or into the app, the demo). The section above must not clip vertically,
  * so the ridge can stand on it. `headingId` names the call's heading for `aria-labelledby`.
  */
@@ -15,8 +15,8 @@ import { vReveal } from "@/core/motion/reveal";
 import { usePublicNavigation } from "@/core/navigation/publicNavigation";
 
 import footerArt from "./assets/footer-ruins.webp";
-import CompassRose from "./CompassRose.vue";
 import PublicNavLink from "./PublicNavLink.vue";
+import WingSeal from "./WingSeal.vue";
 
 withDefaults(defineProps<{ headingId?: string }>(), { headingId: "site-footer-title" });
 defineSlots<{ default?(): unknown }>();
@@ -50,7 +50,7 @@ const LEGAL = [
           aria-hidden="true"
         >
           <span class="h-px w-16 bg-gold/70" />
-          <CompassRose :size="56" />
+          <WingSeal :size="56" />
           <span class="h-px w-16 bg-gold/70" />
         </div>
         <slot>

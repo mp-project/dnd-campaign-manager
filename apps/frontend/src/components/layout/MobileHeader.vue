@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Mobile top bar (< 768 px): menu, compass and word mark, account; below it the campaign context. */
+/** Mobile top bar (< 768 px): menu, the Questaria logo, account; below it the campaign context. */
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
@@ -10,7 +10,6 @@ import { useHomePath } from "@/core/i18n/localizedRoutes";
 import { useNavigation } from "@/core/navigation/navigation";
 import { useShellStore } from "@/core/ui/shell";
 
-import CompassRose from "./CompassRose.vue";
 import UserMenu from "./UserMenu.vue";
 
 const { t } = useAppI18n();
@@ -20,6 +19,8 @@ const shell = useShellStore();
 const nav = useNavigation();
 const campaign = computed(() => (route.meta.area === "campaign" ? nav.campaign.value : null));
 const ruleset = useRuleset(() => campaign.value?.rulesetId);
+/** The Questaria logo, white with the red wing on navy. */
+const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
 </script>
 
 <template>
@@ -42,7 +43,13 @@ const ruleset = useRuleset(() => campaign.value?.rulesetId);
         class="flex items-center gap-2"
         :aria-label="t('common.shell.toHome')"
       >
-        <CompassRose :size="34" /><span class="font-heading text-[21px] font-bold">{{ t("common.app.name") }}</span>
+        <img
+          :src="brandLogo"
+          alt=""
+          width="2227"
+          height="682"
+          class="h-8 w-auto"
+        >
       </RouterLink>
       <div class="ml-auto">
         <UserMenu

@@ -341,6 +341,7 @@ describe("landing page", () => {
       "@id": "https://questaria.example/#organization",
       name: "Questaria",
       url: "https://questaria.example/",
+      logo: "https://questaria.example/assets/brand/questaria-q-512.png",
     });
     expect(website).toMatchObject({ url: "https://questaria.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
     expect(app).toMatchObject({

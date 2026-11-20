@@ -1,6 +1,6 @@
 /**
- * JSON-LD of the start page: the site (`WebSite`), who runs it (`Organization`, without a logo
- * until the brand is settled) and the app itself (`SoftwareApplication`, a web app for
+ * JSON-LD of the start page: the site (`WebSite`), who runs it (`Organization`, with the dragon
+ * Q as logo) and the app itself (`SoftwareApplication`, a web app for
  * tabletop role-playing games). The three are linked by `@id`, so search engines read them as
  * one. `url` is the start page in its language, `site` the site's root.
  */
@@ -23,6 +23,7 @@ export function startPageStructuredData(options: {
       "@id": organization,
       name,
       url: `${site}/`,
+      logo: `${site}/assets/brand/questaria-q-512.png`,
     },
     {
       "@context": "https://schema.org",

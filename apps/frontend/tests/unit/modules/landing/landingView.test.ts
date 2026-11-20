@@ -315,7 +315,7 @@ describe("landing page", () => {
 
   it("sets title, description and the language links for search engines, and removes them again", async () => {
     const { wrapper } = await open({ url: "/en", locale: "en" });
-    expect(document.title).toBe("Chronik – campaign manager for D&D 5E");
+    expect(document.title).toBe("Questaria – campaign manager for D&D 5E");
     expect(document.head.querySelector<HTMLMetaElement>("meta[name=description]")?.content).toContain("game masters");
     const link = (selector: string) => document.head.querySelector<HTMLLinkElement>(selector)?.getAttribute("href");
     expect(link("link[rel=canonical]")).toBe(`${location.origin}/en`);
@@ -328,7 +328,7 @@ describe("landing page", () => {
   });
 
   it("describes site, publisher and app for search engines", async () => {
-    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    vi.stubEnv("VITE_SITE_URL", "https://questaria.example");
     const { wrapper } = await open({ url: "/en", locale: "en" });
     const data = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map((script) =>
       JSON.parse(script.textContent ?? ""),
@@ -338,11 +338,11 @@ describe("landing page", () => {
     expect(organization).toEqual({
       "@context": "https://schema.org",
       "@type": "Organization",
-      "@id": "https://chronik.example/#organization",
-      name: "Chronik",
-      url: "https://chronik.example/",
+      "@id": "https://questaria.example/#organization",
+      name: "Questaria",
+      url: "https://questaria.example/",
     });
-    expect(website).toMatchObject({ url: "https://chronik.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
+    expect(website).toMatchObject({ url: "https://questaria.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
     expect(app).toMatchObject({
       applicationCategory: "GameApplication",
       operatingSystem: "Web",

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Chronik – campaign manager for D&D 5E",
-    "description": "Plan campaigns, weave storylines, manage characters and invite your group to game sessions – Chronik is the tool for game masters and their groups."
+    "title": "Questaria – campaign manager for D&D 5E",
+    "description": "Plan campaigns, weave storylines, manage characters and invite your group to game sessions – Questaria is the tool for game masters and their groups."
   },
   "menu": {
     "audience": "Who it's for",
@@ -18,7 +18,7 @@
   "hero": {
     "eyebrow": "Campaign manager for D&D 5E",
     "title": "Your campaign. Your world. In one place.",
-    "lead": "Chronik is the tool for game masters and their groups: plan campaigns, weave storylines, manage characters and invite to game sessions – from the first sketch of your world to the final encounter.",
+    "lead": "Questaria is the tool for game masters and their groups: plan campaigns, weave storylines, manage characters and invite to game sessions – from the first sketch of your world to the final encounter.",
     "register": "Pre-register",
     "demo": "Try the demo",
     "demoHint": "The demo shows an example campaign and needs no account.",
@@ -37,7 +37,7 @@
     "reputation": "Reputation overview with the standing of factions, people and regions and the history of the North Gate Watch with changes from story, quest, encounter and a manual correction"
   },
   "audience": {
-    "title": "Who is Chronik for?",
+    "title": "Who is Questaria for?",
     "intro": "For everyone at the table – each role sees exactly what it needs.",
     "gameMasters": {
       "title": "Game masters",
@@ -237,7 +237,7 @@
     },
     "languages": {
       "title": "German and English",
-      "text": "Chronik currently supports German and English – each with the terms of the matching ruleset edition."
+      "text": "Questaria currently supports German and English – each with the terms of the matching ruleset edition."
     }
   },
   "reputation": {
@@ -272,13 +272,13 @@
   "faq": {
     "meta": {
       "title": "FAQ on managing D&D campaigns",
-      "description": "Frequently asked questions about Chronik, the campaign manager for D&D 5E: planning campaigns, creating and managing characters, inviting players, homebrew content, game sessions and your account."
+      "description": "Frequently asked questions about Questaria, the campaign manager for D&D 5E: planning campaigns, creating and managing characters, inviting players, homebrew content, game sessions and your account."
     },
     "breadcrumb": "FAQ",
     "hero": {
       "eyebrow": "Help with your D&D campaign manager",
       "title": "Frequently asked questions",
-      "lead": "How to plan your D&D campaign with Chronik, create and manage characters, invite your group and decide who gets to see what – the most important answers at a glance."
+      "lead": "How to plan your D&D campaign with Questaria, create and manage characters, invite your group and decide who gets to see what – the most important answers at a glance."
     },
     "search": {
       "label": "Search the questions",
@@ -293,8 +293,8 @@
     "collapseAll": "Collapse all",
     "groups": {
       "basics": {
-        "title": "Getting to know Chronik",
-        "hint": "What Chronik is and who it's for"
+        "title": "Getting to know Questaria",
+        "hint": "What Questaria is and who it's for"
       },
       "campaign": {
         "title": "Campaign, world and group",
@@ -311,27 +311,27 @@
     },
     "questions": {
       "what": {
-        "question": "What is Chronik?",
-        "answer": "Chronik is a campaign manager for D&D 5E (Dungeons & Dragons, 5th edition). Game masters use it to plan their campaign and their world with locations, people and factions, weave storylines and quests, manage their group's characters and invite them to game sessions – all in one place and linked together."
+        "question": "What is Questaria?",
+        "answer": "Questaria is a campaign manager for D&D 5E (Dungeons & Dragons, 5th edition). Game masters use it to plan their campaign and their world with locations, people and factions, weave storylines and quests, manage their group's characters and invite them to game sessions – all in one place and linked together."
       },
       "audience": {
-        "question": "Who is Chronik for?",
+        "question": "Who is Questaria for?",
         "answer": "For everyone at the tabletop RPG table: game masters (dungeon masters) prepare their D&D campaign and run the sessions, players see their character and everything the game master reveals, and co-authors work on the world and the compendium as editors without the group seeing anything too early."
       },
       "rules": {
-        "question": "Which D&D rulesets does Chronik support?",
+        "question": "Which D&D rulesets does Questaria support?",
         "answer": "D&D 5E in its 2014 and 2024 editions. You choose the ruleset per campaign; the compendium, character creation and the terms follow it, so the 2014 rules speak of “races” and the 2024 rules of “species”."
       },
       "demo": {
-        "question": "Can I try Chronik without signing up?",
+        "question": "Can I try Questaria without signing up?",
         "answer": "Yes. The demo shows an example campaign with its world, storylines, character sheet and player view, and needs no account. If you like what you see, create your account and set up your first D&D campaign of your own."
       },
       "languages": {
-        "question": "Which languages is Chronik available in?",
-        "answer": "Currently German and English, each with the D&D terms of the matching ruleset edition. You set the language in your profile; without a setting, Chronik follows your browser."
+        "question": "Which languages is Questaria available in?",
+        "answer": "Currently German and English, each with the D&D terms of the matching ruleset edition. You set the language in your profile; without a setting, Questaria follows your browser."
       },
       "world": {
-        "question": "How do I build my world in Chronik?",
+        "question": "How do I build my world in Questaria?",
         "answer": "You create locations, people, factions and notes and link them together, so while running the campaign you quickly find who lives where and who is allied with whom. You attach maps and pictures right there. Drafts stay hidden until you reveal them."
       },
       "invite": {
@@ -348,27 +348,27 @@
       },
       "homebrew": {
         "question": "Can I create homebrew content and house rules?",
-        "answer": "Yes. Besides the content of the ruleset, you create your own classes, subclasses, species, backgrounds, feats, spells and items for your campaign. Chronik checks them against the D&D 5E rules. Your players see them once you release them and can then use them in character creation."
+        "answer": "Yes. Besides the content of the ruleset, you create your own classes, subclasses, species, backgrounds, feats, spells and items for your campaign. Questaria checks them against the D&D 5E rules. Your players see them once you release them and can then use them in character creation."
       },
       "creation": {
-        "question": "How do I create a D&D character with Chronik?",
-        "answer": "You choose species, class and background from your campaign's compendium, a subclass from the matching level, assign ability scores and pick feats, spells and equipment. Chronik checks prerequisites and choices against the campaign's ruleset, so you end up with a character that follows the rules."
+        "question": "How do I create a D&D character with Questaria?",
+        "answer": "You choose species, class and background from your campaign's compendium, a subclass from the matching level, assign ability scores and pick feats, spells and equipment. Questaria checks prerequisites and choices against the campaign's ruleset, so you end up with a character that follows the rules."
       },
       "characters": {
         "question": "How do I manage characters and character sheets?",
-        "answer": "Every character has a digital character sheet. Players look after their own character, the game master keeps track of all player characters and NPCs. Chronik works out values such as armor class, hit points and spell slots from species, class, background, feats and equipment, and the inventory keeps count of the carrying load."
+        "answer": "Every character has a digital character sheet. Players look after their own character, the game master keeps track of all player characters and NPCs. Questaria works out values such as armor class, hit points and spell slots from species, class, background, feats and equipment, and the inventory keeps count of the carrying load."
       },
       "sessions": {
         "question": "How do I plan game sessions with my group?",
         "answer": "You schedule your group's game nights in the campaign, prepare encounters and scenes, and follow up on the session afterwards. At the table, your players see what you are showing them in a view of their own."
       },
       "mobile": {
-        "question": "Can I use Chronik on my phone?",
-        "answer": "Yes. Chronik adapts to every screen size, and players have a view of their own for the table: their character sheet, discoveries and group are a tap away."
+        "question": "Can I use Questaria on my phone?",
+        "answer": "Yes. Questaria adapts to every screen size, and players have a view of their own for the table: their character sheet, discoveries and group are a tap away."
       },
       "history": {
         "question": "What if I make a mistake?",
-        "answer": "Nothing gets lost. Chronik remembers every change to your content. You see who changed what and when, undo single changes or bring back an earlier version. Deleted content goes to the archive and can be restored."
+        "answer": "Nothing gets lost. Questaria remembers every change to your content. You see who changed what and when, undo single changes or bring back an earlier version. Deleted content goes to the archive and can be restored."
       },
       "media": {
         "question": "Can I upload pictures and maps?",
@@ -384,11 +384,11 @@
       },
       "privacy": {
         "question": "What happens to my data?",
-        "answer": "Our privacy policy explains which data Chronik stores, what for, and which rights you have. Your campaigns are seen only by the people you invite."
+        "answer": "Our privacy policy explains which data Questaria stores, what for, and which rights you have. Your campaigns are seen only by the people you invite."
       },
       "motion": {
         "question": "Can I turn off animations?",
-        "answer": "Yes. Switch on “Reduce motion” in your profile. If your device already has that setting turned on, Chronik follows it anyway."
+        "answer": "Yes. Switch on “Reduce motion” in your profile. If your device already has that setting turned on, Questaria follows it anyway."
       }
     },
     "links": {
@@ -398,20 +398,20 @@
     },
     "contact": {
       "title": "Your question isn't here?",
-      "text": "Write to us through the contact form – about campaigns, characters, your account or with ideas for Chronik.",
+      "text": "Write to us through the contact form – about campaigns, characters, your account or with ideas for Questaria.",
       "link": "Go to the contact form"
     }
   },
   "roadmap": {
     "meta": {
       "title": "Roadmap – what comes next",
-      "description": "What we are working on for Chronik, the campaign manager for D&D 5E, and what follows: compendium, world, adventures, game sessions, marketplace and the live table."
+      "description": "What we are working on for Questaria, the campaign manager for D&D 5E, and what follows: compendium, world, adventures, game sessions, marketplace and the live table."
     },
     "breadcrumb": "Roadmap",
     "hero": {
-      "eyebrow": "Where Chronik is heading",
+      "eyebrow": "Where Questaria is heading",
       "title": "Roadmap",
-      "lead": "Chronik is built step by step. Here you can see what we are working on now and what comes next – without fixed dates, because each stage should be good before the next one starts."
+      "lead": "Questaria is built step by step. Here you can see what we are working on now and what comes next – without fixed dates, because each stage should be good before the next one starts."
     },
     "legend": "Status of the stages",
     "phaseLabel": "Stage {number}",
@@ -423,7 +423,7 @@
     "phases": {
       "foundation": {
         "title": "Foundation",
-        "text": "Chronik's groundwork is being built – the base every further stage stands on.",
+        "text": "Questaria's groundwork is being built – the base every further stage stands on.",
         "items": {
           "auth": "Sign-in and accounts with roles",
           "system": "System base: core functions and data structures",
@@ -480,7 +480,7 @@
       },
       "board": {
         "title": "Live table",
-        "text": "The running session right inside Chronik.",
+        "text": "The running session right inside Questaria.",
         "items": {
           "live": "A game board with scenes, people and finds, live for everyone",
           "dice": "Dice everybody sees",

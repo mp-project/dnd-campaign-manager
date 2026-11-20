@@ -34,7 +34,7 @@ describe("buttons", () => {
     expect(wrapper.attributes("aria-label")).toBe("Ort bearbeiten");
     expect(wrapper.attributes("title")).toBe("Ort bearbeiten");
     expect(wrapper.classes()).toContain("btn-icon");
-    expect(wrapper.find("use").attributes("href")).toMatch(/chronik\.svg#aktion-bearbeiten$/);
+    expect(wrapper.find("use").attributes("href")).toMatch(/questaria\.svg#aktion-bearbeiten$/);
   });
 
   it("labels the close button in the active language", async () => {

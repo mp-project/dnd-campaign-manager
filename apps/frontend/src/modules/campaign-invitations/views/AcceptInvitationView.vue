@@ -25,7 +25,7 @@ import { isApiError } from "@/core/api/errors";
 import { isUsedUpInvitationError, useInvitationErrorText } from "../errors";
 import { myInvitationsQuery } from "../queries";
 
-const STORAGE_KEY = "chronik.invitation-token";
+const STORAGE_KEY = "questaria.invitation-token";
 const HERE = "/invitations/accept";
 
 const { t } = useAppI18n();

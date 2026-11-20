@@ -45,7 +45,7 @@ const sections = [
           Bausteine
         </h1>
         <p class="text-ink-2">
-          Alle gemeinsamen Bausteine mit ihren Varianten im Chronik-Theme, zum Abgleich mit dem Klickdummy.
+          Alle gemeinsamen Bausteine mit ihren Varianten im Questaria-Theme, zum Abgleich mit dem Klickdummy.
           Sprache umschalten: <a
             class="text-brand underline"
             href="?lang=en"

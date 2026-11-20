@@ -62,7 +62,7 @@ describe("FAQ page", () => {
     const { wrapper, fetchSpy } = await open();
     expect(wrapper.find("h1").text()).toBe("Häufige Fragen");
     expect(wrapper.findAll("section[aria-labelledby^=faq-topic-] h2").map((heading) => heading.text())).toEqual([
-      "Chronik kennenlernen",
+      "Questaria kennenlernen",
       "Kampagne, Welt und Gruppe",
       "Charaktere und Spielrunde",
       "Konto und Sicherheit",
@@ -70,7 +70,7 @@ describe("FAQ page", () => {
     expect(questions(wrapper)).toHaveLength(20);
     // Prerendering and search engines need the answers in the HTML, also while closed.
     expect(wrapper.findAll("[role=region]")).toHaveLength(20);
-    expect(wrapper.text()).toContain("Chronik ist eine Kampagnenverwaltung für D&D 5E (Dungeons & Dragons, 5. Edition).");
+    expect(wrapper.text()).toContain("Questaria ist eine Kampagnenverwaltung für D&D 5E (Dungeons & Dragons, 5. Edition).");
     expect(openAnswers(wrapper)).toEqual([]);
     expect(wrapper.find("[aria-live=polite]").text()).toBe("20 Fragen");
     // Like the start page it costs the API nothing.
@@ -134,18 +134,18 @@ describe("FAQ page", () => {
   });
 
   it("describes the questions as FAQPage and the way there as breadcrumbs for search engines", async () => {
-    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    vi.stubEnv("VITE_SITE_URL", "https://questaria.example");
     const { wrapper } = await open({ url: "/en/faq", locale: "en" });
-    expect(document.title).toBe("FAQ on managing D&D campaigns – Chronik");
-    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://chronik.example/en/faq");
-    expect(document.head.querySelector('link[hreflang="de"]')?.getAttribute("href")).toBe("https://chronik.example/faq");
+    expect(document.title).toBe("FAQ on managing D&D campaigns – Questaria");
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://questaria.example/en/faq");
+    expect(document.head.querySelector('link[hreflang="de"]')?.getAttribute("href")).toBe("https://questaria.example/faq");
 
     const [faq, breadcrumbs] = structuredData();
-    expect(faq).toMatchObject({ "@context": "https://schema.org", "@type": "FAQPage", inLanguage: "en", url: "https://chronik.example/en/faq" });
+    expect(faq).toMatchObject({ "@context": "https://schema.org", "@type": "FAQPage", inLanguage: "en", url: "https://questaria.example/en/faq" });
     expect(faq.mainEntity).toHaveLength(20);
     expect(faq.mainEntity[0]).toEqual({
       "@type": "Question",
-      name: "What is Chronik?",
+      name: "What is Questaria?",
       acceptedAnswer: { "@type": "Answer", text: expect.stringContaining("campaign manager for D&D 5E") },
     });
     // Every question on the page is in the data, word for word.
@@ -154,8 +154,8 @@ describe("FAQ page", () => {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: "https://chronik.example/en" },
-        { "@type": "ListItem", position: 2, name: "FAQ", item: "https://chronik.example/en/faq" },
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://questaria.example/en" },
+        { "@type": "ListItem", position: 2, name: "FAQ", item: "https://questaria.example/en/faq" },
       ],
     });
     wrapper.unmount();
@@ -191,7 +191,7 @@ describe("FAQ page", () => {
     await wrapper.find("button[aria-controls=public-menu]").trigger("click");
     const menu = document.getElementById("public-menu")!;
     expect([...menu.querySelectorAll(".chapter-link .font-heading")].map((title) => title.textContent?.trim())).toEqual([
-      "Chronik kennenlernen",
+      "Questaria kennenlernen",
       "Kampagne, Welt und Gruppe",
       "Charaktere und Spielrunde",
       "Konto und Sicherheit",
@@ -214,7 +214,7 @@ describe("FAQ page", () => {
 });
 
 describe("FAQ search", () => {
-  const text = (key: MessageKey) => ({ "landing.faq.questions.what.question": "Was ist Chronik?" })[key as string] ?? key;
+  const text = (key: MessageKey) => ({ "landing.faq.questions.what.question": "Was ist Questaria?" })[key as string] ?? key;
 
   it("compares without case and accents", () => {
     expect(searchable("Überall ÄRGER")).toBe("uberall arger");
@@ -222,7 +222,7 @@ describe("FAQ search", () => {
 
   it("finds questions that contain every word, and all of them without a query", () => {
     expect(matchingQuestions(FAQ_GROUPS, "", text).size).toBe(20);
-    expect([...matchingQuestions(FAQ_GROUPS, "  was CHRONIK ", text)]).toEqual(["what"]);
+    expect([...matchingQuestions(FAQ_GROUPS, "  was QUESTARIA ", text)]).toEqual(["what"]);
     expect(matchingQuestions(FAQ_GROUPS, "was drache", text).size).toBe(0);
   });
 });

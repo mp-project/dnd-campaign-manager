@@ -24,7 +24,7 @@ async function openPage(url: string, structuredData?: () => object[]) {
   await router.push(url);
   const Page = defineComponent({
     setup() {
-      usePageMeta({ title: () => "Impressum", description: () => "Wer hinter Chronik steht.", structuredData });
+      usePageMeta({ title: () => "Impressum", description: () => "Wer hinter Questaria steht.", structuredData });
       return () => null;
     },
   });
@@ -51,17 +51,17 @@ describe("public pages", () => {
 
 describe("usePageMeta", () => {
   it("writes title, description, robots, canonical and the preview for a page in one language", async () => {
-    vi.stubEnv("VITE_SITE_URL", "https://chronik.example/");
+    vi.stubEnv("VITE_SITE_URL", "https://questaria.example/");
     const { wrapper } = await openPage("/impressum");
 
-    expect(document.title).toBe("Impressum – Chronik");
-    expect(content('meta[name="description"]')).toBe("Wer hinter Chronik steht.");
+    expect(document.title).toBe("Impressum – Questaria");
+    expect(content('meta[name="description"]')).toBe("Wer hinter Questaria steht.");
     expect(content('meta[name="robots"]')).toBe("index, follow");
-    expect(head('link[rel="canonical"]')?.getAttribute("href")).toBe("https://chronik.example/impressum");
+    expect(head('link[rel="canonical"]')?.getAttribute("href")).toBe("https://questaria.example/impressum");
     // Only German: no language alternates.
     expect(document.head.querySelectorAll('link[rel="alternate"]')).toHaveLength(0);
-    expect(content('meta[property="og:url"]')).toBe("https://chronik.example/impressum");
-    expect(content('meta[property="og:image"]')).toBe("https://chronik.example/og/seite.jpg");
+    expect(content('meta[property="og:url"]')).toBe("https://questaria.example/impressum");
+    expect(content('meta[property="og:image"]')).toBe("https://questaria.example/og/seite.jpg");
     expect(content('meta[property="og:locale"]')).toBe("de_DE");
     expect(content('meta[name="twitter:card"]')).toBe("summary_large_image");
 
@@ -77,7 +77,7 @@ describe("usePageMeta", () => {
   });
 
   it("links every language of the start page and names its own picture", async () => {
-    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    vi.stubEnv("VITE_SITE_URL", "https://questaria.example");
     await openPage("/en");
 
     const alternates = [...document.head.querySelectorAll('link[rel="alternate"]')].map((link) => [
@@ -85,13 +85,13 @@ describe("usePageMeta", () => {
       link.getAttribute("href"),
     ]);
     expect(alternates).toEqual([
-      ...SUPPORTED_LOCALES.map((locale) => [locale, `https://chronik.example${localizedPath("", locale)}`]),
-      ["x-default", "https://chronik.example/"],
+      ...SUPPORTED_LOCALES.map((locale) => [locale, `https://questaria.example${localizedPath("", locale)}`]),
+      ["x-default", "https://questaria.example/"],
     ]);
     // The start page's title stays as it is (brand and claim).
     expect(document.title).toBe("Impressum");
-    expect(head('link[rel="canonical"]')?.getAttribute("href")).toBe("https://chronik.example/en");
-    expect(content('meta[property="og:image"]')).toBe("https://chronik.example/og/start-en.jpg");
+    expect(head('link[rel="canonical"]')?.getAttribute("href")).toBe("https://questaria.example/en");
+    expect(content('meta[property="og:image"]')).toBe("https://questaria.example/og/start-en.jpg");
     expect(content('meta[property="og:locale"]')).toBe("en_US");
     expect(content('meta[property="og:locale:alternate"]')).toBe("de_DE");
   });

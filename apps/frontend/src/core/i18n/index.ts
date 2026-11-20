@@ -23,7 +23,7 @@ export type AppLocale = Locale | typeof PSEUDO_LOCALE;
 
 export type AppI18n = I18n<Record<string, never>, Record<string, never>, Record<string, never>, string, false>;
 
-const STORAGE_KEY = "chronik.locale";
+const STORAGE_KEY = "questaria.locale";
 
 /** What is shown when no language has a usable message. */
 function unresolved(key: string): string {

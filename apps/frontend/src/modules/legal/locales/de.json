@@ -7,7 +7,7 @@
     "subtitle": "Angaben gemäß § 5 DDG",
     "provider": {
       "title": "Anbieter",
-      "body": "Chronik Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nDeutschland"
+      "body": "Questaria Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nDeutschland"
     },
     "contact": {
       "title": "Kontakt",
@@ -37,14 +37,14 @@
       "title": "Inhalte der Nutzerinnen und Nutzer",
       "body": "Kampagnen, Notizen, Bilder und andere Inhalte legen die Nutzerinnen und Nutzer selbst an. Für diese Inhalte sind sie selbst verantwortlich. Hinweise auf rechtswidrige Inhalte nehmen wir unter der oben genannten Adresse entgegen und prüfen sie umgehend."
     },
-    "description": "Impressum von Chronik: Anbieter, Kontakt und Verantwortliche für die Kampagnenverwaltung für D&D 5E."
+    "description": "Impressum von Questaria: Anbieter, Kontakt und Verantwortliche für die Kampagnenverwaltung für D&D 5E."
   },
   "privacy": {
     "title": "Datenschutz",
     "subtitle": "Wie wir mit deinen Daten umgehen",
     "controller": {
       "title": "Verantwortliche Stelle",
-      "body": "Chronik Beispiel GmbH, Musterstraße 1, 12345 Musterstadt\nE-Mail: datenschutz{'@'}example.com"
+      "body": "Questaria Beispiel GmbH, Musterstraße 1, 12345 Musterstadt\nE-Mail: datenschutz{'@'}example.com"
     },
     "account": {
       "title": "Dein Konto",
@@ -86,6 +86,6 @@
       "title": "Deine Rechte",
       "body": "Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Wende dich dafür an die oben genannte Adresse. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren."
     },
-    "description": "Datenschutzerklärung von Chronik: welche Daten die Kampagnenverwaltung speichert, wofür und welche Rechte du hast."
+    "description": "Datenschutzerklärung von Questaria: welche Daten die Kampagnenverwaltung speichert, wofür und welche Rechte du hast."
   }
 }

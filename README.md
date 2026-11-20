@@ -1,6 +1,6 @@
-# dnd-campaign-manager
+# Questaria
 
-node webapp to manage dnd campaign
+Campaign manager for D&D 5E (Node web app, repository `dnd-campaign-manager`).
 
 ## Monorepo Layout
 

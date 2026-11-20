@@ -258,13 +258,13 @@ describe("contact page", () => {
   });
 
   it("describes itself as contact page for search engines, in English too", async () => {
-    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    vi.stubEnv("VITE_SITE_URL", "https://questaria.example");
     const { wrapper } = await open("/en/kontakt", "en");
     expect(wrapper.find("h1").text()).toBe("Contact");
-    expect(document.title).toBe("Contact – Chronik");
-    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://chronik.example/en/kontakt");
+    expect(document.title).toBe("Contact – Questaria");
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://questaria.example/en/kontakt");
     const data = JSON.parse(document.head.querySelector('script[type="application/ld+json"]')?.textContent ?? "{}");
-    expect(data).toMatchObject({ "@type": "ContactPage", url: "https://chronik.example/en/kontakt", inLanguage: "en" });
+    expect(data).toMatchObject({ "@type": "ContactPage", url: "https://questaria.example/en/kontakt", inLanguage: "en" });
     wrapper.unmount();
   });
 });

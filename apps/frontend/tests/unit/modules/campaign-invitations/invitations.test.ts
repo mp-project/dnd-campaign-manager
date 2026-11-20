@@ -212,7 +212,7 @@ describe("accepting from the email's link", () => {
     const { wrapper, router } = await open(AcceptInvitationView, `/invitations/accept#token=${TOKEN}`, { me: null });
     await vi.waitFor(() => expect(document.body.textContent).toContain("Melde dich an oder erstelle ein Konto"));
     expect(router.currentRoute.value.fullPath).toBe("/invitations/accept");
-    expect(sessionStorage.getItem("chronik.invitation-token")).toBe(TOKEN);
+    expect(sessionStorage.getItem("questaria.invitation-token")).toBe(TOKEN);
     expect(wrapper.findAll("main a").map((link) => link.attributes("href"))).toEqual([
       "/login?redirect=/invitations/accept",
       "/registrieren?redirect=/invitations/accept",
@@ -221,7 +221,7 @@ describe("accepting from the email's link", () => {
   });
 
   it("accepts for the signed-in account and opens the campaign", async () => {
-    sessionStorage.setItem("chronik.invitation-token", TOKEN);
+    sessionStorage.setItem("questaria.invitation-token", TOKEN);
     server.answers["POST /api/v1/invitations/accept"] = { status: 200, body: { campaignId: CAMPAIGN_ID, membershipId: INVITATION_ID, role: "PLAYER" } };
     server.answers[`GET /api/v1/campaigns/${CAMPAIGN_ID}`] = { status: 200, body: { ...CAMPAIGN, role: "PLAYER" } };
     const { wrapper, router, queryClient } = await open(AcceptInvitationView, "/invitations/accept");
@@ -231,7 +231,7 @@ describe("accepting from the email's link", () => {
     await flushPromises();
     expect(server.calls.find((call) => call.path === "/api/v1/invitations/accept")?.body).toEqual({ token: TOKEN });
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe(`/k/${SEGMENT}/spiel`));
-    expect(sessionStorage.getItem("chronik.invitation-token")).toBeNull();
+    expect(sessionStorage.getItem("questaria.invitation-token")).toBeNull();
     wrapper.unmount();
   });
 
@@ -242,13 +242,13 @@ describe("accepting from the email's link", () => {
     [409, { reason: "member" }, "Du bist bereits Mitglied dieser Kampagne.", true],
     [403, { reason: "unverified" }, "Bestätige zuerst die E-Mail-Adresse", false],
   ])("says what to do when the backend answers %i %j, and forgets a token that is used up", async (status, details, text, forgotten) => {
-    sessionStorage.setItem("chronik.invitation-token", TOKEN);
+    sessionStorage.setItem("questaria.invitation-token", TOKEN);
     server.answers["POST /api/v1/invitations/accept"] = { status, body: { error: { code: "X", message: "-", details } } };
     const { wrapper } = await open(AcceptInvitationView, "/invitations/accept");
     button("Einladung annehmen")!.click();
     await flushPromises();
     expect(document.body.textContent).toContain(text);
-    expect(sessionStorage.getItem("chronik.invitation-token")).toBe(forgotten ? null : TOKEN);
+    expect(sessionStorage.getItem("questaria.invitation-token")).toBe(forgotten ? null : TOKEN);
     // A used-up token offers no second try.
     expect(button("Einladung annehmen") === undefined).toBe(forgotten);
     wrapper.unmount();
@@ -258,20 +258,20 @@ describe("accepting from the email's link", () => {
     [409, { error: { code: "CONFLICT", message: "-" } }],
     [403, { error: { code: "FORBIDDEN", message: "-" } }],
   ])("reads only reasons the answer names: a %i without one is a general error and keeps the token", async (status, body) => {
-    sessionStorage.setItem("chronik.invitation-token", TOKEN);
+    sessionStorage.setItem("questaria.invitation-token", TOKEN);
     server.answers["POST /api/v1/invitations/accept"] = { status, body };
     const { wrapper } = await open(AcceptInvitationView, "/invitations/accept");
     button("Einladung annehmen")!.click();
     await flushPromises();
     expect(document.body.textContent).not.toContain("gerade schon beantwortet");
     expect(document.body.textContent).not.toContain("Bestätige zuerst");
-    expect(sessionStorage.getItem("chronik.invitation-token")).toBe(TOKEN);
+    expect(sessionStorage.getItem("questaria.invitation-token")).toBe(TOKEN);
     expect(button("Einladung annehmen")).toBeDefined();
     wrapper.unmount();
   });
 
   it("keeps the token after a 404 and offers to sign in with another account", async () => {
-    sessionStorage.setItem("chronik.invitation-token", TOKEN);
+    sessionStorage.setItem("questaria.invitation-token", TOKEN);
     server.answers["POST /api/v1/invitations/accept"] = { status: 404, body: { error: { code: "NOT_FOUND", message: "-" } } };
     server.answers["POST /api/v1/auth/logout"] = { status: 204 };
     const { wrapper, router } = await open(AcceptInvitationView, "/invitations/accept");
@@ -282,25 +282,25 @@ describe("accepting from the email's link", () => {
     await flushPromises();
     expect(server.calls.some((call) => call.path === "/api/v1/auth/logout")).toBe(true);
     await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe("/login?redirect=/invitations/accept"));
-    expect(sessionStorage.getItem("chronik.invitation-token")).toBe(TOKEN);
+    expect(sessionStorage.getItem("questaria.invitation-token")).toBe(TOKEN);
     wrapper.unmount();
   });
 
   it("treats a damaged link like an incomplete one, never falls back to a stored token and clears the address", async () => {
-    sessionStorage.setItem("chronik.invitation-token", "older-token-of-another-invitation");
+    sessionStorage.setItem("questaria.invitation-token", "older-token-of-another-invitation");
     const { wrapper, router } = await open(AcceptInvitationView, "/invitations/accept#token=%E0%A4%A");
     expect(document.body.textContent).toContain("Dieser Link ist unvollständig.");
     expect(button("Einladung annehmen")).toBeUndefined();
     await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe("/invitations/accept"));
-    expect(sessionStorage.getItem("chronik.invitation-token")).toBeNull();
+    expect(sessionStorage.getItem("questaria.invitation-token")).toBeNull();
     wrapper.unmount();
   });
 
   it("treats an empty token in the link like a damaged one", async () => {
-    sessionStorage.setItem("chronik.invitation-token", "older-token-of-another-invitation");
+    sessionStorage.setItem("questaria.invitation-token", "older-token-of-another-invitation");
     const { wrapper } = await open(AcceptInvitationView, "/invitations/accept#token=");
     expect(document.body.textContent).toContain("Dieser Link ist unvollständig.");
-    await vi.waitFor(() => expect(sessionStorage.getItem("chronik.invitation-token")).toBeNull());
+    await vi.waitFor(() => expect(sessionStorage.getItem("questaria.invitation-token")).toBeNull());
     wrapper.unmount();
   });
 

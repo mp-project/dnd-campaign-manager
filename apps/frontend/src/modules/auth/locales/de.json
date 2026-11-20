@@ -42,7 +42,7 @@
   },
   "login": {
     "title": "Anmelden",
-    "subtitle": "Willkommen zurück in deiner Chronik.",
+    "subtitle": "Willkommen zurück bei Questaria.",
     "submit": "Anmelden",
     "toRegister": "Noch kein Konto? Registrieren",
     "forgot": "Passwort vergessen?",
@@ -54,13 +54,13 @@
     "signedOutPartially": "Das Abmelden auf allen Geräten hat nicht geklappt. Dieser Browser ist abgemeldet, andere Sitzungen können noch bestehen. Melde dich an und versuche es erneut.",
     "notVerified": "Bitte bestätige zuerst deine E-Mail-Adresse.",
     "toActivation": "Zur Bestätigung",
-    "description": "Melde dich bei Chronik an und mach mit deiner Kampagne weiter: Welt, Storylines, Charaktere und Sessions an einem Ort."
+    "description": "Melde dich bei Questaria an und mach mit deiner Kampagne weiter: Welt, Storylines, Charaktere und Sessions an einem Ort."
   },
   "register": {
     "title": "Konto erstellen",
     "subtitle": "Beginne deine nächste Geschichte.",
     "submit": "Konto erstellen",
-    "description": "Erstelle dein Konto bei Chronik, der Kampagnenverwaltung für D&D 5E – für Spielleitungen und ihre Gruppen."
+    "description": "Erstelle dein Konto bei Questaria, der Kampagnenverwaltung für D&D 5E – für Spielleitungen und ihre Gruppen."
   },
   "activate": {
     "title": "E-Mail bestätigen",

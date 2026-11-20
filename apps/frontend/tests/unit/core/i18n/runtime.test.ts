@@ -27,15 +27,15 @@ describe("i18n runtime", () => {
     expect(t("common.actions.save")).toBe("Save");
     expect(t("common.results.count", 3, { count: 3 })).toBe("3 entries");
     expect(document.documentElement.lang).toBe("en");
-    expect(localStorage.getItem("chronik.locale")).toBe("en");
+    expect(localStorage.getItem("questaria.locale")).toBe("en");
   });
 
   it("doesn't remember a language set with remember: false (development URL override)", async () => {
-    localStorage.setItem("chronik.locale", "de");
+    localStorage.setItem("questaria.locale", "de");
     const i18n = createAppI18n();
 
     expect(await setLocale(i18n, "en", { remember: false })).toBe("en");
-    expect(localStorage.getItem("chronik.locale")).toBe("de");
+    expect(localStorage.getItem("questaria.locale")).toBe("de");
   });
 
   it("falls back to German for unsupported languages", async () => {

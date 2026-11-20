@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Chronik",
+    "name": "Questaria",
     "tagline": "Deine Abenteuer. Organisiert."
   },
   "actions": {
@@ -147,7 +147,7 @@
     "more": "Mehr"
   },
   "shell": {
-    "toHome": "Chronik – zur Startseite",
+    "toHome": "Questaria – zur Startseite",
     "mainNavigation": "Hauptnavigation",
     "sidebar": "Seitenleiste",
     "motto": "„Große Geschichten\nbeginnen mit einem Ort.“",
@@ -211,7 +211,7 @@
     "temp": "{temp} temporäre TP"
   },
   "seo": {
-    "imageAlt": "Chronik – Kampagnenverwaltung für D&D 5E: ein Drache über mondbeschienenen Ruinen"
+    "imageAlt": "Questaria – Kampagnenverwaltung für D&D 5E: ein Drache über mondbeschienenen Ruinen"
   },
   "siteFooter": {
     "title": "Bereit für das nächste Abenteuer?",

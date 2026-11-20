@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Public start page, one address per language (`/`, `/en`): what Chronik is for, who it serves,
+ * Public start page, one address per language (`/`, `/en`): what Questaria is for, who it serves,
  * the main features with screenshots of the clickdummy, further features as a slider, the
  * inventory, the marketplace, the reputation system and the way to the demo and to the registration. It asks the API nothing: a visitor without a session would otherwise
  * cost a failed refresh. Who already has a profile loaded in this tab gets the way into the app

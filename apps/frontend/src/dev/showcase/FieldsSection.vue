@@ -127,7 +127,7 @@ const codeFour = ref(["", "", "", ""]);
       </ShowcaseVariant>
       <ShowcaseVariant label="Slot right">
         <TextInput
-          model-value="https://chronik.app/e/4fJ8kQ"
+          model-value="https://questaria.app/e/4fJ8kQ"
           readonly
           class="w-full"
         >

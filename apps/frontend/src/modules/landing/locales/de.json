@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Chronik – Kampagnenverwaltung für D&D 5E",
-    "description": "Plane Kampagnen, verwebe Storylines, verwalte Charaktere und lade deine Gruppe zu Spielsessions ein – Chronik ist das Werkzeug für Spielleitungen und ihre Gruppen."
+    "title": "Questaria – Kampagnenverwaltung für D&D 5E",
+    "description": "Plane Kampagnen, verwebe Storylines, verwalte Charaktere und lade deine Gruppe zu Spielsessions ein – Questaria ist das Werkzeug für Spielleitungen und ihre Gruppen."
   },
   "menu": {
     "audience": "Für wen",
@@ -18,7 +18,7 @@
   "hero": {
     "eyebrow": "Kampagnenverwaltung für D&D 5E",
     "title": "Deine Kampagne. Deine Welt. An einem Ort.",
-    "lead": "Chronik ist das Werkzeug für Spielleitungen und ihre Gruppen: Kampagnen planen, Storylines verweben, Charaktere verwalten und zu Spielsessions einladen – vom ersten Weltentwurf bis zur letzten Begegnung.",
+    "lead": "Questaria ist das Werkzeug für Spielleitungen und ihre Gruppen: Kampagnen planen, Storylines verweben, Charaktere verwalten und zu Spielsessions einladen – vom ersten Weltentwurf bis zur letzten Begegnung.",
     "register": "Vorab registrieren",
     "demo": "Demo ansehen",
     "demoHint": "Die Demo zeigt eine Beispielkampagne und braucht keine Anmeldung.",
@@ -37,7 +37,7 @@
     "reputation": "Ruf-Übersicht mit Haltungen von Fraktionen, Personen und Regionen und dem Verlauf der Nordtorwache mit Änderungen aus Story, Quest, Encounter und manueller Korrektur"
   },
   "audience": {
-    "title": "Für wen ist Chronik?",
+    "title": "Für wen ist Questaria?",
     "intro": "Für alle am Tisch – jede Rolle sieht genau das, was sie braucht.",
     "gameMasters": {
       "title": "Spielleitungen",
@@ -237,7 +237,7 @@
     },
     "languages": {
       "title": "Deutsch und Englisch",
-      "text": "Chronik unterstützt aktuell Deutsch und Englisch – jeweils mit den Begriffen der passenden Regelwerksausgabe."
+      "text": "Questaria unterstützt aktuell Deutsch und Englisch – jeweils mit den Begriffen der passenden Regelwerksausgabe."
     }
   },
   "reputation": {
@@ -272,13 +272,13 @@
   "faq": {
     "meta": {
       "title": "FAQ zur D&D-Kampagnenverwaltung",
-      "description": "Häufige Fragen zu Chronik, der Kampagnenverwaltung für D&D 5E: Kampagnen planen, Charaktere erstellen und verwalten, Spieler einladen, Homebrew-Inhalte, Spielsessions und dein Konto."
+      "description": "Häufige Fragen zu Questaria, der Kampagnenverwaltung für D&D 5E: Kampagnen planen, Charaktere erstellen und verwalten, Spieler einladen, Homebrew-Inhalte, Spielsessions und dein Konto."
     },
     "breadcrumb": "Häufige Fragen",
     "hero": {
       "eyebrow": "Hilfe zur D&D-Kampagnenverwaltung",
       "title": "Häufige Fragen",
-      "lead": "Wie du deine D&D-Kampagne mit Chronik planst, Charaktere erstellst und verwaltest, deine Gruppe einlädst und wer was zu sehen bekommt – die wichtigsten Antworten auf einen Blick."
+      "lead": "Wie du deine D&D-Kampagne mit Questaria planst, Charaktere erstellst und verwaltest, deine Gruppe einlädst und wer was zu sehen bekommt – die wichtigsten Antworten auf einen Blick."
     },
     "search": {
       "label": "Fragen durchsuchen",
@@ -293,8 +293,8 @@
     "collapseAll": "Alle zuklappen",
     "groups": {
       "basics": {
-        "title": "Chronik kennenlernen",
-        "hint": "Was Chronik ist und für wen"
+        "title": "Questaria kennenlernen",
+        "hint": "Was Questaria ist und für wen"
       },
       "campaign": {
         "title": "Kampagne, Welt und Gruppe",
@@ -311,27 +311,27 @@
     },
     "questions": {
       "what": {
-        "question": "Was ist Chronik?",
-        "answer": "Chronik ist eine Kampagnenverwaltung für D&D 5E (Dungeons & Dragons, 5. Edition). Spielleitungen planen darin ihre Kampagne und ihre Welt mit Orten, Personen und Fraktionen, verweben Storylines und Quests, verwalten die Charaktere ihrer Gruppe und laden zu Spielsessions ein – alles an einem Ort und miteinander verknüpft."
+        "question": "Was ist Questaria?",
+        "answer": "Questaria ist eine Kampagnenverwaltung für D&D 5E (Dungeons & Dragons, 5. Edition). Spielleitungen planen darin ihre Kampagne und ihre Welt mit Orten, Personen und Fraktionen, verweben Storylines und Quests, verwalten die Charaktere ihrer Gruppe und laden zu Spielsessions ein – alles an einem Ort und miteinander verknüpft."
       },
       "audience": {
-        "question": "Für wen ist Chronik gedacht?",
+        "question": "Für wen ist Questaria gedacht?",
         "answer": "Für alle am Pen-and-Paper-Tisch: Spielleitungen (Dungeon Master) bereiten ihre D&D-Kampagne vor und leiten die Sessions, Spieler sehen ihren Charakter und alles, was die Spielleitung freigibt, und Co-Autoren arbeiten als Editor an Welt und Kompendium mit, ohne dass die Gruppe etwas zu früh zu sehen bekommt."
       },
       "rules": {
-        "question": "Welche D&D-Regelwerke unterstützt Chronik?",
+        "question": "Welche D&D-Regelwerke unterstützt Questaria?",
         "answer": "D&D 5E in den Ausgaben 2014 und 2024. Du wählst das Regelwerk je Kampagne; Kompendium, Charaktererstellung und Begriffe richten sich danach, so heißt es zum Beispiel „Volk“ nach den Regeln von 2014 und „Spezies“ nach denen von 2024."
       },
       "demo": {
-        "question": "Kann ich Chronik ausprobieren, ohne mich anzumelden?",
+        "question": "Kann ich Questaria ausprobieren, ohne mich anzumelden?",
         "answer": "Ja. Die Demo zeigt eine Beispielkampagne mit Welt, Storylines, Charakterbogen und Spieleransicht und braucht kein Konto. Wenn dir gefällt, was du siehst, erstellst du dein Konto und legst deine erste eigene D&D-Kampagne an."
       },
       "languages": {
-        "question": "In welchen Sprachen gibt es Chronik?",
-        "answer": "Aktuell in Deutsch und Englisch, jeweils mit den D&D-Begriffen der passenden Regelwerksausgabe. Die Sprache stellst du in deinem Profil ein; ohne Einstellung richtet sich Chronik nach deinem Browser."
+        "question": "In welchen Sprachen gibt es Questaria?",
+        "answer": "Aktuell in Deutsch und Englisch, jeweils mit den D&D-Begriffen der passenden Regelwerksausgabe. Die Sprache stellst du in deinem Profil ein; ohne Einstellung richtet sich Questaria nach deinem Browser."
       },
       "world": {
-        "question": "Wie baue ich meine Spielwelt in Chronik auf?",
+        "question": "Wie baue ich meine Spielwelt in Questaria auf?",
         "answer": "Du legst Orte, Personen, Fraktionen und Notizen an und verknüpfst sie miteinander, sodass du beim Leiten der Kampagne schnell findest, wer wo lebt und wer mit wem verbündet ist. Karten und Bilder hängst du direkt an. Entwürfe bleiben verborgen, bis du sie freigibst."
       },
       "invite": {
@@ -348,27 +348,27 @@
       },
       "homebrew": {
         "question": "Kann ich Homebrew-Inhalte und Hausregeln anlegen?",
-        "answer": "Ja. Neben den Inhalten des Regelwerks legst du für deine Kampagne eigene Klassen, Unterklassen, Spezies, Hintergründe, Talente, Zauber und Gegenstände an. Chronik prüft sie nach den Regeln von D&D 5E. Deine Spieler sehen sie, sobald du sie freigibst, und können sie dann bei der Charaktererstellung nutzen."
+        "answer": "Ja. Neben den Inhalten des Regelwerks legst du für deine Kampagne eigene Klassen, Unterklassen, Spezies, Hintergründe, Talente, Zauber und Gegenstände an. Questaria prüft sie nach den Regeln von D&D 5E. Deine Spieler sehen sie, sobald du sie freigibst, und können sie dann bei der Charaktererstellung nutzen."
       },
       "creation": {
-        "question": "Wie erstelle ich einen D&D-Charakter mit Chronik?",
-        "answer": "Du wählst Spezies, Klasse und Hintergrund aus dem Kompendium deiner Kampagne, ab der passenden Stufe auch eine Unterklasse, verteilst die Attributswerte und suchst Talente, Zauber und Ausrüstung aus. Chronik prüft dabei Voraussetzungen und Auswahlmöglichkeiten nach dem Regelwerk der Kampagne, sodass am Ende ein regelkonformer Charakter steht."
+        "question": "Wie erstelle ich einen D&D-Charakter mit Questaria?",
+        "answer": "Du wählst Spezies, Klasse und Hintergrund aus dem Kompendium deiner Kampagne, ab der passenden Stufe auch eine Unterklasse, verteilst die Attributswerte und suchst Talente, Zauber und Ausrüstung aus. Questaria prüft dabei Voraussetzungen und Auswahlmöglichkeiten nach dem Regelwerk der Kampagne, sodass am Ende ein regelkonformer Charakter steht."
       },
       "characters": {
         "question": "Wie verwalte ich Charaktere und Charakterbögen?",
-        "answer": "Jeder Charakter hat einen digitalen Charakterbogen. Spieler pflegen ihren eigenen Charakter, die Spielleitung behält den Überblick über alle Spielercharaktere und NSCs. Werte wie Rüstungsklasse, Trefferpunkte oder Zauberplätze rechnet Chronik aus Spezies, Klasse, Hintergrund, Talenten und Ausrüstung, und das Inventar zählt die Traglast mit."
+        "answer": "Jeder Charakter hat einen digitalen Charakterbogen. Spieler pflegen ihren eigenen Charakter, die Spielleitung behält den Überblick über alle Spielercharaktere und NSCs. Werte wie Rüstungsklasse, Trefferpunkte oder Zauberplätze rechnet Questaria aus Spezies, Klasse, Hintergrund, Talenten und Ausrüstung, und das Inventar zählt die Traglast mit."
       },
       "sessions": {
         "question": "Wie plane ich Spielsessions mit meiner Gruppe?",
         "answer": "Du planst die Termine deiner Spielrunde in der Kampagne, bereitest Begegnungen und Szenen vor und bereitest die Session danach nach. Am Spieltisch sehen deine Spieler in ihrer eigenen Ansicht, was du ihnen gerade zeigst."
       },
       "mobile": {
-        "question": "Kann ich Chronik am Handy nutzen?",
-        "answer": "Ja. Chronik passt sich an jede Bildschirmgröße an, und Spieler haben eine eigene Ansicht für den Spieltisch: Charakterbogen, Entdeckungen und Gruppe sind dort mit einem Tipp erreichbar."
+        "question": "Kann ich Questaria am Handy nutzen?",
+        "answer": "Ja. Questaria passt sich an jede Bildschirmgröße an, und Spieler haben eine eigene Ansicht für den Spieltisch: Charakterbogen, Entdeckungen und Gruppe sind dort mit einem Tipp erreichbar."
       },
       "history": {
         "question": "Was passiert, wenn ich mich vertue?",
-        "answer": "Nichts geht verloren. Chronik merkt sich jede Änderung an deinen Inhalten. Du siehst, wer wann was geändert hat, machst einzelne Änderungen rückgängig oder holst eine frühere Fassung zurück. Gelöschte Inhalte landen im Archiv und lassen sich wiederherstellen."
+        "answer": "Nichts geht verloren. Questaria merkt sich jede Änderung an deinen Inhalten. Du siehst, wer wann was geändert hat, machst einzelne Änderungen rückgängig oder holst eine frühere Fassung zurück. Gelöschte Inhalte landen im Archiv und lassen sich wiederherstellen."
       },
       "media": {
         "question": "Kann ich Bilder und Karten hochladen?",
@@ -384,11 +384,11 @@
       },
       "privacy": {
         "question": "Was passiert mit meinen Daten?",
-        "answer": "Welche Daten Chronik speichert, wofür und welche Rechte du hast, steht in unserer Datenschutzerklärung. Deine Kampagnen sehen nur die Personen, die du einlädst."
+        "answer": "Welche Daten Questaria speichert, wofür und welche Rechte du hast, steht in unserer Datenschutzerklärung. Deine Kampagnen sehen nur die Personen, die du einlädst."
       },
       "motion": {
         "question": "Kann ich Animationen abschalten?",
-        "answer": "Ja. Stell in deinem Profil „Bewegung reduzieren“ ein. Hat dein Gerät die Einstellung bereits aktiviert, hält sich Chronik ohnehin daran."
+        "answer": "Ja. Stell in deinem Profil „Bewegung reduzieren“ ein. Hat dein Gerät die Einstellung bereits aktiviert, hält sich Questaria ohnehin daran."
       }
     },
     "links": {
@@ -398,20 +398,20 @@
     },
     "contact": {
       "title": "Deine Frage ist nicht dabei?",
-      "text": "Schreib uns über das Kontaktformular – zu Kampagnen, Charakteren, deinem Konto oder mit Ideen für Chronik.",
+      "text": "Schreib uns über das Kontaktformular – zu Kampagnen, Charakteren, deinem Konto oder mit Ideen für Questaria.",
       "link": "Zum Kontaktformular"
     }
   },
   "roadmap": {
     "meta": {
       "title": "Roadmap – was als Nächstes kommt",
-      "description": "Woran wir an Chronik, der Kampagnenverwaltung für D&D 5E, gerade arbeiten und was danach kommt: Kompendium, Welt, Abenteuer, Spielrunde, Marktplatz und Spieltisch."
+      "description": "Woran wir an Questaria, der Kampagnenverwaltung für D&D 5E, gerade arbeiten und was danach kommt: Kompendium, Welt, Abenteuer, Spielrunde, Marktplatz und Spieltisch."
     },
     "breadcrumb": "Roadmap",
     "hero": {
-      "eyebrow": "Der Weg von Chronik",
+      "eyebrow": "Der Weg von Questaria",
       "title": "Roadmap",
-      "lead": "Chronik entsteht Schritt für Schritt. Hier siehst du, woran wir gerade arbeiten und was danach kommt – ohne feste Termine, denn jede Etappe soll erst gut sein, bevor die nächste beginnt."
+      "lead": "Questaria entsteht Schritt für Schritt. Hier siehst du, woran wir gerade arbeiten und was danach kommt – ohne feste Termine, denn jede Etappe soll erst gut sein, bevor die nächste beginnt."
     },
     "legend": "Stand der Etappen",
     "phaseLabel": "Etappe {number}",
@@ -423,7 +423,7 @@
     "phases": {
       "foundation": {
         "title": "Fundament",
-        "text": "Das Grundgerüst von Chronik wird aufgebaut – die Basis, auf der alle weiteren Etappen stehen.",
+        "text": "Das Grundgerüst von Questaria wird aufgebaut – die Basis, auf der alle weiteren Etappen stehen.",
         "items": {
           "auth": "Anmeldung und Konten mit Rollen",
           "system": "Systembasis: Grundfunktionen und Datenstrukturen",
@@ -480,7 +480,7 @@
       },
       "board": {
         "title": "Spieltisch",
-        "text": "Die laufende Session direkt in Chronik.",
+        "text": "Die laufende Session direkt in Questaria.",
         "items": {
           "live": "Spielbrett mit Szenen, Personen und Fundstücken live für alle",
           "dice": "Würfel, die alle sehen",

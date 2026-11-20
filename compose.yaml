@@ -77,7 +77,7 @@ services:
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
       MAIL_FROM_ADDRESS: no-reply@${API_DOMAIN}
-      MAIL_FROM_NAME: DnD Campaign Manager
+      MAIL_FROM_NAME: Questaria
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
       MAIL_SMTP_SECURE: "false"
@@ -121,7 +121,7 @@ services:
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
       MAIL_FROM_ADDRESS: no-reply@${API_DOMAIN}
-      MAIL_FROM_NAME: DnD Campaign Manager
+      MAIL_FROM_NAME: Questaria
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
       MAIL_SMTP_SECURE: "false"

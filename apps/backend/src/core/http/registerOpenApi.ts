@@ -7,7 +7,7 @@ export function registerOpenApi(app: FastifyInstance): void {
   app.register(swagger, {
     openapi: {
       info: {
-        title: "DnD Campaign Manager API",
+        title: "Questaria API",
         version: "0.1.0",
       },
       components: {

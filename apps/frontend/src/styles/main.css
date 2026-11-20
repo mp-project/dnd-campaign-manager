@@ -1,5 +1,5 @@
 /*
- * Chronik – "Illuminierte Chronik"
+ * Questaria – illuminated parchment theme
  * Design tokens (Tailwind 4 @theme) plus base and component classes, taken over from the clickdummy
  * (clickdummy/src/styles/main.css). Colors, fonts, radii and shadows are defined here only; components use
  * the semantic utilities (bg-primary, text-ink, border-gold …), never raw hex or arbitrary color values.

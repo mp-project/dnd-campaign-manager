@@ -58,7 +58,7 @@ describe("not-found page", () => {
 
   it("has a title, stays out of search results and names no canonical address", async () => {
     const { wrapper } = await open({ url: "/en/unbekannt", locale: "en" });
-    expect(document.title).toBe("Page not found – Chronik");
+    expect(document.title).toBe("Page not found – Questaria");
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex, nofollow");
     expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
     await vi.waitFor(() => expect(document.documentElement.dataset.prerendered).toBe("ready"));

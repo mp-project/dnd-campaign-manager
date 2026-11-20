@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Chronik",
+    "name": "Questaria",
     "tagline": "Your adventures. Organized."
   },
   "actions": {
@@ -147,7 +147,7 @@
     "more": "More"
   },
   "shell": {
-    "toHome": "Chronik – to the start page",
+    "toHome": "Questaria – to the start page",
     "mainNavigation": "Main navigation",
     "sidebar": "Sidebar",
     "motto": "“Great stories\nbegin with a place.”",
@@ -211,7 +211,7 @@
     "temp": "{temp} temporary HP"
   },
   "seo": {
-    "imageAlt": "Chronik – campaign manager for D&D 5E: a dragon over moonlit ruins"
+    "imageAlt": "Questaria – campaign manager for D&D 5E: a dragon over moonlit ruins"
   },
   "siteFooter": {
     "title": "Ready for the next adventure?",

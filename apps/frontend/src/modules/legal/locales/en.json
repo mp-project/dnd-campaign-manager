@@ -7,7 +7,7 @@
     "subtitle": "Information according to § 5 DDG (German Digital Services Act)",
     "provider": {
       "title": "Provider",
-      "body": "Chronik Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nGermany"
+      "body": "Questaria Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nGermany"
     },
     "contact": {
       "title": "Contact",
@@ -37,14 +37,14 @@
       "title": "Content of our users",
       "body": "Campaigns, notes, images and other content are created by our users, who are responsible for it. We accept reports of unlawful content at the address above and review them promptly."
     },
-    "description": "Legal notice of Chronik: provider, contact and those responsible for the campaign manager for D&D 5E."
+    "description": "Legal notice of Questaria: provider, contact and those responsible for the campaign manager for D&D 5E."
   },
   "privacy": {
     "title": "Privacy",
     "subtitle": "How we handle your data",
     "controller": {
       "title": "Controller",
-      "body": "Chronik Beispiel GmbH, Musterstraße 1, 12345 Musterstadt, Germany\nEmail: datenschutz{'@'}example.com"
+      "body": "Questaria Beispiel GmbH, Musterstraße 1, 12345 Musterstadt, Germany\nEmail: datenschutz{'@'}example.com"
     },
     "account": {
       "title": "Your account",
@@ -86,6 +86,6 @@
       "title": "Your rights",
       "body": "You have the right to access, rectification, erasure, restriction of processing, data portability and objection. Contact us at the address above. You may also lodge a complaint with a data protection supervisory authority."
     },
-    "description": "Privacy policy of Chronik: what data the campaign manager stores, what for, and which rights you have."
+    "description": "Privacy policy of Questaria: what data the campaign manager stores, what for, and which rights you have."
   }
 }

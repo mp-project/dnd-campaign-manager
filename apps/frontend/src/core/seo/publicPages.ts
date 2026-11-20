@@ -25,6 +25,7 @@ const GERMAN_ONLY = [DEFAULT_LOCALE] as const;
 export const PUBLIC_PAGES: readonly PublicPage[] = [
   { name: "landing", path: "", locales: SUPPORTED_LOCALES, index: true, prerender: true, pageTransition: true },
   { name: "landing-faq", path: "faq", locales: SUPPORTED_LOCALES, index: true, prerender: true, pageTransition: true },
+  { name: "landing-roadmap", path: "roadmap", locales: SUPPORTED_LOCALES, index: true, prerender: true, pageTransition: true },
   { name: "contact", path: "kontakt", locales: SUPPORTED_LOCALES, index: true, prerender: true, pageTransition: true },
   { name: "legal-imprint", path: "impressum", locales: GERMAN_ONLY, index: true, prerender: true, pageTransition: true },
   { name: "legal-privacy", path: "datenschutz", locales: GERMAN_ONLY, index: true, prerender: true, pageTransition: true },

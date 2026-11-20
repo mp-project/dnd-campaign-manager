@@ -1,35 +1,33 @@
 <script setup lang="ts">
 /**
- * Footer of the pages outside the app (start page, FAQ, legal pages, sign-in): gothic ruins under
- * a golden circle whose mountain ridge rises into the section above, the page's closing content
- * on them and a bar with the links to privacy, imprint, FAQ and contact.
- * The content is the default slot; without one it is the call to action of the start page
- * (register or into the app, the demo, sign in). The section above must not clip vertically, so
- * the ridge can stand on it. `headingId` names the call's heading for `aria-labelledby`.
+ * Footer of the pages outside the app (start page, FAQ, roadmap, legal pages, sign-in): gothic
+ * ruins under a golden circle whose mountain ridge rises into the section above, the page's closing
+ * content on them and a bar with the links to privacy and imprint (FAQ, roadmap and contact are in
+ * the header). The content is the default slot; without one it is the call to action of the start
+ * page (pre-registration or into the app, the demo). The section above must not clip vertically,
+ * so the ridge can stand on it. `headingId` names the call's heading for `aria-labelledby`.
  */
-import { useQuery } from "@tanstack/vue-query";
-import { computed } from "vue";
+import { useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
-import { meQuery } from "@/core/auth/session";
-import { demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
-import { useLocalizedPage } from "@/core/i18n/localizedRoutes";
 import { vReveal } from "@/core/motion/reveal";
+import { usePublicNavigation } from "@/core/navigation/publicNavigation";
 
 import footerArt from "./assets/footer-ruins.webp";
 import CompassRose from "./CompassRose.vue";
+import PublicNavLink from "./PublicNavLink.vue";
 
 withDefaults(defineProps<{ headingId?: string }>(), { headingId: "site-footer-title" });
 defineSlots<{ default?(): unknown }>();
 
 const { t } = useAppI18n();
-const demo = demoUrl();
-// Only what this tab already knows: public pages never ask the API.
-const me = useQuery({ ...meQuery, enabled: false });
-const signedIn = computed(() => !!me.data.value);
-const faq = useLocalizedPage("landing-faq");
-const contact = useLocalizedPage("contact");
+const route = useRoute();
+const { demo, signedIn, primary } = usePublicNavigation();
+const LEGAL = [
+  { name: "legal-privacy", label: "common.legal.privacy" },
+  { name: "legal-imprint", label: "common.legal.imprint" },
+] as const;
 </script>
 
 <template>
@@ -67,19 +65,11 @@ const contact = useLocalizedPage("contact");
           </p>
           <div class="mt-8 flex flex-wrap justify-center gap-3">
             <BaseButton
-              v-if="signedIn"
-              to="/dashboard"
+              :to="primary.to"
               variant="primary"
-              icon-right="aktion-weiter"
+              :icon-right="signedIn ? 'aktion-weiter' : undefined"
             >
-              {{ t("common.siteFooter.toApp") }}
-            </BaseButton>
-            <BaseButton
-              v-else
-              :to="{ name: 'auth-register' }"
-              variant="primary"
-            >
-              {{ t("common.siteFooter.register") }}
+              {{ primary.label }}
             </BaseButton>
             <BaseButton
               v-if="demo"
@@ -93,13 +83,6 @@ const contact = useLocalizedPage("contact");
               {{ t("common.siteFooter.demo") }}
             </BaseButton>
           </div>
-          <RouterLink
-            v-if="!signedIn"
-            :to="{ name: 'auth-login' }"
-            class="mt-5 inline-flex min-h-11 items-center text-[15px] text-gold-light underline underline-offset-4"
-          >
-            {{ t("common.siteFooter.signIn") }}
-          </RouterLink>
         </slot>
       </div>
     </div>
@@ -108,42 +91,22 @@ const contact = useLocalizedPage("contact");
       class="relative flex flex-wrap items-center justify-center gap-x-4 border-t border-navy-line/60 py-3 text-[14px] text-parchment/80"
       :aria-label="t('common.siteFooter.navLabel')"
     >
-      <RouterLink
-        :to="{ name: 'legal-privacy' }"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
+      <template
+        v-for="(page, index) in LEGAL"
+        :key="page.name"
       >
-        {{ t("common.legal.privacy") }}
-      </RouterLink>
-      <span
-        class="h-4 w-px bg-navy-line"
-        aria-hidden="true"
-      />
-      <RouterLink
-        :to="{ name: 'legal-imprint' }"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
-      >
-        {{ t("common.legal.imprint") }}
-      </RouterLink>
-      <span
-        class="h-4 w-px bg-navy-line"
-        aria-hidden="true"
-      />
-      <RouterLink
-        :to="faq"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
-      >
-        {{ t("common.siteFooter.faq") }}
-      </RouterLink>
-      <span
-        class="h-4 w-px bg-navy-line"
-        aria-hidden="true"
-      />
-      <RouterLink
-        :to="contact"
-        class="inline-flex min-h-11 items-center px-2 hover:underline"
-      >
-        {{ t("common.siteFooter.contact") }}
-      </RouterLink>
+        <span
+          v-if="index > 0"
+          class="h-4 w-px bg-navy-line"
+          aria-hidden="true"
+        />
+        <PublicNavLink
+          :to="{ name: page.name }"
+          :active="route.name === page.name"
+        >
+          {{ t(page.label) }}
+        </PublicNavLink>
+      </template>
     </nav>
   </footer>
 </template>

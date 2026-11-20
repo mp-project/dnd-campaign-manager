@@ -39,18 +39,24 @@ describe("legal pages", () => {
     const { wrapper } = await open(PrivacyView, "/datenschutz", "en");
     expect(wrapper.find("h1").text()).toBe("Privacy");
     expect(wrapper.text()).toContain("Signing in with Google or Discord");
-    // The footer of every public page: the start page's call to action, then privacy, imprint and FAQ.
+    // The footer of every public page: the start page's call to action, then privacy and imprint.
     const footer = wrapper.find("footer");
     expect(footer.find("h2").text()).toBe("Ready for the next adventure?");
-    expect(footer.findAll("a").map((link) => link.attributes("href"))).toEqual(
-      expect.arrayContaining(["/registrieren", "/login"]),
-    );
-    expect(footer.find("nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
-      "/datenschutz",
-      "/impressum",
-      "/en/faq",
-      "/en/kontakt",
+    const footerLinks = footer.findAll("a").map((link) => link.attributes("href"));
+    expect(footerLinks).toContain("/registrieren");
+    expect(footerLinks).not.toContain("/login");
+    const legal = footer.find("nav").findAll("a");
+    expect(legal.map((link) => link.attributes("href"))).toEqual(["/datenschutz", "/impressum"]);
+    // The page shown is marked (underlined) like in the header.
+    expect(legal.map((link) => link.attributes("aria-current"))).toEqual(["page", undefined]);
+    // The header leads to FAQ, roadmap and contact in the active language, but no longer to sign-in.
+    const header = wrapper.find("header nav").findAll("a");
+    expect(header.map((link) => [link.text(), link.attributes("href")])).toEqual([
+      ["FAQ", "/en/faq"],
+      ["Roadmap", "/en/roadmap"],
+      ["Contact", "/en/kontakt"],
     ]);
+    expect(wrapper.find("header").findAll("a").map((link) => link.attributes("href"))).not.toContain("/login");
     wrapper.unmount();
   });
 
@@ -60,7 +66,7 @@ describe("legal pages", () => {
     await router.push("/login");
     await router.push("/impressum");
     const { wrapper } = await mountWithApp(ImprintView, { router });
-    await wrapper.find("button").trigger("click");
+    await wrapper.find("main button").trigger("click");
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe("/login"));
     await flushPromises();
     wrapper.unmount();

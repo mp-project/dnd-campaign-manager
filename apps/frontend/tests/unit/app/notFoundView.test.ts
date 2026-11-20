@@ -41,7 +41,7 @@ describe("not-found page", () => {
     expect(wrapper.find("h1").text()).toBe("Seite nicht gefunden");
     expect(hrefs(wrapper)).toEqual([
       ["Zur Startseite", "/"],
-      ["Häufige Fragen", "/faq"],
+      ["FAQ", "/faq"],
       ["Kontakt", "/kontakt"],
     ]);
     // The footer of every public page, and no request: it is prerendered as 404.html.
@@ -52,7 +52,7 @@ describe("not-found page", () => {
 
   it("leads a signed-in account to its campaigns first", async () => {
     const { wrapper } = await open({ signedIn: true });
-    expect(hrefs(wrapper).map(([label]) => label)).toEqual(["Zum Dashboard", "Zur Startseite", "Häufige Fragen", "Kontakt"]);
+    expect(hrefs(wrapper).map(([label]) => label)).toEqual(["Zum Dashboard", "Zur Startseite", "FAQ", "Kontakt"]);
     wrapper.unmount();
   });
 

@@ -13,6 +13,8 @@ import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import TextInput from "@/components/base/TextInput.vue";
 import CompassRose from "@/components/layout/CompassRose.vue";
+import PublicHeader from "@/components/layout/PublicHeader.vue";
+import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
 import { demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
@@ -24,8 +26,6 @@ import { usePageMeta } from "@/core/seo/pageMeta";
 
 import castleRuinScene from "../assets/deco/castle-ruin.webp";
 import scrollArt from "../assets/deco/scroll.webp";
-import type { MenuChapter } from "../components/LandingMenu.vue";
-import PublicHeader from "../components/PublicHeader.vue";
 import {
   FAQ_GROUPS,
   type FaqLink,
@@ -39,7 +39,6 @@ const { t } = useAppI18n();
 const route = useRoute();
 const demo = demoUrl();
 const homePath = useHomePath();
-const home = useLocalizedPage("landing");
 const contact = useLocalizedPage("contact");
 const text = (key: MessageKey) => t(key);
 
@@ -52,7 +51,7 @@ usePageMeta({
       groups: FAQ_GROUPS,
       text,
       locale: String(language),
-      home: { name: t("landing.header.home"), url: absoluteUrl(localizedPath("", language)) },
+      home: { name: t("common.publicNav.home"), url: absoluteUrl(localizedPath("", language)) },
       page: { name: t("landing.faq.breadcrumb"), url: absoluteUrl(localizedPath("faq", language)) },
     });
   },
@@ -103,10 +102,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <PublicHeader
-      :chapters="chapters"
-      :page-link="{ to: home, label: 'landing.header.home', icon: 'ui-house' }"
-    />
+    <PublicHeader :chapters="chapters" />
 
     <main class="flex-1">
       <!-- Head: navy like the start page's hero, with the search -->
@@ -128,7 +124,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                   :to="homePath"
                   class="inline-flex min-h-11 items-center hover:underline"
                 >
-                  {{ t("landing.header.home") }}
+                  {{ t("common.publicNav.home") }}
                 </RouterLink>
               </li>
               <li

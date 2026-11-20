@@ -3,25 +3,12 @@
     "title": "Chronik – Kampagnenverwaltung für D&D 5E",
     "description": "Plane Kampagnen, verwebe Storylines, verwalte Charaktere und lade deine Gruppe zu Spielsessions ein – Chronik ist das Werkzeug für Spielleitungen und ihre Gruppen."
   },
-  "header": {
-    "signIn": "Anmelden",
-    "register": "Registrieren",
-    "toApp": "Zur App",
-    "language": "Sprache wählen",
-    "demo": "Demo",
-    "faq": "Häufige Fragen",
-    "home": "Startseite"
-  },
   "menu": {
-    "open": "Menü öffnen",
-    "close": "Menü schließen",
-    "title": "Inhalt",
     "audience": "Für wen",
     "features": "Funktionen",
     "more": "Und außerdem",
     "reputation": "Ruf-System",
     "marketplace": "Marktplatz",
-    "chapter": "Kapitel {number}",
     "audienceHint": "Spielleitungen, Spieler und Co-Autoren",
     "featuresHint": "Storylines, Charaktere und Sessions",
     "moreHint": "Encounter, Fraktionen, Musik und mehr",
@@ -32,7 +19,7 @@
     "eyebrow": "Kampagnenverwaltung für D&D 5E",
     "title": "Deine Kampagne. Deine Welt. An einem Ort.",
     "lead": "Chronik ist das Werkzeug für Spielleitungen und ihre Gruppen: Kampagnen planen, Storylines verweben, Charaktere verwalten und zu Spielsessions einladen – vom ersten Weltentwurf bis zur letzten Begegnung.",
-    "register": "Konto erstellen",
+    "register": "Vorab registrieren",
     "demo": "Demo ansehen",
     "demoHint": "Die Demo zeigt eine Beispielkampagne und braucht keine Anmeldung.",
     "toApp": "Zu meinen Kampagnen"
@@ -406,13 +393,100 @@
     },
     "links": {
       "demo": "Demo ansehen",
-      "register": "Konto erstellen",
+      "register": "Vorab registrieren",
       "privacy": "Zur Datenschutzerklärung"
     },
     "contact": {
       "title": "Deine Frage ist nicht dabei?",
       "text": "Schreib uns über das Kontaktformular – zu Kampagnen, Charakteren, deinem Konto oder mit Ideen für Chronik.",
       "link": "Zum Kontaktformular"
+    }
+  },
+  "roadmap": {
+    "meta": {
+      "title": "Roadmap – was als Nächstes kommt",
+      "description": "Woran wir an Chronik, der Kampagnenverwaltung für D&D 5E, gerade arbeiten und was danach kommt: Kompendium, Welt, Abenteuer, Spielrunde, Marktplatz und Spieltisch."
+    },
+    "breadcrumb": "Roadmap",
+    "hero": {
+      "eyebrow": "Der Weg von Chronik",
+      "title": "Roadmap",
+      "lead": "Chronik entsteht Schritt für Schritt. Hier siehst du, woran wir gerade arbeiten und was danach kommt – ohne feste Termine, denn jede Etappe soll erst gut sein, bevor die nächste beginnt."
+    },
+    "legend": "Stand der Etappen",
+    "phaseLabel": "Etappe {number}",
+    "note": {
+      "title": "Wünsche und Ideen",
+      "text": "Die Reihenfolge kann sich noch ändern. Fehlt dir etwas, oder ist dir etwas besonders wichtig? Schreib uns – Rückmeldungen von Spielleitungen und Gruppen entscheiden mit, was zuerst kommt.",
+      "link": "Kontakt aufnehmen"
+    },
+    "phases": {
+      "foundation": {
+        "title": "Fundament",
+        "text": "Das Grundgerüst von Chronik wird aufgebaut – die Basis, auf der alle weiteren Etappen stehen.",
+        "items": {
+          "auth": "Anmeldung und Konten mit Rollen",
+          "system": "Systembasis: Grundfunktionen und Datenstrukturen",
+          "invitations": "Einladungen für Mitspieler",
+          "ruleset": "Regelwerk als Grundlage für alle Regelinhalte"
+        }
+      },
+      "compendium": {
+        "title": "Kompendium",
+        "text": "Die Regelinhalte bekommen ihre Oberfläche: nachschlagen, anpassen und für die Gruppe freigeben.",
+        "items": {
+          "content": "Gegenstände, Zauber, Talente, Hintergründe, Spezies und Klassen durchsuchen und bearbeiten",
+          "release": "Eigene Inhalte gezielt für die Spieler freigeben",
+          "homebrew": "Homebrew neben offiziellen Inhalten, sauber getrennt"
+        }
+      },
+      "world": {
+        "title": "Welt",
+        "text": "Die Welt deiner Kampagne an einem Ort.",
+        "items": {
+          "locations": "Orte mit Ebenen von der Region bis zum Raum",
+          "maps": "Karten mit Markierungen, die sich live für alle bewegen",
+          "people": "Personen, Fraktionen und Monster mit Werten und Beziehungen",
+          "reputation": "Ruf-System: Haltungen, die mit der Geschichte wachsen"
+        }
+      },
+      "adventure": {
+        "title": "Abenteuer",
+        "text": "Geschichten planen, die auf Entscheidungen reagieren.",
+        "items": {
+          "quests": "Quests mit Zielen, Fortschritt und Belohnungen",
+          "encounters": "Begegnungen mit EP-Budget und Battlemap-Planung",
+          "storylines": "Storylines auf einem Aktboard mit Szenen, Entscheidungen und Enden",
+          "audio": "Musik, Ambiente und Effekte passend zur Szene"
+        }
+      },
+      "table": {
+        "title": "Spielrunde",
+        "text": "Alles für den Abend am Tisch – für Spielleitung und Spieler.",
+        "items": {
+          "characters": "Charaktere mit vollständigem Charakterbogen",
+          "sessions": "Spielsessions planen, einladen und erinnern",
+          "chronicle": "Chronik der Kampagne mit Protokoll jeder Session",
+          "players": "Eigene Ansicht für Spieler: Entdeckungen, Gruppe und der eigene Charakter"
+        }
+      },
+      "exchange": {
+        "title": "Austausch",
+        "text": "Inhalte teilen und übernehmen.",
+        "items": {
+          "import": "Import und Export ganzer Inhalte",
+          "marketplace": "Marktplatz mit offiziellen und Community-Inhalten"
+        }
+      },
+      "board": {
+        "title": "Spieltisch",
+        "text": "Die laufende Session direkt in Chronik.",
+        "items": {
+          "live": "Spielbrett mit Szenen, Personen und Fundstücken live für alle",
+          "dice": "Würfel, die alle sehen",
+          "combat": "Kampf mit Initiative und Battlemap"
+        }
+      }
     }
   }
 }

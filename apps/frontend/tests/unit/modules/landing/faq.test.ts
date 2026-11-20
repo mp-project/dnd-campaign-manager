@@ -170,29 +170,26 @@ describe("FAQ page", () => {
     const demo = wrapper.find("#faq-demo-answer");
     expect(demo.findAll("a").map((link) => [link.text(), link.attributes("href")])).toEqual([
       ["Demo ansehen", "https://demo.example.com/"],
-      ["Konto erstellen", "/registrieren"],
+      ["Vorab registrieren", "/registrieren"],
     ]);
-    // The footer of every public page leads to the FAQ in the active language.
-    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
-      "/datenschutz",
-      "/impressum",
-      "/faq",
-      "/kontakt",
-    ]);
+    // The header marks the FAQ as the page shown; the footer keeps to privacy and imprint.
+    const current = wrapper.find("header nav").findAll("a").filter((link) => link.attributes("aria-current") === "page");
+    expect(current.map((link) => link.text())).toEqual(["FAQ"]);
+    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual(["/datenschutz", "/impressum"]);
     wrapper.unmount();
   });
 
   it("leaves the demo link out without a demo address", async () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
-    expect(wrapper.find("#faq-demo-answer").findAll("a").map((link) => link.text())).toEqual(["Konto erstellen"]);
+    expect(wrapper.find("#faq-demo-answer").findAll("a").map((link) => link.text())).toEqual(["Vorab registrieren"]);
     wrapper.unmount();
   });
 
   it("lists its topics as chapters of the phone menu", async () => {
     const { wrapper } = await open();
-    await wrapper.find("button[aria-controls=landing-menu]").trigger("click");
-    const menu = document.getElementById("landing-menu")!;
+    await wrapper.find("button[aria-controls=public-menu]").trigger("click");
+    const menu = document.getElementById("public-menu")!;
     expect([...menu.querySelectorAll(".chapter-link .font-heading")].map((title) => title.textContent?.trim())).toEqual([
       "Chronik kennenlernen",
       "Kampagne, Welt und Gruppe",
@@ -205,7 +202,13 @@ describe("FAQ page", () => {
       "#faq-topic-table",
       "#faq-topic-account",
     ]);
-    expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).toContain("Startseite");
+    // Then the public navigation, the FAQ marked as the page shown.
+    const pages = [...menu.querySelectorAll(".public-nav-link")];
+    expect(pages.map((link) => [link.textContent?.trim(), link.getAttribute("aria-current")])).toEqual([
+      ["FAQ", "page"],
+      ["Roadmap", null],
+      ["Kontakt", null],
+    ]);
     wrapper.unmount();
   });
 });

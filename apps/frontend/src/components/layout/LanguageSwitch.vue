@@ -2,7 +2,8 @@
 /**
  * Language choice of a public page: a globe icon opening a menu with one entry per supported
  * language, each leading to the same page under its language's address (`/`, `/en`). The address
- * decides the language, so search engines and shared links see every language on its own.
+ * decides the language, so search engines and shared links see every language on its own. Only
+ * for pages made with `localizedRoutes` (`PublicHeader` hides it elsewhere).
  */
 import { type Locale, SUPPORTED_LOCALES } from "@dnd/i18n";
 import { computed } from "vue";
@@ -41,8 +42,8 @@ const items = computed<DropdownItem[]>(() => {
       <button
         type="button"
         class="inline-flex size-11 items-center justify-center rounded-full text-parchment/85 transition-colors hover:bg-navy-800 hover:text-parchment"
-        :aria-label="t('landing.header.language')"
-        :title="t('landing.header.language')"
+        :aria-label="t('common.publicNav.language')"
+        :title="t('common.publicNav.language')"
         :aria-expanded="open"
         aria-haspopup="menu"
         @click="toggle"

@@ -215,13 +215,25 @@
   },
   "siteFooter": {
     "title": "Bereit für das nächste Abenteuer?",
-    "text": "Sieh dir die Demo an oder erstelle dein Konto und lege deine erste Kampagne an.",
-    "register": "Konto erstellen",
-    "toApp": "Zu meinen Kampagnen",
+    "text": "Sieh dir die Demo an oder registriere dich vorab – wir melden uns, sobald dein Zugang bereit ist.",
     "demo": "Demo ansehen",
-    "signIn": "Schon ein Konto? Anmelden",
-    "faq": "Häufige Fragen",
-    "navLabel": "Rechtliches und Hilfe",
-    "contact": "Kontakt"
+    "navLabel": "Rechtliches"
+  },
+  "publicNav": {
+    "label": "Hauptnavigation",
+    "faq": "FAQ",
+    "roadmap": "Roadmap",
+    "contact": "Kontakt",
+    "demo": "Demo",
+    "preregister": "Vorab registrieren",
+    "toApp": "Zur App",
+    "language": "Sprache wählen",
+    "home": "Startseite",
+    "menu": {
+      "open": "Menü öffnen",
+      "close": "Menü schließen",
+      "contents": "Inhalt",
+      "chapter": "Kapitel {number}"
+    }
   }
 }

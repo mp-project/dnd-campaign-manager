@@ -15,12 +15,14 @@ import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import CompassRose from "@/components/layout/CompassRose.vue";
+import PublicHeader from "@/components/layout/PublicHeader.vue";
+import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
 import { meQuery } from "@/core/auth/session";
 import { demoScreenUrl, demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
-import { localizedPath, useLocalizedPage } from "@/core/i18n/localizedRoutes";
+import { localizedPath } from "@/core/i18n/localizedRoutes";
 import { usePageMeta } from "@/core/seo/pageMeta";
 import { siteUrl } from "@/core/seo/site";
 import { vReveal } from "@/core/motion/reveal";
@@ -28,10 +30,8 @@ import { vReveal } from "@/core/motion/reveal";
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
 import InventoryShowcase from "../components/InventoryShowcase.vue";
-import type { MenuChapter } from "../components/LandingMenu.vue";
 import MarketplaceFan from "../components/MarketplaceFan.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
-import PublicHeader from "../components/PublicHeader.vue";
 import compendiumArt from "../assets/more/compendium.webp";
 import encountersArt from "../assets/more/encounters.webp";
 import factionsArt from "../assets/more/factions.webp";
@@ -59,7 +59,6 @@ import { type Screen, SCREENS } from "../screens";
 import { startPageStructuredData } from "../structuredData";
 
 const { t } = useAppI18n();
-const faqPage = useLocalizedPage("landing-faq");
 const demo = demoUrl();
 const marketplaceDemo = demoScreenUrl(SCREENS.marketplace.demoPath);
 
@@ -239,10 +238,7 @@ const reputationPoints: MessageKey[] = [
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <PublicHeader
-      :chapters="chapters"
-      :page-link="{ to: faqPage, label: 'landing.header.faq', icon: 'orig-info' }"
-    />
+    <PublicHeader :chapters="chapters" />
 
     <main class="flex-1">
       <!-- Hero: dark like the app's shell, with storyline and character sheet split diagonally -->

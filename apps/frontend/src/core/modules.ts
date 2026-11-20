@@ -34,6 +34,8 @@ export type NavItem = {
   | { area: "account" }
   | { area: "campaign"; section: CampaignNavSection; /** One of the few targets in the mobile bottom bar. */ mobile?: boolean }
   | { area: "player"; /** Short label for the mobile bottom bar; entries without it stay in the menu. */ mobileLabel?: MessageKey }
+  /** Header of the public pages; `route` is the base name of a page made with `localizedRoutes`. */
+  | { area: "public" }
 );
 
 /**

@@ -95,7 +95,7 @@ describe("landing page", () => {
     expect(i18n.global.locale.value).toBe("de");
   });
 
-  it("presents the app, its main features and the way to register and sign in", async () => {
+  it("presents the app, its main features and the way to pre-register", async () => {
     const { wrapper, fetchSpy } = await open();
     expect(wrapper.find("h1").text()).toBe("Deine Kampagne. Deine Welt. An einem Ort.");
     const headings = wrapper.findAll("h3").map((heading) => heading.text());
@@ -109,15 +109,21 @@ describe("landing page", () => {
       ]),
     );
     expect(wrapper.find("#landing-marketplace").text()).toBe("Inhalte teilen und entdecken");
-    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/login", "/datenschutz", "/impressum", "/faq"]));
-    // The header leads to the FAQ, the footer to privacy, imprint and FAQ.
-    expect(wrapper.find("header").findAll("a").map((link) => link.text())).toContain("Häufige Fragen");
-    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
-      "/datenschutz",
-      "/impressum",
-      "/faq",
-      "/kontakt",
+    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/datenschutz", "/impressum", "/faq", "/roadmap", "/kontakt"]));
+    // Sign-in is not offered while access goes through pre-registration.
+    expect(hrefs(wrapper)).not.toContain("/login");
+    // The header leads to FAQ, roadmap and contact (none of them the page shown), with the
+    // pre-registration as a button on the right; the footer only to privacy and imprint.
+    const header = wrapper.find("header");
+    expect(header.find("nav").findAll("a").map((link) => [link.text(), link.attributes("href"), link.attributes("aria-current")])).toEqual([
+      ["FAQ", "/faq", undefined],
+      ["Roadmap", "/roadmap", undefined],
+      ["Kontakt", "/kontakt", undefined],
     ]);
+    const register = header.findAll("a.btn").find((link) => link.attributes("href") === "/registrieren");
+    expect(register?.text()).toBe("Vorab registrieren");
+    expect(register?.classes()).toContain("btn-primary");
+    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual(["/datenschutz", "/impressum"]);
     expect(hrefs(wrapper)).not.toContain("/dashboard");
     // Visitors without a session cost the API nothing.
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -252,13 +258,13 @@ describe("landing page", () => {
 
   it("opens a table of contents from the compass on phones and closes it again", async () => {
     const { wrapper } = await open();
-    const compass = wrapper.find("button[aria-controls=landing-menu]");
+    const compass = wrapper.find("button[aria-controls=public-menu]");
     expect(compass.attributes("aria-expanded")).toBe("false");
     expect(compass.attributes("aria-label")).toBe("Menü öffnen");
     await compass.trigger("click");
     expect(compass.attributes("aria-expanded")).toBe("true");
     expect(compass.attributes("aria-label")).toBe("Menü schließen");
-    const menu = document.getElementById("landing-menu")!;
+    const menu = document.getElementById("public-menu")!;
     expect([...menu.querySelectorAll(".chapter-link")].map((link) => [...link.querySelectorAll(".flex-1 > span")].map((part) => part.textContent?.trim()).join(" | "))).toEqual([
       "Kapitel I | Für wen | Spielleitungen, Spieler und Co-Autoren",
       "Kapitel II | Funktionen | Storylines, Charaktere und Sessions",
@@ -267,8 +273,9 @@ describe("landing page", () => {
       "Kapitel V | Ruf-System | Haltungen, die mit der Geschichte wachsen",
     ]);
     expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).toEqual(
-      expect.arrayContaining(["Registrieren", "Anmelden"]),
+      expect.arrayContaining(["FAQ", "Roadmap", "Kontakt", "Vorab registrieren"]),
     );
+    expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).not.toContain("Anmelden");
     // A chapter closes the menu and moves the page to its section.
     const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
     menu.querySelector<HTMLAnchorElement>(".chapter-link")!.click();

@@ -3,25 +3,12 @@
     "title": "Chronik – campaign manager for D&D 5E",
     "description": "Plan campaigns, weave storylines, manage characters and invite your group to game sessions – Chronik is the tool for game masters and their groups."
   },
-  "header": {
-    "signIn": "Sign in",
-    "register": "Sign up",
-    "toApp": "Open the app",
-    "language": "Choose language",
-    "demo": "Demo",
-    "faq": "FAQ",
-    "home": "Home"
-  },
   "menu": {
-    "open": "Open menu",
-    "close": "Close menu",
-    "title": "Contents",
     "audience": "Who it's for",
     "features": "Features",
     "more": "And more",
     "reputation": "Reputation",
     "marketplace": "Marketplace",
-    "chapter": "Chapter {number}",
     "audienceHint": "Game masters, players and co-authors",
     "featuresHint": "Storylines, characters and sessions",
     "moreHint": "Encounters, factions, music and more",
@@ -32,7 +19,7 @@
     "eyebrow": "Campaign manager for D&D 5E",
     "title": "Your campaign. Your world. In one place.",
     "lead": "Chronik is the tool for game masters and their groups: plan campaigns, weave storylines, manage characters and invite to game sessions – from the first sketch of your world to the final encounter.",
-    "register": "Create an account",
+    "register": "Pre-register",
     "demo": "Try the demo",
     "demoHint": "The demo shows an example campaign and needs no account.",
     "toApp": "Go to my campaigns"
@@ -406,13 +393,100 @@
     },
     "links": {
       "demo": "Try the demo",
-      "register": "Create an account",
+      "register": "Pre-register",
       "privacy": "Read the privacy policy"
     },
     "contact": {
       "title": "Your question isn't here?",
       "text": "Write to us through the contact form – about campaigns, characters, your account or with ideas for Chronik.",
       "link": "Go to the contact form"
+    }
+  },
+  "roadmap": {
+    "meta": {
+      "title": "Roadmap – what comes next",
+      "description": "What we are working on for Chronik, the campaign manager for D&D 5E, and what follows: compendium, world, adventures, game sessions, marketplace and the live table."
+    },
+    "breadcrumb": "Roadmap",
+    "hero": {
+      "eyebrow": "Where Chronik is heading",
+      "title": "Roadmap",
+      "lead": "Chronik is built step by step. Here you can see what we are working on now and what comes next – without fixed dates, because each stage should be good before the next one starts."
+    },
+    "legend": "Status of the stages",
+    "phaseLabel": "Stage {number}",
+    "note": {
+      "title": "Wishes and ideas",
+      "text": "The order may still change. Is something missing, or does something matter a lot to you? Write to us – feedback from game masters and groups helps decide what comes first.",
+      "link": "Get in touch"
+    },
+    "phases": {
+      "foundation": {
+        "title": "Foundation",
+        "text": "Chronik's groundwork is being built – the base every further stage stands on.",
+        "items": {
+          "auth": "Sign-in and accounts with roles",
+          "system": "System base: core functions and data structures",
+          "invitations": "Invitations for players",
+          "ruleset": "Ruleset as the base for all rules content"
+        }
+      },
+      "compendium": {
+        "title": "Compendium",
+        "text": "The rules content gets its interface: look it up, adapt it and release it to your group.",
+        "items": {
+          "content": "Browse and edit items, spells, feats, backgrounds, species and classes",
+          "release": "Release your own content to your players on purpose",
+          "homebrew": "Homebrew next to official content, clearly apart"
+        }
+      },
+      "world": {
+        "title": "World",
+        "text": "Your campaign's world in one place.",
+        "items": {
+          "locations": "Locations in levels from region to room",
+          "maps": "Maps with markers that move live for everyone",
+          "people": "People, factions and monsters with stats and relations",
+          "reputation": "Reputation: standing that grows with the story"
+        }
+      },
+      "adventure": {
+        "title": "Adventures",
+        "text": "Plan stories that react to decisions.",
+        "items": {
+          "quests": "Quests with goals, progress and rewards",
+          "encounters": "Encounters with an XP budget and battle map planning",
+          "storylines": "Storylines on an act board with scenes, decisions and endings",
+          "audio": "Music, ambience and effects to match the scene"
+        }
+      },
+      "table": {
+        "title": "Game sessions",
+        "text": "Everything for the evening at the table – for game masters and players.",
+        "items": {
+          "characters": "Characters with a complete character sheet",
+          "sessions": "Plan game sessions, invite and remind",
+          "chronicle": "The campaign's chronicle with a log of every session",
+          "players": "A view of their own for players: discoveries, the group and their character"
+        }
+      },
+      "exchange": {
+        "title": "Exchange",
+        "text": "Share content and take it over.",
+        "items": {
+          "import": "Import and export of whole content",
+          "marketplace": "Marketplace with official and community content"
+        }
+      },
+      "board": {
+        "title": "Live table",
+        "text": "The running session right inside Chronik.",
+        "items": {
+          "live": "A game board with scenes, people and finds, live for everyone",
+          "dice": "Dice everybody sees",
+          "combat": "Combat with initiative and battle map"
+        }
+      }
     }
   }
 }

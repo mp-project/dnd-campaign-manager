@@ -1,16 +1,17 @@
 <script setup lang="ts">
 /**
- * Menu of the start page on phones. The trigger is a simple compass rose instead of a burger, its
- * north point red: opening turns it south, towards the menu, closing back north. A parchment scroll unrolls below the
- * header with the page's table of contents (`chapters`: sections of the page with a golden seal, number and a line on what
- * they hold), the ways in (registration or sign-in, demo, or the app for a profile already loaded) and a link to another
- * public page (`pageLink`, e.g. the FAQ from the start page). A chapter closes the
- * scroll and moves the page to its section below the sticky header. Escape, the dimmed page and
- * the compass close it; focus returns to the compass. From md on the header shows its links and
- * the menu is not rendered. With reduced motion nothing turns or unrolls.
+ * Menu of the public pages below lg. The trigger is a simple compass rose instead of a burger, its
+ * north point red: opening turns it south, towards the menu, closing back north. A parchment scroll
+ * unrolls below the header with the page's table of contents, if it passes one (`chapters`:
+ * sections of the page with a golden seal, number and a line on what they hold), the links of the
+ * public navigation (the page shown underlined) and the actions: pre-registration (or the app for a
+ * profile already loaded) and the demo. A chapter closes the scroll and moves the page to its
+ * section below the sticky header. Escape, the dimmed page and the compass close it; focus returns
+ * to the compass. From lg on the header shows links and actions and the menu is not rendered. With
+ * reduced motion nothing turns or unrolls.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { type RouteLocationRaw, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
@@ -18,19 +19,18 @@ import type { IconName } from "@/components/base/iconNames";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
 import { useReducedMotion } from "@/core/motion/reducedMotion";
+import { usePublicNavigation } from "@/core/navigation/publicNavigation";
+
+import PublicNavLink from "./PublicNavLink.vue";
 
 /** A section of the page (`section`: the id its `aria-labelledby` names) as a chapter of the menu. */
 export type MenuChapter = { section: string; icon: IconName; label: MessageKey; hint: MessageKey };
 
-const props = defineProps<{
-  signedIn: boolean;
-  demo: string | null;
-  chapters: readonly MenuChapter[];
-  pageLink?: { to: RouteLocationRaw; label: MessageKey; icon: IconName };
-}>();
+const props = withDefaults(defineProps<{ chapters?: readonly MenuChapter[] }>(), { chapters: () => [] });
 
 const { t } = useAppI18n();
 const route = useRoute();
+const { links, demo, primary } = usePublicNavigation();
 
 const open = ref(false);
 const top = ref(0);
@@ -63,7 +63,7 @@ async function show(): Promise<void> {
   open.value = true;
   document.documentElement.style.overflow = "hidden";
   window.addEventListener("keydown", onKey);
-  desktop = media("(min-width: 48rem)");
+  desktop = media("(min-width: 64rem)");
   desktop?.addEventListener("change", onDesktop);
   await nextTick();
   panel.value?.querySelector<HTMLElement>("a, button")?.focus({ preventScroll: true });
@@ -96,11 +96,13 @@ function goTo(section: string): void {
 watch(() => route.fullPath, () => close(false));
 onBeforeUnmount(() => close(false));
 
-const label = computed(() => t(open.value ? "landing.menu.close" : "landing.menu.open"));
+const label = computed(() => t(open.value ? "common.publicNav.menu.close" : "common.publicNav.menu.open"));
+/** Stagger index of the blocks after the chapters. */
+const after = computed(() => chapters.value.length);
 </script>
 
 <template>
-  <div class="md:hidden">
+  <div class="lg:hidden">
     <button
       ref="trigger"
       type="button"
@@ -109,7 +111,7 @@ const label = computed(() => t(open.value ? "landing.menu.close" : "landing.menu
       :aria-label="label"
       :title="label"
       :aria-expanded="open"
-      aria-controls="landing-menu"
+      aria-controls="public-menu"
       @click="toggle"
     >
       <svg
@@ -153,7 +155,7 @@ const label = computed(() => t(open.value ? "landing.menu.close" : "landing.menu
 
     <Teleport to="body">
       <div
-        class="scroll-layer md:hidden"
+        class="scroll-layer lg:hidden"
         :class="{ 'is-open': open }"
         :style="{ top: `${top}px` }"
         :inert="!open"
@@ -164,106 +166,102 @@ const label = computed(() => t(open.value ? "landing.menu.close" : "landing.menu
           @click="close()"
         />
         <nav
-          id="landing-menu"
+          id="public-menu"
           ref="panel"
           class="scroll parchment text-ink"
-          :aria-label="t('landing.menu.title')"
+          :aria-label="t('common.publicNav.label')"
         >
           <div class="scroll-body px-6 pt-5 pb-6">
-            <p class="menu-title eyebrow text-brand">
-              {{ t("landing.menu.title") }}
-            </p>
-            <ol class="mt-3">
-              <li
-                v-for="(chapter, index) in chapters"
-                :key="chapter.section"
-                class="chapter"
-                :style="{ '--i': index }"
-              >
-                <a
-                  :href="`#${chapter.section}`"
-                  class="chapter-link"
-                  @click.prevent="goTo(chapter.section)"
+            <template v-if="chapters.length">
+              <p class="menu-title eyebrow text-brand">
+                {{ t("common.publicNav.menu.contents") }}
+              </p>
+              <ol class="mt-3">
+                <li
+                  v-for="(chapter, index) in chapters"
+                  :key="chapter.section"
+                  class="chapter"
+                  :style="{ '--i': index }"
                 >
-                  <span
-                    class="chapter-seal"
-                    aria-hidden="true"
+                  <a
+                    :href="`#${chapter.section}`"
+                    class="chapter-link"
+                    @click.prevent="goTo(chapter.section)"
                   >
+                    <span
+                      class="chapter-seal"
+                      aria-hidden="true"
+                    >
+                      <Icon
+                        :name="chapter.icon"
+                        :size="20"
+                      />
+                    </span>
+                    <span class="min-w-0 flex-1">
+                      <span class="chapter-number eyebrow">{{ t("common.publicNav.menu.chapter", { number: chapter.numeral }) }}</span>
+                      <span class="block font-heading text-[18px] leading-snug text-heading">{{ t(chapter.label) }}</span>
+                      <span class="block text-[14px] leading-snug text-ink-3">{{ t(chapter.hint) }}</span>
+                    </span>
                     <Icon
-                      :name="chapter.icon"
+                      name="ui-chevron-right"
                       :size="20"
+                      class="chapter-arrow"
                     />
-                  </span>
-                  <span class="min-w-0 flex-1">
-                    <span class="chapter-number eyebrow">{{ t("landing.menu.chapter", { number: chapter.numeral }) }}</span>
-                    <span class="block font-heading text-[18px] leading-snug text-heading">{{ t(chapter.label) }}</span>
-                    <span class="block text-[14px] leading-snug text-ink-3">{{ t(chapter.hint) }}</span>
-                  </span>
-                  <Icon
-                    name="ui-chevron-right"
-                    :size="20"
-                    class="chapter-arrow"
-                  />
-                </a>
-              </li>
-            </ol>
-            <img
-              :src="`${base}assets/deko/trennlinie-gold.svg`"
-              alt=""
-              aria-hidden="true"
-              class="chapter mx-auto mt-6 h-3 w-40"
-              :style="{ '--i': chapters.length }"
+                  </a>
+                </li>
+              </ol>
+              <img
+                :src="`${base}assets/deko/trennlinie-gold.svg`"
+                alt=""
+                aria-hidden="true"
+                class="chapter mx-auto mt-6 h-3 w-40"
+                :style="{ '--i': after }"
+              >
+            </template>
+
+            <ul
+              v-if="links.length"
+              class="chapter flex flex-col items-center"
+              :class="{ 'mt-4': chapters.length }"
+              :style="{ '--i': after + 1 }"
             >
+              <li
+                v-for="link in links"
+                :key="link.id"
+              >
+                <PublicNavLink
+                  :to="link.to"
+                  :active="link.active"
+                  tone="light"
+                  class="font-heading text-[19px] text-heading"
+                >
+                  {{ link.label }}
+                </PublicNavLink>
+              </li>
+            </ul>
 
             <div
               class="chapter mt-6 flex flex-col gap-3"
-              :style="{ '--i': chapters.length + 1 }"
+              :style="{ '--i': after + 2 }"
             >
               <BaseButton
-                v-if="props.signedIn"
-                to="/dashboard"
+                :to="primary.to"
                 variant="primary"
-                icon-right="aktion-weiter"
                 block
               >
-                {{ t("landing.header.toApp") }}
+                {{ primary.label }}
               </BaseButton>
-              <template v-else>
-                <BaseButton
-                  :to="{ name: 'auth-register' }"
-                  variant="primary"
-                  block
-                >
-                  {{ t("landing.header.register") }}
-                </BaseButton>
-                <BaseButton
-                  :to="{ name: 'auth-login' }"
-                  variant="secondary"
-                  block
-                >
-                  {{ t("landing.header.signIn") }}
-                </BaseButton>
-              </template>
               <BaseButton
-                v-if="props.demo"
+                v-if="demo"
                 as="a"
-                :href="props.demo"
+                :href="demo"
                 target="_blank"
                 rel="noopener"
-                variant="ghost"
+                variant="secondary"
                 icon="aktion-ansehen"
                 block
               >
-                {{ t("landing.hero.demo") }}
-              </BaseButton>
-              <BaseButton
-                v-if="props.pageLink"
-                :to="props.pageLink.to"
-                variant="ghost"
-                :icon="props.pageLink.icon"
-                block
-              >
-                {{ t(props.pageLink.label) }}
+                {{ t("common.publicNav.demo") }}
               </BaseButton>
             </div>
           </div>

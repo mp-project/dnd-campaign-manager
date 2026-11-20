@@ -13,6 +13,7 @@ import {
 } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
+import { recordChange } from "#core/log/auditLog";
 import type { CampaignInvitationRole } from "#src/modules/campaign-invitations/domain/dto/BaseCampaignInvitationDto";
 import type { CreateCampaignInvitationDto } from "#src/modules/campaign-invitations/domain/dto/CreateCampaignInvitationDto";
 import {
@@ -157,6 +158,28 @@ export class CampaignInvitationsService {
     return this.campaignsService.findMembershipCampaign(db, campaignId);
   }
 
+  /** Invitations have no history; every committed change of one gets its `change` line here. */
+  recordChange(change: {
+    action: string;
+    invitationId: string;
+    campaignId: string;
+    actorId: string;
+    values?: Record<string, unknown>;
+  }): void {
+    recordChange({
+      action: change.action,
+      entities: [
+        {
+          entityType: "campaignInvitation",
+          entityId: change.invitationId,
+          ...(change.values ? { values: change.values } : {}),
+        },
+      ],
+      campaignId: change.campaignId,
+      actorId: change.actorId,
+    });
+  }
+
   /**
    * Accepts the invitation `lockInvitation` loads (locked, by token or by id) for the authenticated
    * user, if it is theirs (`isAddressedTo`); accepting needs a verified email (403, `details.reason`
@@ -223,7 +246,11 @@ export class CampaignInvitationsService {
             actorId: user.id,
             now,
           });
-          return { error: "member" as const };
+          return {
+            error: "member" as const,
+            invitationId: invitation.id,
+            campaignId: invitation.campaignId,
+          };
         }
 
         const membership = await this.createMembershipFromInvitation(scope, {
@@ -259,11 +286,32 @@ export class CampaignInvitationsService {
     );
 
     if ("error" in outcome) {
+      if ("invitationId" in outcome && outcome.invitationId && outcome.campaignId) {
+        this.recordChange({
+          action: "campaignInvitations.revoke",
+          invitationId: outcome.invitationId,
+          campaignId: outcome.campaignId,
+          actorId: user.id,
+          values: { status: "REVOKED" },
+        });
+      }
+
       if (outcome.error === "expired" || outcome.error === "changed" || outcome.error === "member") {
         throw this.closedError(outcome.error);
       }
 
       throw new NotFoundError("Campaign invitation not found");
+    }
+
+    // The membership has its own `change` line from the history; this one is the invitation's.
+    if (outcome.invitation.status === "PENDING") {
+      this.recordChange({
+        action: "campaignInvitations.accept",
+        invitationId: outcome.invitation.id,
+        campaignId: outcome.invitation.campaignId,
+        actorId: user.id,
+        values: { status: "ACCEPTED" },
+      });
     }
 
     return {
@@ -357,6 +405,7 @@ export class CampaignInvitationsService {
     });
 
     await emailPort.send({
+      purpose: "campaignInvitations.invite",
       to: input.to,
       subject: message.subject,
       text: message.text,

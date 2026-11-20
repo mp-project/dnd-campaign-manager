@@ -18,5 +18,13 @@ export class DeleteCampaignInvitationUseCase {
     if (!revoked) {
       throw new NotFoundError("Pending campaign invitation not found");
     }
+
+    this.invitationsService.recordChange({
+      action: "campaignInvitations.revoke",
+      invitationId,
+      campaignId,
+      actorId,
+      values: { status: "REVOKED" },
+    });
   }
 }

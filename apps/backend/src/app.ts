@@ -3,7 +3,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import Fastify, { LogController, type FastifyInstance } from "fastify";
+import Fastify, { LogController, type FastifyBaseLogger, type FastifyInstance } from "fastify";
 import type { Pool } from "pg";
 
 import {
@@ -19,6 +19,9 @@ import {
 import { getEnv, type AppEnv } from "#core/env";
 import { API_BASE_PATH } from "#core/config/constants";
 import { registerErrorHandler } from "#core/error/registerErrorHandler";
+import { getErrorReporter } from "#core/log/errorReporter";
+import { createLogger, loggerSettingsFromEnv, type AppLogger } from "#core/log/logger";
+import { registerRequestLogActor, registerRequestLogging } from "#core/log/requestLog";
 import { registerAuthorizationPlugin } from "#core/http/authorization";
 import { registerApiRoutes } from "#core/http/registerApiRoutes";
 import { registerOpenApi } from "#core/http/registerOpenApi";
@@ -38,6 +41,8 @@ import {
 
 type BuildAppOptions = {
   env?: AppEnv;
+  /** Defaults to a logger built from `env`; tests pass one whose lines they read. */
+  logger?: AppLogger;
   pool?: Pool;
   readyProbe?: () => Promise<ReadyState>;
   modules?: readonly AppModule[];
@@ -47,16 +52,20 @@ type BuildAppOptions = {
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const env = options.env ?? getEnv();
+  const logger = options.logger ?? createLogger(loggerSettingsFromEnv(env, "api"));
   const baseApp = Fastify({
-    logger: {
-      level: env.LOG_LEVEL,
-    },
+    // Typed as Fastify's base logger, so plugins and route files keep their default types.
+    loggerInstance: logger as FastifyBaseLogger,
+    // No `reqId` binding: the log context adds `requestId` (and the actor) to every line written
+    // during the request, also by services that log with the app logger.
+    childLoggerFactory: (parent, _bindings, childOptions) => parent.child({}, childOptions),
     requestIdHeader: "x-request-id",
     // A client that stops sending must not hold a connection and its upload part forever.
     requestTimeout: 5 * 60 * 1000,
     // Behind Caddy `request.ip` would be the proxy; only private proxy addresses are trusted, so
     // X-Forwarded-For cannot be spoofed from outside.
     trustProxy: "loopback,uniquelocal",
+    // One `request` line per request comes from `registerRequestLogging` instead.
     logController: new LogController({
       disableRequestLogging: true,
     }),
@@ -84,12 +93,14 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         },
   );
 
+  registerRequestLogging(app, env);
   registerSecurityPlugins(app, env);
   registerAuthPlugin(app, env, container);
   registerRequestContextPlugin(app);
   registerCampaignContextPlugin(app, container);
+  registerRequestLogActor(app);
   registerAuthorizationPlugin(app, container, { protectedPrefix: API_BASE_PATH });
-  registerErrorHandler(app, env);
+  registerErrorHandler(app, env, container.ports.errorReporter ?? getErrorReporter());
   registerOpenApi(app);
   registerHealthRoutes(app, readyProbe);
   registerApiRoutes(app, container, modules, API_BASE_PATH);

@@ -94,7 +94,7 @@ export class AuthEmailChangeService {
 
     try {
       await this.sendEmails({ user, newEmail, code, expiresAt });
-    } catch {
+    } catch (error) {
       await this.deps.transactionManager.inTransaction(async (tx) => {
         await this.deps.repository.updatePendingEmail(tx, {
           userId: user.id,
@@ -103,7 +103,9 @@ export class AuthEmailChangeService {
         });
       });
 
-      throw new InternalError("Failed to deliver email change confirmation");
+      throw new InternalError("Failed to deliver email change confirmation", undefined, {
+        cause: error,
+      });
     }
 
     return { pendingEmail: newEmail, expiresAt };
@@ -263,11 +265,13 @@ export class AuthEmailChangeService {
     const notice = renderEmailChangeNoticeEmail({ locale: undefined, newEmail: input.newEmail });
 
     await this.deps.emailPort.send({
+      purpose: "auth.emailChange.confirm",
       to: input.newEmail,
       subject: confirmation.subject,
       text: confirmation.text,
     });
     await this.deps.emailPort.send({
+      purpose: "auth.emailChange.notice",
       to: input.user.email,
       subject: notice.subject,
       text: notice.text,

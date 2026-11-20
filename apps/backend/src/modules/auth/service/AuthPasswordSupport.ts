@@ -1,5 +1,7 @@
 import argon2 from "argon2";
 
+import { warnFallback } from "#core/log/warnFallback";
+
 export class AuthPasswordSupport {
   private readonly dummyPasswordHashPromise: Promise<string>;
 
@@ -32,7 +34,9 @@ export class AuthPasswordSupport {
 
     try {
       return await argon2.verify(passwordHash, password);
-    } catch {
+    } catch (error) {
+      // A stored hash argon2 can't read; the login fails like a wrong password.
+      warnFallback(error, "Stored password hash could not be verified");
       await this.consumeComparableDelay(password);
       return false;
     }

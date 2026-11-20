@@ -6,6 +6,7 @@ import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
 import { DEFAULT_HISTORY_LIMIT, HISTORY_LIMITS, type TrackedEntity } from "#core/history/types";
 import { HistoryRepository } from "#src/modules/history/domain/repository/HistoryRepository";
 import { HistoryService } from "#src/modules/history/service/HistoryService";
+import { captureLogs } from "#test/helpers/logCapture";
 
 const table = pgTable("history_config_items", {
   ...baseColumns(),
@@ -25,15 +26,15 @@ function buildEntity(type = "item") {
 }
 
 function buildService() {
-  const logger = { error: jest.fn() };
+  const logs = captureLogs();
 
   return {
-    logger,
+    logs,
     service: new HistoryService(
       {} as AppDatabase,
       {} as TransactionManager,
       new HistoryRepository(),
-      logger,
+      logs.logger,
     ),
   };
 }
@@ -90,7 +91,7 @@ describe("history configuration", () => {
   });
 
   it("does not let a failing event handler undo a change", async () => {
-    const { service, logger } = buildService();
+    const { service, logs } = buildService();
     const after = jest.fn();
 
     service.subscribe("*", () => {
@@ -112,7 +113,7 @@ describe("history configuration", () => {
       },
     ]);
 
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logs.find("History event handler failed")).toHaveLength(1);
     expect(after).toHaveBeenCalledTimes(1);
   });
 });

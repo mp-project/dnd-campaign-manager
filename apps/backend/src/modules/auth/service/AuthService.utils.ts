@@ -40,6 +40,7 @@ export function normalizeRedirectPath(input: string): string {
     // Final check with the browser's own parser: the target must stay on the same origin.
     return new URL(value, REDIRECT_CHECK_ORIGIN).origin === REDIRECT_CHECK_ORIGIN ? value : "/";
   } catch {
+    // Not a valid path: the safe default.
     return "/";
   }
 }

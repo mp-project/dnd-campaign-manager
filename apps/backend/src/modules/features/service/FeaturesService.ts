@@ -6,6 +6,7 @@ import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/
 import type { ActionScope, HistoryEvent } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
+import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   type AssetRow,
@@ -287,7 +288,9 @@ export class FeaturesService {
 
       try {
         graph = parseFeatureGraph(feature);
-      } catch {
+      } catch (error) {
+        // Reported to the caller as an invalid feature.
+        warnFallback(error, "Stored feature graph no longer parses", { assetId });
         result.set(assetId, { valid: false });
         continue;
       }
@@ -533,8 +536,9 @@ export class FeaturesService {
         path: reference.path,
         kind: reference.kind,
       }));
-    } catch {
+    } catch (error) {
       // Unknown for now; the stored references stay.
+      warnFallback(error, "Stored feature graph no longer parses", { assetId: found.asset.id });
       return null;
     }
   }

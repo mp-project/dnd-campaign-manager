@@ -62,17 +62,20 @@ function decodeCursorOfType<T extends string | number>(
   cursor: string,
   isExpected: (value: string | number) => value is T,
 ): { value: T; id: string } {
+  let cause: unknown;
+
   try {
     const { sortValue, id } = decodePaginationCursor(cursor);
 
     if (isExpected(sortValue)) {
       return { value: sortValue, id };
     }
-  } catch {
+  } catch (error) {
     // Reported below, like a cursor with the wrong content.
+    cause = error;
   }
 
-  throw new ValidationError("Invalid pagination cursor");
+  throw new ValidationError("Invalid pagination cursor", undefined, { cause });
 }
 
 /**

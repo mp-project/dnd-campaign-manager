@@ -1,4 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import type { AssetsService } from "#src/modules/assets/index";
 import {
   type ResponseCompleteMediaUploadDto,
@@ -27,6 +28,24 @@ export class CompleteMediaUploadUseCase {
       actorId: this.assetsService.assertAuthenticated(context),
     });
     const file = await this.uploadService.complete(upload);
+
+    recordChange({
+      action: "media.completeUpload",
+      entities: [
+        { entityType: "mediaUpload", entityId: upload.id },
+        {
+          entityType: "mediaFile",
+          entityId: file.id,
+          values: {
+            originalName: file.originalName,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
+          },
+        },
+      ],
+      campaignId: input.campaignId,
+      actorId: upload.createdBy,
+    });
 
     return {
       ...toMediaFullResponse(file, input.campaignId, 0),

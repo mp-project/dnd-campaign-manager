@@ -1,9 +1,13 @@
 import { fileURLToPath } from "node:url";
 
+import { runScript } from "#core/log/processErrors";
+import { createScriptLogger } from "#core/log/scriptLogger";
 import { buildApp } from "#src/app";
 import { createContentReindexModule } from "#src/modules/assets/contentReindex";
 import type { AssetsService } from "#src/modules/assets/service/AssetsService";
 import { defaultAppModules } from "#src/modules/index";
+
+const logger = createScriptLogger("content-reindex");
 
 /**
  * Builds `asset_references` again from the stored content, e.g. after a migration or when it might
@@ -12,6 +16,7 @@ import { defaultAppModules } from "#src/modules/index";
 async function runReindex(): Promise<void> {
   let assets: AssetsService | undefined;
   const app = buildApp({
+    logger,
     modules: [
       ...defaultAppModules,
       createContentReindexModule(defaultAppModules, (service) => {
@@ -25,7 +30,7 @@ async function runReindex(): Promise<void> {
 
     const count = await (assets as AssetsService).rebuildReferences();
 
-    console.info(`Content references rebuilt for ${count} assets.`);
+    logger.info({ count }, "Content references rebuilt");
   } finally {
     await app.close();
   }
@@ -36,5 +41,5 @@ const isInvokedDirectly = process.argv[1]
   : false;
 
 if (isInvokedDirectly) {
-  void runReindex();
+  void runScript(logger, "content-reindex", runReindex);
 }

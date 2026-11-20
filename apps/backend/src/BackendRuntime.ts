@@ -2,7 +2,10 @@ import type { FastifyInstance } from "fastify";
 
 import { buildApp } from "#src/app";
 import { getEnv, type AppEnv } from "#core/env";
-import { logRuntimeError, logWithLevel } from "#core/log/logger";
+import { getErrorReporter } from "#core/log/errorReporter";
+import { createLogger, loggerSettingsFromEnv, type AppLogger } from "#core/log/logger";
+import { installProcessErrorHandlers } from "#core/log/processErrors";
+import { reportError } from "#core/log/reportError";
 import { bootstrapS3Storage } from "#core/runtime/storageBootstrap";
 import {
   logStartupInfo,
@@ -14,13 +17,17 @@ type ShutdownReason = "SIGINT" | "SIGTERM" | "STARTUP_FAILURE";
 export class BackendRuntime {
   private readonly env: AppEnv;
 
+  private readonly logger: AppLogger;
+
   private readonly app: FastifyInstance;
 
   private isShuttingDown = false;
 
   constructor(env: AppEnv = getEnv()) {
     this.env = env;
-    this.app = buildApp({ env });
+    this.logger = createLogger(loggerSettingsFromEnv(env, "api"));
+    installProcessErrorHandlers(this.logger, () => this.app.close());
+    this.app = buildApp({ env, logger: this.logger });
   }
 
   /**
@@ -47,7 +54,7 @@ export class BackendRuntime {
 
       await logStartupInfo(this.app, this.env);
     } catch (error) {
-      logRuntimeError(this.app.log, "Failed to start server", error);
+      reportError(this.logger, error, "Failed to start server", { task: "startup", fatal: true });
       await this.shutdown("STARTUP_FAILURE");
     }
   }
@@ -65,21 +72,16 @@ export class BackendRuntime {
     this.isShuttingDown = true;
 
     if (reason !== "STARTUP_FAILURE") {
-      logWithLevel(this.app.log, "info", "Shutting down server", {
-        signal: reason,
-      });
+      this.logger.info({ signal: reason }, "Shutting down server");
     }
 
     try {
       await this.app.close();
-
-      if (reason === "STARTUP_FAILURE") {
-        process.exit(1);
-      }
-
-      process.exit(0);
+      await getErrorReporter().flush();
+      process.exit(reason === "STARTUP_FAILURE" ? 1 : 0);
     } catch (error) {
-      logRuntimeError(this.app.log, "Failed to close server gracefully", error);
+      reportError(this.logger, error, "Failed to close server gracefully", { task: "shutdown" });
+      await getErrorReporter().flush();
       process.exit(1);
     }
   }

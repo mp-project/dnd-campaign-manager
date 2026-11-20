@@ -10,6 +10,7 @@ import {
 } from "#core/storage/keys";
 import type { StoragePort } from "#core/storage/port";
 import { UploadInspectorTransform } from "#core/storage/uploadInspector";
+import { warnFallback } from "#core/log/warnFallback";
 
 export type PersistUploadMetadataInput = {
   objectId: string;
@@ -57,8 +58,9 @@ export type IngestUploadAndPersistResult<T> = {
 async function bestEffortDelete(storage: StoragePort, key: string): Promise<void> {
   try {
     await storage.delete(key);
-  } catch {
-    // Intentional no-op: best-effort cleanup should not mask the original error.
+  } catch (error) {
+    // Best effort: the original error is the answer; `media:cleanup` removes what stays behind.
+    warnFallback(error, "Could not remove a temporary storage object", { key });
   }
 }
 

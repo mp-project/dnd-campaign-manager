@@ -6,8 +6,12 @@ import { DomainError } from "#core/error/http/DomainError";
 export class ConflictError extends DomainError {
   static readonly DEFAULT_MESSAGE = "Conflict";
 
-  constructor(message: string = ConflictError.DEFAULT_MESSAGE, details?: unknown) {
-    super({ code: "CONFLICT", message, details });
+  constructor(
+    message: string = ConflictError.DEFAULT_MESSAGE,
+    details?: unknown,
+    options?: ErrorOptions,
+  ) {
+    super({ code: "CONFLICT", message, details, cause: options?.cause });
     this.name = "ConflictError";
   }
 }

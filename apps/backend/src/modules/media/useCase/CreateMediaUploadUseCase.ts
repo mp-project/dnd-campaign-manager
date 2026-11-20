@@ -1,4 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { CreateMediaUploadDto } from "#src/modules/media/domain/dto/RequestMediaDto";
 import {
@@ -28,6 +29,23 @@ export class CreateMediaUploadUseCase {
       actorId: this.assetsService.assertAuthenticated(context),
       systemRole: context.systemRole,
       input: input.command,
+    });
+
+    recordChange({
+      action: "media.createUpload",
+      entities: [
+        {
+          entityType: "mediaUpload",
+          entityId: upload.id,
+          values: {
+            originalName: upload.originalName,
+            mimeType: upload.mimeType,
+            sizeBytes: upload.sizeBytes,
+          },
+        },
+      ],
+      campaignId: input.campaignId,
+      actorId: upload.createdBy,
     });
 
     return {

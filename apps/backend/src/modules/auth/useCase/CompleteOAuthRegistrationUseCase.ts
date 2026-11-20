@@ -1,3 +1,4 @@
+import { recordChange } from "#core/log/auditLog";
 import type { OAuthCompleteRegistrationDto } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import { toAuthResponse } from "#src/modules/auth/domain/dto/AuthResponseDto";
 import { AuthService } from "#src/modules/auth/service/AuthService";
@@ -19,6 +20,13 @@ export class CompleteOAuthRegistrationUseCase {
       onboardingCookieValue,
       metadata,
     );
+
+    recordChange({
+      action: "auth.completeOAuthRegistration",
+      entities: [{ entityType: "user", entityId: session.user.id }],
+      actorId: session.user.id,
+      public: "registration",
+    });
 
     return { session, response: toAuthResponse(session) };
   }

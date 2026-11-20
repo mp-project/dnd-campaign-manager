@@ -34,8 +34,8 @@ const statusByCode: Record<AuthErrorCode, number> = {
 };
 
 export class AuthError extends CustomApiError<AuthErrorCode> {
-  constructor(code: AuthErrorCode, message: string, details?: unknown) {
-    super(code, message, statusByCode[code], details);
+  constructor(code: AuthErrorCode, message: string, details?: unknown, options?: ErrorOptions) {
+    super(code, message, statusByCode[code], details, options);
     this.name = "AuthError";
   }
 }

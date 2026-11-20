@@ -1,4 +1,6 @@
 export type EmailMessage = {
+  /** What the mail is for (`contact`, `campaignInvitations.invite` …); logged, never the content. */
+  purpose: string;
   to: string;
   subject: string;
   text: string;
@@ -8,5 +10,6 @@ export type EmailMessage = {
 };
 
 export type EmailPort = {
+  /** Throws `ServiceUnavailableError` (503, with the cause) when the mail could not be sent. */
   send(message: EmailMessage): Promise<void>;
 };

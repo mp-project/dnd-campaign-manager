@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
+import { reportError } from "#core/log/reportError";
 import { rulesetPermissionDefinitions } from "#src/modules/ruleset/permissions/RulesetPermissions";
 import { CreateRulesetController } from "#src/modules/ruleset/http/controller/CreateRulesetController";
 import { DeleteRulesetController } from "#src/modules/ruleset/http/controller/DeleteRulesetController";
@@ -60,12 +61,23 @@ async function registerRulesetModule(
   // is logged and tried again.
   if (container.config.DEFAULT_RULESETS_ON_START) {
     let retry: NodeJS.Timeout | undefined;
+    let failures = 0;
     const ensureDefaults = async (): Promise<void> => {
       try {
         const created = await ensureDefaultRulesets(container.db);
         if (created > 0) app.log.info({ created }, "Default rulesets created");
       } catch (err) {
-        app.log.error({ err }, "Default rulesets could not be created; trying again");
+        // Reported once; the retries that follow only warn, so a database that takes a while to
+        // come up doesn't flood the reports.
+        if (failures === 0) {
+          reportError(app.log, err, "Default rulesets could not be created; trying again", {
+            task: "ruleset.defaults",
+          });
+        } else {
+          app.log.warn({ err, failures }, "Default rulesets could still not be created");
+        }
+
+        failures += 1;
         retry = setTimeout(() => void ensureDefaults(), DEFAULT_RULESETS_RETRY_MS);
         retry.unref();
       }

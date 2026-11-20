@@ -304,7 +304,7 @@ export class AuthRegistrationService {
         code,
         expiresAt,
       });
-    } catch {
+    } catch (error) {
       await this.deps.transactionManager.inTransaction(async (tx) => {
         await this.deps.repository.updateEmailVerificationRequestStatus(tx, {
           verificationId: verificationRequest.id,
@@ -312,7 +312,7 @@ export class AuthRegistrationService {
         });
       });
 
-      throw new InternalError("Failed to deliver verification email");
+      throw new InternalError("Failed to deliver verification email", undefined, { cause: error });
     }
   }
 
@@ -327,9 +327,14 @@ export class AuthRegistrationService {
     });
 
     try {
-      await this.deps.emailPort.send({ to: email, subject: message.subject, text: message.text });
-    } catch {
-      throw new InternalError("Failed to deliver verification email");
+      await this.deps.emailPort.send({
+        purpose: "auth.registration.existingAccount",
+        to: email,
+        subject: message.subject,
+        text: message.text,
+      });
+    } catch (error) {
+      throw new InternalError("Failed to deliver verification email", undefined, { cause: error });
     }
   }
 
@@ -364,6 +369,7 @@ export class AuthRegistrationService {
     });
 
     await this.deps.emailPort.send({
+      purpose: "auth.registration.verify",
       to: input.email,
       subject: message.subject,
       text: message.text,

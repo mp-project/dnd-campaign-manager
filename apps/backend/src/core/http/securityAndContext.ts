@@ -165,6 +165,7 @@ async function verifyAccessToken(
       sessionId: typeof payload.sid === "string" && payload.sid.length > 0 ? payload.sid : null,
     };
   } catch {
+    // An invalid or expired token is no identity; routes that need one answer 401.
     return null;
   }
 }

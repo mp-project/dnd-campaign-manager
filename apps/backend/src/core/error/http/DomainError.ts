@@ -6,6 +6,7 @@ import {
 
 export type DomainErrorOverrides = {
   details?: unknown;
+  cause?: unknown;
 };
 
 type DomainErrorParams = DomainErrorOverrides & {
@@ -23,6 +24,7 @@ export class DomainError extends CustomApiError<DomainErrorCode> {
       params.message,
       statusCodeForDomainError(params.code),
       params.details,
+      params.cause === undefined ? undefined : { cause: params.cause },
     );
     this.name = "DomainError";
   }

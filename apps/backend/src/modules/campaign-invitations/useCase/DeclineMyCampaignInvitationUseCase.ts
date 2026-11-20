@@ -33,14 +33,22 @@ export class DeclineMyCampaignInvitationUseCase {
         actorId: user.id,
         now,
       });
-      return declined ? ("declined" as const) : ("changed" as const);
+      return declined ? { campaignId: invitation.campaignId } : ("changed" as const);
     });
 
     if (outcome === "not_found") {
       throw new NotFoundError("Campaign invitation not found");
     }
-    if (outcome !== "declined") {
+    if (typeof outcome === "string") {
       throw service.closedError(outcome);
     }
+
+    service.recordChange({
+      action: "campaignInvitations.decline",
+      invitationId,
+      campaignId: outcome.campaignId,
+      actorId: user.id,
+      values: { status: "REVOKED" },
+    });
   }
 }

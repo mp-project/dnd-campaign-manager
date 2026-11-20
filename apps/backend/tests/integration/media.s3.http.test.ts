@@ -23,6 +23,7 @@ import {
 import { MediaRepository } from "#src/modules/media/domain/repository/MediaRepository";
 import { MediaVariantService } from "#src/modules/media/service/MediaVariantService";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
+import { captureLogs } from "#test/helpers/logCapture";
 import { sendMediaUpload } from "#test/helpers/mediaUpload";
 import {
   createTestS3Storage,
@@ -235,14 +236,12 @@ describe("media on S3 (RustFS)", () => {
       .png()
       .toBuffer();
     const { id } = (await upload(image)).json() as { id: string };
-    const variants = new MediaVariantService(db, new MediaRepository(), storage, {
-      error: (details) => {
-        throw new Error(String(details));
-      },
-    });
+    const logs = captureLogs();
+    const variants = new MediaVariantService(db, new MediaRepository(), storage, logs.logger);
 
     await expect(variants.processNext()).resolves.toBe(true);
     await expect(variants.processNext()).resolves.toBe(false);
+    expect(logs.find("Could not generate the variants of a media file")).toEqual([]);
 
     const [row] = await db.select().from(mediaFiles).where(eq(mediaFiles.id, id));
 
@@ -264,15 +263,15 @@ describe("media on S3 (RustFS)", () => {
 
   it("gives up on an image it can't read and keeps delivering the original", async () => {
     const { id } = (await upload(pngOf(1024))).json() as { id: string };
-    const logger = { error: jest.fn() };
-    const variants = new MediaVariantService(db, new MediaRepository(), storage, logger);
+    const logs = captureLogs();
+    const variants = new MediaVariantService(db, new MediaRepository(), storage, logs.logger);
 
     await variants.processNext();
     await variants.processNext();
     await variants.processNext();
 
     await expect(variants.processNext()).resolves.toBe(false);
-    expect(logger.error).toHaveBeenCalledTimes(3);
+    expect(logs.find("Could not generate the variants of a media file")).toHaveLength(3);
 
     const rows = await db.select().from(mediaVariants).where(eq(mediaVariants.mediaId, id));
 

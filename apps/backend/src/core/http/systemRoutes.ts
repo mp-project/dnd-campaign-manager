@@ -10,6 +10,7 @@ import {
   readyResponseDto,
 } from "#core/http/dto";
 import { createErrorPayload } from "#core/error/errorPayload";
+import { markResponseError } from "#core/log/requestLog";
 
 /**
  * Registers API ping endpoint used for lightweight liveness checks.
@@ -80,6 +81,8 @@ export function registerHealthRoutes(
       const state = await readyProbe();
 
       if (!state.database || !state.migrations) {
+        markResponseError(request, "INTERNAL_ERROR");
+
         return reply.code(503).send(
           createErrorPayload({
             code: "INTERNAL_ERROR",
@@ -136,6 +139,8 @@ export function notFound(
   reply: FastifyReply,
   message: string = "Route not found",
 ): FastifyReply {
+  markResponseError(request, "NOT_FOUND");
+
   return reply.code(404).send(
     createErrorPayload({
       code: "NOT_FOUND",

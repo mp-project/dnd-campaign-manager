@@ -1,4 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { ResponseMediaRemovedDto } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import type { MediaQuotaService } from "#src/modules/media/service/MediaQuotaService";
@@ -25,6 +26,13 @@ export class AbortMediaUploadUseCase {
     });
 
     await this.uploadService.abort(upload);
+
+    recordChange({
+      action: "media.abortUpload",
+      entities: [{ entityType: "mediaUpload", entityId: upload.id }],
+      campaignId: input.campaignId,
+      actorId: upload.createdBy,
+    });
 
     return {
       storageUsage: await this.quota.findVisibleUsage(context, input.campaignId),

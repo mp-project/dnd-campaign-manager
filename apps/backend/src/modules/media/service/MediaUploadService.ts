@@ -5,6 +5,7 @@ import { pipeline } from "node:stream/promises";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { warnFallback } from "#core/log/warnFallback";
 import {
   assertAllowedMimeType,
   createStorageObjectKey,
@@ -129,7 +130,12 @@ export class MediaUploadService {
         });
       });
     } catch (error) {
-      await this.storage.abortMultipartUpload(key, storageUploadId).catch(() => undefined);
+      // Cleanup only; the original error is the answer and `media:cleanup` catches what stays.
+      await this.storage
+        .abortMultipartUpload(key, storageUploadId)
+        .catch((cleanupError: unknown) =>
+          warnFallback(cleanupError, "Could not abort a multipart upload", { key }),
+        );
 
       throw error;
     }
@@ -257,9 +263,20 @@ export class MediaUploadService {
         return (await this.repository.findFileById(tx, claimed.id)) as MediaFileRow;
       });
     } catch (error) {
-      // The parts are gone once joined, so this upload can't be tried again.
-      await this.storage.delete(claimed.storageKey).catch(() => undefined);
-      await this.repository.deleteUpload(this.db, claimed.id).catch(() => undefined);
+      // The parts are gone once joined, so this upload can't be tried again. Cleanup only; what
+      // stays behind is removed by `media:cleanup`.
+      await this.storage
+        .delete(claimed.storageKey)
+        .catch((cleanupError: unknown) =>
+          warnFallback(cleanupError, "Could not delete the object of a failed upload", {
+            uploadId: claimed.id,
+          }),
+        );
+      await this.repository
+        .deleteUpload(this.db, claimed.id)
+        .catch((cleanupError: unknown) =>
+          warnFallback(cleanupError, "Could not remove a failed upload", { uploadId: claimed.id }),
+        );
 
       throw error;
     }
@@ -284,7 +301,12 @@ export class MediaUploadService {
         parts.sort((a, b) => a.partNumber - b.partNumber),
       );
     } catch (error) {
-      await this.repository.updateUploadToActive(this.db, upload.id).catch(() => undefined);
+      // Lets the client try again; if this fails too, the upload expires.
+      await this.repository
+        .updateUploadToActive(this.db, upload.id)
+        .catch((cleanupError: unknown) =>
+          warnFallback(cleanupError, "Could not reopen an upload", { uploadId: upload.id }),
+        );
 
       throw error;
     }

@@ -55,6 +55,7 @@ export function decodeSignedJson<TPayload>(
     const decoded = Buffer.from(body, "base64url").toString("utf8");
     return JSON.parse(decoded) as TPayload;
   } catch {
+    // A signed body that is no JSON is no valid token.
     return null;
   }
 }

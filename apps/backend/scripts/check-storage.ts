@@ -1,8 +1,12 @@
 import { getEnv } from "#core/env";
+import { runScript } from "#core/log/processErrors";
+import { createScriptLogger } from "#core/log/scriptLogger";
 import { checkStorageConnection } from "#core/storage/connectionCheck";
 import { createStoragePortFromEnv } from "#core/storage/index";
 import { bootstrapS3Storage } from "#core/runtime/storageBootstrap";
 import { S3CompatibleStorage } from "#core/storage/s3Storage";
+
+const logger = createScriptLogger("storage-check");
 
 /** Checks the storage of the current environment, using the same settings as the server. */
 async function runCheck(): Promise<void> {
@@ -12,7 +16,7 @@ async function runCheck(): Promise<void> {
       ? `s3 ${env.STORAGE_S3_ENDPOINT ?? "(AWS)"} bucket ${env.STORAGE_S3_BUCKET}`
       : `local ${env.STORAGE_LOCAL_ROOT}`;
 
-  console.info(`Checking storage: ${target}`);
+  logger.info({ target }, "Checking storage");
 
   await bootstrapS3Storage(env);
 
@@ -20,7 +24,7 @@ async function runCheck(): Promise<void> {
 
   try {
     await checkStorageConnection(storage);
-    console.info("Storage is reachable: write, read and delete succeeded.");
+    logger.info("Storage is reachable: write, read and delete succeeded");
   } finally {
     if (storage instanceof S3CompatibleStorage) {
       storage.close();
@@ -28,9 +32,4 @@ async function runCheck(): Promise<void> {
   }
 }
 
-runCheck().catch((error: unknown) => {
-  const details = error as { message?: string; details?: unknown };
-
-  console.error("Storage check failed:", details.message ?? error, details.details ?? "");
-  process.exitCode = 1;
-});
+void runScript(logger, "storage-check", runCheck);

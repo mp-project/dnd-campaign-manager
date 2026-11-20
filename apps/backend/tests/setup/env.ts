@@ -14,7 +14,8 @@ const defaults: Record<string, string> = {
   JWT_REFRESH_SECRET: "test-refresh-secret-1234",
   JWT_ACCESS_TTL: "15m",
   JWT_REFRESH_TTL: "7d",
-  LOG_LEVEL: "warn",
+  // Tests that check log lines give their own destination.
+  LOG_LEVEL: "silent",
   CORS_ORIGIN: "http://app.localhost:5173",
   FRONTEND_ORIGIN: "http://app.localhost:5173",
   VITE_API_BASE_URL:

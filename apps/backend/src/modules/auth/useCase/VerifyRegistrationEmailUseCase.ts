@@ -1,3 +1,4 @@
+import { recordChange } from "#core/log/auditLog";
 import type { VerifyEmailVerificationDto } from "#src/modules/auth/domain/dto/AuthRequestDto";
 import {
   type AuthUserProfileDto,
@@ -17,6 +18,13 @@ export class VerifyRegistrationEmailUseCase {
       input,
       metadata,
     );
+
+    recordChange({
+      action: "auth.verifyEmail",
+      entities: [{ entityType: "user", entityId: user.id, fields: ["emailVerifiedAt", "status"] }],
+      actorId: user.id,
+      public: "registration",
+    });
 
     return toAuthUserProfile(user);
   }

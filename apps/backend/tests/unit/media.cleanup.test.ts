@@ -4,6 +4,7 @@ import type { AppDatabase } from "#core/db/pool";
 import { InMemoryStorage } from "#core/storage/index";
 import type { MediaRepository } from "#src/modules/media/domain/repository/MediaRepository";
 import { MediaCleanupService } from "#src/modules/media/service/MediaCleanupService";
+import { captureLogs } from "#test/helpers/logCapture";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -26,9 +27,13 @@ function createRepository(overrides: Partial<MediaRepository> = {}): MediaReposi
 }
 
 describe("media cleanup", () => {
-  const logger = { error: jest.fn() };
+  let logs = captureLogs();
+  let logger = logs.logger;
 
-  beforeEach(() => logger.error.mockClear());
+  beforeEach(() => {
+    logs = captureLogs();
+    logger = logs.logger;
+  });
 
   it("removes objects nothing refers to and keeps the others", async () => {
     const storage = new InMemoryStorage();
@@ -96,7 +101,7 @@ describe("media cleanup", () => {
 
     await expect(cleanup.run()).resolves.toMatchObject({ objectsOfDeletedFiles: 0 });
     expect(updateFileObjectDeleted).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logs.find("Could not delete the object of a media file")).toHaveLength(1);
 
     await expect(cleanup.run()).resolves.toMatchObject({ objectsOfDeletedFiles: 1 });
     expect(updateFileObjectDeleted).toHaveBeenCalledTimes(1);

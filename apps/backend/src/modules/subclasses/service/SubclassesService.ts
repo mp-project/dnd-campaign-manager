@@ -5,6 +5,7 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
+import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   type AssetRow,
@@ -612,8 +613,9 @@ export class SubclassesService {
 
     try {
       definition = parseSubclassDefinition(found.subclass);
-    } catch {
+    } catch (error) {
       // Unknown for now; the stored references stay.
+      warnFallback(error, "Stored subclass definition no longer parses", { assetId: found.asset.id });
       return null;
     }
 
@@ -805,8 +807,11 @@ export class SubclassesService {
 
         try {
           definition = parseSubclassDefinition(item.subclass);
-        } catch {
+        } catch (error) {
           // Broken before this action; `validate` reports it, the class change didn't cause it.
+          warnFallback(error, "Stored subclass definition no longer parses", {
+            assetId: item.asset.id,
+          });
           continue;
         }
 
@@ -838,8 +843,9 @@ export class SubclassesService {
 
     try {
       definition = parseClassDefinition(base.characterClass);
-    } catch {
+    } catch (error) {
       // Reported as an issue of each subclass.
+      warnFallback(error, "Stored class definition no longer parses", { assetId: base.asset.id });
     }
 
     return {

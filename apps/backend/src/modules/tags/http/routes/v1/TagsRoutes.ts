@@ -38,7 +38,7 @@ export type TagsRouteControllers = {
   replaceAssetTagsController: ReplaceAssetTagsController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Tags"];
 
 const readErrorResponses = {

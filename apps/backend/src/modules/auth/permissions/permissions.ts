@@ -1,7 +1,4 @@
 import {
-  AUTH_PERMISSION_KEYS,
-} from "#src/modules/auth/permissions/AuthPermissions";
-import {
   RULESET_PERMISSION_KEYS,
   RULESET_READ_PERMISSION_KEYS,
 } from "#src/modules/ruleset/permissions/RulesetPermissions";
@@ -92,7 +89,6 @@ export const CORE_PERMISSION_KEYS = [
 ] as const;
 
 export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
-  ...AUTH_PERMISSION_KEYS,
   ...USERS_SELF_SERVICE_PERMISSION_KEYS,
   USERS_PERMISSIONS.read,
   ...RULESET_READ_PERMISSION_KEYS,
@@ -118,7 +114,6 @@ export const APPLICATION_USER_PERMISSIONS: readonly Permission[] = [
 
 export const ALL_PERMISSIONS = [
   ...CORE_PERMISSION_KEYS,
-  ...AUTH_PERMISSION_KEYS,
   ...CAMPAIGNS_PERMISSION_KEYS,
   ...CAMPAIGN_MEMBERSHIP_PERMISSION_KEYS,
   ...CAMPAIGN_INVITATION_PERMISSION_KEYS,

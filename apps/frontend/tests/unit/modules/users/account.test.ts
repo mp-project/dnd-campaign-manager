@@ -20,6 +20,20 @@ const server = vi.hoisted(() => {
   return state;
 });
 
+vi.mock("@clerk/vue", async () => {
+  const { defineComponent, h } = await import("vue");
+  return {
+    UserProfile: defineComponent({
+      inheritAttrs: false,
+      setup: (_props, { attrs }) => () => h("div", { "data-clerk": "UserProfile", "data-path": attrs.path }),
+    }),
+  };
+});
+vi.mock("@/core/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/core/auth/clerk")>()),
+  loadClerk: async () => ({ session: { id: "sess_1" } }),
+}));
+
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import type { Component } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -29,7 +43,6 @@ import type { Me } from "@/core/auth/session";
 import { authModule } from "@/modules/auth";
 import { legalModule } from "@/modules/legal";
 import { usersModule } from "@/modules/users";
-import { describeUserAgent } from "@/modules/users/device";
 import ProfileTab from "@/modules/users/views/ProfileTab.vue";
 import SecurityTab from "@/modules/users/views/SecurityTab.vue";
 
@@ -44,13 +57,9 @@ const ME: Me = {
   systemRole: "USER",
   status: "ACTIVE",
   emailVerificationRequiredCode: null,
-  pendingEmail: null,
   settings: { locale: "de", timezone: "Europe/Berlin", theme: "SYSTEM", reducedMotion: false, uiPreferences: {} },
   effectiveGlobalPermissions: [],
-  signIn: { password: true, providers: [] },
 };
-const FIREFOX = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14) Gecko/20100101 Firefox/133.0";
-const PHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18) AppleWebKit Version/18 Mobile Safari/604.1";
 
 async function open(component: Component, url: string, me: Me = ME) {
   const router = createRouter({ history: createMemoryHistory(), routes: buildRoutes([authModule, legalModule, usersModule]) });
@@ -66,17 +75,6 @@ afterEach(() => {
   server.answers = {};
   server.calls.length = 0;
   document.body.innerHTML = "";
-});
-
-describe("device names", () => {
-  it("names browser and system from the user agent", () => {
-    expect(describeUserAgent(FIREFOX)).toEqual({ browser: "Firefox", system: "macOS" });
-    expect(describeUserAgent(PHONE)).toEqual({ browser: "Safari", system: "iOS" });
-    expect(describeUserAgent(null)).toEqual({ browser: null, system: null });
-    // Other browsers on iOS also name Safari in their agent.
-    expect(describeUserAgent(`${PHONE} EdgiOS/131.0`).browser).toBe("Edge");
-    expect(describeUserAgent(`${PHONE} FxiOS/133.0`).browser).toBe("Firefox");
-  });
 });
 
 describe("profile", () => {
@@ -131,72 +129,10 @@ describe("profile", () => {
 });
 
 describe("sign-in and security", () => {
-  it("lists sessions with this device first and signs out another one", async () => {
-    server.answers["GET /api/v1/auth/sessions"] = {
-      status: 200,
-      body: {
-        items: [
-          { id: "s1", userAgent: FIREFOX, startedAt: "2026-11-01T10:00:00Z", lastActiveAt: "2026-11-15T10:00:00Z", expiresAt: "2026-12-01T10:00:00Z", current: true },
-          { id: "s2", userAgent: PHONE, startedAt: "2026-11-10T10:00:00Z", lastActiveAt: "2026-11-14T10:00:00Z", expiresAt: "2026-12-01T10:00:00Z", current: false },
-        ],
-      },
-    };
-    server.answers["GET /api/v1/me/trusted-devices"] = { status: 200, body: { items: [] } };
-    server.answers["DELETE /api/v1/auth/sessions/s2"] = { status: 204 };
-    const { wrapper } = await open(SecurityTab, "/konto/anmeldung");
+  it("shows Clerk's account view, with its own steps below the tab", async () => {
+    const { wrapper, router } = await open(SecurityTab, "/konto/anmeldung/security");
 
-    expect(wrapper.text()).toContain("Firefox auf macOS");
-    expect(wrapper.text()).toContain("Safari auf iOS");
-    await wrapper.find('button[aria-label="Safari auf iOS abmelden"]').trigger("click");
-    await flushPromises();
-    expect(server.calls.some((call) => call.method === "DELETE" && call.path === "/api/v1/auth/sessions/s2")).toBe(true);
-    expect(wrapper.find('button[aria-label="Firefox auf macOS abmelden"]').exists()).toBe(false);
-  });
-
-  it("offers trusting this browser while it isn't trusted", async () => {
-    server.answers["GET /api/v1/auth/sessions"] = { status: 200, body: { items: [] } };
-    server.answers["GET /api/v1/me/trusted-devices"] = { status: 200, body: { items: [] } };
-    server.answers["POST /api/v1/me/trusted-device"] = { status: 204 };
-    const { wrapper } = await open(SecurityTab, "/konto/anmeldung");
-
-    await wrapper.findAll("button").find((button) => button.text() === "Diesem Gerät vertrauen")!.trigger("click");
-    await flushPromises();
-    expect(server.calls.some((call) => call.method === "POST" && call.path === "/api/v1/me/trusted-device")).toBe(true);
-  });
-
-  it("changes the password and continues to the sign-in", async () => {
-    server.answers["GET /api/v1/auth/sessions"] = { status: 200, body: { items: [] } };
-    server.answers["GET /api/v1/me/trusted-devices"] = { status: 200, body: { items: [] } };
-    server.answers["POST /api/v1/me/change-password"] = { status: 204 };
-    const { wrapper, router } = await open(SecurityTab, "/konto/anmeldung");
-
-    const fields = wrapper.findAll('input[autocomplete="current-password"], input[autocomplete="new-password"]');
-    // Email section: current password; password section: current, new, repeat.
-    await fields[1]!.setValue("altes-passwort");
-    await fields[2]!.setValue("ein-langes-passwort");
-    await fields[3]!.setValue("ein-langes-passwort");
-    await wrapper.findAll("button").find((button) => button.text() === "Passwort ändern")!.trigger("click");
-    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe("/login?passwordChanged=1"));
-
-    expect(server.calls.find((call) => call.path === "/api/v1/me/change-password")?.body).toEqual({
-      currentPassword: "altes-passwort",
-      newPassword: "ein-langes-passwort",
-    });
-  });
-
-  it("asks provider-only accounts for no password", async () => {
-    server.answers["GET /api/v1/auth/sessions"] = { status: 200, body: { items: [] } };
-    server.answers["GET /api/v1/me/trusted-devices"] = { status: 200, body: { items: [] } };
-    server.answers["POST /api/v1/me/email-change"] = { status: 202, body: { pendingEmail: "neu@example.test", expiresAt: "2026-11-16T10:00:00Z" } };
-    const { wrapper } = await open(SecurityTab, "/konto/anmeldung", { ...ME, signIn: { password: false, providers: ["GOOGLE"] } });
-
-    expect(wrapper.find('input[type="password"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain("Dein Konto hat kein Passwort");
-    await wrapper.find('#email input[type="email"]').setValue("neu@example.test");
-    await wrapper.findAll("button").find((button) => button.text() === "Bestätigungscode senden")!.trigger("click");
-    await flushPromises();
-
-    expect(server.calls.find((call) => call.path === "/api/v1/me/email-change")?.body).toEqual({ email: "neu@example.test" });
-    expect(wrapper.text()).toContain("Wir haben einen Code an neu@example.test geschickt.");
+    expect(router.currentRoute.value.name).toBe("account-security");
+    expect(wrapper.find("[data-clerk=UserProfile]").attributes("data-path")).toBe("/konto/anmeldung");
   });
 });

@@ -115,7 +115,6 @@ describe("assets service port and persistence", () => {
     await db.insert(users).values({
       id: ACTOR,
       email: "asset-port@example.test",
-      passwordHash: "hash",
       displayName: "GM",
       systemRole: "USER",
       status: "ACTIVE",

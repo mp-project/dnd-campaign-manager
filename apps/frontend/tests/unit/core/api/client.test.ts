@@ -19,6 +19,7 @@ function clientAnswering(response: () => Response) {
     fetch,
     api: createApiClient({
       apiBaseUrl: "http://api.test/api/v1",
+      sessionToken: async () => null,
       fetch: fetch as unknown as typeof globalThis.fetch,
     }),
   };

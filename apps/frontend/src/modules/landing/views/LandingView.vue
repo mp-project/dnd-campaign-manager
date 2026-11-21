@@ -22,7 +22,7 @@ import { meQuery } from "@/core/auth/session";
 import { demoScreenUrl, demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
-import { localizedPath } from "@/core/i18n/localizedRoutes";
+import { localizedPath, useLocalizedPage } from "@/core/i18n/localizedRoutes";
 import { usePageMeta } from "@/core/seo/pageMeta";
 import { siteUrl } from "@/core/seo/site";
 import { vReveal } from "@/core/motion/reveal";
@@ -60,6 +60,7 @@ import { startPageStructuredData } from "../structuredData";
 
 const { t } = useAppI18n();
 const demo = demoUrl();
+const waitlist = useLocalizedPage("auth-waitlist");
 const marketplaceDemo = demoScreenUrl(SCREENS.marketplace.demoPath);
 
 // Only what this tab already knows: never fetched here.
@@ -281,7 +282,7 @@ const reputationPoints: MessageKey[] = [
               </BaseButton>
               <BaseButton
                 v-else
-                :to="{ name: 'auth-register' }"
+                :to="waitlist"
                 variant="primary"
               >
                 {{ t("landing.hero.register") }}

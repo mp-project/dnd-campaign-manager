@@ -4,13 +4,18 @@ import type { Router } from "vue-router";
 import { cachePolicy } from "@/core/api/cachePolicy";
 import { api, type ApiData, unwrap } from "@/core/api/client";
 import { clearSessionCache, meKey } from "@/core/api/queryClient";
+import { loadClerk } from "@/core/auth/clerk";
 
 /** The signed-in account (`GET /me`): profile, settings and global permissions. */
 export type Me = ApiData<"getMe">;
 
 export const meQuery = queryOptions({
   queryKey: meKey("profile"),
-  queryFn: (): Promise<Me> => unwrap(api.GET("/api/v1/me")),
+  // Asking who is signed in needs Clerk's session (pages that only read the cache never load it).
+  queryFn: async (): Promise<Me> => {
+    await loadClerk();
+    return unwrap(api.GET("/api/v1/me"));
+  },
   ...cachePolicy("private"),
 });
 
@@ -26,25 +31,27 @@ export function useMe() {
 }
 
 /**
- * Ends the session: of this browser (`device`), or of every browser and device of the account
- * including trusted devices (`everywhere`). The cache is cleared either way, so nothing of the
- * account stays in memory; a failed request still rejects, so the caller can say so.
+ * Ends the session at Clerk: of this browser (`device`), or every session of the account
+ * (`everywhere`). The cache is cleared either way, so nothing of the account stays in memory; a
+ * failed request still rejects, so the caller can say so.
  */
 export async function signOut(queryClient: QueryClient, scope: "device" | "everywhere" = "device"): Promise<void> {
   try {
-    await unwrap(
-      scope === "everywhere" ? api.POST("/api/v1/auth/logout-all") : api.POST("/api/v1/auth/logout", { body: {} }),
-    );
+    const clerk = await loadClerk();
+    if (!clerk) return;
+    if (scope === "everywhere" && clerk.user) {
+      const sessions = await clerk.user.getSessions();
+      await Promise.all(sessions.filter((session) => session.id !== clerk.session?.id).map((session) => session.revoke()));
+    }
+    await clerk.signOut();
   } finally {
     clearSessionCache(queryClient);
   }
 }
 
 /**
- * Leaves the app for the sign-in. This browser is always signed out, even if the server can't be
- * reached (the session cookie expires on its own). Signing out everywhere is a security action:
- * if it fails, this browser is still signed out and the sign-in page says that other sessions may
- * remain.
+ * Leaves the app for the sign-in. Signing out everywhere is a security action: if it fails, this
+ * browser is still signed out and the sign-in page says that other sessions may remain.
  */
 export async function leave(
   queryClient: QueryClient,

@@ -170,7 +170,7 @@ describe("FAQ page", () => {
     const demo = wrapper.find("#faq-demo-answer");
     expect(demo.findAll("a").map((link) => [link.text(), link.attributes("href")])).toEqual([
       ["Demo ansehen", "https://demo.example.com/"],
-      ["Vorab registrieren", "/registrieren"],
+      ["Vorab registrieren", "/warteliste"],
     ]);
     // The header marks the FAQ as the page shown; the footer keeps to privacy and imprint.
     const current = wrapper.find("header nav").findAll("a").filter((link) => link.attributes("aria-current") === "page");

@@ -235,5 +235,9 @@
       "contents": "Inhalt",
       "chapter": "Kapitel {number}"
     }
+  },
+  "signIn": {
+    "loading": "Anmeldung wird geladen …",
+    "unavailable": "Die Anmeldung ist gerade nicht erreichbar. Bitte lade die Seite neu oder versuche es später erneut."
   }
 }

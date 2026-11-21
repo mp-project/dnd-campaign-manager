@@ -48,7 +48,7 @@
     },
     "account": {
       "title": "Your account",
-      "body": "For your account we store your email address, display name, username, language and time zone, and your password as a secure hash, never in plain text. The legal basis is the performance of the contract of use (Art. 6(1)(b) GDPR)."
+      "body": "Signing in, registration and pre-registration (the waitlist) run through the service Clerk (Clerk, Inc., USA) as our processor. Clerk stores your email address, your password as a secure hash, your sessions with device, browser and IP address and any connected accounts. Clerk is certified under the EU-U.S. Data Privacy Framework. We keep a copy of your email address, your display name, username, language and time zone. The legal basis is the performance of the contract of use (Art. 6(1)(b) GDPR), for the waitlist your request to be invited (Art. 6(1)(b) GDPR)."
     },
     "content": {
       "title": "Your content",
@@ -56,19 +56,19 @@
     },
     "oauth": {
       "title": "Signing in with Google or Discord",
-      "body": "If you sign in with Google or Discord, the provider sends us your confirmed email address, your name and an identifier of your account there. We don't request any other data. The provider's privacy policy applies to its own processing."
+      "body": "If you sign in with Google or Discord, the provider sends Clerk your confirmed email address, your name and an identifier of your account there; we only receive the email address and the name. We don't request any other data. The provider's privacy policy applies to its own processing."
     },
     "cookies": {
       "title": "Cookies and local storage",
-      "body": "We only use technically necessary cookies: for your session, its renewal, a device you marked as trusted and the flow of a sign-in through a provider. In your browser we also remember your language and the campaign you opened last. We don't set tracking or advertising cookies."
+      "body": "We only use technically necessary cookies: Clerk sets them for your session and the flow of a sign-in, only on the sign-in pages and in the app, not on the other public pages. In your browser we also remember your language and the campaign you opened last. We don't set tracking or advertising cookies."
     },
     "security": {
       "title": "Protecting your account",
-      "body": "To fend off attacks, we count failed sign-ins and confirmation attempts with IP address and time, and store the device and browser of each session. The legal basis is our legitimate interest in secure operation (Art. 6(1)(f) GDPR)."
+      "body": "To fend off attacks, Clerk counts failed sign-ins with IP address and time and stores the device and browser of each session. The legal basis is our legitimate interest in secure operation (Art. 6(1)(f) GDPR)."
     },
     "email": {
       "title": "Emails",
-      "body": "We send you the emails your account needs: confirmation codes, password reset links, notices about changes to your email address and invitations to campaigns."
+      "body": "Emails your account needs (confirmation codes, password resets, the invitation from the waitlist) are sent by Clerk. Invitations to campaigns we send ourselves."
     },
     "contact": {
       "title": "Contact form",

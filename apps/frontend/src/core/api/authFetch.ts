@@ -1,63 +1,45 @@
 /**
- * `fetch` with session renewal. The access token lives in an HttpOnly cookie with a short lifetime;
- * when a request answers 401, the refresh cookie gets a new one (`POST /auth/refresh`) and the request
- * runs once more. Parallel 401s share one refresh; a refresh another tab just made (409) counts as
- * renewed. If the request still answers 401, the session is over: the listeners (cache, router) are
- * told and the 401 goes to the caller.
+ * `fetch` with the session token. Every request carries the Clerk session token as `Authorization:
+ * Bearer` (only once a page loaded Clerk; public pages send none). Clerk renews the short-lived
+ * token itself; when a request still answers 401, a fresh token is fetched and the request runs once
+ * more. If it answers 401 again, the session is over: the listeners (cache, router) are told and the
+ * 401 goes to the caller.
  */
 
 export type SessionExpiredListener = () => void;
 
+/** The current session token, or null; `fresh` skips Clerk's cache. */
+export type SessionTokenSource = (options?: { fresh?: boolean }) => Promise<string | null>;
+
 export type AuthFetchOptions = {
-  /** Base URL of the API, e.g. `http://api.localhost:3000/api/v1`. */
-  baseUrl: string;
   fetch?: typeof globalThis.fetch;
+  sessionToken: SessionTokenSource;
   onSessionExpired?: SessionExpiredListener;
 };
 
+function withToken(request: Request, token: string | null): Request {
+  if (!token) return request;
+  const headers = new Headers(request.headers);
+  headers.set("authorization", `Bearer ${token}`);
+  return new Request(request, { headers });
+}
+
 export function createAuthFetch(options: AuthFetchOptions): (request: Request) => Promise<Response> {
   const send = options.fetch ?? globalThis.fetch.bind(globalThis);
-  const baseUrl = options.baseUrl.replace(/\/$/, "");
-  const refreshUrl = `${baseUrl}/auth/refresh`;
-  // Auth routes answer 401 for wrong credentials or codes; renewing the session doesn't help there.
-  // Signing out is the exception: it needs the session like any other request, or the server
-  // never ends it.
-  const authPath = `${new URL(baseUrl, "http://localhost").pathname.replace(/\/$/, "")}/auth/`;
-  const sessionAuthPaths = new Set([`${authPath}logout`, `${authPath}logout-all`]);
-  let pendingRefresh: Promise<boolean> | null = null;
-
-  async function refreshSession(): Promise<boolean> {
-    pendingRefresh ??= send(
-      // The route takes a JSON object (the token may come in the body); the browser sends the cookie.
-      new Request(refreshUrl, {
-        method: "POST",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: "{}",
-      }),
-    )
-      // 409: another tab renewed the session a moment ago; the browser already holds its new cookie.
-      .then((response) => response.ok || response.status === 409)
-      .catch(() => false)
-      .finally(() => {
-        pendingRefresh = null;
-      });
-
-    return pendingRefresh;
-  }
 
   return async function authFetch(request: Request): Promise<Response> {
-    const path = new URL(request.url).pathname;
-    const renewable = !path.startsWith(authPath) || sessionAuthPaths.has(path);
     // The body of a sent request is used up, so the retry needs its own copy.
-    const retry = renewable ? request.clone() : null;
-    const response = await send(request);
+    const retry = request.clone();
+    const token = await options.sessionToken();
+    const response = await send(withToken(request, token));
 
-    if (response.status !== 401 || !retry) {
+    // Without a token there is no session to renew; the 401 is the answer.
+    if (response.status !== 401 || !token) {
       return response;
     }
 
-    const retried = (await refreshSession()) ? await send(retry) : response;
+    const fresh = await options.sessionToken({ fresh: true }).catch(() => null);
+    const retried = fresh ? await send(withToken(retry, fresh)) : response;
 
     if (retried.status === 401) {
       options.onSessionExpired?.();

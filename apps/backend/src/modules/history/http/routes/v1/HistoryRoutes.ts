@@ -31,7 +31,7 @@ export type HistoryRouteControllers = {
   restoreHistoryVersionController: RestoreHistoryVersionController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["history"];
 
 const readErrorResponses = {

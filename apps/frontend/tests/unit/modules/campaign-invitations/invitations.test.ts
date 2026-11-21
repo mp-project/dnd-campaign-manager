@@ -23,6 +23,13 @@ const server = vi.hoisted(() => {
   return state;
 });
 
+// Clerk's session of this browser; signing out (for another account) goes there.
+const clerkSignOut = vi.hoisted(() => vi.fn(async () => undefined));
+vi.mock("@/core/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/core/auth/clerk")>()),
+  loadClerk: async () => ({ session: { id: "sess_1" }, user: null, signOut: clerkSignOut }),
+}));
+
 import { toRefSegment } from "@dnd/contracts";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import type { Component } from "vue";
@@ -208,7 +215,6 @@ describe("accepting from the email's link", () => {
 
   it("asks a visitor without a session to sign in, and keeps the token out of the address", async () => {
     server.answers["GET /api/v1/me"] = { status: 401, body: { error: { code: "UNAUTHENTICATED", message: "-" } } };
-    server.answers["POST /api/v1/auth/refresh"] = { status: 401, body: { error: { code: "UNAUTHENTICATED", message: "-" } } };
     const { wrapper, router } = await open(AcceptInvitationView, `/invitations/accept#token=${TOKEN}`, { me: null });
     await vi.waitFor(() => expect(document.body.textContent).toContain("Melde dich an oder erstelle ein Konto"));
     expect(router.currentRoute.value.fullPath).toBe("/invitations/accept");
@@ -273,14 +279,13 @@ describe("accepting from the email's link", () => {
   it("keeps the token after a 404 and offers to sign in with another account", async () => {
     sessionStorage.setItem("questaria.invitation-token", TOKEN);
     server.answers["POST /api/v1/invitations/accept"] = { status: 404, body: { error: { code: "NOT_FOUND", message: "-" } } };
-    server.answers["POST /api/v1/auth/logout"] = { status: 204 };
     const { wrapper, router } = await open(AcceptInvitationView, "/invitations/accept");
     button("Einladung annehmen")!.click();
     await flushPromises();
     expect(button("Zum Dashboard")).toBeUndefined();
     button("Mit anderem Konto anmelden")!.click();
     await flushPromises();
-    expect(server.calls.some((call) => call.path === "/api/v1/auth/logout")).toBe(true);
+    expect(clerkSignOut).toHaveBeenCalled();
     await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe("/login?redirect=/invitations/accept"));
     expect(sessionStorage.getItem("questaria.invitation-token")).toBe(TOKEN);
     wrapper.unmount();

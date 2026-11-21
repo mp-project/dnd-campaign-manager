@@ -32,7 +32,7 @@ export type RulesetRouteControllers = {
 };
 
 const tags = ["Rulesets"];
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 export function registerRulesetRoutes(
   app: FastifyInstance,

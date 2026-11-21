@@ -36,7 +36,7 @@ export const MEDIA_READ_ROUTE_RATE_LIMIT = {
  */
 export const SENSITIVE_ROUTE_RATE_LIMIT = {
   max: (request: FastifyRequest) =>
-    request.verifiedAccessToken ? RATE_LIMIT_MAX.sensitiveUser : RATE_LIMIT_MAX.sensitiveIp,
+    request.authenticatedActor ? RATE_LIMIT_MAX.sensitiveUser : RATE_LIMIT_MAX.sensitiveIp,
   timeWindow: "1 minute",
 };
 
@@ -79,7 +79,7 @@ export function normalizeClientIp(ip: string): string {
  * @returns Bucket key.
  */
 export function buildRateLimitKey(request: FastifyRequest): string {
-  const actorId = request.verifiedAccessToken?.actorId;
+  const actorId = request.authenticatedActor?.actorId;
   const subject = actorId ? `user:${actorId}` : `ip:${normalizeClientIp(request.ip)}`;
 
   return `${subject}|${request.method}|${request.routeOptions.url}`;

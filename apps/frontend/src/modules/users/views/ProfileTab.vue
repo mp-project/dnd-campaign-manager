@@ -216,7 +216,7 @@ async function save(): Promise<void> {
             </div>
             <BaseButton
               size="md"
-              :to="{ name: 'account-security', hash: '#email' }"
+              :to="{ name: 'account-security' }"
             >
               {{ t("users.profile.changeEmail") }}
             </BaseButton>

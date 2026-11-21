@@ -95,10 +95,6 @@ jobs:
       PORT: 3000
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/dnd_campaign_manager_test
       TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/dnd_campaign_manager_test
-      JWT_ACCESS_SECRET: ci-access-secret
-      JWT_REFRESH_SECRET: ci-refresh-secret
-      JWT_ACCESS_TTL: 15m
-      JWT_REFRESH_TTL: 7d
       LOG_LEVEL: warn
       CORS_ORIGIN: http://localhost:5173
     steps:
@@ -155,8 +151,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
-      JWT_ACCESS_SECRET: ci-access-secret
-      JWT_REFRESH_SECRET: ci-refresh-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

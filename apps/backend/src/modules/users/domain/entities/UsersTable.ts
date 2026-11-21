@@ -1,12 +1,9 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
-  index,
-  integer,
   jsonb,
   pgEnum,
   pgTable,
-  text,
   timestamp,
   uniqueIndex,
   uuid,
@@ -19,21 +16,14 @@ import { baseColumns, uniqueActiveIndex } from "../../../../core/db/schemaHelper
 export const userSystemRoleEnum = pgEnum("user_system_role", SYSTEM_ROLES);
 export const userStatusEnum = pgEnum("user_status", ["ACTIVE", "LOCKED", "DISABLED"]);
 export const userThemeEnum = pgEnum("user_theme", ["SYSTEM", "LIGHT", "DARK"]);
-export const emailVerificationStatusEnum = pgEnum("email_verification_status", [
-  "PENDING",
-  "VERIFIED",
-  "EXPIRED",
-  "SUPERSEDED",
-]);
 
 export const users = pgTable(
   "users",
   {
     ...baseColumns(),
     email: varchar("email", { length: 320 }).notNull(),
-    passwordHash: text("password_hash"),
-    googleSubject: varchar("google_subject", { length: 255 }),
-    discordUserId: varchar("discord_user_id", { length: 32 }),
+    // The account at the identity provider (Clerk `user_…`); null only for the system user.
+    clerkUserId: varchar("clerk_user_id", { length: 64 }),
     displayName: varchar("display_name", { length: 120 }).notNull(),
     username: varchar("username", { length: 24 }).notNull().default("player"),
     userTag: varchar("user_tag", { length: 32 })
@@ -43,13 +33,6 @@ export const users = pgTable(
     status: userStatusEnum("status").notNull().default("ACTIVE"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
-    // Raised to end every access token at once (lock, role change, password, logout everywhere).
-    sessionVersion: integer("session_version").notNull().default(0),
-    // A requested address change; `email` only changes once the code sent to it is confirmed.
-    pendingEmail: varchar("pending_email", { length: 320 }),
-    pendingEmailCodeHash: text("pending_email_code_hash"),
-    pendingEmailExpiresAt: timestamp("pending_email_expires_at", { withTimezone: true }),
-    pendingEmailAttemptCount: integer("pending_email_attempt_count").notNull().default(0),
   },
   (table) => [
     uniqueIndex("users_email_active_unique_idx")
@@ -61,15 +44,10 @@ export const users = pgTable(
       .where(
         sql`${table.systemRole} = 'SYSTEM' and ${table.deletedAt} is null`,
       ),
-    uniqueIndex("users_google_subject_active_unique_idx")
-      .on(table.googleSubject)
+    uniqueIndex("users_clerk_user_id_active_unique_idx")
+      .on(table.clerkUserId)
       .where(
-        sql`${table.googleSubject} is not null and ${table.deletedAt} is null`,
-      ),
-    uniqueIndex("users_discord_user_id_active_unique_idx")
-      .on(table.discordUserId)
-      .where(
-        sql`${table.discordUserId} is not null and ${table.deletedAt} is null`,
+        sql`${table.clerkUserId} is not null and ${table.deletedAt} is null`,
       ),
   ],
 );
@@ -93,25 +71,5 @@ export const userSettings = pgTable(
       [table.userId],
       table.deletedAt,
     ),
-  ],
-);
-
-export const emailVerificationRequests = pgTable(
-  "email_verification_requests",
-  {
-    ...baseColumns(),
-    email: varchar("email", { length: 320 }).notNull(),
-    codeHash: text("code_hash").notNull(),
-    status: emailVerificationStatusEnum("status").notNull().default("PENDING"),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    verifiedAt: timestamp("verified_at", { withTimezone: true }),
-    attemptCount: integer("attempt_count").notNull().default(0),
-  },
-  (table) => [
-    index("email_verification_requests_email_idx").on(table.email),
-    index("email_verification_requests_status_idx").on(table.status),
-    uniqueIndex("email_verification_requests_pending_email_unique_idx")
-      .on(table.email)
-      .where(sql`${table.status} = 'PENDING' and ${table.deletedAt} is null`),
   ],
 );

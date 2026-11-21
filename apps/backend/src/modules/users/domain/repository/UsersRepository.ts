@@ -3,11 +3,7 @@ import { escapeLike } from "#core/db/escapeLike";
 
 import type { AppDatabase } from "#core/db/pool";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
-import {
-  emailVerificationRequests,
-  users,
-  userSettings,
-} from "#src/modules/users/domain/entities/UsersTable";
+import { users, userSettings } from "#src/modules/users/domain/entities/UsersTable";
 import type { UpdateMeDto } from "#src/modules/users/domain/dto/UpdateMeDto";
 import type { UpdateSettingsDto } from "#src/modules/users/domain/dto/UpdateSettingsDto";
 import type { RequestUsersDto } from "#src/modules/users/domain/dto/RequestUsersDto";
@@ -15,7 +11,6 @@ import { toAuditActorId } from "#core/db/auditActor";
 
 export type UserRow = typeof users.$inferSelect;
 export type UserSettingsRow = typeof userSettings.$inferSelect;
-export type EmailVerificationRequestRow = typeof emailVerificationRequests.$inferSelect;
 
 export type UserAggregate = {
   user: UserRow;

@@ -1,132 +1,92 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createAuthFetch } from "@/core/api/authFetch";
+import { createAuthFetch, type SessionTokenSource } from "@/core/api/authFetch";
 
-const BASE = "http://api.test/api/v1";
+const URL_CAMPAIGNS = "http://api.test/api/v1/campaigns";
 
 function json(status: number, body: unknown = {}): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-/** A fake server: answers by path, records every call with its body. */
-function fakeServer(answers: Record<string, Array<() => Response>>) {
-  const calls: Array<{ path: string; body: string }> = [];
+/** A fake server: answers in turn, records every call with its authorization and body. */
+function fakeServer(answers: Array<() => Response>) {
+  const calls: Array<{ authorization: string | null; body: string }> = [];
   const fetch = vi.fn(async (request: Request) => {
-    const path = new URL(request.url).pathname;
-    calls.push({ path, body: await request.text() });
-    const next = answers[path]?.shift();
-    if (!next) throw new Error(`unexpected request ${path}`);
+    calls.push({ authorization: request.headers.get("authorization"), body: await request.text() });
+    const next = answers.shift();
+    if (!next) throw new Error("unexpected request");
     return next();
   });
   return { fetch: fetch as unknown as typeof globalThis.fetch, calls };
 }
 
-describe("createAuthFetch", () => {
-  it("renews the session on 401 and repeats the request with its body", async () => {
-    const server = fakeServer({
-      "/api/v1/campaigns": [() => json(401), () => json(201, { id: "c1" })],
-      "/api/v1/auth/refresh": [() => json(200)],
-    });
-    const onSessionExpired = vi.fn();
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
+/** Clerk's tokens: the cached one, a fresh one when asked to skip the cache. */
+function tokens(cached: string | null, fresh: string | null = cached): SessionTokenSource {
+  return vi.fn(async (options?: { fresh?: boolean }) => (options?.fresh ? fresh : cached));
+}
 
-    const response = await authFetch(
-      new Request(`${BASE}/campaigns`, { method: "POST", body: JSON.stringify({ name: "Elaria" }) }),
-    );
+function post(): Request {
+  return new Request(URL_CAMPAIGNS, { method: "POST", body: JSON.stringify({ name: "Elaria" }) });
+}
+
+describe("createAuthFetch", () => {
+  it("sends the session token as bearer", async () => {
+    const server = fakeServer([() => json(200)]);
+    const authFetch = createAuthFetch({ fetch: server.fetch, sessionToken: tokens("t1") });
+
+    expect((await authFetch(post())).status).toBe(200);
+    expect(server.calls[0]?.authorization).toBe("Bearer t1");
+  });
+
+  it("sends no authorization without a session (public pages)", async () => {
+    const server = fakeServer([() => json(401)]);
+    const onSessionExpired = vi.fn();
+    const authFetch = createAuthFetch({ fetch: server.fetch, sessionToken: tokens(null), onSessionExpired });
+
+    expect((await authFetch(post())).status).toBe(401);
+    expect(server.calls).toEqual([{ authorization: null, body: '{"name":"Elaria"}' }]);
+    expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it("repeats a 401 once with a fresh token and the same body", async () => {
+    const server = fakeServer([() => json(401), () => json(201, { id: "c1" })]);
+    const onSessionExpired = vi.fn();
+    const authFetch = createAuthFetch({ fetch: server.fetch, sessionToken: tokens("old", "new"), onSessionExpired });
+
+    const response = await authFetch(post());
 
     expect(response.status).toBe(201);
-    expect(server.calls.map((call) => call.path)).toEqual([
-      "/api/v1/campaigns",
-      "/api/v1/auth/refresh",
-      "/api/v1/campaigns",
+    expect(server.calls).toEqual([
+      { authorization: "Bearer old", body: '{"name":"Elaria"}' },
+      { authorization: "Bearer new", body: '{"name":"Elaria"}' },
     ]);
-    expect(server.calls[2]?.body).toBe(JSON.stringify({ name: "Elaria" }));
-    // The refresh route validates a JSON object; without one it answers 400 and never renews.
-    expect(server.calls[1]?.body).toBe("{}");
     expect(onSessionExpired).not.toHaveBeenCalled();
   });
 
-  it("shares one refresh between parallel 401s", async () => {
-    const server = fakeServer({
-      "/api/v1/a": [() => json(401), () => json(200)],
-      "/api/v1/b": [() => json(401), () => json(200)],
-      "/api/v1/auth/refresh": [() => json(200)],
-    });
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch });
-
-    const [a, b] = await Promise.all([
-      authFetch(new Request(`${BASE}/a`)),
-      authFetch(new Request(`${BASE}/b`)),
-    ]);
-
-    expect([a.status, b.status]).toEqual([200, 200]);
-    expect(server.calls.filter((call) => call.path === "/api/v1/auth/refresh")).toHaveLength(1);
-  });
-
-  it("reports an expired session when the refresh fails and passes the 401 on", async () => {
-    const server = fakeServer({
-      "/api/v1/me": [() => json(401)],
-      "/api/v1/auth/refresh": [() => json(401)],
-    });
+  it("ends the session when the fresh token is refused too", async () => {
+    const server = fakeServer([() => json(401), () => json(401)]);
     const onSessionExpired = vi.fn();
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
+    const authFetch = createAuthFetch({ fetch: server.fetch, sessionToken: tokens("old", "new"), onSessionExpired });
 
-    const response = await authFetch(new Request(`${BASE}/me`));
-
-    expect(response.status).toBe(401);
-    expect(onSessionExpired).toHaveBeenCalledTimes(1);
-  });
-
-  it("leaves 401s of auth routes alone (wrong password is no expired session)", async () => {
-    const server = fakeServer({ "/api/v1/auth/login": [() => json(401)] });
-    const onSessionExpired = vi.fn();
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
-
-    const response = await authFetch(new Request(`${BASE}/auth/login`, { method: "POST" }));
-
-    expect(response.status).toBe(401);
-    expect(server.calls).toHaveLength(1);
-    expect(onSessionExpired).not.toHaveBeenCalled();
-  });
-
-  it.each(["logout", "logout-all"])("renews the session for signing out (%s), which needs it like any other request", async (route) => {
-    const server = fakeServer({
-      [`/api/v1/auth/${route}`]: [() => json(401), () => new Response(null, { status: 204 })],
-      "/api/v1/auth/refresh": [() => json(200)],
-    });
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch });
-
-    const response = await authFetch(new Request(`${BASE}/auth/${route}`, { method: "POST" }));
-
-    expect(response.status).toBe(204);
-    expect(server.calls.map((call) => call.path)).toEqual([
-      `/api/v1/auth/${route}`,
-      "/api/v1/auth/refresh",
-      `/api/v1/auth/${route}`,
-    ]);
-  });
-
-  it("takes a refresh another tab just made (409) as renewed and repeats the request", async () => {
-    const server = fakeServer({
-      "/api/v1/me": [() => json(401), () => json(200, { id: "u1" })],
-      "/api/v1/auth/refresh": [() => json(409, { error: { code: "SESSION_ALREADY_ROTATED", message: "x" } })],
-    });
-    const onSessionExpired = vi.fn();
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
-
-    expect((await authFetch(new Request(`${BASE}/me`))).status).toBe(200);
-    expect(onSessionExpired).not.toHaveBeenCalled();
-  });
-
-  it("still ends the session when the repeated request answers 401 after such a refresh", async () => {
-    const server = fakeServer({
-      "/api/v1/me": [() => json(401), () => json(401)],
-      "/api/v1/auth/refresh": [() => json(409)],
-    });
-    const onSessionExpired = vi.fn();
-    const authFetch = createAuthFetch({ baseUrl: BASE, fetch: server.fetch, onSessionExpired });
-
-    expect((await authFetch(new Request(`${BASE}/me`))).status).toBe(401);
+    expect((await authFetch(post())).status).toBe(401);
     expect(onSessionExpired).toHaveBeenCalledOnce();
+  });
+
+  it("ends the session when Clerk has no session any more", async () => {
+    const server = fakeServer([() => json(401)]);
+    const onSessionExpired = vi.fn();
+    const authFetch = createAuthFetch({ fetch: server.fetch, sessionToken: tokens("old", null), onSessionExpired });
+
+    expect((await authFetch(post())).status).toBe(401);
+    expect(server.calls).toHaveLength(1);
+    expect(onSessionExpired).toHaveBeenCalledOnce();
+  });
+
+  it("passes other answers on untouched", async () => {
+    const server = fakeServer([() => json(403)]);
+    const authFetch = createAuthFetch({ fetch: server.fetch, sessionToken: tokens("t1") });
+
+    expect((await authFetch(post())).status).toBe(403);
+    expect(server.calls).toHaveLength(1);
   });
 });

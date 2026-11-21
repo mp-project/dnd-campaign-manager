@@ -27,6 +27,8 @@ ARG VITE_DEMO_URL=
 ENV VITE_DEMO_URL=$VITE_DEMO_URL
 ARG VITE_SITE_URL=
 ENV VITE_SITE_URL=$VITE_SITE_URL
+ARG VITE_CLERK_PUBLISHABLE_KEY=
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 # The build prerenders the public pages in Chromium; only this stage carries it, not the image.
 RUN npx playwright install --with-deps chromium
 COPY . .

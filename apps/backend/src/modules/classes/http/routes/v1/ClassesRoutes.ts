@@ -57,7 +57,7 @@ export type ClassesRouteControllers = {
   getCatalogClassUsagesController: GetClassUsagesController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Classes"];
 
 const readErrorResponses = {

@@ -35,7 +35,6 @@ describe("campaign membership concurrency", () => {
       [OWNER_ID, PLAYER_ID].map((id) => ({
         id,
         email: `${id}@example.test`,
-        passwordHash: "hash",
         displayName: "User",
         systemRole: "USER" as const,
         status: "ACTIVE" as const,

@@ -65,7 +65,7 @@ export type BackgroundsRouteControllers = {
   validateBackgroundController: ValidateBackgroundController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Backgrounds"];
 
 const readErrorResponses = {

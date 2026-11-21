@@ -76,10 +76,17 @@ const envSchema = z
     BACKEND_PUBLIC_BASE_URL: z.string().url(),
     DATABASE_URL: z.string().url(),
     TEST_DATABASE_URL: z.string().url(),
-    JWT_ACCESS_SECRET: z.string().min(16),
-    JWT_REFRESH_SECRET: z.string().min(16),
-    JWT_ACCESS_TTL: z.string().min(2),
-    JWT_REFRESH_TTL: z.string().min(2),
+    // Clerk (sign-in, registration, waitlist). Without the secret key no request is signed in.
+    CLERK_SECRET_KEY: optionalNonEmptyString,
+    // PEM public key of the instance; verifies session tokens without fetching the JWKS.
+    CLERK_JWT_KEY: optionalNonEmptyString,
+    // Frontend origins whose session tokens are accepted (comma separated; `azp` claim).
+    CLERK_AUTHORIZED_PARTIES: optionalNonEmptyString,
+    // Signing secret of the Clerk webhook (`whsec_…`); without it the webhook answers 503.
+    CLERK_WEBHOOK_SIGNING_SECRET: optionalNonEmptyString,
+    // The account that signs in with this verified address becomes the first system maintainer
+    // when its local account is created or linked; replaces creating one by SQL.
+    BOOTSTRAP_MAINTAINER_EMAIL: optionalEmailString,
     MAIL_DRIVER: z.enum(["smtp", "noop"]).default("smtp"),
     MAIL_FROM_ADDRESS: z.string().email().default("no-reply@api.localhost"),
     MAIL_FROM_NAME: z.string().min(1).max(120).default("Questaria"),
@@ -91,8 +98,6 @@ const envSchema = z
     MAIL_SMTP_USER: optionalNonEmptyString,
     MAIL_SMTP_PASS: optionalNonEmptyString,
     MAILPIT_UI_URL: z.string().url().optional(),
-    EMAIL_VERIFICATION_SECRET: z.string().min(16).optional(),
-    EMAIL_VERIFICATION_CODE_TTL_HOURS: positiveInt.default(24),
     // Where the contact form's messages go; without it the form answers 503.
     CONTACT_EMAIL_TO: optionalEmailString,
     // Signs the contact form's JS challenge; without it a random key per process (one instance only).
@@ -124,22 +129,6 @@ const envSchema = z
     ),
     CORS_ORIGIN: z.string().min(1),
     FRONTEND_ORIGIN: z.string().url().default("http://app.localhost:5173"),
-    VITE_API_BASE_URL: z.string().url(),
-    OAUTH_GOOGLE_CLIENT_ID: optionalNonEmptyString,
-    OAUTH_GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
-    OAUTH_GOOGLE_CALLBACK_URL: optionalUrlString,
-    OAUTH_DISCORD_CLIENT_ID: optionalNonEmptyString,
-    OAUTH_DISCORD_CLIENT_SECRET: optionalNonEmptyString,
-    OAUTH_DISCORD_CALLBACK_URL: optionalUrlString,
-    OAUTH_STATE_SECRET: z.preprocess((value) => {
-      if (typeof value !== "string") {
-        return value;
-      }
-
-      const normalized = value.trim();
-
-      return normalized.length === 0 ? undefined : normalized;
-    }, z.string().min(16).optional()),
     STORAGE_DRIVER: z.enum(["local", "s3"]).default("s3"),
     STORAGE_LOCAL_ROOT: z.string().min(1).default("var/storage"),
     STORAGE_ALLOWED_MIME_TYPES: z
@@ -182,55 +171,8 @@ const envSchema = z
       });
     }
 
-    const providerFieldGroups = [
-      {
-        name: "GOOGLE",
-        fields: [
-          "OAUTH_GOOGLE_CLIENT_ID",
-          "OAUTH_GOOGLE_CLIENT_SECRET",
-          "OAUTH_GOOGLE_CALLBACK_URL",
-        ] as const,
-      },
-      {
-        name: "DISCORD",
-        fields: [
-          "OAUTH_DISCORD_CLIENT_ID",
-          "OAUTH_DISCORD_CLIENT_SECRET",
-          "OAUTH_DISCORD_CALLBACK_URL",
-        ] as const,
-      },
-    ] as const;
-
-    for (const group of providerFieldGroups) {
-      const values = group.fields.map((field) => env[field]);
-      const hasAny = values.some(Boolean);
-      const hasAll = values.every(Boolean);
-
-      if (hasAny && !hasAll) {
-        for (const field of group.fields) {
-          if (!env[field]) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [field],
-              message: `${field} is required when enabling ${group.name} OAuth`,
-            });
-          }
-        }
-      }
-    }
-
     if (isProductionLikeNodeEnv(env.NODE_ENV)) {
-      const requiredProductionOAuthKeys = [
-        "OAUTH_STATE_SECRET",
-        "OAUTH_GOOGLE_CLIENT_ID",
-        "OAUTH_GOOGLE_CLIENT_SECRET",
-        "OAUTH_GOOGLE_CALLBACK_URL",
-        "OAUTH_DISCORD_CLIENT_ID",
-        "OAUTH_DISCORD_CLIENT_SECRET",
-        "OAUTH_DISCORD_CALLBACK_URL",
-      ] as const;
-
-      for (const key of requiredProductionOAuthKeys) {
+      for (const key of ["CLERK_SECRET_KEY", "CLERK_AUTHORIZED_PARTIES"] as const) {
         if (!env[key]) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

@@ -35,7 +35,6 @@ describe("ruleset history", () => {
       [ADMIN_ID, USER_ID].map((id) => ({
         id,
         email: `${id}@example.test`,
-        passwordHash: "hash",
         displayName: "User",
         systemRole: id === ADMIN_ID ? ("ADMIN" as const) : ("USER" as const),
         status: "ACTIVE" as const,

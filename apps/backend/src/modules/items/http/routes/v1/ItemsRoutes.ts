@@ -93,7 +93,7 @@ export const ITEM_ROUTE_IDS = [
 /** The controllers of all item routes, keyed like the routes below. */
 export type ItemsRouteControllers = Record<(typeof ITEM_ROUTE_IDS)[number], Handler>;
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 const readErrors = {
   400: errorResponseDto,

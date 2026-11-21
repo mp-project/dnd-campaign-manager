@@ -142,7 +142,6 @@ describe("content access", () => {
       [OWNER, PLAYER].map((id, index) => ({
         id,
         email: `content-access-${index}@example.test`,
-        passwordHash: "hash",
         displayName: `User ${index}`,
         systemRole: "USER" as const,
         status: "ACTIVE" as const,

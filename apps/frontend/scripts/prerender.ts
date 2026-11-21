@@ -109,6 +109,10 @@ async function render(address: string, locale: string): Promise<string> {
     reducedMotion: "reduce",
     viewport: { width: 1280, height: 900 },
   });
+  // The sign-in pages save their frame only; Clerk (a third-party script) is not loaded here.
+  await context.addInitScript(() => {
+    (window as { __QUESTARIA_PRERENDER__?: boolean }).__QUESTARIA_PRERENDER__ = true;
+  });
   await context.route("**/*", (route) =>
     route.request().url().startsWith(origin) ? route.continue() : route.abort("blockedbyclient"),
   );

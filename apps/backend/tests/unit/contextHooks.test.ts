@@ -1,10 +1,11 @@
 import { z } from "zod";
-import jsonwebtoken from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
-import type { AppPublicPorts, SessionStatePort } from "#core/app/container";
+import type { AppPublicPorts } from "#core/app/container";
+import type { AccountPort } from "#core/auth/identity";
 import type { AppModule } from "#core/app/moduleSystem";
-import { SYSTEM_ROLE } from "#core/permissions/roles";
+import { SYSTEM_ROLE, type SystemRole } from "#core/permissions/roles";
+import { FakeIdentityPort, testIdentityToken } from "#test/helpers/fakeIdentity";
 import { createTestEnv } from "#test/helpers/testEnv";
 
 const contextProbeModule: AppModule = {
@@ -31,28 +32,12 @@ const contextProbeModule: AppModule = {
   },
 };
 
-async function createAccessToken(
-  actorId: string,
-  systemRole: (typeof SYSTEM_ROLE)[keyof typeof SYSTEM_ROLE],
-  secret: string,
-  sid?: string,
-): Promise<string> {
-  return jsonwebtoken.sign(
-    { systemRole, sv: 3, ...(sid ? { sid } : {}) },
-    secret,
-    {
-      algorithm: "HS256",
-      subject: actorId,
-      expiresIn: "15m",
-    },
-  );
+/** Every identity is the actor of the same name, with the role the test names. */
+function trustingAccounts(systemRole: SystemRole = SYSTEM_ROLE.USER): AccountPort {
+  return { resolveActor: async ({ externalUserId }) => ({ actorId: externalUserId, systemRole }) };
 }
 
-const trustTokenSessionState: SessionStatePort = {
-  resolveActor: async ({ systemRole }) => ({ systemRole }),
-};
-
-async function probeRequestContext(publicPorts: AppPublicPorts, token: string) {
+async function probeRequestContext(publicPorts: AppPublicPorts, authorization: string) {
   const env = createTestEnv();
   const app = buildApp({
     env,
@@ -64,7 +49,7 @@ async function probeRequestContext(publicPorts: AppPublicPorts, token: string) {
   const response = await app.inject({
     method: "GET",
     url: "/api/v1/context/not-a-uuid",
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization },
   });
 
   await app.close();
@@ -72,62 +57,47 @@ async function probeRequestContext(publicPorts: AppPublicPorts, token: string) {
   return response.json().requestContext as { actorId: string | null; systemRole: string };
 }
 
-describe("session state check of access tokens", () => {
-  const env = createTestEnv();
+describe("identity check of requests", () => {
+  const identity = new FakeIdentityPort();
+  const bearer = (user: string) => `Bearer ${testIdentityToken(user, "sess_1")}`;
 
-  it("accepts no token at all without a session state port", async () => {
-    const token = await createAccessToken("alice", SYSTEM_ROLE.ADMIN, env.JWT_ACCESS_SECRET);
-
-    expect(await probeRequestContext({}, token)).toEqual({ actorId: null, systemRole: "USER" });
-  });
-
-  it("drops the token when the port refuses it (locked, outdated session version)", async () => {
-    const token = await createAccessToken("alice", SYSTEM_ROLE.ADMIN, env.JWT_ACCESS_SECRET);
-    const resolveActor = jest.fn().mockResolvedValue(null);
-
-    expect(await probeRequestContext({ sessionStatePort: { resolveActor } }, token)).toEqual({
+  it("signs nobody in without identity and account ports", async () => {
+    expect(await probeRequestContext({}, bearer("alice"))).toEqual({
       actorId: null,
       systemRole: "USER",
     });
-    expect(resolveActor).toHaveBeenCalledWith({
-      actorId: "alice",
-      systemRole: "ADMIN",
-      sessionVersion: 3,
-      sessionId: null,
-    });
+    expect(
+      await probeRequestContext({ identityPort: identity }, bearer("alice")),
+    ).toEqual({ actorId: null, systemRole: "USER" });
   });
 
-  it("hands the token's session to the port, which refuses ended sessions", async () => {
-    const token = await createAccessToken("alice", SYSTEM_ROLE.USER, env.JWT_ACCESS_SECRET, "family-1");
+  it("ignores a token the identity provider doesn't confirm", async () => {
+    const resolveActor = jest.fn();
+
+    expect(
+      await probeRequestContext({ identityPort: identity, accountPort: { resolveActor } }, "Bearer forged"),
+    ).toEqual({ actorId: null, systemRole: "USER" });
+    expect(resolveActor).not.toHaveBeenCalled();
+  });
+
+  it("hands the confirmed identity to the account port, which may refuse it (locked)", async () => {
     const resolveActor = jest.fn().mockResolvedValue(null);
 
-    await probeRequestContext({ sessionStatePort: { resolveActor } }, token);
-    expect(resolveActor).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "family-1" }));
+    expect(
+      await probeRequestContext({ identityPort: identity, accountPort: { resolveActor } }, bearer("alice")),
+    ).toEqual({ actorId: null, systemRole: "USER" });
+    expect(resolveActor).toHaveBeenCalledWith({ externalUserId: "alice", sessionId: "sess_1" });
   });
 
-  it("uses the role from the port instead of the token", async () => {
-    const token = await createAccessToken("alice", SYSTEM_ROLE.ADMIN, env.JWT_ACCESS_SECRET);
-    const sessionStatePort: SessionStatePort = {
-      resolveActor: async () => ({ systemRole: SYSTEM_ROLE.USER }),
+  it("uses the local account and its role", async () => {
+    const accountPort: AccountPort = {
+      resolveActor: async () => ({ actorId: "local-alice", systemRole: SYSTEM_ROLE.ADMIN }),
     };
 
-    expect(await probeRequestContext({ sessionStatePort }, token)).toEqual({
-      actorId: "alice",
-      systemRole: "USER",
+    expect(await probeRequestContext({ identityPort: identity, accountPort }, bearer("alice"))).toEqual({
+      actorId: "local-alice",
+      systemRole: "ADMIN",
     });
-  });
-
-  it("passes a missing session version on as null", async () => {
-    const token = jsonwebtoken.sign({ systemRole: "USER" }, env.JWT_ACCESS_SECRET, {
-      algorithm: "HS256",
-      subject: "alice",
-      expiresIn: "15m",
-    });
-    const resolveActor = jest.fn().mockResolvedValue(null);
-
-    await probeRequestContext({ sessionStatePort: { resolveActor } }, token);
-
-    expect(resolveActor).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: null }));
   });
 });
 
@@ -139,7 +109,8 @@ describe("request and campaign context hooks", () => {
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
       publicPorts: {
-        sessionStatePort: trustTokenSessionState,
+        identityPort: new FakeIdentityPort(),
+        accountPort: trustingAccounts(),
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
           hasMetNpc: async () => "UNKNOWN",
@@ -156,11 +127,7 @@ describe("request and campaign context hooks", () => {
       },
     });
 
-    const accessToken = await createAccessToken(
-      "alice",
-      SYSTEM_ROLE.USER,
-      env.JWT_ACCESS_SECRET,
-    );
+    const accessToken = testIdentityToken("alice");
 
     const response = await app.inject({
       method: "GET",
@@ -195,7 +162,8 @@ describe("request and campaign context hooks", () => {
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
       publicPorts: {
-        sessionStatePort: trustTokenSessionState,
+        identityPort: new FakeIdentityPort(),
+        accountPort: trustingAccounts(),
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
           hasMetNpc: async () => "UNKNOWN",
@@ -212,11 +180,7 @@ describe("request and campaign context hooks", () => {
       },
     });
 
-    const accessToken = await createAccessToken(
-      "player-1",
-      SYSTEM_ROLE.USER,
-      env.JWT_ACCESS_SECRET,
-    );
+    const accessToken = testIdentityToken("player-1");
 
     const response = await app.inject({
       method: "GET",
@@ -245,7 +209,8 @@ describe("request and campaign context hooks", () => {
       modules: [contextProbeModule],
       readyProbe: async () => ({ database: true, migrations: true }),
       publicPorts: {
-        sessionStatePort: trustTokenSessionState,
+        identityPort: new FakeIdentityPort(),
+        accountPort: trustingAccounts(),
         campaignFactPort: {
           hasVisitedLocation: async () => "UNKNOWN",
           hasMetNpc: async () => "UNKNOWN",
@@ -256,7 +221,7 @@ describe("request and campaign context hooks", () => {
       },
     });
 
-    const accessToken = await createAccessToken("alice", SYSTEM_ROLE.USER, env.JWT_ACCESS_SECRET);
+    const accessToken = testIdentityToken("alice");
 
     const response = await app.inject({
       method: "GET",

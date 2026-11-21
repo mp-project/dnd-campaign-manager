@@ -32,7 +32,7 @@ export type ContentSharesRouteControllers = {
   revokeContentShareController: RevokeContentShareController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Content shares"];
 
 const readErrorResponses = {

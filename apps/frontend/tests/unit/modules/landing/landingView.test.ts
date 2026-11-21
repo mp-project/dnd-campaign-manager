@@ -109,7 +109,7 @@ describe("landing page", () => {
       ]),
     );
     expect(wrapper.find("#landing-marketplace").text()).toBe("Inhalte teilen und entdecken");
-    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/datenschutz", "/impressum", "/faq", "/roadmap", "/kontakt"]));
+    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/warteliste", "/datenschutz", "/impressum", "/faq", "/roadmap", "/kontakt"]));
     // Sign-in is not offered while access goes through pre-registration.
     expect(hrefs(wrapper)).not.toContain("/login");
     // The header leads to FAQ, roadmap and contact (none of them the page shown), with the
@@ -120,7 +120,7 @@ describe("landing page", () => {
       ["Roadmap", "/roadmap", undefined],
       ["Kontakt", "/kontakt", undefined],
     ]);
-    const register = header.findAll("a.btn").find((link) => link.attributes("href") === "/registrieren");
+    const register = header.findAll("a.btn").find((link) => link.attributes("href") === "/warteliste");
     expect(register?.text()).toBe("Vorab registrieren");
     expect(register?.classes()).toContain("btn-primary");
     expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual(["/datenschutz", "/impressum"]);
@@ -377,7 +377,7 @@ describe("landing page", () => {
     const { wrapper } = await open({ signedIn: true });
     expect(hrefs(wrapper)).toContain("/dashboard");
     expect(hrefs(wrapper)).not.toContain("/login");
-    expect(hrefs(wrapper)).not.toContain("/registrieren");
+    expect(hrefs(wrapper)).not.toContain("/warteliste");
     wrapper.unmount();
   });
 

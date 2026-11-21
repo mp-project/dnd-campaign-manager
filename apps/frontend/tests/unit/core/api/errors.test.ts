@@ -20,16 +20,15 @@ describe("API error messages", () => {
   it("knows every code the backend sends", () => {
     const sent = [
       ...backendCodes("core/error/http/codes.ts", /domainErrorCodes = \[([^\]]+)\]/),
-      ...backendCodes("modules/auth/error/http/AuthError.ts", /type AuthErrorCode =([^;]+);/),
       ...backendCodes("core/storage/errors.ts", /type StorageErrorCode =([^;]+);/),
     ];
     expect(sent.length).toBeGreaterThan(10);
     expect(sent.filter((code) => !(API_ERROR_CODES as readonly string[]).includes(code))).toEqual([]);
   });
 
-  it("names the domain reason: a wrong password at sign-in, a full campaign storage", () => {
-    const error = toApiError(new Response(null, { status: 401 }), envelope("INVALID_CREDENTIALS"));
-    expect(errorMessageKey(error)).toBe("errors.INVALID_CREDENTIALS");
+  it("names the domain reason: a file type that isn't allowed, a full campaign storage", () => {
+    const error = toApiError(new Response(null, { status: 415 }), envelope("INVALID_MAGIC_BYTES"));
+    expect(errorMessageKey(error)).toBe("errors.INVALID_MAGIC_BYTES");
     const full = toApiError(new Response(null, { status: 413 }), envelope("STORAGE_QUOTA_EXCEEDED"));
     expect(errorMessageKey(full)).toBe("errors.STORAGE_QUOTA_EXCEEDED");
   });

@@ -2,7 +2,6 @@ import http from "node:http";
 import type { AddressInfo } from "node:net";
 
 import { eq } from "drizzle-orm";
-import jsonwebtoken from "jsonwebtoken";
 import sharp from "sharp";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
@@ -78,7 +77,6 @@ describe("media on S3 (RustFS)", () => {
     await db.insert(users).values({
       id: GM_ID,
       email: "gm@example.test",
-      passwordHash: "hash",
       displayName: "GM",
       systemRole: "USER",
       status: "ACTIVE",
@@ -300,7 +298,7 @@ describe("media on S3 (RustFS)", () => {
     const { port } = session.app.server.address() as AddressInfo;
     const partPath = `http://127.0.0.1:${port}/api/v1${mediaUrl.replace("/api/v1", "")}/uploads/${id}/parts/1`;
     const headers = {
-      authorization: `Bearer ${jsonwebtoken.sign({ systemRole: "USER" }, session.env.JWT_ACCESS_SECRET, { algorithm: "HS256", subject: GM_ID, expiresIn: "5m" })}`,
+      authorization: session.authorizationFor({ actorId: GM_ID, systemRole: "USER" }),
       "content-type": "application/octet-stream",
     };
 

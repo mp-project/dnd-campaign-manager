@@ -57,7 +57,7 @@ export function usePublicNavigation() {
     primary: computed<{ to: RouteLocationRaw; label: string }>(() =>
       signedIn.value
         ? { to: "/dashboard", label: t("common.publicNav.toApp") }
-        : { to: { name: "auth-register" }, label: t("common.publicNav.preregister") },
+        : { to: { name: localizedRouteName("auth-waitlist", language.value) }, label: t("common.publicNav.preregister") },
     ),
   };
 }

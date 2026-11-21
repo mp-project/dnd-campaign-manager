@@ -4,9 +4,9 @@
 --
 -- Safety rules:
 -- - Refuses to delete SYSTEM user.
--- - Deletes dependent rows first (restrict FKs):
---   password_reset_tokens, refresh_tokens, user_settings.
--- - Also removes email_verification_requests for the user's email.
+-- - Deletes dependent rows first (restrict FKs): user_settings.
+-- - Only the local account: delete the account at Clerk too (dashboard or Backend API),
+--   otherwise the next sign-in creates a new local account.
 --
 -- Note:
 -- - `created_by` / `updated_by` in current schema are not enforced with FK constraints.
@@ -44,21 +44,9 @@ BEGIN
     RAISE EXCEPTION 'Refusing to hard-delete SYSTEM user (%)', targetUserId;
   END IF;
 
-  DELETE FROM password_reset_tokens WHERE user_id = targetUserId;
-  GET DIAGNOSTICS affectedRows = ROW_COUNT;
-  RAISE NOTICE 'Deleted password_reset_tokens: %', affectedRows;
-
-  DELETE FROM refresh_tokens WHERE user_id = targetUserId;
-  GET DIAGNOSTICS affectedRows = ROW_COUNT;
-  RAISE NOTICE 'Deleted refresh_tokens: %', affectedRows;
-
   DELETE FROM user_settings WHERE user_id = targetUserId;
   GET DIAGNOSTICS affectedRows = ROW_COUNT;
   RAISE NOTICE 'Deleted user_settings: %', affectedRows;
-
-  DELETE FROM email_verification_requests WHERE email = targetUserEmail;
-  GET DIAGNOSTICS affectedRows = ROW_COUNT;
-  RAISE NOTICE 'Deleted email_verification_requests: %', affectedRows;
 
   DELETE FROM users WHERE id = targetUserId;
   GET DIAGNOSTICS affectedRows = ROW_COUNT;

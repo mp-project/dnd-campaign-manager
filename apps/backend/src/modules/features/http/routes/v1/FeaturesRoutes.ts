@@ -55,7 +55,7 @@ export type FeaturesRouteControllers = {
   resolveFeatureController: ResolveFeatureController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Features"];
 
 const readErrorResponses = {

@@ -57,7 +57,6 @@ describe("campaigns history", () => {
       [ID.gm, ID.player, ID.outsider, ID.admin, ID.editor].map((id) => ({
         id,
         email: `${id}@example.test`,
-        passwordHash: "hash",
         displayName: "Test",
         systemRole: id === ID.admin ? ("ADMIN" as const) : ("USER" as const),
         status: "ACTIVE" as const,

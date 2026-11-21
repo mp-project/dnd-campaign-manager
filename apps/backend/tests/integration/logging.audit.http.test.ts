@@ -41,7 +41,6 @@ describe("audit log of committed changes", () => {
     await db.insert(users).values({
       id: OWNER.actorId,
       email: "owner@example.test",
-      passwordHash: "hash",
       displayName: "Owner",
       systemRole: "USER",
       status: "ACTIVE",
@@ -120,7 +119,6 @@ describe("audit log of committed changes", () => {
     await db.insert(users).values({
       id: admin.actorId,
       email: "admin@example.test",
-      passwordHash: "hash",
       displayName: "Admin",
       systemRole: "ADMIN",
       status: "ACTIVE",

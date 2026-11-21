@@ -37,7 +37,7 @@ export type NotesRouteControllers = {
   restoreNoteController: RestoreNoteController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Notes"];
 
 const readErrorResponses = {

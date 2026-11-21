@@ -46,7 +46,6 @@ describe("users history", () => {
     ].map((user) => ({
       ...user,
       email: `${user.id}@example.test`,
-      passwordHash: "secret-hash",
       displayName: "Original Name",
       status: "ACTIVE" as const,
       emailVerifiedAt: new Date(),
@@ -122,7 +121,7 @@ describe("users history", () => {
     expect(raw).not.toContain("Original Name");
   });
 
-  it("keeps password, email and login data out of the history", async () => {
+  it("keeps the provider link, email and login data out of the history", async () => {
     await patch({ status: "LOCKED", expectedVersion: 1 });
 
     const raw = (await history()).body;
@@ -130,7 +129,7 @@ describe("users history", () => {
     expect(raw).not.toContain("secret-hash");
     expect(raw).not.toContain(`${ID.target}@example.test`);
     expect((JSON.parse(raw).data as HistoryItem[]).map((item) => item.field)).not.toEqual(
-      expect.arrayContaining(["passwordHash", "email", "lastLoginAt"]),
+      expect.arrayContaining(["clerkUserId", "email", "lastLoginAt"]),
     );
   });
 

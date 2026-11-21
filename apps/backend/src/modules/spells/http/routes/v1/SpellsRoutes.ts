@@ -87,7 +87,7 @@ export type SpellsRouteControllers = Record<
   Handler
 >;
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 const readErrorResponses = {
   400: errorResponseDto,

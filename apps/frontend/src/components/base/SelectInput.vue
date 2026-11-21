@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends string | number">
 /**
- * Native select in the Chronik style. class/style go to the wrapper, other attributes to the select.
+ * Native select in the Questaria style. class/style go to the wrapper, other attributes to the select.
  * `placeholder` adds a disabled empty first option.
  */
 import { computed, useAttrs } from "vue";

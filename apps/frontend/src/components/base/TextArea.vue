@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Multi-line input in the Chronik style. */
+/** Multi-line input in the Questaria style. */
 const model = defineModel<string>();
 withDefaults(defineProps<{ id?: string; placeholder?: string; rows?: number; invalid?: boolean }>(), { rows: 4 });
 </script>

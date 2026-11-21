@@ -1,5 +1,5 @@
 /**
- * The public address of the site (`VITE_SITE_URL`, e.g. `https://chronik.example`) for canonical
+ * The public address of the site (`VITE_SITE_URL`, e.g. `https://questaria.example`) for canonical
  * links, `og:url`, preview images and the sitemap: they must name the real domain also when the
  * page is rendered somewhere else (prerendering at build time). Without it, the current origin.
  */

@@ -1,5 +1,5 @@
 /**
- * Every symbol of the icon sprite `public/assets/icons/chronik.svg` (`nav-*`, `aktion-*`, `orig-*`, `ui-*`).
+ * Every symbol of the icon sprite `public/assets/icons/questaria.svg` (`nav-*`, `aktion-*`, `orig-*`, `ui-*`).
  * `tests/unit/components/icons.test.ts` checks that this list and the sprite match.
  */
 export const ICON_NAMES = [

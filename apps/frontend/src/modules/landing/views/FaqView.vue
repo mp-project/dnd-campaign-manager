@@ -12,7 +12,9 @@ import { useRoute } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import TextInput from "@/components/base/TextInput.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
+import PublicHeader from "@/components/layout/PublicHeader.vue";
+import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
 import { demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
@@ -24,8 +26,6 @@ import { usePageMeta } from "@/core/seo/pageMeta";
 
 import castleRuinScene from "../assets/deco/castle-ruin.webp";
 import scrollArt from "../assets/deco/scroll.webp";
-import type { MenuChapter } from "../components/LandingMenu.vue";
-import PublicHeader from "../components/PublicHeader.vue";
 import {
   FAQ_GROUPS,
   type FaqLink,
@@ -39,7 +39,6 @@ const { t } = useAppI18n();
 const route = useRoute();
 const demo = demoUrl();
 const homePath = useHomePath();
-const home = useLocalizedPage("landing");
 const contact = useLocalizedPage("contact");
 const text = (key: MessageKey) => t(key);
 
@@ -52,7 +51,7 @@ usePageMeta({
       groups: FAQ_GROUPS,
       text,
       locale: String(language),
-      home: { name: t("landing.header.home"), url: absoluteUrl(localizedPath("", language)) },
+      home: { name: t("common.publicNav.home"), url: absoluteUrl(localizedPath("", language)) },
       page: { name: t("landing.faq.breadcrumb"), url: absoluteUrl(localizedPath("faq", language)) },
     });
   },
@@ -103,10 +102,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <PublicHeader
-      :chapters="chapters"
-      :page-link="{ to: home, label: 'landing.header.home', icon: 'ui-house' }"
-    />
+    <PublicHeader :chapters="chapters" />
 
     <main class="flex-1">
       <!-- Head: navy like the start page's hero, with the search -->
@@ -115,12 +111,12 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
         aria-labelledby="faq-title"
       >
         <div class="faq-glow pointer-events-none absolute inset-0" />
-        <CompassRose
+        <WingSeal
           :size="220"
-          class="faq-compass pointer-events-none absolute hidden lg:block"
+          class="faq-seal pointer-events-none absolute hidden lg:block"
           aria-hidden="true"
         />
-        <div class="relative mx-auto max-w-400 px-4 pt-8 pb-14 md:px-10 md:pt-12 md:pb-20">
+        <div class="relative mx-auto max-w-400 px-4 pt-10 pb-20 md:px-10 md:pt-16 md:pb-28">
           <nav :aria-label="t('common.shell.breadcrumb')">
             <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
               <li>
@@ -128,7 +124,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                   :to="homePath"
                   class="inline-flex min-h-11 items-center hover:underline"
                 >
-                  {{ t("landing.header.home") }}
+                  {{ t("common.publicNav.home") }}
                 </RouterLink>
               </li>
               <li
@@ -213,7 +209,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
           decoding="async"
           class="faq-scene pointer-events-none absolute"
         >
-        <div class="relative mx-auto grid max-w-400 gap-10 px-4 pt-12 pb-32 md:px-10 md:pt-16 md:pb-44 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-14 xl:grid-cols-[19rem_minmax(0,52rem)] xl:justify-center">
+        <div class="relative mx-auto grid max-w-400 gap-10 px-4 pt-16 pb-40 md:px-10 md:pt-24 md:pb-56 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-14 xl:grid-cols-[19rem_minmax(0,52rem)] xl:justify-center">
           <aside class="hidden lg:block">
             <nav
               class="faq-topics sticky"
@@ -446,7 +442,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
     radial-gradient(ellipse at 85% 30%, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 55%),
     radial-gradient(ellipse at 10% 100%, color-mix(in srgb, var(--color-brand) 16%, transparent), transparent 50%);
 }
-.faq-compass {
+.faq-seal {
   top: 50%;
   right: 8%;
   opacity: 0.22;

@@ -3,12 +3,16 @@ import { ref } from "vue";
 
 import BottomNav from "@/components/layout/BottomNav.vue";
 import BrandMark from "@/components/layout/BrandMark.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
 import NavFooter from "@/components/layout/NavFooter.vue";
 import NavTree from "@/components/layout/NavTree.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
+import LanguageSwitch from "@/components/layout/LanguageSwitch.vue";
+import PublicHeader from "@/components/layout/PublicHeader.vue";
+import PublicMenu from "@/components/layout/PublicMenu.vue";
+import PublicNavLink from "@/components/layout/PublicNavLink.vue";
 import SiteHeader from "@/components/layout/SiteHeader.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import AppBreadcrumb from "@/components/page/AppBreadcrumb.vue";
 import InfoNote from "@/components/page/InfoNote.vue";
 import TabNav from "@/components/page/TabNav.vue";
@@ -136,7 +140,7 @@ const playerBottom: BottomNavTarget[] = [
           :targets="campaignBottom"
           active="content"
           label="Kampagnennavigation"
-          compass-first
+          seal-first
         />
       </ShowcaseVariant>
       <ShowcaseVariant
@@ -228,26 +232,6 @@ const playerBottom: BottomNavTarget[] = [
       </ShowcaseVariant>
     </ShowcaseComponent>
 
-    <ShowcaseComponent
-      name="CompassRose"
-      description="tone: navy, light, active (auf Navy), parchment"
-    >
-      <ShowcaseVariant
-        label="navy / light / active"
-        dark
-      >
-        <CompassRose />
-        <CompassRose tone="light" />
-        <CompassRose tone="active" />
-      </ShowcaseVariant>
-      <ShowcaseVariant label="parchment, 64 px">
-        <CompassRose
-          tone="parchment"
-          :size="64"
-        />
-      </ShowcaseVariant>
-    </ShowcaseComponent>
-
     <ShowcaseComponent name="BrandMark">
       <ShowcaseVariant
         label="Standard / compact (PlayerShell)"
@@ -287,8 +271,117 @@ const playerBottom: BottomNavTarget[] = [
     </ShowcaseComponent>
 
     <ShowcaseComponent
+      name="PublicHeader"
+      description="Kopf aller öffentlichen Seiten: Navigation aus den Modulen (Bereich public), Sprachwahl auf mehrsprachigen Seiten, Demo und Vorab-Registrierung als Buttons; unter lg das Kompass-Menü"
+    >
+      <ShowcaseVariant
+        label="oben"
+        dark
+      >
+        <PublicHeader
+          :condensed="false"
+          class="w-full"
+        />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="PublicNavLink"
+      description="Textlink der öffentlichen Navigation: Unterstreichung in der Primärfarbe bei Hover und Fokus, dauerhaft auf der aktuellen Seite"
+    >
+      <ShowcaseVariant
+        label="auf Navy"
+        dark
+      >
+        <PublicNavLink to="/_bausteine#faq">
+          FAQ
+        </PublicNavLink>
+        <PublicNavLink
+          to="/_bausteine#roadmap"
+          active
+        >
+          Roadmap (aktiv)
+        </PublicNavLink>
+        <PublicNavLink to="/_bausteine#kontakt">
+          Kontakt
+        </PublicNavLink>
+      </ShowcaseVariant>
+      <ShowcaseVariant label="auf Pergament">
+        <PublicNavLink
+          to="/_bausteine#faq"
+          tone="light"
+        >
+          FAQ
+        </PublicNavLink>
+        <PublicNavLink
+          to="/_bausteine#roadmap"
+          tone="light"
+          active
+        >
+          Roadmap (aktiv)
+        </PublicNavLink>
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="PublicMenu"
+      description="Menü der öffentlichen Seiten unter lg: Kompass öffnet eine Pergamentrolle mit den Kapiteln der Seite, den Navigationslinks und den Aktionen (Fenster schmaler als 1024 px)"
+    >
+      <ShowcaseVariant
+        label="Auslöser"
+        dark
+      >
+        <PublicMenu
+          :chapters="[{ section: 'showcase-layout', icon: 'ui-scroll', label: 'common.publicNav.roadmap', hint: 'common.status.PLANNED' }]"
+        />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="LanguageSwitch"
+      description="Sprachwahl öffentlicher Seiten: Globus mit Menü, führt zur gleichen Seite in der anderen Sprache"
+    >
+      <ShowcaseVariant
+        label="Globus"
+        dark
+      >
+        <LanguageSwitch />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
+      name="WingSeal"
+      description="Flügelsiegel der Marke in Linien: Emblem in Footer, Karten, Köpfen und Editoren; Ton nach Untergrund"
+    >
+      <ShowcaseVariant
+        label="navy / light / active / eigene Farbe"
+        dark
+      >
+        <WingSeal :size="56" />
+        <WingSeal
+          :size="56"
+          tone="light"
+        />
+        <WingSeal
+          :size="56"
+          tone="active"
+        />
+        <WingSeal
+          :size="56"
+          class="text-gold-bright"
+        />
+      </ShowcaseVariant>
+      <ShowcaseVariant label="parchment">
+        <WingSeal
+          :size="64"
+          tone="parchment"
+        />
+      </ShowcaseVariant>
+    </ShowcaseComponent>
+
+    <ShowcaseComponent
       name="SiteFooter"
-      description="Fuß aller öffentlichen Seiten: Ruinen, deren Bergkamm in den Abschnitt darüber ragt, eigener Inhalt (Standard: Aufruf der Startseite) und die Links zu Datenschutz, Impressum und FAQ"
+      description="Fuß aller öffentlichen Seiten: Ruinen, deren Bergkamm in den Abschnitt darüber ragt, eigener Inhalt (Standard: Aufruf der Startseite) und die Links zu Datenschutz und Impressum"
     >
       <ShowcaseVariant
         label="Standard: Aufruf der Startseite"

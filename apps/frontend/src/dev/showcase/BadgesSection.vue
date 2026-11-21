@@ -141,7 +141,7 @@ const sizes = [24, 32, 40, 56, 72];
           tone="burgundy"
         />
         <Avatar
-          src="/assets/deko/kompassrose.svg"
+          src="/assets/deko/fluegelsiegel.svg"
           :size="56"
           :crop="{ x: 50, y: 50, zoom: 1.6 }"
         />

@@ -57,13 +57,13 @@ const signedIn = computed(() => !!me.data.value);
         :to="faq"
         class="inline-flex min-h-11 items-center text-info underline underline-offset-4"
       >
-        {{ t("common.siteFooter.faq") }}
+        {{ t("common.publicNav.faq") }}
       </RouterLink>
       <RouterLink
         :to="contact"
         class="inline-flex min-h-11 items-center text-info underline underline-offset-4"
       >
-        {{ t("common.siteFooter.contact") }}
+        {{ t("common.publicNav.contact") }}
       </RouterLink>
     </div>
   </BrandLayout>

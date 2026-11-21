@@ -9,13 +9,14 @@ import { useHomePath } from "@/core/i18n/localizedRoutes";
 import { useShellStore } from "@/core/ui/shell";
 
 import BrandMark from "./BrandMark.vue";
-import CompassRose from "./CompassRose.vue";
 import NavFooter from "./NavFooter.vue";
 import ShellNavigation from "./ShellNavigation.vue";
 
 withDefaults(defineProps<{ headerHeight?: number }>(), { headerHeight: 76 });
 const { t } = useAppI18n();
 const home = useHomePath();
+/** The dragon Q alone, for the collapsed sidebar. */
+const brandIcon = `${import.meta.env.BASE_URL}assets/brand/questaria-q-hell.svg`;
 const shell = useShellStore();
 </script>
 
@@ -35,7 +36,13 @@ const shell = useShellStore();
         :to="home"
         :aria-label="t('common.shell.toHome')"
       >
-        <CompassRose :size="40" />
+        <img
+          :src="brandIcon"
+          alt=""
+          width="40"
+          height="40"
+          class="size-10"
+        >
       </RouterLink>
       <BrandMark
         v-else

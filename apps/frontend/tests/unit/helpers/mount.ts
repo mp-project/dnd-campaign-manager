@@ -3,7 +3,9 @@ import { mount, type ComponentMountingOptions } from "@vue/test-utils";
 import type { Component } from "vue";
 import { createMemoryHistory, createRouter, type Router } from "vue-router";
 
+import { frontendModules, navItemsOf } from "@/app/modules";
 import { type AppI18n, createAppI18n, setLocale } from "@/core/i18n";
+import { NAV_ITEMS } from "@/core/navigation/navigation";
 
 const i18nByLocale = new Map<string, Promise<AppI18n>>();
 
@@ -31,7 +33,7 @@ export function testRouter() {
 /**
  * Mounts a component the way the app runs it: German messages (or `locale`), a router (a
  * catch-all one, or `router` with real routes) and a query client (an empty one, unless the test
- * passes its own `VueQueryPlugin`).
+ * passes its own `VueQueryPlugin`) and the navigation entries of all modules, like `main.ts`.
  * Attached to the document, so teleported content (menus, dialogs) can be found in `document.body`.
  */
 export async function mountWithApp<C extends Component>(
@@ -46,7 +48,11 @@ export async function mountWithApp<C extends Component>(
   const wrapper = mount(component, {
     attachTo: document.body,
     ...rest,
-    global: { ...global, plugins: [i18n, router, ...queryPlugin, ...plugins] },
+    global: {
+      ...global,
+      plugins: [i18n, router, ...queryPlugin, ...plugins],
+      provide: { [NAV_ITEMS as symbol]: navItemsOf(frontendModules), ...global?.provide },
+    },
   } as ComponentMountingOptions<C>);
   return { wrapper, router };
 }

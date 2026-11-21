@@ -95,7 +95,7 @@ describe("landing page", () => {
     expect(i18n.global.locale.value).toBe("de");
   });
 
-  it("presents the app, its main features and the way to register and sign in", async () => {
+  it("presents the app, its main features and the way to pre-register", async () => {
     const { wrapper, fetchSpy } = await open();
     expect(wrapper.find("h1").text()).toBe("Deine Kampagne. Deine Welt. An einem Ort.");
     const headings = wrapper.findAll("h3").map((heading) => heading.text());
@@ -109,15 +109,21 @@ describe("landing page", () => {
       ]),
     );
     expect(wrapper.find("#landing-marketplace").text()).toBe("Inhalte teilen und entdecken");
-    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/login", "/datenschutz", "/impressum", "/faq"]));
-    // The header leads to the FAQ, the footer to privacy, imprint and FAQ.
-    expect(wrapper.find("header").findAll("a").map((link) => link.text())).toContain("Häufige Fragen");
-    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual([
-      "/datenschutz",
-      "/impressum",
-      "/faq",
-      "/kontakt",
+    expect(hrefs(wrapper)).toEqual(expect.arrayContaining(["/registrieren", "/datenschutz", "/impressum", "/faq", "/roadmap", "/kontakt"]));
+    // Sign-in is not offered while access goes through pre-registration.
+    expect(hrefs(wrapper)).not.toContain("/login");
+    // The header leads to FAQ, roadmap and contact (none of them the page shown), with the
+    // pre-registration as a button on the right; the footer only to privacy and imprint.
+    const header = wrapper.find("header");
+    expect(header.find("nav").findAll("a").map((link) => [link.text(), link.attributes("href"), link.attributes("aria-current")])).toEqual([
+      ["FAQ", "/faq", undefined],
+      ["Roadmap", "/roadmap", undefined],
+      ["Kontakt", "/kontakt", undefined],
     ]);
+    const register = header.findAll("a.btn").find((link) => link.attributes("href") === "/registrieren");
+    expect(register?.text()).toBe("Vorab registrieren");
+    expect(register?.classes()).toContain("btn-primary");
+    expect(wrapper.find("footer nav").findAll("a").map((link) => link.attributes("href"))).toEqual(["/datenschutz", "/impressum"]);
     expect(hrefs(wrapper)).not.toContain("/dashboard");
     // Visitors without a session cost the API nothing.
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -173,26 +179,35 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
-  it("rides over the storyline board scene by scene, on the route the visitor chooses", async () => {
+  it("rides over the storyline board scene by scene, on the route the visitor chooses", { timeout: 20000 }, async () => {
     vi.stubEnv("VITE_DEMO_URL", "https://demo.example.com/");
     const { wrapper } = await open();
     const article = wrapper.find("article[aria-labelledby=landing-feature-storylines]");
-    // At first the whole board with a hint, no scene.
-    expect(article.text()).toContain("zwei Routen, die sich am alten Tor wieder treffen");
+    // At first the whole board with a hint, no scene. The board is drawn live: its cards, not a picture.
+    expect(article.text()).toContain("zwei Routen durch die Festung und zwei mögliche Enden");
+    const board = article.find("[role=img]");
+    expect(board.findAll("article").map((card) => card.find("h3").text())).toContain("Am alten Tor");
+    expect(board.findAll(".is-lit, .is-current")).toHaveLength(0);
     const steps = () => article.findAll("ol button");
     expect(steps().map((step) => step.text())).toEqual([
       "1Spuren im Nebel",
       "2Die Wache bestechen",
       "3Am alten Tor",
       "4Torwache",
+      "5Licht über Grauhafen",
     ]);
     await steps()[2]!.trigger("click");
     expect(steps()[2]!.attributes("aria-current")).toBe("step");
-    expect(article.text()).toContain("Szene 3 von 4 · Offizieller Weg");
+    expect(article.text()).toContain("Szene 3 von 5 · Offizieller Weg");
+    // Once the camera arrived, the lines of the way get thicker and the gold runs along them,
+    // one after the other; the section lights up when the gold reached it.
+    await vi.waitFor(() => expect(board.findAll("path.line.is-lit")).not.toHaveLength(0), { timeout: 3000 });
+    await vi.waitFor(() => expect(board.find(".is-current h3").text()).toBe("Am alten Tor"), { timeout: 9000 });
     await article.findAll("[role=radio]")[1]!.trigger("click");
     expect(steps().map((step) => step.text())).toContain("4Das versiegelte Gewölbe");
+    expect(steps().map((step) => step.text())).toContain("5Der Nebel bleibt");
     expect(steps()[0]!.attributes("aria-current")).toBe("step");
-    expect(article.text()).toContain("Szene 1 von 4 · Geheimer Zugang");
+    expect(article.text()).toContain("Szene 1 von 5 · Geheimer Zugang");
     // The stage leads nowhere itself; the demo link sits below it.
     expect(article.find("a").attributes("href")).toBe(
       "https://demo.example.com/#/kampagne/abenteuer/storylines/schatten-elaria/akt",
@@ -252,13 +267,13 @@ describe("landing page", () => {
 
   it("opens a table of contents from the compass on phones and closes it again", async () => {
     const { wrapper } = await open();
-    const compass = wrapper.find("button[aria-controls=landing-menu]");
+    const compass = wrapper.find("button[aria-controls=public-menu]");
     expect(compass.attributes("aria-expanded")).toBe("false");
     expect(compass.attributes("aria-label")).toBe("Menü öffnen");
     await compass.trigger("click");
     expect(compass.attributes("aria-expanded")).toBe("true");
     expect(compass.attributes("aria-label")).toBe("Menü schließen");
-    const menu = document.getElementById("landing-menu")!;
+    const menu = document.getElementById("public-menu")!;
     expect([...menu.querySelectorAll(".chapter-link")].map((link) => [...link.querySelectorAll(".flex-1 > span")].map((part) => part.textContent?.trim()).join(" | "))).toEqual([
       "Kapitel I | Für wen | Spielleitungen, Spieler und Co-Autoren",
       "Kapitel II | Funktionen | Storylines, Charaktere und Sessions",
@@ -267,8 +282,9 @@ describe("landing page", () => {
       "Kapitel V | Ruf-System | Haltungen, die mit der Geschichte wachsen",
     ]);
     expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).toEqual(
-      expect.arrayContaining(["Registrieren", "Anmelden"]),
+      expect.arrayContaining(["FAQ", "Roadmap", "Kontakt", "Vorab registrieren"]),
     );
+    expect([...menu.querySelectorAll("a")].map((link) => link.textContent?.trim())).not.toContain("Anmelden");
     // A chapter closes the menu and moves the page to its section.
     const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
     menu.querySelector<HTMLAnchorElement>(".chapter-link")!.click();
@@ -307,8 +323,10 @@ describe("landing page", () => {
   });
 
   it("sets title, description and the language links for search engines, and removes them again", async () => {
+    // Without a site address the links use the page's own origin (a local .env may set one).
+    vi.stubEnv("VITE_SITE_URL", "");
     const { wrapper } = await open({ url: "/en", locale: "en" });
-    expect(document.title).toBe("Chronik – campaign manager for D&D 5E");
+    expect(document.title).toBe("Questaria – campaign manager for D&D 5E");
     expect(document.head.querySelector<HTMLMetaElement>("meta[name=description]")?.content).toContain("game masters");
     const link = (selector: string) => document.head.querySelector<HTMLLinkElement>(selector)?.getAttribute("href");
     expect(link("link[rel=canonical]")).toBe(`${location.origin}/en`);
@@ -321,7 +339,7 @@ describe("landing page", () => {
   });
 
   it("describes site, publisher and app for search engines", async () => {
-    vi.stubEnv("VITE_SITE_URL", "https://chronik.example");
+    vi.stubEnv("VITE_SITE_URL", "https://questaria.example");
     const { wrapper } = await open({ url: "/en", locale: "en" });
     const data = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map((script) =>
       JSON.parse(script.textContent ?? ""),
@@ -331,11 +349,12 @@ describe("landing page", () => {
     expect(organization).toEqual({
       "@context": "https://schema.org",
       "@type": "Organization",
-      "@id": "https://chronik.example/#organization",
-      name: "Chronik",
-      url: "https://chronik.example/",
+      "@id": "https://questaria.example/#organization",
+      name: "Questaria",
+      url: "https://questaria.example/",
+      logo: "https://questaria.example/assets/brand/questaria-q-512.png",
     });
-    expect(website).toMatchObject({ url: "https://chronik.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
+    expect(website).toMatchObject({ url: "https://questaria.example/en", inLanguage: "en", publisher: { "@id": organization["@id"] } });
     expect(app).toMatchObject({
       applicationCategory: "GameApplication",
       operatingSystem: "Web",
@@ -382,7 +401,9 @@ describe("landing page", () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
     const alts = wrapper.findAll("img[alt]").map((image) => image.attributes("alt")).filter(Boolean);
-    expect(alts).toHaveLength(9);
+    expect(alts).toHaveLength(8);
+    // The storyline board is no picture but drawn live, named as a whole.
+    expect(wrapper.find("[role=img]").attributes("aria-label")).toContain("Akt-Board der Storyline");
     // The hero's dragon is decoration and loads first; everything else waits until needed.
     const hero = wrapper.find("section[aria-labelledby=landing-title] img");
     expect(hero.attributes("aria-hidden")).toBe("true");
@@ -390,7 +411,6 @@ describe("landing page", () => {
     expect(alts).toEqual(
       expect.arrayContaining([
         expect.stringContaining("Charakterbogen von Arvel Merad"),
-        expect.stringContaining("Akt-Board der Storyline"),
         expect.stringContaining("Weltkarte von Elaria"),
         expect.stringContaining("Marktplatz"),
         expect.stringContaining("SRD 5.2 – Gesamtpaket"),
@@ -399,9 +419,11 @@ describe("landing page", () => {
     );
     // Below the hero the pictures load only when needed: the screens, the slider's motifs and
     // the decoration (landscapes, watercolours, props), which screen readers don't see.
-    const lazy = wrapper.findAll("img[loading=lazy]");
-    expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(9);
-    expect(lazy).toHaveLength(9 + 7 + 16);
+    // The board's scene pictures are part of the board, which screen readers get as a whole.
+    const lazy = wrapper.findAll("img[loading=lazy]").filter((img) => !img.element.closest("[role=img]"));
+    expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(8);
+    expect(lazy).toHaveLength(8 + 7 + 16);
+    expect(wrapper.findAll("[role=img] img[loading=lazy]")).toHaveLength(9);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

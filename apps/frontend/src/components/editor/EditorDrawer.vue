@@ -18,7 +18,7 @@ import CloseButton from "@/components/base/CloseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
 import StatusBadge from "@/components/base/StatusBadge.vue";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
 import ParchmentFrame from "@/components/layout/ParchmentFrame.vue";
 import { useAppI18n } from "@/core/i18n";
 
@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
           :style="{ maxWidth: `min(100%, ${width})` }"
         >
           <header class="mx-4 flex shrink-0 items-center gap-3 border-b border-gold/60 pt-4 pb-3 md:mx-6 md:gap-4 md:pt-5 md:pb-4">
-            <CompassRose
+            <WingSeal
               :size="62"
               tone="parchment"
               class="hidden md:block"

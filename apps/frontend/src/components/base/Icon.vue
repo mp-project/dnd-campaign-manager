@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Icon from the shared sprite (public/assets/icons/chronik.svg), colored through currentColor
+ * Icon from the shared sprite (public/assets/icons/questaria.svg), colored through currentColor
  * (text-ink, text-gold-light …). Sizes 16/20/24/32, domain icons in page headers 40–48.
  * Without `label` it is decorative (hidden from screen readers). An unknown name renders nothing.
  */
@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{ name: IconName; size?: number | string;
   label: "",
 });
 
-const href = computed(() => `${import.meta.env.BASE_URL}assets/icons/chronik.svg#${props.name}`);
+const href = computed(() => `${import.meta.env.BASE_URL}assets/icons/questaria.svg#${props.name}`);
 </script>
 
 <template>

@@ -103,7 +103,7 @@ describe("dashboard", () => {
     server.answers["GET /api/v1/campaigns"] = { status: 200, body: { data: [], limit: 100, nextCursor: null, total: 0 } };
     server.answers["GET /api/v1/ruleset"] = { status: 200, body: { data: [RULESET], limit: 20, nextCursor: null, total: 1 } };
     const allowed = await open(DashboardView, "/dashboard");
-    expect(allowed.wrapper.text()).toContain("Willkommen in deiner Chronik");
+    expect(allowed.wrapper.text()).toContain("Willkommen bei Questaria");
     expect(allowed.wrapper.findAll("button").some((button) => button.text() === "Kampagne erstellen")).toBe(true);
     allowed.wrapper.unmount();
 

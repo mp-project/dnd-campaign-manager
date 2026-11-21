@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
-const COLLAPSED_KEY = "chronik.navCollapsed";
+const COLLAPSED_KEY = "questaria.navCollapsed";
 
 function readCollapsed(): boolean {
   try {

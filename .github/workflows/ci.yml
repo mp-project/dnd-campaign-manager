@@ -145,7 +145,7 @@ jobs:
       - run: npm run build --workspace @dnd/frontend
         env:
           # A placeholder: canonical links, sitemap and prerendered pages need an absolute address.
-          VITE_SITE_URL: https://chronik.example
+          VITE_SITE_URL: https://questaria.example
 
   # The generated frontend API types depend on both sides, so a change to either checks them.
   # Exporting the OpenAPI document needs no database.

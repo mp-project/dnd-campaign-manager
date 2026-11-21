@@ -22,7 +22,7 @@ const groups = computed(() =>
   <ShowcaseSection
     id="icons"
     title="Icons"
-    :description="`${ICON_NAMES.length} Symbole aus public/assets/icons/chronik.svg, Farbe über currentColor.`"
+    :description="`${ICON_NAMES.length} Symbole aus public/assets/icons/questaria.svg, Farbe über currentColor.`"
   >
     <ShowcaseComponent
       name="Icon"

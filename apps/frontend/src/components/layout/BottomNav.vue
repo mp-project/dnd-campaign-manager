@@ -1,15 +1,15 @@
 <script setup lang="ts">
 /**
  * Mobile bottom bar with at most five targets: links, or `panel` targets that open the menu
- * (campaign: "content" at the groups, "more" with everything). `compassFirst` draws the first
- * target (overview) as the compass rose.
+ * (campaign: "content" at the groups, "more" with everything). `sealFirst` draws the first
+ * target (overview) as the wing seal.
  */
 import Icon from "@/components/base/Icon.vue";
 import type { BottomNavTarget } from "@/core/navigation/navigation";
 
-import CompassRose from "./CompassRose.vue";
+import WingSeal from "./WingSeal.vue";
 
-defineProps<{ targets: BottomNavTarget[]; active?: string; label: string; compassFirst?: boolean }>();
+defineProps<{ targets: BottomNavTarget[]; active?: string; label: string; sealFirst?: boolean }>();
 const emit = defineEmits<{ panel: [panel: "content" | "more"] }>();
 </script>
 
@@ -46,8 +46,8 @@ const emit = defineEmits<{ panel: [panel: "content" | "more"] }>();
           :class="active === target.id && 'bottom-nav-active text-gold-light'"
           :aria-current="active === target.id ? 'page' : undefined"
         >
-          <CompassRose
-            v-if="compassFirst && index === 0"
+          <WingSeal
+            v-if="sealFirst && index === 0"
             :size="28"
             :tone="active === target.id ? 'active' : 'light'"
           />

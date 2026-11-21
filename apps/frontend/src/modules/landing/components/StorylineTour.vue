@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
- * The storyline feature as a camera ride over the clickdummy's act board, on navy: a capture of
- * the board at 2.5 times its size (so it stays sharp when the camera moves in) fills a large stage, the camera moves from scene to scene along one route, and a golden thread weaves
- * itself between the scenes it passed. Visitors switch between the two routes of the board, jump to
- * a scene, pause the ride or show the whole board. Along a route the camera pans from scene to
- * scene; to the other route it pulls back on the way to its start and moves in again. Then the
- * thread and the scene's frame draw themselves (GSAP). The ride starts
- * once the stage is in view and rests while it is out of view; with reduced motion it doesn't
- * play by itself and jumps instead of moving. The frame of the stage leads nowhere; the demo link
+ * The storyline feature as a camera ride over the clickdummy's act board, on navy. The board is
+ * drawn live (`StorylineBoard`, in board pixels) and fills a large stage; the camera moves from
+ * section to section along one route. Once it arrived, the board marks the way on its own
+ * elements: the travelled connections turn bright gold, the current section gets a glowing gold
+ * frame, passed ones keep a frame, and what is off the route fades. Visitors switch between the
+ * two routes, jump to a section, pause the ride or show the whole board. Along a route the camera
+ * pans; to the other route it pulls back on the way to its start and moves in again (GSAP). The
+ * ride starts once the stage is in view and rests while it is out of view; with reduced motion
+ * it doesn't play by itself and jumps instead of moving. The stage leads nowhere; the demo link
  * sits below it.
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -22,73 +23,77 @@ import { gsap, motionEase, ScrollTrigger } from "@/core/motion/gsap";
 import { useReducedMotion } from "@/core/motion/reducedMotion";
 import { useGsap } from "@/core/motion/useGsap";
 
-import board from "../assets/screens/storyline-board.webp";
 import { demoScreenUrl } from "@/core/demo";
 import { SCREENS } from "../screens";
+import { BOARD_HEIGHT, BOARD_WIDTH, RIDES, type RouteId, sectionById } from "../storylineBoard";
+import StorylineBoard from "./StorylineBoard.vue";
 
-type RouteId = "official" | "secret";
-/** A scene card of the board, in CSS pixels of the captured board (the file has 2.5 times as many). */
-type Stop = { id: string; x: number; y: number; width: number; height: number; title: MessageKey; text: MessageKey };
-/** `threads[i]` leads from stop i to stop i + 1, as an SVG path in CSS pixels of the board. */
-type Route = { id: RouteId; label: MessageKey; stops: Stop[]; threads: string[] };
+/** A section the camera visits, with the caption the tour gives it. */
+type Stop = { id: string; title: MessageKey; text: MessageKey };
+type Route = { id: RouteId; label: MessageKey; stops: Stop[] };
 
 const { t } = useAppI18n();
 const screen = SCREENS.storyline;
 const demo = demoScreenUrl(screen.demoPath);
-/** The captured board: Akt I and II of the clickdummy's storyline canvas. */
-const BOARD_WIDTH = 2106;
-const BOARD_HEIGHT = 860;
-const RATIO = BOARD_HEIGHT / BOARD_WIDTH;
-/** How long the ride rests on a scene once the camera arrived and its frame is drawn. */
-const REST_MS = 800;
+/** How long the ride rests on a section once the camera arrived and the way is marked. */
+const REST_MS = 2600;
 
-const start: Stop = {
-  id: "start",
-  x: 52,
-  y: 361,
-  width: 258,
-  height: 138,
-  title: "landing.storylineTour.stops.start.title",
-  text: "landing.storylineTour.stops.start.text",
+/** The caption of each visited section (`landing.storylineTour.stops.<name>`). */
+const STOP_NAME: Record<string, string> = {
+  S00: "start",
+  S01: "bribe",
+  S04: "gate",
+  S06: "watch",
+  E1: "light",
+  S03: "tunnel",
+  S05: "below",
+  S07: "vault",
+  E2: "mist",
 };
+const stopOf = (id: string): Stop => ({
+  id,
+  // i18n-dynamic: landing.storylineTour.stops.*
+  title: `landing.storylineTour.stops.${STOP_NAME[id]}.title` as MessageKey,
+  text: `landing.storylineTour.stops.${STOP_NAME[id]}.text` as MessageKey,
+});
 
 const routes: Record<RouteId, Route> = {
-  official: {
-    id: "official",
-    label: "landing.storylineTour.routes.official",
-    stops: [
-      start,
-      { id: "bribe", x: 396, y: 86, width: 361, height: 234, title: "landing.storylineTour.stops.bribe.title", text: "landing.storylineTour.stops.bribe.text" },
-      { id: "gate", x: 1136, y: 215, width: 378, height: 237, title: "landing.storylineTour.stops.gate.title", text: "landing.storylineTour.stops.gate.text" },
-      { id: "watch", x: 1704, y: 215, width: 378, height: 237, title: "landing.storylineTour.stops.watch.title", text: "landing.storylineTour.stops.watch.text" },
-    ],
-    threads: ["M310 430 C352 430 352 203 396 203", "M757 196 C850 196 940 324 1049 324 L1136 324", "M1514 324 L1704 324"],
-  },
-  secret: {
-    id: "secret",
-    label: "landing.storylineTour.routes.secret",
-    stops: [
-      start,
-      { id: "tunnel", x: 396, y: 602, width: 361, height: 234, title: "landing.storylineTour.stops.tunnel.title", text: "landing.storylineTour.stops.tunnel.text" },
-      { id: "below", x: 1136, y: 602, width: 378, height: 237, title: "landing.storylineTour.stops.below.title", text: "landing.storylineTour.stops.below.text" },
-      { id: "vault", x: 1704, y: 602, width: 378, height: 237, title: "landing.storylineTour.stops.vault.title", text: "landing.storylineTour.stops.vault.text" },
-    ],
-    threads: ["M310 430 C352 430 352 719 396 719", "M757 712 L1136 712", "M1514 712 L1704 712"],
-  },
+  official: { id: "official", label: "landing.storylineTour.routes.official", stops: RIDES.official.map(stopOf) },
+  secret: { id: "secret", label: "landing.storylineTour.routes.secret", stops: RIDES.secret.map(stopOf) },
 };
 
 const routeId = ref<RouteId>("official");
 const index = ref(0);
-/** The whole board instead of one scene: at first, and when asked for. */
+/** The whole board instead of one section: at first, and when asked for. */
 const overview = ref(true);
 const playing = ref(false);
 const reduceMotion = useReducedMotion();
 
 const route = computed(() => routes[routeId.value]);
-const stop = computed(() => route.value.stops[index.value] ?? start);
+const stop = computed(() => route.value.stops[index.value] ?? route.value.stops[0]!);
 const routeOptions = computed(() =>
   (Object.values(routes) as Route[]).map((entry) => ({ value: entry.id, label: t(entry.label) })),
 );
+
+// ---- Marks on the board ----------------------------------------------------------------------
+
+type Marks = { current: string | null; traveled: string[]; passed: string[]; focus: RouteId | null };
+const NO_MARKS: Marks = { current: null, traveled: [], passed: [], focus: null };
+
+/** What the board shows for a route up to a section: the way there, the sections passed. */
+function marksFor(id: RouteId, upTo: number, whole: boolean): Marks {
+  if (whole) return NO_MARKS;
+  const ids = RIDES[id];
+  return {
+    current: ids[upTo] ?? null,
+    passed: ids.slice(0, upTo),
+    traveled: ids.slice(0, upTo).map((from, position) => `${from}-${ids[position + 1]}`),
+    focus: id,
+  };
+}
+
+/** Set once the camera arrived, so the way lights up where the visitor looks. */
+const marks = ref<Marks>(NO_MARKS);
 
 // ---- Camera ---------------------------------------------------------------------------------
 
@@ -96,84 +101,56 @@ const frame = ref<HTMLElement | null>(null);
 const stage = ref<HTMLElement | null>(null);
 const size = ref({ width: 0, height: 0 });
 
-type Camera = { x: number; y: number; zoom: number };
+type Camera = { x: number; y: number; scale: number };
 type Point = { x: number; y: number };
 
-const centerOf = (entry: Stop): Point => ({ x: entry.x + entry.width / 2, y: entry.y + entry.height / 2 });
+const centerOf = (id: string): Point => {
+  const s = sectionById[id]!;
+  return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
+};
 
 /**
- * The stage is the board at the frame's width, moved and scaled from its top left corner. A scene
- * shows about 1050 pixels of the board on wide frames and 580 on phones (about three and one and
- * a half scene cards), so its text stays readable; `pullBack` below 1 shows more of the board
- * around `focus` (the camera's arc between two scenes). The camera never leaves the board; without
- * a focus it shows the whole board.
+ * The stage is the board in board pixels, moved and scaled from its top left corner. A section
+ * shows about 1700 board pixels on wide frames and 680 on phones (about three cards and one and a
+ * half), so its text stays readable; `pullBack` below 1 shows more of the board around `focus`
+ * (the camera's arc between two sections). The camera never leaves the board and never shows
+ * the frame's ground above or below it; without a focus it shows the whole board.
  */
 function cameraAt(focus: Point | null, pullBack = 1): Camera {
   const { width, height } = size.value;
-  if (!width || !height) return { x: 0, y: 0, zoom: 1 };
-  const stageHeight = width * RATIO;
-  if (!focus) return { x: 0, y: Math.max(0, (height - stageHeight) / 2), zoom: 1 };
-  const fill = height / stageHeight;
-  const visible = Math.min(1050, Math.max(580, width * 0.94));
-  const zoom = Math.max(fill, Math.max(BOARD_WIDTH / visible, fill) * pullBack);
-  const scale = (width / BOARD_WIDTH) * zoom;
+  if (!width || !height) return { x: 0, y: 0, scale: 1 };
+  const whole = width / BOARD_WIDTH;
+  if (!focus) return { x: 0, y: Math.max(0, (height - BOARD_HEIGHT * whole) / 2), scale: whole };
+  const fill = height / BOARD_HEIGHT;
+  const visible = Math.min(1700, Math.max(680, width * 1.25));
+  const scale = Math.max(fill, whole, Math.max(width / visible, fill) * pullBack);
   const clamp = (value: number, min: number) => Math.min(0, Math.max(min, value));
-  // On phones the caption covers the lower part of the stage, so the scene sits higher.
+  // On phones the caption covers the lower part of the stage, so the section sits higher.
   const centerY = width < 768 ? height * 0.34 : height / 2;
   return {
-    x: clamp(width / 2 - focus.x * scale, width - width * zoom),
-    y: clamp(centerY - focus.y * scale, height - stageHeight * zoom),
-    zoom,
+    x: clamp(width / 2 - focus.x * scale, width - BOARD_WIDTH * scale),
+    y: clamp(centerY - focus.y * scale, height - BOARD_HEIGHT * scale),
+    scale,
   };
 }
-
-const stageStyle = computed(() => ({ width: `${size.value.width}px`, height: `${size.value.width * RATIO}px` }));
 
 // ---- Motion ---------------------------------------------------------------------------------
 
 /**
- * How long the camera travels. Along a route it pans from scene to scene; to the other route it
- * pulls back on the way to its start and moves in again.
+ * How long the camera travels. Along a route it pans from section to section; to the other route
+ * it pulls back on the way to its start and moves in again.
  */
-const MOVE = { pan: 1, out: 0.6, in: 0.8 };
+const MOVE = { pan: 1.8, out: 1, in: 1.4 };
 /** How far the camera pulls back when it changes routes. */
 const PULL_BACK = 0.62;
 
-/** The step animation running now: camera, then thread and scene frame. */
+/** The step animation running now: the camera, then the marks. */
 let ride: gsap.core.Timeline | undefined;
-/** The scene and route the camera shows now: a new route makes the camera pull back on its way. */
-let shown: Stop | null = null;
+/** The section and route the camera shows now: a new route makes the camera pull back on its way. */
+let shown: string | null = null;
 let shownRoute: RouteId = routeId.value;
 
-const transform = (camera: Camera) => ({ x: camera.x, y: camera.y, scale: camera.zoom });
-
-/**
- * Threads up to the current scene are drawn, the scene's frame is drawn and glows, passed scenes
- * keep a faint frame. Changes move in `timeline` from `at` on, or jump without one.
- */
-function paintRoute(timeline?: gsap.core.Timeline, at = 0): void {
-  const root = stage.value;
-  if (!root) return;
-  const apply = (el: Element, vars: gsap.TweenVars, duration: number, offset = 0) => {
-    if (timeline) timeline.to(el, { ...vars, duration, ease: motionEase("out") }, at + offset);
-    else gsap.set(el, vars);
-  };
-  root.querySelectorAll(".thread").forEach((el, position) => {
-    const drawn = !overview.value && index.value > position;
-    // Threads that disappear do so at once, so a step back doesn't unwind slowly.
-    if (drawn) apply(el, { strokeDashoffset: 0 }, 0.9);
-    else gsap.set(el, { strokeDashoffset: 1 });
-  });
-  root.querySelectorAll(".scene-mark").forEach((el, position) => {
-    const current = !overview.value && position === index.value;
-    const passed = !overview.value && position < index.value;
-    if (current) {
-      apply(el, { opacity: 1 }, 0.3, 0.35);
-      apply(el, { strokeDashoffset: 0 }, 0.7, 0.35);
-    } else if (passed) apply(el, { opacity: 0.55, strokeDashoffset: 0 }, 0.4);
-    else apply(el, { opacity: 0, strokeDashoffset: 1 }, 0.3);
-  });
-}
+const transform = (camera: Camera) => ({ x: camera.x, y: camera.y, scale: camera.scale });
 
 /** Moves the camera to the current view: at once (resize, reduced motion), or as a ride. */
 function showView(immediate: boolean): void {
@@ -181,19 +158,24 @@ function showView(immediate: boolean): void {
   if (!el) return;
   ride?.kill();
   ride = undefined;
-  const target = overview.value ? null : stop.value;
-  const camera = cameraAt(target && centerOf(target));
+  const target = overview.value ? null : stop.value.id;
+  const camera = cameraAt(target ? centerOf(target) : null);
   const from = shown;
   const routeChanged = shownRoute !== routeId.value;
+  const next = marksFor(routeId.value, index.value, overview.value);
   shown = target;
   shownRoute = routeId.value;
 
   if (immediate || reduceMotion.value) {
     gsap.set(el, transform(camera));
-    paintRoute();
+    marks.value = next;
     return;
   }
 
+  // Going back or to the overview, the old marks leave at once; new ones wait for the camera.
+  if (overview.value || routeChanged || (marks.value.focus === routeId.value && marks.value.passed.length > index.value)) {
+    marks.value = overview.value ? NO_MARKS : { ...NO_MARKS, focus: routeId.value };
+  }
   ride = gsap.timeline();
   if (from && target && routeChanged) {
     const a = centerOf(from);
@@ -205,8 +187,10 @@ function showView(immediate: boolean): void {
   } else {
     ride.to(el, { ...transform(camera), duration: MOVE.pan, ease: motionEase("in-out") });
   }
-  paintRoute(ride, ride.duration() - 0.35);
-  // The ride goes on once this step is done and the scene had a moment.
+  ride.call(() => {
+    marks.value = next;
+  }, [], ride.duration() - 0.5);
+  // The ride goes on once this step is done and the section had a moment.
   if (playing.value) schedule(ride.duration() * 1000 + REST_MS);
 }
 
@@ -345,42 +329,14 @@ onBeforeUnmount(() => resize?.disconnect());
       <div
         ref="stage"
         class="tour-stage"
-        :style="stageStyle"
       >
-        <img
-          :src="board"
-          :alt="t(screen.alt)"
-          :width="BOARD_WIDTH"
-          :height="BOARD_HEIGHT"
-          loading="lazy"
-          decoding="async"
-          class="block size-full"
-        >
-        <svg
-          class="tour-threads"
-          :viewBox="`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`"
-          aria-hidden="true"
-        >
-          <path
-            v-for="(thread, position) in route.threads"
-            :key="`${route.id}-${position}`"
-            :d="thread"
-            pathLength="1"
-            class="thread"
-          />
-          <rect
-            v-for="(entry, position) in route.stops"
-            :key="`${route.id}-${entry.id}`"
-            :x="entry.x - 6"
-            :y="entry.y - 6"
-            :width="entry.width + 12"
-            :height="entry.height + 12"
-            rx="10"
-            pathLength="1"
-            class="scene-mark"
-            :class="{ 'scene-current': !overview && position === index }"
-          />
-        </svg>
+        <StorylineBoard
+          :label="t(screen.alt)"
+          :current="marks.current"
+          :traveled="marks.traveled"
+          :passed="marks.passed"
+          :focus="marks.focus"
+        />
       </div>
       <div
         class="tour-vignette"
@@ -523,45 +479,8 @@ onBeforeUnmount(() => resize?.disconnect());
   position: absolute;
   top: 0;
   left: 0;
-  /* Moved and scaled by GSAP. No will-change: the browser paints the picture again at the final scale, so it ends up sharp. */
+  /* Moved and scaled by GSAP. No will-change: the browser paints the board again at the final scale, so text ends up sharp. */
   transform-origin: 0 0;
-}
-
-.tour-threads {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-.thread {
-  fill: none;
-  stroke: var(--color-gold-light);
-  stroke-width: 6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 6px var(--color-gold));
-}
-.scene-mark {
-  fill: none;
-  stroke: var(--color-gold);
-  stroke-width: 4;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  opacity: 0;
-}
-/* Threads and scene frames are drawn by GSAP (`stroke-dashoffset`, `opacity`); the glow stays CSS. */
-.scene-current {
-  filter: drop-shadow(0 0 10px var(--color-gold-light));
-  animation: scene-glow 2.4s ease-in-out 1.3s infinite;
-}
-@keyframes scene-glow {
-  50% {
-    stroke: var(--color-gold-light);
-  }
 }
 
 .tour-vignette {
@@ -603,7 +522,7 @@ onBeforeUnmount(() => resize?.disconnect());
 }
 /* The caption follows once the camera arrived. */
 .caption-enter-active {
-  transition-delay: 0.9s;
+  transition-delay: 1.6s;
 }
 .caption-enter-from,
 .caption-leave-to {
@@ -680,7 +599,4 @@ onBeforeUnmount(() => resize?.disconnect());
   }
 }
 
-:root[data-reduced-motion] .scene-current {
-  animation: none;
-}
 </style>

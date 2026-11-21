@@ -82,7 +82,7 @@ const envSchema = z
     JWT_REFRESH_TTL: z.string().min(2),
     MAIL_DRIVER: z.enum(["smtp", "noop"]).default("smtp"),
     MAIL_FROM_ADDRESS: z.string().email().default("no-reply@api.localhost"),
-    MAIL_FROM_NAME: z.string().min(1).max(120).default("DnD Campaign Manager"),
+    MAIL_FROM_NAME: z.string().min(1).max(120).default("Questaria"),
     MAIL_SMTP_HOST: z.string().min(1).default("127.0.0.1"),
     MAIL_SMTP_PORT: positiveInt.default(1025),
     MAIL_SMTP_SECURE: booleanFromEnv.default(false),

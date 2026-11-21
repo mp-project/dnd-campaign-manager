@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Public start page, one address per language (`/`, `/en`): what Chronik is for, who it serves,
+ * Public start page, one address per language (`/`, `/en`): what Questaria is for, who it serves,
  * the main features with screenshots of the clickdummy, further features as a slider, the
  * inventory, the marketplace, the reputation system and the way to the demo and to the registration. It asks the API nothing: a visitor without a session would otherwise
  * cost a failed refresh. Who already has a profile loaded in this tab gets the way into the app
@@ -14,13 +14,15 @@ import { useRoute } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import type { IconName } from "@/components/base/iconNames";
-import CompassRose from "@/components/layout/CompassRose.vue";
+import WingSeal from "@/components/layout/WingSeal.vue";
+import PublicHeader from "@/components/layout/PublicHeader.vue";
+import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
 import { meQuery } from "@/core/auth/session";
 import { demoScreenUrl, demoUrl } from "@/core/demo";
 import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
-import { localizedPath, useLocalizedPage } from "@/core/i18n/localizedRoutes";
+import { localizedPath } from "@/core/i18n/localizedRoutes";
 import { usePageMeta } from "@/core/seo/pageMeta";
 import { siteUrl } from "@/core/seo/site";
 import { vReveal } from "@/core/motion/reveal";
@@ -28,10 +30,8 @@ import { vReveal } from "@/core/motion/reveal";
 import CharacterSheetShowcase from "../components/CharacterSheetShowcase.vue";
 import FeatureRow, { type FeatureRowData } from "../components/FeatureRow.vue";
 import InventoryShowcase from "../components/InventoryShowcase.vue";
-import type { MenuChapter } from "../components/LandingMenu.vue";
 import MarketplaceFan from "../components/MarketplaceFan.vue";
 import MoreSlider, { type MoreItem } from "../components/MoreSlider.vue";
-import PublicHeader from "../components/PublicHeader.vue";
 import compendiumArt from "../assets/more/compendium.webp";
 import encountersArt from "../assets/more/encounters.webp";
 import factionsArt from "../assets/more/factions.webp";
@@ -59,7 +59,6 @@ import { type Screen, SCREENS } from "../screens";
 import { startPageStructuredData } from "../structuredData";
 
 const { t } = useAppI18n();
-const faqPage = useLocalizedPage("landing-faq");
 const demo = demoUrl();
 const marketplaceDemo = demoScreenUrl(SCREENS.marketplace.demoPath);
 
@@ -239,10 +238,7 @@ const reputationPoints: MessageKey[] = [
 
 <template>
   <div class="flex min-h-dvh flex-col bg-navy-950 text-parchment">
-    <PublicHeader
-      :chapters="chapters"
-      :page-link="{ to: faqPage, label: 'landing.header.faq', icon: 'orig-info' }"
-    />
+    <PublicHeader :chapters="chapters" />
 
     <main class="flex-1">
       <!-- Hero: dark like the app's shell, with storyline and character sheet split diagonally -->
@@ -259,7 +255,7 @@ const reputationPoints: MessageKey[] = [
           class="hero-art pointer-events-none absolute"
         >
         <div class="hero-shade pointer-events-none absolute inset-0 hidden lg:block" />
-        <div class="relative mx-auto w-full max-w-400 px-4 pt-12 md:px-10 md:pt-16 lg:py-20">
+        <div class="relative mx-auto w-full max-w-400 px-4 pt-20 md:px-10 md:pt-28 lg:pt-32 lg:pb-20">
           <div class="max-w-150">
             <p class="eyebrow text-gold-light">
               {{ t("landing.hero.eyebrow") }}
@@ -316,7 +312,7 @@ const reputationPoints: MessageKey[] = [
         class="parchment on-parchment overflow-x-clip text-ink"
         aria-labelledby="landing-audience"
       >
-        <div class="mx-auto max-w-400 px-4 pt-28 pb-14 md:px-10 md:pt-36 md:pb-20">
+        <div class="mx-auto max-w-400 px-4 pt-36 pb-24 md:px-10 md:pt-48 md:pb-32">
           <h2
             id="landing-audience"
             v-reveal
@@ -366,16 +362,16 @@ const reputationPoints: MessageKey[] = [
 
       <!-- Main features, each with a screen of the clickdummy; some as a navy or parchment band across the page -->
       <section
-        class="bg-backdrop pb-24 text-ink md:pb-36"
+        class="bg-backdrop pb-32 text-ink md:pb-52"
         aria-labelledby="landing-features"
       >
         <div
           v-reveal
-          class="relative mx-auto max-w-400 px-4 pt-14 pb-5 md:px-10 md:pt-20 md:pb-2"
+          class="relative mx-auto max-w-400 px-4 pt-20 pb-8 md:px-10 md:pt-28 md:pb-10"
         >
-          <CompassRose
+          <WingSeal
             :size="96"
-            class="features-compass pointer-events-none absolute top-10 right-10 hidden lg:block"
+            class="features-seal pointer-events-none absolute top-10 right-10 hidden lg:block"
             aria-hidden="true"
           />
           <p class="eyebrow text-center text-brand">
@@ -442,7 +438,7 @@ const reputationPoints: MessageKey[] = [
         <div class="more-glow pointer-events-none absolute inset-0" />
         <div
           v-reveal
-          class="relative mx-auto max-w-400 px-4 py-14 md:px-10 md:py-20"
+          class="relative mx-auto max-w-400 px-4 py-20 md:px-10 md:py-28"
         >
           <p class="eyebrow text-center text-gold-light">
             {{ t("landing.more.eyebrow") }}
@@ -466,7 +462,7 @@ const reputationPoints: MessageKey[] = [
 
       <!-- Inventory: a living list of Arvel's items -->
       <section
-        class="bg-backdrop pt-7 pb-24 text-ink md:pt-10 md:pb-36"
+        class="bg-backdrop pt-16 pb-36 text-ink md:pt-24 md:pb-56"
         aria-labelledby="landing-feature-inventory"
       >
         <FeatureRow :feature="inventory">
@@ -509,7 +505,7 @@ const reputationPoints: MessageKey[] = [
         <div class="marketplace-glow pointer-events-none absolute inset-0" />
         <div
           v-reveal
-          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 py-14 md:px-10 md:py-24 lg:grid-cols-[2fr_3fr]"
+          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 py-20 md:px-10 md:py-32 lg:grid-cols-[2fr_3fr]"
         >
           <div>
             <p class="eyebrow text-gold-light">
@@ -556,7 +552,7 @@ const reputationPoints: MessageKey[] = [
         >
         <div
           v-reveal
-          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 pt-14 pb-28 md:px-10 md:pt-20 md:pb-40 lg:grid-cols-[3fr_2fr]"
+          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 pt-20 pb-36 md:px-10 md:pt-32 md:pb-52 lg:grid-cols-[3fr_2fr]"
         >
           <div class="lg:order-last">
             <p class="eyebrow text-brand">
@@ -669,7 +665,7 @@ const reputationPoints: MessageKey[] = [
   box-shadow: 0 18px 36px -20px color-mix(in srgb, var(--color-ink) 45%, transparent);
 }
 
-.features-compass {
+.features-seal {
   opacity: 0.45;
 }
 

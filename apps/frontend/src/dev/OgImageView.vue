@@ -7,13 +7,13 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
-import CompassRose from "@/components/layout/CompassRose.vue";
 import { useAppI18n } from "@/core/i18n";
 import heroArt from "@/modules/landing/assets/deco/hero-dragon.webp";
 
 const { t } = useAppI18n();
 const route = useRoute();
 const start = computed(() => route.params.variant !== "seite");
+const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
 </script>
 
 <template>
@@ -28,13 +28,14 @@ const start = computed(() => route.params.variant !== "seite");
     >
     <div class="og-shade" />
     <div class="og-text">
-      <div class="flex items-center gap-5">
-        <CompassRose :size="start ? 84 : 112" />
-        <span
-          class="font-heading font-bold text-parchment"
-          :class="start ? 'text-[64px]' : 'text-[92px]'"
-        >{{ t("common.app.name") }}</span>
-      </div>
+      <img
+        :src="logo"
+        :alt="t('common.app.name')"
+        width="2227"
+        height="682"
+        class="w-auto"
+        :class="start ? 'h-24' : 'h-36'"
+      >
       <p
         class="eyebrow mt-6 text-gold-light"
         :class="start ? 'text-[22px]!' : 'text-[28px]!'"

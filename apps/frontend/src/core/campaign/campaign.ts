@@ -53,7 +53,7 @@ export function campaignHomePath(campaign: Pick<Campaign, "id" | "slug" | "role"
   return campaign.role === "PLAYER" ? `${base}/spiel` : base;
 }
 
-const LAST_CAMPAIGN_KEY = "chronik.campaign";
+const LAST_CAMPAIGN_KEY = "questaria.campaign";
 
 function readLastCampaign(): string | null {
   try {

@@ -41,7 +41,7 @@ describe("not-found page", () => {
     expect(wrapper.find("h1").text()).toBe("Seite nicht gefunden");
     expect(hrefs(wrapper)).toEqual([
       ["Zur Startseite", "/"],
-      ["Häufige Fragen", "/faq"],
+      ["FAQ", "/faq"],
       ["Kontakt", "/kontakt"],
     ]);
     // The footer of every public page, and no request: it is prerendered as 404.html.
@@ -52,13 +52,13 @@ describe("not-found page", () => {
 
   it("leads a signed-in account to its campaigns first", async () => {
     const { wrapper } = await open({ signedIn: true });
-    expect(hrefs(wrapper).map(([label]) => label)).toEqual(["Zum Dashboard", "Zur Startseite", "Häufige Fragen", "Kontakt"]);
+    expect(hrefs(wrapper).map(([label]) => label)).toEqual(["Zum Dashboard", "Zur Startseite", "FAQ", "Kontakt"]);
     wrapper.unmount();
   });
 
   it("has a title, stays out of search results and names no canonical address", async () => {
     const { wrapper } = await open({ url: "/en/unbekannt", locale: "en" });
-    expect(document.title).toBe("Page not found – Chronik");
+    expect(document.title).toBe("Page not found – Questaria");
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex, nofollow");
     expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
     await vi.waitFor(() => expect(document.documentElement.dataset.prerendered).toBe("ready"));

@@ -3,12 +3,46 @@ import type { FastifyInstance } from "fastify";
 import type { AppEnv } from "#core/env";
 import { mapErrorToHttp } from "#core/error/errorMapper";
 import { createErrorPayload } from "#core/error/errorPayload";
-import { logUnhandledRequestError } from "#core/log/logger";
+import type { ErrorReporter } from "#core/log/errorReporter";
+import { reportError } from "#core/log/reportError";
+import { markResponseError } from "#core/log/requestLog";
+import { markRequestSpan } from "#core/telemetry/requestSpan";
 
-export function registerErrorHandler(app: FastifyInstance, env: AppEnv): void {
+/**
+ * The one place where request errors are handled:
+ * - expected errors (4xx) get no line of their own; the `request` line carries their code,
+ * - an overloaded database (503) is a warning; alerts come from how often it happens,
+ * - everything else (5xx, unknown errors) is logged with stack and cause and reported.
+ */
+export function registerErrorHandler(
+  app: FastifyInstance,
+  env: AppEnv,
+  reporter: ErrorReporter,
+): void {
   app.setErrorHandler((error, request, reply) => {
     const mappedError = mapErrorToHttp(error);
-    logUnhandledRequestError(env, request, error);
+    const route = request.routeOptions.url;
+
+    markResponseError(request, mappedError.code);
+    markRequestSpan(request, error, mappedError.statusCode);
+
+    if (mappedError.code === "SERVICE_UNAVAILABLE") {
+      request.log.warn({ err: error, route }, "Service unavailable");
+    } else if (mappedError.statusCode >= 500) {
+      reportError(
+        request.log,
+        error,
+        "Request failed",
+        {
+          requestId: request.id,
+          ...(route ? { route } : {}),
+          userId: request.requestContext?.actorId ?? null,
+          campaignId: request.campaignContext?.campaignId ?? null,
+          errorCode: mappedError.code,
+        },
+        reporter,
+      );
+    }
 
     const retryAfterSeconds = (mappedError.details as { retryAfterSeconds?: unknown } | null | undefined)
       ?.retryAfterSeconds;

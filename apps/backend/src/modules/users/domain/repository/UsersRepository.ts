@@ -142,26 +142,24 @@ export class UsersRepository {
 
     const auditActorId = toAuditActorId(actorId);
 
-    try {
-      const [created] = await db
-        .insert(userSettings)
-        .values({
-          userId,
-          locale: "de",
-          timezone: "UTC",
-          theme: "SYSTEM",
-          reducedMotion: false,
-          uiPreferences: {},
-          createdBy: auditActorId,
-          updatedBy: auditActorId,
-        })
-        .returning();
+    const [created] = await db
+      .insert(userSettings)
+      .values({
+        userId,
+        locale: "de",
+        timezone: "UTC",
+        theme: "SYSTEM",
+        reducedMotion: false,
+        uiPreferences: {},
+        createdBy: auditActorId,
+        updatedBy: auditActorId,
+      })
+      // Another request may create them at the same moment; then that row is loaded below.
+      .onConflictDoNothing()
+      .returning();
 
-      if (created) {
-        return created;
-      }
-    } catch {
-      // concurrent insert race: load row below
+    if (created) {
+      return created;
     }
 
     const rowAfterCreate = await this.findSettingsByUserId(db, userId);

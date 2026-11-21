@@ -9,10 +9,12 @@ export class CustomApiError<TCode extends string = string> extends AppError<TCod
     message: string,
     statusCode: number,
     details?: unknown,
+    options?: ErrorOptions,
   ) {
     super(code, message, {
       statusCode,
       details,
+      cause: options?.cause,
     });
 
     this.name = "CustomApiError";

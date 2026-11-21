@@ -269,6 +269,7 @@ export async function ensureS3BucketAndCors(
       "Failed to bootstrap S3 bucket/CORS configuration",
       {
         statusCode: 500,
+        cause: error,
         details: {
           cause: error instanceof Error ? error.message : "unknown",
           bucket: options.bucket,

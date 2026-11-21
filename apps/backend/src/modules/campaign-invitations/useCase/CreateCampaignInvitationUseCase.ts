@@ -1,4 +1,4 @@
-import { ConflictError, InternalError } from "#core/error/http/index";
+import { ConflictError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import type { CreateCampaignInvitationDto } from "#src/modules/campaign-invitations/domain/dto/CreateCampaignInvitationDto";
 import {
@@ -73,6 +73,21 @@ export class CreateCampaignInvitationUseCase {
       throw error;
     }
 
+    this.invitationsService.recordChange({
+      action: "campaignInvitations.create",
+      invitationId: invitation.id,
+      campaignId,
+      actorId,
+      values: {
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        // By tag the account, by email only that it was one (the address stays out of the log).
+        targetUserId: invitation.targetUserId,
+        byEmail: invitation.targetUserId === null,
+      },
+    });
+
     try {
       await this.invitationsService.sendInvitationEmail({
         to: target.email,
@@ -81,7 +96,8 @@ export class CreateCampaignInvitationUseCase {
         expiresAt,
         token,
       });
-    } catch {
+    } catch (error) {
+      // An invitation nobody received must not stay pending; the mail error is the answer.
       await this.invitationsService.transactionManager.inTransaction((tx) =>
         repository.updateStatus(tx, {
           status: "REVOKED",
@@ -91,8 +107,15 @@ export class CreateCampaignInvitationUseCase {
           now: new Date(),
         }),
       );
+      this.invitationsService.recordChange({
+        action: "campaignInvitations.revoke",
+        invitationId: invitation.id,
+        campaignId,
+        actorId,
+        values: { status: "REVOKED" },
+      });
 
-      throw new InternalError("Failed to deliver campaign invitation email");
+      throw error;
     }
 
     return toCampaignInvitationResponse(invitation, target.userTag);

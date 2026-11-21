@@ -10,6 +10,7 @@ import { createI18n, type I18n, useI18n } from "vue-i18n";
 
 import type { MessageKey } from "@/core/i18n/keys";
 import { loadMessages, loadPseudoMessages } from "@/core/i18n/messages";
+import { logger } from "@/core/log/logger";
 import { PSEUDO_LOCALE } from "@/core/i18n/pseudo";
 
 /*
@@ -31,7 +32,7 @@ function unresolved(key: string): string {
 }
 
 function report(message: string, cause?: unknown): void {
-  if (import.meta.env.DEV) console.warn(`[i18n] ${message}`, cause ?? "");
+  logger.warn(`[i18n] ${message}`, cause === undefined ? {} : { cause });
 }
 
 export function createAppI18n(): AppI18n {

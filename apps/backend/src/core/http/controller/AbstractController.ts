@@ -32,15 +32,14 @@ export abstract class AbstractController {
     }
 
     if (error instanceof ZodError) {
-      throw new ValidationError(ValidationError.DEFAULT_MESSAGE, error.issues);
+      throw new ValidationError(ValidationError.DEFAULT_MESSAGE, error.issues, { cause: error });
     }
 
     if (isDatabaseBusyError(error)) {
-      throw new ServiceUnavailableError();
+      throw new ServiceUnavailableError(undefined, undefined, { cause: error });
     }
 
-    throw new InternalError("Unhandled server error", {
-      cause: error,
-    });
+    // The cause is logged and reported by the error handler, never sent to the client.
+    throw new InternalError("Unhandled server error", undefined, { cause: error });
   }
 }

@@ -6,6 +6,7 @@ import { Pool as PgPool } from "pg";
 import { fileURLToPath } from "node:url";
 
 import * as schema from "#core/db/schema";
+import { warnFallback } from "#core/log/warnFallback";
 
 export const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
 const backendRootDir = path.resolve(
@@ -165,7 +166,10 @@ export async function checkDatabaseReadiness(pool: Pool): Promise<ReadyState> {
       database: true,
       migrations: migrationTableResult.rows[0]?.exists ?? false,
     };
-  } catch {
+  } catch (error) {
+    // `/ready` answers 503 with this state; the cause belongs in the log.
+    warnFallback(error, "Readiness check could not reach the database");
+
     return {
       database: false,
       migrations: false,

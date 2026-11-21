@@ -5,6 +5,7 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
+import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
@@ -501,8 +502,9 @@ export class ClassesService {
 
     try {
       definition = parseClassDefinition(found.characterClass);
-    } catch {
+    } catch (error) {
       // Unknown for now; the stored references stay.
+      warnFallback(error, "Stored class definition no longer parses", { assetId: found.asset.id });
       return null;
     }
 

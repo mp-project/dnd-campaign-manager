@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { AppError } from "#core/error/AppError";
 import { isDatabaseBusyError } from "#core/error/databaseBusy";
 import { AbstractController } from "#core/http/controller/AbstractController";
+import { reportError } from "#core/log/reportError";
 import {
   OAuthCallbackParamsSchema,
   OAuthCallbackQuerySchema,
@@ -51,15 +52,22 @@ export class OAuthCallbackController extends AbstractController {
         metadata: this.http.clientMetadata(request),
       });
     } catch (error) {
+      // Every outcome is a redirect, so the error handler never sees these; unexpected ones are
+      // reported here.
       if (error instanceof AppError) {
+        if (error.statusCode >= 500) {
+          reportError(request.log, error, "OAuth callback failed", { errorCode: error.code });
+        }
+
         return failed(error.code);
       }
 
       if (isDatabaseBusyError(error)) {
+        request.log.warn({ err: error }, "OAuth callback hit a busy database");
         return failed("SERVICE_UNAVAILABLE");
       }
 
-      request.log.error({ err: error }, "OAuth callback failed");
+      reportError(request.log, error, "OAuth callback failed");
       return failed("OAUTH_CALLBACK_FAILED");
     }
 

@@ -35,7 +35,12 @@ export class SendContactMessageUseCase {
     }
 
     const email = renderContactMessageEmail({ ...input, receivedAt: this.now() });
-    await this.emailPort.send({ to: this.recipient, replyTo: input.email, ...email });
+    await this.emailPort.send({
+      purpose: "contact",
+      to: this.recipient,
+      replyTo: input.email,
+      ...email,
+    });
 
     return { status: "accepted" };
   }

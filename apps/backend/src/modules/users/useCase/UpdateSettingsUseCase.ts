@@ -1,5 +1,6 @@
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import {
   type ResponseMeDto,
   toMeResponse,
@@ -34,6 +35,14 @@ export class UpdateSettingsUseCase {
       }
 
       return result;
+    });
+
+    recordChange({
+      action: "users.updateSettings",
+      entities: [
+        { entityType: "userSettings", entityId: actorId, fields: Object.keys(input), values: input },
+      ],
+      actorId,
     });
 
     return toMeResponse(aggregate, this.usersService.listEffectiveGlobalPermissions(context));

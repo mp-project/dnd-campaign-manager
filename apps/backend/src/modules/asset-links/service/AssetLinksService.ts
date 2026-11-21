@@ -6,6 +6,7 @@ import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope, ChangeResult } from "#core/history/types";
+import { reportError } from "#core/log/reportError";
 import type { CreateAssetLinkDto } from "#src/modules/asset-links/domain/dto/CreateAssetLinkDto";
 import type { UpdateAssetLinkDto } from "#src/modules/asset-links/domain/dto/UpdateAssetLinkDto";
 import {
@@ -94,7 +95,7 @@ export class AssetLinksService {
     public readonly relations: AssetRelationRegistry,
     private readonly assets: AssetsService,
     private readonly campaignAccess: AssetLinkCampaignAccessPort,
-    private readonly logger: Pick<FastifyBaseLogger, "error">,
+    private readonly logger: FastifyBaseLogger,
   ) {
     this.trackedLink = createTrackedAssetLink({
       resolveRole: async (campaignId, actorId, tx) =>
@@ -427,10 +428,10 @@ export class AssetLinksService {
       if (result.status === "fulfilled") {
         items.push(...result.value.map((item) => ({ group: provider.group, item })));
       } else {
-        this.logger.error(
-          { error: result.reason, provider: provider.name },
-          "Asset usage provider failed",
-        );
+        // The other groups are still shown; the answer names the failed provider.
+        reportError(this.logger, result.reason, "Asset usage provider failed", {
+          provider: provider.name,
+        });
         failed.push(provider.name);
       }
     });

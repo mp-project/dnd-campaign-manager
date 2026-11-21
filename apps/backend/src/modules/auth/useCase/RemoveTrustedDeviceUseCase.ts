@@ -1,5 +1,6 @@
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import { AuthService } from "#src/modules/auth/service/AuthService";
 
 /** Removes one own trusted device; another user's device is unknown (404). */
@@ -14,6 +15,13 @@ export class RemoveTrustedDeviceUseCase {
     if (!removed) {
       throw new NotFoundError("Trusted device not found");
     }
+
+    recordChange({
+      action: "auth.removeTrustedDevice",
+      entities: [{ entityType: "trustedDevice", entityId: deviceId }],
+      actorId,
+      security: true,
+    });
 
     return removed;
   }

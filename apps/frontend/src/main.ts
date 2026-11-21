@@ -19,6 +19,7 @@ import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
 import { createAppQueryClient } from "./core/api/queryClient";
+import { installErrorHandlers } from "./core/log/errorHandlers";
 import { installReducedMotion } from "./core/motion/reducedMotion";
 import { installAppHead } from "./core/seo/appHead";
 import { NAV_ITEMS } from "./core/navigation/navigation";
@@ -28,6 +29,7 @@ const app = createApp(App);
 const queryClient = createAppQueryClient();
 const i18n = createAppI18n();
 
+installErrorHandlers(app, router);
 installReducedMotion();
 onSessionExpired(() => handleSessionExpired(router, queryClient));
 

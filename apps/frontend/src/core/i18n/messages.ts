@@ -2,6 +2,7 @@ import type { Locale } from "@dnd/i18n";
 import { DEFAULT_LOCALE } from "@dnd/i18n";
 
 import { type MessageTree, pseudoLocalize } from "@/core/i18n/pseudo";
+import { logger } from "@/core/log/logger";
 
 type Loader = () => Promise<MessageTree>;
 
@@ -39,9 +40,9 @@ export async function loadMessages(locale: Locale): Promise<MessageTree> {
   if (loaders.length > 0 && loaded.length === 0) {
     throw new Error(`No message file of "${locale}" could be loaded`);
   }
-  if (import.meta.env.DEV) {
-    for (const result of results) {
-      if (result.status === "rejected") console.warn(`[i18n] a message file of "${locale}" failed`, result.reason);
+  for (const result of results) {
+    if (result.status === "rejected") {
+      logger.warn(`[i18n] a message file of "${locale}" failed`, { cause: result.reason });
     }
   }
   return Object.fromEntries(loaded);

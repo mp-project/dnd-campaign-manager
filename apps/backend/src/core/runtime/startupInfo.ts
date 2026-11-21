@@ -23,6 +23,7 @@ function hasExplicitUrlPort(value: string): boolean {
     const parsed = new URL(value);
     return parsed.port.trim().length > 0;
   } catch {
+    // Not a URL, so no explicit port either; only used for the start-up overview.
     return false;
   }
 }

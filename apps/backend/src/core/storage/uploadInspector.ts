@@ -92,6 +92,7 @@ export class UploadInspectorTransform extends Transform {
     } catch (error) {
       callback(
         new StorageError("UPLOAD_STREAM_FAILED", "Upload stream processing failed", {
+          cause: error,
           details: {
             cause: error instanceof Error ? error.message : "unknown",
           },

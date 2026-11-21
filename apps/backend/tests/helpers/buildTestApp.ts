@@ -5,6 +5,7 @@ import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
+import type { AppLogger } from "#core/log/logger";
 import type { SystemRole } from "#core/permissions/roles";
 import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
 import { createTestEnv } from "#test/helpers/testEnv";
@@ -24,6 +25,8 @@ export type BuildTestAppOptions = {
    * Off by default, because most tests sign tokens for actors without a user row.
    */
   realSessionState?: boolean;
+  /** A logger whose lines the test reads (`captureLogs`); silent otherwise. */
+  logger?: AppLogger;
 };
 
 export type TestInjectRequest = InjectOptions;
@@ -79,6 +82,7 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
     modules?: readonly AppModule[];
     readyProbe: () => Promise<{ database: boolean; migrations: boolean }>;
     publicPorts: AppPublicPorts;
+    logger?: AppLogger;
   } = {
     env,
     readyProbe:
@@ -92,6 +96,10 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
 
   if (options.modules) {
     buildOptions.modules = options.modules;
+  }
+
+  if (options.logger) {
+    buildOptions.logger = options.logger;
   }
 
   const app = buildApp(buildOptions);

@@ -3,6 +3,7 @@ import { ConflictError, ValidationError } from "#core/error/http/index";
 import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
 import type { CampaignRole } from "#core/http/requestContext";
+import { warnFallback } from "#core/log/warnFallback";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import { FeatBaseSchema } from "#src/modules/feats/domain/dto/BaseFeatDto";
 import {
@@ -88,7 +89,13 @@ export function readFeatDefinition(row: ParsableFeatRow & { id?: string }): Feat
 export function tryParseFeatDefinition(row: ParsableFeatRow): FeatDefinition | null {
   try {
     return parseFeatDefinition(row);
-  } catch {
+  } catch (error) {
+    // Only a definition that fails its rules is skipped; anything else is a real error.
+    if (!(error instanceof ValidationError)) {
+      throw error;
+    }
+
+    warnFallback(error, "Stored feat definition no longer parses");
     return null;
   }
 }

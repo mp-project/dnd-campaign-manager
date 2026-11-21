@@ -9,8 +9,9 @@ export class VersionConflictError extends DomainError {
   constructor(
     message: string = VersionConflictError.DEFAULT_MESSAGE,
     details?: unknown,
+    options?: ErrorOptions,
   ) {
-    super({ code: "VERSION_CONFLICT", message, details });
+    super({ code: "VERSION_CONFLICT", message, details, cause: options?.cause });
     this.name = "VersionConflictError";
   }
 }

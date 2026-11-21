@@ -2,6 +2,7 @@ import type { FastifyBaseLogger } from "fastify";
 
 import type { AppDatabase } from "#core/db/pool";
 import { cleanupOrphanedObjects, type StoragePort } from "#core/storage/index";
+import { reportError } from "#core/log/reportError";
 import type {
   MediaFileRow,
   MediaRepository,
@@ -28,7 +29,7 @@ export class MediaCleanupService {
     private readonly db: AppDatabase,
     private readonly repository: MediaRepository,
     private readonly storage: StoragePort,
-    private readonly logger: Pick<FastifyBaseLogger, "error">,
+    private readonly logger: FastifyBaseLogger,
   ) {}
 
   /** Runs after a deletion was committed; on failure the cleanup tries again later. */
@@ -42,7 +43,11 @@ export class MediaCleanupService {
 
       return true;
     } catch (error) {
-      this.logger.error({ error, mediaId: file.id }, "Could not delete the object of a media file");
+      // The row keeps `objectDeletedAt` empty, so the next cleanup tries again.
+      reportError(this.logger, error, "Could not delete the object of a media file", {
+        task: "media.cleanup",
+        mediaId: file.id,
+      });
 
       return false;
     }
@@ -95,7 +100,11 @@ export class MediaCleanupService {
       await this.storage.delete(upload.storageKey);
       await this.repository.deleteUpload(this.db, upload.id);
     } catch (error) {
-      this.logger.error({ error, uploadId: upload.id }, "Could not remove an expired upload");
+      // The upload stays and the next cleanup tries again; the other uploads go on.
+      reportError(this.logger, error, "Could not remove an expired upload", {
+        task: "media.cleanup",
+        uploadId: upload.id,
+      });
     }
   }
 

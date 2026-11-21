@@ -5,10 +5,12 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import type { FastifyBaseLogger } from "fastify";
 import sharp from "sharp";
 
 import type { AppDatabase } from "#core/db/pool";
 import type { StoragePort } from "#core/storage/index";
+import { reportError } from "#core/log/reportError";
 import type {
   MediaFileRow,
   MediaRepository,
@@ -25,10 +27,6 @@ const VARIANT_PROFILES: Record<MediaVariantRow["kind"], { maxEdge: number; quali
   DISPLAY: { maxEdge: 2560, quality: 80 },
 };
 
-export type MediaVariantLogger = {
-  error(details: unknown, message?: string): void;
-};
-
 /**
  * Generates the WebP variants of images. This is expensive and belongs in the worker process
  * (`media:worker`), so the API stays responsive; several workers can run side by side. The original
@@ -39,7 +37,7 @@ export class MediaVariantService {
     private readonly db: AppDatabase,
     private readonly repository: MediaRepository,
     private readonly storage: StoragePort,
-    private readonly logger: MediaVariantLogger,
+    private readonly logger: FastifyBaseLogger,
   ) {}
 
   /** Handles one file; returns false when nothing is waiting. */
@@ -73,7 +71,11 @@ export class MediaVariantService {
 
       await this.generate(file, variants);
     } catch (error) {
-      this.logger.error({ error, mediaId }, "Could not generate the variants of a media file");
+      // The job is retried (or marked failed); the original is delivered meanwhile.
+      reportError(this.logger, error, "Could not generate the variants of a media file", {
+        task: "media.variants",
+        mediaId,
+      });
 
       await Promise.all(
         variants.map((variant) =>

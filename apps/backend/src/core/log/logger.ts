@@ -1,54 +1,147 @@
-import type { FastifyBaseLogger, FastifyRequest } from "fastify";
+import { trace } from "@opentelemetry/api";
+import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
 
 import type { AppEnv } from "#core/env";
+import { logContextFields } from "#core/log/logContext";
+import { createOtelLogStream } from "#core/log/otelLogStream";
+import { isTelemetryStarted } from "#core/telemetry/lifecycle";
+
+export type AppLogger = Logger;
 
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 
-type LogContext = Record<string, unknown>;
+export type LoggerSettings = {
+  /** `api`, `media-worker`, or the name of a script. */
+  service: string;
+  level: LogLevel | "silent";
+  pretty: boolean;
+  environment: string;
+  /** Lowest level exported through OpenTelemetry (Grafana); null = no export. */
+  exportLevel?: LogLevel | null;
+};
 
-function isTestRuntime(env: AppEnv): boolean {
-  return env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined;
+const LEVEL_ORDER: readonly (LogLevel | "silent")[] = [
+  "trace",
+  "debug",
+  "info",
+  "warn",
+  "error",
+  "fatal",
+  "silent",
+];
+
+function lowerLevel(a: LogLevel | "silent", b: LogLevel | "silent"): LogLevel | "silent" {
+  return LEVEL_ORDER.indexOf(a) <= LEVEL_ORDER.indexOf(b) ? a : b;
 }
 
 /**
- * Writes a log entry with explicit level and optional structured context.
+ * Never logged, whatever a caller passes: credentials, codes and personal data. Request bodies are
+ * not logged at all; these paths are the safety net for objects that end up in a line anyway.
+ * `code` is not on the list because error codes (`err.code`, `errorCode`) must stay readable.
  */
-export function logWithLevel(
-  logger: FastifyBaseLogger,
-  level: LogLevel,
-  message: string,
-  context?: LogContext,
-): void {
-  if (context && Object.keys(context).length > 0) {
-    logger[level](context, message);
-    return;
+export const REDACTED_LOG_PATHS = [
+  "req.headers.authorization",
+  "req.headers.cookie",
+  'res.headers["set-cookie"]',
+  "headers.authorization",
+  "headers.cookie",
+  "password",
+  "*.password",
+  "currentPassword",
+  "*.currentPassword",
+  "newPassword",
+  "*.newPassword",
+  "token",
+  "*.token",
+  "accessToken",
+  "*.accessToken",
+  "refreshToken",
+  "*.refreshToken",
+  "verificationCode",
+  "*.verificationCode",
+  "secret",
+  "*.secret",
+] as const;
+
+export function loggerSettingsFromEnv(env: AppEnv, service: string): LoggerSettings {
+  return {
+    service,
+    level: env.LOG_LEVEL,
+    // pino-pretty is a dev dependency, so only development may ask for it.
+    pretty: env.LOG_PRETTY && env.NODE_ENV === "development",
+    environment: env.NODE_ENV,
+    // Only once instrumentation.ts started the SDK; scripts and tests never export.
+    exportLevel: isTelemetryStarted() ? env.LOG_EXPORT_LEVEL : null,
+  };
+}
+
+/** Ties a line to its trace in Grafana; also on stdout, so a line found there leads to the trace. */
+function traceFields(): Record<string, string> {
+  const span = trace.getActiveSpan()?.spanContext();
+
+  return span ? { trace_id: span.traceId, span_id: span.spanId } : {};
+}
+
+function mixin(): Record<string, unknown> {
+  return { ...logContextFields(), ...traceFields() };
+}
+
+function loggerOptions(settings: LoggerSettings): LoggerOptions {
+  return {
+    level: settings.level,
+    base: { service: settings.service, env: settings.environment },
+    redact: { paths: [...REDACTED_LOG_PATHS], censor: "[redacted]" },
+    serializers: {
+      err: pino.stdSerializers.errWithCause,
+      error: pino.stdSerializers.errWithCause,
+    },
+    mixin,
+  };
+}
+
+/**
+ * The one logger factory of the backend: API, media worker, start-up tasks and scripts.
+ * `destination` is for tests that read the lines.
+ */
+export function createLogger(settings: LoggerSettings, destination?: DestinationStream): AppLogger {
+  const options = loggerOptions(settings);
+
+  if (destination && !settings.exportLevel) {
+    return pino(options, destination);
   }
 
-  logger[level](message);
-}
+  const stdout = destination
+    ? destination
+    : settings.pretty
+    ? pino.transport({
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          singleLine: true,
+          translateTime: "SYS:HH:MM:ss.l",
+          // The terminal shows what a developer reads; the JSON lines keep everything.
+          ignore: [
+            "pid,hostname,service,env,kind,ipHash,userAgent,contentLength,trace_id,span_id",
+            "method,url,route,statusCode,durationMs",
+          ].join(","),
+          messageFormat: "{if method}{method} {url} {statusCode} {durationMs}ms {end}{msg}",
+        },
+      })
+    : pino.destination(1);
 
-/**
- * Logs unhandled request errors unless test runtime suppresses noisy output.
- */
-export function logUnhandledRequestError(
-  env: AppEnv,
-  request: FastifyRequest,
-  error: unknown,
-): void {
-  if (isTestRuntime(env)) {
-    return;
+  if (!settings.exportLevel) {
+    return pino(options, stdout);
   }
 
-  logWithLevel(request.log, "error", "Unhandled request error", { err: error });
-}
+  // stdout and the export have their own level; the logger lets through what either one wants.
+  const streams: pino.StreamEntry[] = [{ level: settings.exportLevel, stream: createOtelLogStream() }];
 
-/**
- * Logs process/runtime level failures with a consistent error envelope.
- */
-export function logRuntimeError(
-  logger: FastifyBaseLogger,
-  message: string,
-  error: unknown,
-): void {
-  logWithLevel(logger, "error", message, { err: error });
+  if (settings.level !== "silent") {
+    streams.push({ level: settings.level, stream: stdout });
+  }
+
+  return pino(
+    { ...options, level: lowerLevel(settings.level, settings.exportLevel) },
+    pino.multistream(streams),
+  );
 }

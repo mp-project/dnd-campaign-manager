@@ -233,9 +233,17 @@ export type HistoryEvent = {
   campaignId: string | null;
   actorId: string | null;
   fields: string[];
+  /** Reason of a `publicAction`; absent for actions of a checked actor. */
+  publicReason?: string;
 };
 
 export type HistoryEventHandler = (event: HistoryEvent) => void | Promise<void>;
+
+/**
+ * The new values of each event (by `eventId`), only for the `change` log line: kept apart from the
+ * events, which go to handlers and must not carry values. Account and secret fields are left out.
+ */
+export type HistoryEventValues = ReadonlyMap<string, Readonly<Record<string, unknown>>>;
 
 export type FieldChangeItem = {
   seq: number;
@@ -324,8 +332,8 @@ export type HistoryPort = {
     tx: AppDatabase,
     meta: ActionMeta<R>,
     work: (scope: ActionScope) => Promise<R>,
-  ): Promise<{ result: R; events: HistoryEvent[] }>;
-  publish(events: readonly HistoryEvent[]): Promise<void>;
+  ): Promise<{ result: R; events: HistoryEvent[]; values?: HistoryEventValues }>;
+  publish(events: readonly HistoryEvent[], values?: HistoryEventValues): Promise<void>;
   listFieldChanges(
     context: RequestContext,
     params: ListFieldChangesParams,

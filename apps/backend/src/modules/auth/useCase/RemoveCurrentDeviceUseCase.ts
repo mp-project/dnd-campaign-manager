@@ -1,4 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import { AuthService } from "#src/modules/auth/service/AuthService";
 
 export class RemoveCurrentDeviceUseCase {
@@ -12,5 +13,12 @@ export class RemoveCurrentDeviceUseCase {
     const actorId = this.authService.assertAuthenticated(context);
 
     await this.authService.deviceService.remove(actorId, token);
+
+    recordChange({
+      action: "auth.removeCurrentDevice",
+      entities: [{ entityType: "trustedDevice", entityId: actorId }],
+      actorId,
+      security: true,
+    });
   }
 }

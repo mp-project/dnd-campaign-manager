@@ -1,6 +1,7 @@
 import { ForbiddenError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
+import { recordChange } from "#core/log/auditLog";
 import type { AssetsService } from "#src/modules/assets/index";
 import type { ResponseMediaRemovedDto } from "#src/modules/media/domain/dto/ResponseMediaDto";
 import type { MediaQuotaService } from "#src/modules/media/service/MediaQuotaService";
@@ -28,9 +29,15 @@ export class DeleteMediaUseCase {
       throw new ForbiddenError("Insufficient permissions");
     }
 
-    await this.mediaService.deleteIfUnused({
-      ...input,
-      actorId: this.assetsService.assertAuthenticated(context),
+    const actorId = this.assetsService.assertAuthenticated(context);
+
+    await this.mediaService.deleteIfUnused({ ...input, actorId });
+
+    recordChange({
+      action: "media.delete",
+      entities: [{ entityType: "mediaFile", entityId: input.mediaId }],
+      campaignId: input.campaignId,
+      actorId,
     });
 
     return {

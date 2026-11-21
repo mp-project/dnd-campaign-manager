@@ -83,6 +83,8 @@ const envSchema = z
     MAIL_DRIVER: z.enum(["smtp", "noop"]).default("smtp"),
     MAIL_FROM_ADDRESS: z.string().email().default("no-reply@api.localhost"),
     MAIL_FROM_NAME: z.string().min(1).max(120).default("Questaria"),
+    // Where answers to the app's mails go (e.g. kontakt@<domain>); a message may set its own.
+    MAIL_REPLY_TO: optionalEmailString,
     MAIL_SMTP_HOST: z.string().min(1).default("127.0.0.1"),
     MAIL_SMTP_PORT: positiveInt.default(1025),
     MAIL_SMTP_SECURE: booleanFromEnv.default(false),
@@ -101,8 +103,25 @@ const envSchema = z
     // Create the default rulesets at start (once per version); off in tests, which start empty.
     DEFAULT_RULESETS_ON_START: booleanFromEnv.default(true),
     LOG_LEVEL: z
-      .enum(["fatal", "error", "warn", "info", "debug", "trace"])
+      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
+    // New values in the `change` lines (account and secret fields never). On while the data is
+    // still being checked; switch off to log only ids and field names.
+    LOG_CHANGE_VALUES: booleanFromEnv.default(true),
+    // Readable single lines (pino-pretty) instead of JSON; only for development.
+    LOG_PRETTY: booleanFromEnv.default(false),
+    // Lowest level sent to Grafana (OpenTelemetry logs); only with an OTLP endpoint. Separate from
+    // LOG_LEVEL so stdout and the export can be turned down independently.
+    LOG_EXPORT_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+    // OTLP endpoint (Grafana Cloud); without it no telemetry is started. Headers, protocol and
+    // sampling are read by the SDK itself from the standard OTEL_* variables.
+    OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrlString,
+    OTEL_SDK_DISABLED: booleanFromEnv.default(false),
+    // Key for the hashed client IP in request logs; without it a random key per process.
+    LOG_IP_HASH_SECRET: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z.string().min(16).optional(),
+    ),
     CORS_ORIGIN: z.string().min(1),
     FRONTEND_ORIGIN: z.string().url().default("http://app.localhost:5173"),
     VITE_API_BASE_URL: z.string().url(),

@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import type { FastifyBaseLogger } from "fastify";
+
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { authorized, isAuthorization } from "#core/history/authorization";
 import { uuidDto } from "#core/http/dto";
@@ -11,6 +13,8 @@ import {
   VersionConflictError,
 } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { auditHistoryEvents } from "#core/log/auditLog";
+import { reportError } from "#core/log/reportError";
 import {
   VALUE_KINDS,
   type ActionMeta,
@@ -22,6 +26,7 @@ import {
   type GetEntityVersionParams,
   type HistoryEvent,
   type HistoryEventHandler,
+  type HistoryEventValues,
   type HistoryPort,
   type ListFieldChangesParams,
   type TrackedEntity,
@@ -43,8 +48,6 @@ import {
 } from "#src/modules/history/service/HistoryActionScope";
 import { sameValue, toStoredValue } from "#src/modules/history/service/HistoryMerge";
 
-type Logger = { error(payload: unknown, message: string): void };
-
 const NOT_FOUND_MESSAGE = "Resource not found";
 
 export class HistoryService implements HistoryPort {
@@ -56,7 +59,7 @@ export class HistoryService implements HistoryPort {
     public readonly db: AppDatabase,
     public readonly transactionManager: TransactionManager,
     public readonly repository: HistoryRepository,
-    private readonly logger: Logger,
+    private readonly logger: FastifyBaseLogger,
   ) {}
 
   register<T extends TrackedTable>(entity: TrackedEntity<T>): void {
@@ -110,11 +113,11 @@ export class HistoryService implements HistoryPort {
     meta: ActionMeta<R>,
     work: (scope: ActionScope) => Promise<R>,
   ): Promise<R> {
-    const { result, events } = await this.transactionManager.inTransaction((tx) =>
+    const { result, events, values } = await this.transactionManager.inTransaction((tx) =>
       this.runActionInTransaction(tx, meta, work),
     );
 
-    await this.publish(events);
+    await this.publish(events, values);
 
     return result;
   }
@@ -123,7 +126,7 @@ export class HistoryService implements HistoryPort {
     tx: AppDatabase,
     meta: ActionMeta<R>,
     work: (scope: ActionScope) => Promise<R>,
-  ): Promise<{ result: R; events: HistoryEvent[] }> {
+  ): Promise<{ result: R; events: HistoryEvent[]; values?: HistoryEventValues }> {
     return this.runInScope(tx, meta, (scope) => work(scope));
   }
 
@@ -131,14 +134,16 @@ export class HistoryService implements HistoryPort {
     tx: AppDatabase,
     meta: ActionMeta<R>,
     work: (scope: HistoryActionScope) => Promise<R>,
-  ): Promise<{ result: R; events: HistoryEvent[] }> {
+  ): Promise<{ result: R; events: HistoryEvent[]; values: HistoryEventValues }> {
     const { actorId } = meta.context;
 
     if (actorId !== null && !uuidDto.safeParse(actorId).success) {
       throw new UnauthenticatedError("Valid actor identity required");
     }
 
-    if (!isAuthorization(await meta.authorize(tx))) {
+    const authorization = await meta.authorize(tx);
+
+    if (!isAuthorization(authorization)) {
       throw new Error(`Action '${meta.action}' returned no authorization`);
     }
 
@@ -152,7 +157,7 @@ export class HistoryService implements HistoryPort {
       });
 
       if (earlier) {
-        return { result: await meta.idempotency.onReplay(earlier), events: [] };
+        return { result: await meta.idempotency.onReplay(earlier), events: [], values: new Map() };
       }
     }
 
@@ -166,11 +171,24 @@ export class HistoryService implements HistoryPort {
       }
     }
 
-    return { result, events: scope.events };
+    const publicReason = authorization.kind === "public" ? authorization.reason : null;
+
+    return {
+      result,
+      values: scope.values,
+      events: publicReason
+        ? scope.events.map((event) => ({ ...event, publicReason }))
+        : scope.events,
+    };
   }
 
-  /** Runs handlers after the commit. A failing handler is logged and cannot undo the change. */
-  async publish(events: readonly HistoryEvent[]): Promise<void> {
+  /**
+   * After the commit: writes the `change` lines and runs the handlers. A failing handler is
+   * reported and cannot undo the change.
+   */
+  async publish(events: readonly HistoryEvent[], values?: HistoryEventValues): Promise<void> {
+    auditHistoryEvents(this.logger, events, values);
+
     for (const event of events) {
       for (const { pattern, handler } of this.subscribers) {
         if (pattern !== "*" && pattern !== event.action) {
@@ -180,7 +198,11 @@ export class HistoryService implements HistoryPort {
         try {
           await handler(event);
         } catch (error) {
-          this.logger.error({ error, action: event.action }, "History event handler failed");
+          // A handler only follows up on a committed change; the others still run.
+          reportError(this.logger, error, "History event handler failed", {
+            task: "history.handler",
+            action: event.action,
+          });
         }
       }
     }
@@ -695,8 +717,8 @@ function assertBaseSchema(entity: TrackedEntity, values: Record<string, unknown>
 
   try {
     entity.baseSchema.pick(mask as never).parse(stored);
-  } catch {
-    throw new ConflictError("The old value is no longer valid");
+  } catch (error) {
+    throw new ConflictError("The old value is no longer valid", undefined, { cause: error });
   }
 }
 

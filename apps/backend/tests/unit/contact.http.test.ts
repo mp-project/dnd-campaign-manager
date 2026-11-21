@@ -2,6 +2,7 @@ import { solveChallenge } from "altcha-lib";
 import { deriveKey } from "altcha-lib/algorithms/sha";
 
 import type { EmailMessage } from "#core/email/port";
+import { ServiceUnavailableError } from "#core/error/http/index";
 import { renderContactMessageEmail } from "#src/modules/contact/email/ContactMessageEmailTemplate";
 import { buildTestApp } from "#test/helpers/buildTestApp";
 
@@ -22,7 +23,11 @@ function contactApp(options: { recipient?: string | undefined; failSend?: boolea
   const sent: EmailMessage[] = [];
   const emailPort = {
     async send(message: EmailMessage) {
-      if (options.failSend) throw new Error("smtp down");
+      if (options.failSend) {
+        throw new ServiceUnavailableError("Email could not be sent", undefined, {
+          cause: new Error("smtp down"),
+        });
+      }
       sent.push(message);
     },
   };
@@ -183,10 +188,11 @@ describe("POST /contact", () => {
     await app.close();
   });
 
-  it("answers 500 when the email can't be sent", async () => {
+  it("answers 503 when the email can't be sent", async () => {
     const { app, post, message } = contactApp({ failSend: true });
     const response = await post(await message());
-    expect(response.statusCode).toBe(500);
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ error: { code: "SERVICE_UNAVAILABLE" } });
     await app.close();
   });
 });

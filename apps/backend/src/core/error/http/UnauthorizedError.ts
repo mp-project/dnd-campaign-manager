@@ -6,8 +6,12 @@ import { DomainError } from "#core/error/http/DomainError";
 export class UnauthorizedError extends DomainError {
   static readonly DEFAULT_MESSAGE = "Unauthorized";
 
-  constructor(message: string = UnauthorizedError.DEFAULT_MESSAGE, details?: unknown) {
-    super({ code: "UNAUTHENTICATED", message, details });
+  constructor(
+    message: string = UnauthorizedError.DEFAULT_MESSAGE,
+    details?: unknown,
+    options?: ErrorOptions,
+  ) {
+    super({ code: "UNAUTHENTICATED", message, details, cause: options?.cause });
     this.name = "UnauthorizedError";
   }
 }

@@ -1,4 +1,5 @@
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import type { ConfirmEmailChangeDto } from "#src/modules/auth/domain/dto/EmailChangeDto";
 import {
   type AuthUserProfileDto,
@@ -20,6 +21,13 @@ export class ConfirmEmailChangeUseCase {
       input,
       metadata,
     );
+
+    recordChange({
+      action: "auth.confirmEmailChange",
+      entities: [{ entityType: "user", entityId: user.id, fields: ["email"] }],
+      actorId: user.id,
+      security: true,
+    });
 
     return toAuthUserProfile(user);
   }

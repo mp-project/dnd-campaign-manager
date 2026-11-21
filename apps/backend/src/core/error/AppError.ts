@@ -1,6 +1,8 @@
 type AppErrorParams = {
   statusCode?: number;
   details?: unknown;
+  /** The error this one translates; logged with it, never sent to the client. */
+  cause?: unknown;
 };
 
 /**
@@ -18,7 +20,7 @@ export class AppError<TCode extends string = string> extends Error {
     message: string,
     params: AppErrorParams = {},
   ) {
-    super(message);
+    super(message, params.cause === undefined ? undefined : { cause: params.cause });
     this.name = "AppError";
     this.code = code;
     this.statusCode = params.statusCode ?? 500;

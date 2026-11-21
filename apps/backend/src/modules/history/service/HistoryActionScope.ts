@@ -82,6 +82,8 @@ type PendingField = ChangeFieldInsert;
 
 export class HistoryActionScope implements ActionScope {
   readonly events: HistoryEvent[] = [];
+  /** New values per event for the `change` log line; see `HistoryEventValues`. */
+  readonly values = new Map<string, Record<string, unknown>>();
   /** Every row the action created or changed, for the verifiers at its end. */
   readonly touched: TouchedEntity[] = [];
 
@@ -574,6 +576,14 @@ export class HistoryActionScope implements ActionScope {
       }
     }
 
+    this.values.set(
+      event.id,
+      Object.fromEntries(
+        fields
+          .filter((item) => item.kind !== "account" && item.kind !== "secret")
+          .map((item) => [item.field, item.newValue]),
+      ),
+    );
     this.events.push({
       eventId: event.id,
       actionId: this.actionId,

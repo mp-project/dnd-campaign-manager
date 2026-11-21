@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { reportErrorInContext } from "#core/log/reportError";
 import type {
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -113,12 +114,18 @@ export class AuthPasswordService {
         });
 
         await this.deps.emailPort.send({
+          purpose: "auth.passwordReset",
           to: user.email,
           subject: emailMessage.subject,
           text: emailMessage.text,
         });
       }
-    }).catch(async () => {
+    }).catch(async (error: unknown) => {
+      // The answer stays the same whether or not an account exists or a mail went out; a failure
+      // is reported instead.
+      reportErrorInContext(error, "Password reset could not be prepared or sent", {
+        task: "auth.passwordReset",
+      });
       await this.consumeComparableDelay(input.email);
     });
   }

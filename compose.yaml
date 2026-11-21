@@ -76,7 +76,12 @@ services:
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
-      MAIL_FROM_ADDRESS: no-reply@${API_DOMAIN}
+      MAIL_FROM_ADDRESS: benachrichtigung@${FRONTEND_DOMAIN}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-kontakt@${FRONTEND_DOMAIN}}
+      # JSON lines on stdout; pino-pretty is not part of the production image.
+      LOG_PRETTY: "false"
+      # New values in the `change` lines while the data is still being checked.
+      LOG_CHANGE_VALUES: ${LOG_CHANGE_VALUES:-true}
       MAIL_FROM_NAME: Questaria
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
@@ -120,7 +125,14 @@ services:
       VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
-      MAIL_FROM_ADDRESS: no-reply@${API_DOMAIN}
+      MAIL_FROM_ADDRESS: benachrichtigung@${FRONTEND_DOMAIN}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-kontakt@${FRONTEND_DOMAIN}}
+      # JSON lines on stdout; pino-pretty is not part of the production image.
+      LOG_PRETTY: "false"
+      # New values in the `change` lines while the data is still being checked.
+      LOG_CHANGE_VALUES: ${LOG_CHANGE_VALUES:-true}
+      # Name in Grafana; the OTLP endpoint and token come from apps/backend/.env.
+      OTEL_SERVICE_NAME: questaria-api
       MAIL_FROM_NAME: Questaria
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
@@ -161,6 +173,7 @@ services:
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
+      LOG_PRETTY: "false"
       STORAGE_DRIVER: s3
       STORAGE_S3_ENDPOINT: ${COMPOSE_STORAGE_S3_ENDPOINT:-http://rustfs:9000}
       STORAGE_S3_REGION: ${RUSTFS_REGION:-us-east-1}
@@ -169,7 +182,8 @@ services:
       STORAGE_S3_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       STORAGE_S3_FORCE_PATH_STYLE: "true"
       STORAGE_S3_AUTO_BOOTSTRAP: "false"
-    command: ["dist/workers/mediaWorker.js"]
+      OTEL_SERVICE_NAME: questaria-media-worker
+    command: ["--import", "./dist/instrumentation.js", "dist/workers/mediaWorker.js"]
     healthcheck:
       disable: true
     depends_on:

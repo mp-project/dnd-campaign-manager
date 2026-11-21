@@ -162,7 +162,7 @@ const validationModule: AppModule = {
 
 function createValidationApp(nodeEnv: "test" | "production" = "test") {
   return buildApp({
-    env: createTestEnv({ NODE_ENV: nodeEnv, LOG_LEVEL: "warn" }),
+    env: createTestEnv({ NODE_ENV: nodeEnv }),
     modules: [validationModule],
     readyProbe: async () => ({ database: true, migrations: true }),
   });

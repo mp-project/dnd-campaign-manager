@@ -14,6 +14,7 @@ export function createEmailPortFromEnv(env: AppEnv): EmailPort {
     secure: boolean;
     fromAddress: string;
     fromName: string;
+    replyTo?: string;
     username?: string;
     password?: string;
   } = {
@@ -23,6 +24,10 @@ export function createEmailPortFromEnv(env: AppEnv): EmailPort {
     fromAddress: env.MAIL_FROM_ADDRESS,
     fromName: env.MAIL_FROM_NAME,
   };
+
+  if (env.MAIL_REPLY_TO) {
+    smtpConfig.replyTo = env.MAIL_REPLY_TO;
+  }
 
   if (env.MAIL_SMTP_USER && env.MAIL_SMTP_PASS) {
     smtpConfig.username = env.MAIL_SMTP_USER;

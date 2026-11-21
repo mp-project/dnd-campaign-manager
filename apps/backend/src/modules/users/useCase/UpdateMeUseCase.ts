@@ -1,5 +1,6 @@
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
+import { recordChange } from "#core/log/auditLog";
 import {
   type ResponseMeDto,
   toMeResponse,
@@ -38,6 +39,15 @@ export class UpdateMeUseCase {
       }
 
       return result;
+    });
+
+    // The own profile has no history (only changes by administrators do).
+    recordChange({
+      action: "users.updateMe",
+      entities: [
+        { entityType: "user", entityId: actorId, fields: Object.keys(input), values: input },
+      ],
+      actorId,
     });
 
     return toMeResponse(aggregate, this.usersService.listEffectiveGlobalPermissions(context));

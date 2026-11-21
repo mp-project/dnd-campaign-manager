@@ -1,7 +1,17 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+import pino from "pino";
+
+import { createLogger } from "#core/log/logger";
+import { runScript } from "#core/log/processErrors";
 import { buildTestApp } from "#test/helpers/buildTestApp";
+
+// The document may go to stdout, so log lines go to stderr. Needs no `.env`.
+const logger = createLogger(
+  { service: "openapi-export", level: "info", pretty: false, environment: "development" },
+  pino.destination(2),
+);
 
 /**
  * Writes the OpenAPI document of all modules to the given file (default: stdout).
@@ -23,13 +33,10 @@ async function exportOpenApi(target: string | undefined): Promise<void> {
     const path = resolve(process.cwd(), target);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, document);
-    console.info(`OpenAPI document written to ${path}`);
+    logger.info({ path }, "OpenAPI document written");
   } finally {
     await app.close();
   }
 }
 
-exportOpenApi(process.argv[2]).catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+void runScript(logger, "openapi-export", () => exportOpenApi(process.argv[2]));

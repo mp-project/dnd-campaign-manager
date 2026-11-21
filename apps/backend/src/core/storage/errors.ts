@@ -23,7 +23,7 @@ export class StorageError extends AppError<StorageErrorCode> {
   constructor(
     code: StorageErrorCode,
     message: string,
-    options: { statusCode?: number; details?: unknown } = {},
+    options: { statusCode?: number; details?: unknown; cause?: unknown } = {},
   ) {
     super(code, message, options);
     this.name = "StorageError";

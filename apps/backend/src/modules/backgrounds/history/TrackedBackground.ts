@@ -3,6 +3,7 @@ import { ConflictError, ValidationError } from "#core/error/http/index";
 import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
 import type { CampaignRole } from "#core/http/requestContext";
+import { warnFallback } from "#core/log/warnFallback";
 import { ASSET_ENTITY_TYPE } from "#src/modules/assets/index";
 import {
   type BackgroundDefinition,
@@ -93,7 +94,13 @@ export function readBackgroundDefinition(row: ParsableBackgroundRow & { id?: str
 export function tryParseBackgroundDefinition(row: ParsableBackgroundRow): BackgroundDefinition | null {
   try {
     return parseBackgroundDefinition(row);
-  } catch {
+  } catch (error) {
+    // Only a definition that fails its rules is skipped; anything else is a real error.
+    if (!(error instanceof ValidationError)) {
+      throw error;
+    }
+
+    warnFallback(error, "Stored background definition no longer parses");
     return null;
   }
 }

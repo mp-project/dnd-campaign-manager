@@ -6,8 +6,12 @@ import { DomainError } from "#core/error/http/DomainError";
 export class ServiceUnavailableError extends DomainError {
   static readonly DEFAULT_MESSAGE = "Service temporarily unavailable";
 
-  constructor(message: string = ServiceUnavailableError.DEFAULT_MESSAGE, details?: unknown) {
-    super({ code: "SERVICE_UNAVAILABLE", message, details });
+  constructor(
+    message: string = ServiceUnavailableError.DEFAULT_MESSAGE,
+    details?: unknown,
+    options?: ErrorOptions,
+  ) {
+    super({ code: "SERVICE_UNAVAILABLE", message, details, cause: options?.cause });
     this.name = "ServiceUnavailableError";
   }
 }

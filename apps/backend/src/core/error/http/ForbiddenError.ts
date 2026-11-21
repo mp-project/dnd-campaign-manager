@@ -6,8 +6,12 @@ import { DomainError } from "#core/error/http/DomainError";
 export class ForbiddenError extends DomainError {
   static readonly DEFAULT_MESSAGE = "Forbidden";
 
-  constructor(message: string = ForbiddenError.DEFAULT_MESSAGE, details?: unknown) {
-    super({ code: "FORBIDDEN", message, details });
+  constructor(
+    message: string = ForbiddenError.DEFAULT_MESSAGE,
+    details?: unknown,
+    options?: ErrorOptions,
+  ) {
+    super({ code: "FORBIDDEN", message, details, cause: options?.cause });
     this.name = "ForbiddenError";
   }
 }

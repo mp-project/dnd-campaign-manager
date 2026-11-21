@@ -127,6 +127,20 @@ export default [
     },
   },
   {
+    // Logs go through pino (`#core/log`) in the backend and `@/core/log` in the frontend.
+    files: ["apps/backend/src/**/*.ts", "apps/backend/scripts/**/*.ts", "apps/frontend/src/**/*.{ts,vue}"],
+    rules: { "no-console": "error" },
+  },
+  {
+    // The developer start-up overview, the frontend logger itself and the development showcase.
+    files: [
+      "apps/backend/src/core/runtime/startupInfo.ts",
+      "apps/frontend/src/core/log/logger.ts",
+      "apps/frontend/src/dev/**/*.{ts,vue}",
+    ],
+    rules: { "no-console": "off" },
+  },
+  {
     // Development-only showcase, never shipped.
     files: ["apps/frontend/src/dev/**/*.vue"],
     rules: { "@intlify/vue-i18n/no-raw-text": "off" },

@@ -7,8 +7,9 @@ export class UnauthenticatedError extends UnauthorizedError {
   constructor(
     message: string = UnauthorizedError.DEFAULT_MESSAGE,
     details?: unknown,
+    options?: ErrorOptions,
   ) {
-    super(message, details);
+    super(message, details, options);
     this.name = "UnauthenticatedError";
   }
 }

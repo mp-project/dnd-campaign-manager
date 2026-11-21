@@ -12,6 +12,7 @@ import { trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
 import { RulesetRepository } from "#src/modules/ruleset/domain/repository/RulesetRepository";
 import { RulesetService } from "#src/modules/ruleset/service/RulesetService";
 import { CreateRulesetUseCase } from "#src/modules/ruleset/useCase/CreateRulesetUseCase";
+import { silentLogger } from "#test/helpers/logCapture";
 
 function buildLevelProgressions() {
   return Array.from({ length: 20 }, (_, index) => ({
@@ -30,9 +31,12 @@ describe("ruleset service transactions", () => {
   const db = createDrizzleDb(pool);
   const transactionManager = createTransactionManager(db);
   const repository = new RulesetRepository();
-  const history = new HistoryService(db, transactionManager, new HistoryRepository(), {
-    error: () => undefined,
-  });
+  const history = new HistoryService(
+    db,
+    transactionManager,
+    new HistoryRepository(),
+    silentLogger(),
+  );
 
   history.register(trackedRuleset);
 

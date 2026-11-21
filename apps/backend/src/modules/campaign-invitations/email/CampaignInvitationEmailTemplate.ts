@@ -25,6 +25,8 @@ export function renderCampaignInvitationEmail(input: {
       "",
       `Die Einladung läuft am ${input.expiresAt.toISOString()} ab.`,
       "Falls du diese Einladung nicht erwartet hast, kannst du diese E-Mail ignorieren.",
+      // Answers go to the app's address (`MAIL_REPLY_TO`), not to the game master.
+      "Eine Antwort auf diese E-Mail erreicht das Team der App, nicht die Spielleitung.",
     ].join("\n"),
   };
 }

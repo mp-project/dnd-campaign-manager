@@ -13,6 +13,7 @@ function isValidIanaTimeZone(value: string): boolean {
     new Intl.DateTimeFormat("en-US", { timeZone: value });
     return true;
   } catch {
+    // `Intl` throws for unknown time zones; that is the check.
     return false;
   }
 }

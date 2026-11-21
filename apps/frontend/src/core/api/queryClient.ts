@@ -1,6 +1,7 @@
-import { QueryClient } from "@tanstack/vue-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/vue-query";
 
 import { isApiError } from "@/core/api/errors";
+import { reportError } from "@/core/log/reportError";
 
 /**
  * Query keys start with their scope, so whole scopes can be dropped at once:
@@ -21,6 +22,14 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
 
 export function createAppQueryClient(): QueryClient {
   return new QueryClient({
+    // Pages show their own reaction to a failed request; the caches only report what was
+    // unexpected (5xx, unknown errors), once per failure after the retries.
+    queryCache: new QueryCache({
+      onError: (error, query) => reportError(error, { source: "query", scope: query.queryKey[0] }),
+    }),
+    mutationCache: new MutationCache({
+      onError: (error) => reportError(error, { source: "mutation" }),
+    }),
     defaultOptions: {
       queries: { retry: shouldRetry, staleTime: 0 },
       // Writes are never repeated on their own: the history would record them twice.

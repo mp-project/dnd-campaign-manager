@@ -98,9 +98,10 @@ export class LocalStorage implements StoragePort {
         etag: null,
         lastModified: fileInfo.mtime,
       };
-    } catch {
+    } catch (error) {
       throw new StorageError("NOT_FOUND", `Object not found: ${key}`, {
         statusCode: 404,
+        cause: error,
       });
     }
   }
@@ -206,9 +207,10 @@ export class LocalStorage implements StoragePort {
     try {
       await stat(absolutePath);
       return createReadStream(absolutePath);
-    } catch {
+    } catch (error) {
       throw new StorageError("NOT_FOUND", `Object not found: ${key}`, {
         statusCode: 404,
+        cause: error,
       });
     }
   }
@@ -225,6 +227,7 @@ export class LocalStorage implements StoragePort {
       await stat(absolutePath);
       return true;
     } catch {
+      // Missing or unreadable both mean "not there" for the callers.
       return false;
     }
   }

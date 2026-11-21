@@ -10,6 +10,7 @@ import {
   type TransactionManager,
 } from "#core/db/pool";
 import type { AppEnv } from "#core/env";
+import { getErrorReporter, type ErrorReporter } from "#core/log/errorReporter";
 import {
   createPermissionService,
   type PermissionService,
@@ -67,6 +68,8 @@ export type AppPublicPorts = {
   history?: HistoryPort;
   /** Set by the auth module unless provided. Without it, no access token is accepted. */
   sessionStatePort?: SessionStatePort;
+  /** Unexpected errors besides the log; the one installed for the process unless provided. */
+  errorReporter?: ErrorReporter;
 };
 
 export type DependencyRegistry = {
@@ -131,6 +134,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     params.publicPorts?.storagePort ?? createStoragePortFromEnv(params.config);
   const emailPort =
     params.publicPorts?.emailPort ?? createEmailPortFromEnv(params.config);
+  const errorReporter = params.publicPorts?.errorReporter ?? getErrorReporter();
 
   return {
     config: params.config,
@@ -144,6 +148,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
       campaignFactPort,
       storagePort,
       emailPort,
+      errorReporter,
     },
   };
 }

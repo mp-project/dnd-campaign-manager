@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
+import { reportError } from "#core/log/reportError";
 import {
   CAMPAIGNS_MODULE_DEPENDENCIES,
   type CampaignsModuleDependencies,
@@ -84,13 +85,23 @@ async function registerAssetsModule(
   // database that isn't reachable or migrated yet must not stop the app from starting (`/ready`
   // reports it), so a failed attempt is logged and tried again until it succeeds.
   let retry: NodeJS.Timeout | undefined;
+  let failures = 0;
   const ensureReferenceIndex = async (): Promise<void> => {
     try {
       if (await service.ensureReferenceIndex()) {
         app.log.info("Content reference index rebuilt");
       }
     } catch (err) {
-      app.log.error({ err }, "Content reference index could not be built; trying again");
+      // Reported once; the retries only warn (see the default rulesets).
+      if (failures === 0) {
+        reportError(app.log, err, "Content reference index could not be built; trying again", {
+          task: "content.referenceIndex",
+        });
+      } else {
+        app.log.warn({ err, failures }, "Content reference index could still not be built");
+      }
+
+      failures += 1;
       retry = setTimeout(() => void ensureReferenceIndex(), REFERENCE_INDEX_RETRY_MS);
       retry.unref();
     }

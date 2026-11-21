@@ -20,6 +20,26 @@ export default defineConfig(({ mode }) => {
         name: "site-url-in-index-html",
         transformIndexHtml: (html) => html.replaceAll("%SITE_URL%", siteUrl),
       },
+      {
+        // The build writes robots.txt and sitemap.xml (scripts/seo-files.ts); the dev server answers
+        // them from the same builders, with the site address or else its own.
+        name: "seo-files-in-dev",
+        apply: "serve",
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            const path = req.url?.split("?")[0];
+            if (path !== "/robots.txt" && path !== "/sitemap.xml") return next();
+            const site = siteUrl || `http://${req.headers.host ?? `${frontendHost}:${frontendPort}`}`;
+            Promise.all([server.ssrLoadModule("/src/core/seo/seoFiles.ts"), server.ssrLoadModule("/src/core/seo/publicPages.ts")])
+              .then(([files, pages]) => {
+                const robots = path === "/robots.txt";
+                res.setHeader("Content-Type", robots ? "text/plain; charset=utf-8" : "application/xml; charset=utf-8");
+                res.end(robots ? files.robotsTxt(site) : files.sitemapXml(site, pages.PUBLIC_PAGES));
+              })
+              .catch(next);
+          });
+        },
+      },
     ],
     define: {
       // vue-i18n: Composition API only, so the legacy API and the global $t components drop out of the bundle.

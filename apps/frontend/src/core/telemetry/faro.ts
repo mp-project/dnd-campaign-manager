@@ -11,7 +11,7 @@ import type { Router } from "vue-router";
 
 import { type Me, meQuery } from "@/core/auth/session";
 import { onStatisticsConsent } from "@/core/consent/consent";
-import { addErrorReporter, addLogSink, logger, type LogLevel } from "@/core/log";
+import { addLogSink, logger, type LogLevel } from "@/core/log";
 import type { FaroClient } from "@/core/telemetry/faroClient";
 
 const LEVEL_ORDER: LogLevel[] = ["debug", "info", "warn", "error"];
@@ -57,9 +57,6 @@ export function installFaro(router: Router, queryClient: QueryClient): void {
 
   addLogSink((entry) => {
     if (state.active && LEVEL_ORDER.indexOf(entry.level) >= minimum) state.client?.sendLog(entry);
-  });
-  addErrorReporter((error, context) => {
-    if (state.active) state.client?.sendError(error, context);
   });
 
   onStatisticsConsent((granted) => {

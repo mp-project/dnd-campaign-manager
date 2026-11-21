@@ -4,6 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import { getEnv } from "#core/env";
 import { runWithLogContext } from "#core/log/logContext";
+import { getErrorReporter } from "#core/log/errorReporter";
 import { createLogger, loggerSettingsFromEnv } from "#core/log/logger";
 import { installProcessErrorHandlers } from "#core/log/processErrors";
 import { reportError } from "#core/log/reportError";
@@ -55,6 +56,7 @@ async function runWorker(): Promise<void> {
   } finally {
     await pool.end();
     logger.info("Media worker stopped");
+    await getErrorReporter().flush();
     await shutdownTelemetry();
   }
 }

@@ -153,6 +153,8 @@ services:
       # Name in Grafana; the OTLP endpoint and token come from apps/backend/.env.
       OTEL_SERVICE_NAME: questaria-api
       REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD in the root .env}@redis:6379/0
+      # Sentry DSN comes from apps/backend/.env; the release names the deploy.
+      SENTRY_RELEASE: ${APP_RELEASE:-}
       MAIL_FROM_NAME: Questaria
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
@@ -204,7 +206,8 @@ services:
       STORAGE_S3_FORCE_PATH_STYLE: "true"
       STORAGE_S3_AUTO_BOOTSTRAP: "false"
       OTEL_SERVICE_NAME: questaria-media-worker
-    command: ["--import", "./dist/instrumentation.js", "dist/workers/mediaWorker.js"]
+      SENTRY_RELEASE: ${APP_RELEASE:-}
+    command: ["--enable-source-maps", "--import", "./dist/instrumentation.js", "dist/workers/mediaWorker.js"]
     healthcheck:
       disable: true
     depends_on:
@@ -230,6 +233,11 @@ services:
         VITE_LOG_REMOTE_LEVEL: ${LOG_REMOTE_LEVEL:-info}
         VITE_APP_ENV: ${APP_ENV:-production}
         VITE_APP_RELEASE: ${APP_RELEASE:-}
+        # Errors always; Session Replay only after consent.
+        VITE_SENTRY_DSN: ${SENTRY_FRONTEND_DSN:-}
+        VITE_SENTRY_REPLAY_SAMPLE_RATE: ${SENTRY_REPLAY_SAMPLE_RATE:-0.1}
+      # Uploads the source maps to Sentry during the build (optional; never an argument).
+      secrets: [sentry_auth_token]
     depends_on:
       backend:
         condition: service_started
@@ -339,6 +347,10 @@ services:
       redis-test:
         condition: service_healthy
     command: npm run test:integration --workspace @dnd/backend
+
+secrets:
+  sentry_auth_token:
+    environment: SENTRY_AUTH_TOKEN
 
 volumes:
   postgres-data:

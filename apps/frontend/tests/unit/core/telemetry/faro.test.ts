@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { remoteLogLevel } from "@/core/telemetry/faro";
-import { toFaroContext } from "@/core/telemetry/faroClient";
+import { toStringContext } from "@/core/telemetry/stringContext";
 import { scrubAddress, scrubAddresses } from "@/core/telemetry/faroPrivacy";
 
 const SHORT_ID = "7xKXtg2CW87d97TXJSDpbD";
@@ -45,7 +45,7 @@ describe("Faro privacy", () => {
 
 describe("Faro logs", () => {
   it("turns the context into strings", () => {
-    expect(toFaroContext({ code: "NOT_FOUND", status: 404, details: { a: 1 }, none: undefined })).toEqual({
+    expect(toStringContext({ code: "NOT_FOUND", status: 404, details: { a: 1 }, none: undefined })).toEqual({
       code: "NOT_FOUND",
       status: "404",
       details: '{"a":1}',
@@ -56,5 +56,21 @@ describe("Faro logs", () => {
     expect(remoteLogLevel("warn")).toBe("warn");
     expect(remoteLogLevel(undefined)).toBe("info");
     expect(remoteLogLevel("verbose")).toBe("info");
+  });
+});
+
+describe("Sentry events", () => {
+  it("keeps only the scrubbed address, the user id and scrubbed breadcrumbs", async () => {
+    const { scrubSentryEvent } = await import("@/core/telemetry/sentryClient");
+    const event = scrubSentryEvent({
+      type: undefined,
+      request: { url: "https://app.example.de/passwort-zuruecksetzen?token=abc", headers: { Referer: "x" } },
+      user: { id: "u-1", email: "a@b.de" },
+      breadcrumbs: [{ category: "navigation", data: { to: "/invitations/accept#token=abc" } }],
+    });
+
+    expect(event.request).toEqual({ url: "https://app.example.de/passwort-zuruecksetzen" });
+    expect(event.user).toEqual({ id: "u-1" });
+    expect(event.breadcrumbs?.[0]?.data).toEqual({ to: "/invitations/accept" });
   });
 });

@@ -1,5 +1,6 @@
 import { fileURLToPath, URL } from "node:url";
 
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import { defineConfig, loadEnv } from "vite";
@@ -10,11 +11,30 @@ export default defineConfig(({ mode }) => {
   const frontendPort = Number(env.FRONTEND_PORT ?? "5173");
   /** Public address of the site; index.html takes it for its default preview picture. */
   const siteUrl = (env.VITE_SITE_URL ?? "").trim().replace(/\/+$/, "");
+  /**
+   * With a Sentry auth token (a build secret, never committed) the build writes hidden source maps,
+   * uploads them to the frontend project and deletes them, so stack traces in Sentry are readable
+   * while the site serves no maps. Without it there are no maps at all.
+   */
+  const sentryAuthToken = (env.SENTRY_AUTH_TOKEN ?? "").trim();
+  const release = (env.VITE_APP_RELEASE ?? "").trim();
 
   return {
     plugins: [
       vue(),
       tailwindcss(),
+      ...(sentryAuthToken
+        ? [
+            sentryVitePlugin({
+              org: env.SENTRY_ORG || "questaria",
+              project: env.SENTRY_PROJECT || "questaria-frontend",
+              authToken: sentryAuthToken,
+              release: release ? { name: release } : { create: false, inject: false },
+              sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
+              telemetry: false,
+            }),
+          ]
+        : []),
       {
         // Vite would leave `%VITE_SITE_URL%` as it is when the variable is not set.
         name: "site-url-in-index-html",
@@ -56,6 +76,9 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api": { target: env.API_PROXY_TARGET ?? "http://api.localhost:3000", changeOrigin: true },
       },
+    },
+    build: {
+      sourcemap: sentryAuthToken ? "hidden" : false,
     },
     resolve: {
       alias: {

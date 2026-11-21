@@ -1,17 +1,18 @@
 /**
  * Loaded with `--import` before the API or the media worker: starts OpenTelemetry when an OTLP
- * endpoint is configured (Grafana Cloud), and does nothing otherwise (locally, tests, CI).
- * `OTEL_SERVICE_NAME` tells the processes apart; the start commands set it.
+ * endpoint is configured (Grafana Cloud) and then Sentry when a DSN is configured; without them it
+ * does nothing (locally, tests, CI). `OTEL_SERVICE_NAME` tells the processes apart; the start
+ * commands set it.
  */
 import { getEnv } from "#core/env";
 
 const env = getEnv();
+const serviceName = process.env.OTEL_SERVICE_NAME?.trim() || "questaria-api";
 
 if (env.OTEL_EXPORTER_OTLP_ENDPOINT && !env.OTEL_SDK_DISABLED) {
   // Imported only when needed: without an endpoint the SDK is not even loaded.
   const { startTelemetry } = await import("#core/telemetry/sdk");
   const { createLogger, loggerSettingsFromEnv } = await import("#core/log/logger");
-  const serviceName = process.env.OTEL_SERVICE_NAME?.trim() || "questaria-api";
 
   await startTelemetry({
     serviceName,
@@ -19,4 +20,15 @@ if (env.OTEL_EXPORTER_OTLP_ENDPOINT && !env.OTEL_SDK_DISABLED) {
     // stdout only (no export yet at this point, and never for the SDK's own diagnostics).
     diagnostics: createLogger(loggerSettingsFromEnv(env, `${serviceName}-telemetry`)),
   });
+}
+
+if (env.SENTRY_DSN) {
+  // After OpenTelemetry, so Sentry links its events to the active trace instead of tracing itself.
+  const { createSentryErrorReporter, startSentry } = await import("#core/telemetry/sentry");
+  const { installErrorReporter } = await import("#core/log/errorReporter");
+  const { markSentryStarted } = await import("#core/telemetry/lifecycle");
+
+  startSentry({ dsn: env.SENTRY_DSN, serviceName, environment: env.NODE_ENV, release: env.SENTRY_RELEASE });
+  installErrorReporter(createSentryErrorReporter());
+  markSentryStarted();
 }

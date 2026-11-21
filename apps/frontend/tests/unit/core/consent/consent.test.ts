@@ -17,6 +17,7 @@ describe("consent", () => {
 
   it("grants nothing without Cookiebot", async () => {
     vi.stubEnv("VITE_COOKIEBOT_ID", "");
+    vi.stubEnv("VITE_DEV_CONSENT", "");
     const consent = await loadConsent();
     const listener = vi.fn();
 

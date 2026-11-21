@@ -25,6 +25,7 @@ import { installReducedMotion } from "./core/motion/reducedMotion";
 import { installAppHead } from "./core/seo/appHead";
 import { NAV_ITEMS } from "./core/navigation/navigation";
 import { installFaro } from "./core/telemetry/faro";
+import { installSentry } from "./core/telemetry/sentry";
 import { startPushNotifications } from "./services/pushNotifications";
 
 const app = createApp(App);
@@ -32,6 +33,7 @@ const queryClient = createAppQueryClient();
 const i18n = createAppI18n();
 
 installErrorHandlers(app, router);
+installSentry(queryClient);
 installReducedMotion();
 onSessionExpired(() => handleSessionExpired(router, queryClient));
 // Clerk loads only on the sign-in pages and in the app; a new or ended session clears the cache.

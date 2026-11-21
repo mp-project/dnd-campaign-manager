@@ -283,3 +283,58 @@ describe("telemetry shutdown", () => {
     await expect(shutdownTelemetry(20)).resolves.toBe(false);
   });
 });
+
+describe("Sentry", () => {
+  it("turns a pino line into a Sentry log without change values", async () => {
+    const { toSentryLog } = await import("#core/log/sentryLogStream");
+    const log = toSentryLog(
+      JSON.stringify({
+        level: 40,
+        time: 1,
+        msg: "change",
+        requestId: "req-1",
+        statusCode: 409,
+        entities: [{ entityType: "note", entityId: "n-1", values: { content: "Geheim" } }],
+      }),
+    );
+
+    expect(log.level).toBe("warn");
+    expect(log.message).toBe("change");
+    expect(log.attributes).toMatchObject({ requestId: "req-1", statusCode: 409 });
+    expect(String(log.attributes.entities)).not.toContain("Geheim");
+    expect(log.attributes).not.toHaveProperty("time");
+  });
+
+  it("keeps no query, cookies, bodies or personal data in an event", async () => {
+    const { scrubEvent } = await import("#core/telemetry/sentry");
+    const event = scrubEvent({
+      type: undefined,
+      request: {
+        url: "https://api.example.de/api/v1/auth/verify-email?email=a%40b.de&code=1",
+        method: "GET",
+        query_string: "email=a%40b.de&code=1",
+        cookies: { session: "x" },
+        data: { password: "hunter2" },
+        headers: { "user-agent": "Firefox", cookie: "session=x", authorization: "Bearer x" },
+      },
+      user: { id: "u-1", email: "a@b.de", ip_address: "1.2.3.4" },
+    });
+
+    expect(event.request).toEqual({
+      url: "https://api.example.de/api/v1/auth/verify-email",
+      method: "GET",
+      headers: { "user-agent": "Firefox" },
+    });
+    expect(event.user).toEqual({ id: "u-1" });
+  });
+
+  it("sends log lines to Sentry from its own level", async () => {
+    const { createSentryLogStream } = await import("#core/log/sentryLogStream");
+    const target = { trace: jest.fn(), debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn(), fatal: jest.fn() };
+    const stream = createSentryLogStream(target as never);
+
+    stream.write(`${JSON.stringify({ level: 50, time: 1, msg: "boom", task: "media.variants" })}\n`);
+
+    expect(target.error).toHaveBeenCalledWith("boom", { task: "media.variants" });
+  });
+});

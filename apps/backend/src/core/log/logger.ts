@@ -1,7 +1,10 @@
+import { trace } from "@opentelemetry/api";
 import pino, { type DestinationStream, type Logger, type LoggerOptions } from "pino";
 
 import type { AppEnv } from "#core/env";
 import { logContextFields } from "#core/log/logContext";
+import { createOtelLogStream } from "#core/log/otelLogStream";
+import { isTelemetryStarted } from "#core/telemetry/lifecycle";
 
 export type AppLogger = Logger;
 
@@ -13,7 +16,23 @@ export type LoggerSettings = {
   level: LogLevel | "silent";
   pretty: boolean;
   environment: string;
+  /** Lowest level exported through OpenTelemetry (Grafana); null = no export. */
+  exportLevel?: LogLevel | null;
 };
+
+const LEVEL_ORDER: readonly (LogLevel | "silent")[] = [
+  "trace",
+  "debug",
+  "info",
+  "warn",
+  "error",
+  "fatal",
+  "silent",
+];
+
+function lowerLevel(a: LogLevel | "silent", b: LogLevel | "silent"): LogLevel | "silent" {
+  return LEVEL_ORDER.indexOf(a) <= LEVEL_ORDER.indexOf(b) ? a : b;
+}
 
 /**
  * Never logged, whatever a caller passes: credentials, codes and personal data. Request bodies are
@@ -51,7 +70,20 @@ export function loggerSettingsFromEnv(env: AppEnv, service: string): LoggerSetti
     // pino-pretty is a dev dependency, so only development may ask for it.
     pretty: env.LOG_PRETTY && env.NODE_ENV === "development",
     environment: env.NODE_ENV,
+    // Only once instrumentation.ts started the SDK; scripts and tests never export.
+    exportLevel: isTelemetryStarted() ? env.LOG_EXPORT_LEVEL : null,
   };
+}
+
+/** Ties a line to its trace in Grafana; also on stdout, so a line found there leads to the trace. */
+function traceFields(): Record<string, string> {
+  const span = trace.getActiveSpan()?.spanContext();
+
+  return span ? { trace_id: span.traceId, span_id: span.spanId } : {};
+}
+
+function mixin(): Record<string, unknown> {
+  return { ...logContextFields(), ...traceFields() };
 }
 
 function loggerOptions(settings: LoggerSettings): LoggerOptions {
@@ -63,7 +95,7 @@ function loggerOptions(settings: LoggerSettings): LoggerOptions {
       err: pino.stdSerializers.errWithCause,
       error: pino.stdSerializers.errWithCause,
     },
-    mixin: logContextFields,
+    mixin,
   };
 }
 
@@ -74,14 +106,14 @@ function loggerOptions(settings: LoggerSettings): LoggerOptions {
 export function createLogger(settings: LoggerSettings, destination?: DestinationStream): AppLogger {
   const options = loggerOptions(settings);
 
-  if (destination) {
+  if (destination && !settings.exportLevel) {
     return pino(options, destination);
   }
 
-  if (settings.pretty) {
-    return pino({
-      ...options,
-      transport: {
+  const stdout = destination
+    ? destination
+    : settings.pretty
+    ? pino.transport({
         target: "pino-pretty",
         options: {
           colorize: true,
@@ -89,14 +121,27 @@ export function createLogger(settings: LoggerSettings, destination?: Destination
           translateTime: "SYS:HH:MM:ss.l",
           // The terminal shows what a developer reads; the JSON lines keep everything.
           ignore: [
-            "pid,hostname,service,env,kind,ipHash,userAgent,contentLength",
+            "pid,hostname,service,env,kind,ipHash,userAgent,contentLength,trace_id,span_id",
             "method,url,route,statusCode,durationMs",
           ].join(","),
           messageFormat: "{if method}{method} {url} {statusCode} {durationMs}ms {end}{msg}",
         },
-      },
-    });
+      })
+    : pino.destination(1);
+
+  if (!settings.exportLevel) {
+    return pino(options, stdout);
   }
 
-  return pino(options);
+  // stdout and the export have their own level; the logger lets through what either one wants.
+  const streams: pino.StreamEntry[] = [{ level: settings.exportLevel, stream: createOtelLogStream() }];
+
+  if (settings.level !== "silent") {
+    streams.push({ level: settings.level, stream: stdout });
+  }
+
+  return pino(
+    { ...options, level: lowerLevel(settings.level, settings.exportLevel) },
+    pino.multistream(streams),
+  );
 }

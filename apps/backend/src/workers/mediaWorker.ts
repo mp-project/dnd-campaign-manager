@@ -8,6 +8,7 @@ import { createLogger, loggerSettingsFromEnv } from "#core/log/logger";
 import { installProcessErrorHandlers } from "#core/log/processErrors";
 import { reportError } from "#core/log/reportError";
 import { createStoragePortFromEnv } from "#core/storage/index";
+import { shutdownTelemetry } from "#core/telemetry/lifecycle";
 import { MediaRepository } from "#src/modules/media/domain/repository/MediaRepository";
 import { MediaVariantService } from "#src/modules/media/service/MediaVariantService";
 
@@ -54,6 +55,7 @@ async function runWorker(): Promise<void> {
   } finally {
     await pool.end();
     logger.info("Media worker stopped");
+    await shutdownTelemetry();
   }
 }
 

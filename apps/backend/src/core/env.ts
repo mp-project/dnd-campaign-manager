@@ -110,6 +110,13 @@ const envSchema = z
     LOG_CHANGE_VALUES: booleanFromEnv.default(true),
     // Readable single lines (pino-pretty) instead of JSON; only for development.
     LOG_PRETTY: booleanFromEnv.default(false),
+    // Lowest level sent to Grafana (OpenTelemetry logs); only with an OTLP endpoint. Separate from
+    // LOG_LEVEL so stdout and the export can be turned down independently.
+    LOG_EXPORT_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+    // OTLP endpoint (Grafana Cloud); without it no telemetry is started. Headers, protocol and
+    // sampling are read by the SDK itself from the standard OTEL_* variables.
+    OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrlString,
+    OTEL_SDK_DISABLED: booleanFromEnv.default(false),
     // Key for the hashed client IP in request logs; without it a random key per process.
     LOG_IP_HASH_SECRET: z.preprocess(
       (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),

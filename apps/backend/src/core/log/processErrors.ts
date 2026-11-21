@@ -3,6 +3,7 @@ import type { FastifyBaseLogger } from "fastify";
 import { getErrorReporter } from "#core/log/errorReporter";
 import { installProcessLogger } from "#core/log/logContext";
 import { reportError } from "#core/log/reportError";
+import { shutdownTelemetry } from "#core/telemetry/lifecycle";
 
 const FLUSH_TIMEOUT_MS = 2000;
 
@@ -35,6 +36,8 @@ export function installProcessErrorHandlers(
         // Exiting anyway; this line is all that is left to tell.
         logger.error({ err: shutdownError }, "Shutdown after a process failure failed");
       })
+      // Last, so the fatal line and whatever the shutdown logged still reach Grafana.
+      .then(() => shutdownTelemetry(FLUSH_TIMEOUT_MS))
       .finally(() => process.exit(1));
   };
 

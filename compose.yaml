@@ -131,6 +131,8 @@ services:
       LOG_PRETTY: "false"
       # New values in the `change` lines while the data is still being checked.
       LOG_CHANGE_VALUES: ${LOG_CHANGE_VALUES:-true}
+      # Name in Grafana; the OTLP endpoint and token come from apps/backend/.env.
+      OTEL_SERVICE_NAME: questaria-api
       MAIL_FROM_NAME: Questaria
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
@@ -180,7 +182,8 @@ services:
       STORAGE_S3_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       STORAGE_S3_FORCE_PATH_STYLE: "true"
       STORAGE_S3_AUTO_BOOTSTRAP: "false"
-    command: ["dist/workers/mediaWorker.js"]
+      OTEL_SERVICE_NAME: questaria-media-worker
+    command: ["--import", "./dist/instrumentation.js", "dist/workers/mediaWorker.js"]
     healthcheck:
       disable: true
     depends_on:

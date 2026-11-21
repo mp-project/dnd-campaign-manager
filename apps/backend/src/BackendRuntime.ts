@@ -7,6 +7,7 @@ import { createLogger, loggerSettingsFromEnv, type AppLogger } from "#core/log/l
 import { installProcessErrorHandlers } from "#core/log/processErrors";
 import { reportError } from "#core/log/reportError";
 import { bootstrapS3Storage } from "#core/runtime/storageBootstrap";
+import { shutdownTelemetry } from "#core/telemetry/lifecycle";
 import {
   logStartupInfo,
   shouldSuppressStartupInfo,
@@ -78,10 +79,12 @@ export class BackendRuntime {
     try {
       await this.app.close();
       await getErrorReporter().flush();
+      await shutdownTelemetry();
       process.exit(reason === "STARTUP_FAILURE" ? 1 : 0);
     } catch (error) {
       reportError(this.logger, error, "Failed to close server gracefully", { task: "shutdown" });
       await getErrorReporter().flush();
+      await shutdownTelemetry();
       process.exit(1);
     }
   }

@@ -6,6 +6,7 @@ import { createErrorPayload } from "#core/error/errorPayload";
 import type { ErrorReporter } from "#core/log/errorReporter";
 import { reportError } from "#core/log/reportError";
 import { markResponseError } from "#core/log/requestLog";
+import { markRequestSpan } from "#core/telemetry/requestSpan";
 
 /**
  * The one place where request errors are handled:
@@ -23,6 +24,7 @@ export function registerErrorHandler(
     const route = request.routeOptions.url;
 
     markResponseError(request, mappedError.code);
+    markRequestSpan(request, error, mappedError.statusCode);
 
     if (mappedError.code === "SERVICE_UNAVAILABLE") {
       request.log.warn({ err: error, route }, "Service unavailable");

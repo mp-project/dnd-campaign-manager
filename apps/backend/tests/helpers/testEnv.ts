@@ -28,6 +28,8 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     LOG_LEVEL: "silent",
     LOG_PRETTY: false,
     LOG_CHANGE_VALUES: true,
+    LOG_EXPORT_LEVEL: "info",
+    OTEL_SDK_DISABLED: false,
     DEFAULT_RULESETS_ON_START: false,
     CORS_ORIGIN: "http://app.localhost:5173",
     FRONTEND_ORIGIN: "http://app.localhost:5173",

@@ -8,7 +8,7 @@
 import { hashKey, type QueryClient } from "@tanstack/vue-query";
 
 import { type Me, meQuery } from "@/core/auth/session";
-import { onStatisticsConsent } from "@/core/consent/consent";
+import { onStatisticsConsent, onStatisticsDeclined } from "@/core/consent/consent";
 import { addErrorReporter, addLogSink, logger, type LogContext, type LogLevel } from "@/core/log";
 import { remoteLogLevel } from "@/core/telemetry/faro";
 import type { SentryClient } from "@/core/telemetry/sentryClient";
@@ -53,8 +53,17 @@ export function installSentry(queryClient: QueryClient): void {
     client?.setUser(userId);
   });
 
+  // Session Replay's session key (@sentry/replay); a decline removes it.
+  onStatisticsDeclined(() => {
+    try {
+      window.sessionStorage.removeItem("sentryReplaySession");
+    } catch {
+      // Blocked storage: nothing could have been stored.
+    }
+  });
   onStatisticsConsent((granted) => {
     replayWanted = granted;
+    // A withdrawal reloads the page (`consent`); the replay stops until then.
     if (granted) client?.startReplay();
     else client?.stopReplay();
   });

@@ -1,20 +1,35 @@
 /**
  * Grafana Faro (frontend observability) runs only with the consent for "statistics": it starts
- * when the consent is given, pauses and forgets its session when it is withdrawn, and starts
- * again on a new consent. Without `VITE_FARO_URL` it never loads. Each browser gets its own
+ * when the consent is given; a withdrawal pauses it and reloads the page without it, and every
+ * decline removes what it stored. Without `VITE_FARO_URL` it never loads. Each browser gets its own
  * session, signed-in users their internal id (never an email), so several people behind one
  * address stay apart. Views are named after routes; addresses go out without query, fragment and
- * slug (`faroPrivacy`).
+ * slug (`addressPrivacy`).
  */
 import { hashKey, type QueryClient } from "@tanstack/vue-query";
 import type { Router } from "vue-router";
 
 import { type Me, meQuery } from "@/core/auth/session";
-import { onStatisticsConsent } from "@/core/consent/consent";
+import { onStatisticsConsent, onStatisticsDeclined } from "@/core/consent/consent";
 import { addLogSink, logger, type LogLevel } from "@/core/log";
 import type { FaroClient } from "@/core/telemetry/faroClient";
 
 const LEVEL_ORDER: LogLevel[] = ["debug", "info", "warn", "error"];
+
+/** What Faro stores in the browser (faro-web-sdk's session and navigation keys). */
+export const FARO_STORAGE_KEYS = ["com.grafana.faro.session", "com.grafana.faro.lastNavigationId"];
+
+/** Removes what Faro stored; storage that is blocked holds nothing either. */
+export function forgetFaroStorage(): void {
+  for (const key of FARO_STORAGE_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // Blocked storage: nothing could have been stored.
+    }
+  }
+}
 
 export function remoteLogLevel(value: string | undefined): LogLevel {
   return LEVEL_ORDER.includes(value as LogLevel) ? (value as LogLevel) : "info";
@@ -59,21 +74,18 @@ export function installFaro(router: Router, queryClient: QueryClient): void {
     if (state.active && LEVEL_ORDER.indexOf(entry.level) >= minimum) state.client?.sendLog(entry);
   });
 
+  onStatisticsDeclined(forgetFaroStorage);
+
   onStatisticsConsent((granted) => {
     state.active = granted;
 
+    // A withdrawal reloads the page (`consent`); until then nothing is sent.
     if (!granted) {
-      if (!state.client) return;
-      state.client.faro.pause();
-      void import("@/core/telemetry/faroClient").then(({ forgetFaroSession }) => forgetFaroSession());
+      state.client?.faro.pause();
       return;
     }
 
-    if (state.client) {
-      state.client.faro.unpause();
-      applyMeta();
-      return;
-    }
+    if (state.client) return;
 
     void import("@/core/telemetry/faroClient")
       .then(({ createFaroClient }) => {

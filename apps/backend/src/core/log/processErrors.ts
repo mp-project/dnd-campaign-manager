@@ -6,6 +6,17 @@ import { reportError } from "#core/log/reportError";
 import { shutdownTelemetry } from "#core/telemetry/lifecycle";
 
 const FLUSH_TIMEOUT_MS = 2000;
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+function withTimeout(work: Promise<void>, timeoutMs: number): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<void>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Shutdown took longer than ${timeoutMs} ms`)), timeoutMs);
+    timer.unref();
+  });
+
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
 
 /**
  * An error nobody caught leaves the process in an unknown state: it is reported as `fatal`, the
@@ -31,7 +42,8 @@ export function installProcessErrorHandlers(
 
     void getErrorReporter()
       .flush(FLUSH_TIMEOUT_MS)
-      .then(() => shutdown())
+      // A request still running could hold the process for minutes in an unknown state.
+      .then(() => withTimeout(shutdown(), SHUTDOWN_TIMEOUT_MS))
       .catch((shutdownError: unknown) => {
         // Exiting anyway; this line is all that is left to tell.
         logger.error({ err: shutdownError }, "Shutdown after a process failure failed");

@@ -1,5 +1,7 @@
 import { SpanStatusCode, type Span } from "@opentelemetry/api";
 
+import { safeError } from "#core/log/safeError";
+
 type InstrumentedRequest = {
   /** Added by @fastify/otel when telemetry runs; missing otherwise (tests, no endpoint). */
   opentelemetry?: () => { span?: Span | null };
@@ -23,6 +25,7 @@ export function markRequestSpan(request: unknown, error: unknown, statusCode: nu
     return;
   }
 
-  span.recordException(error instanceof Error ? error : String(error));
+  const safe = safeError(error);
+  span.recordException(safe instanceof Error ? safe : String(safe));
   span.setStatus({ code: SpanStatusCode.ERROR });
 }

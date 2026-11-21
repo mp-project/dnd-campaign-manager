@@ -86,3 +86,36 @@ describe("consent", () => {
     expect(renew).toHaveBeenCalled();
   });
 });
+
+describe("withdrawing and declining", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    document.getElementById("Cookiebot")?.remove();
+  });
+
+  it("reloads the page once statistics are withdrawn and tells every decline", async () => {
+    vi.stubEnv("VITE_COOKIEBOT_ID", "c03c6818-ca6f-4955-a00d-ff51e76300ef");
+    vi.resetModules();
+    const consent = await import("@/core/consent/consent");
+    const reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
+    const declined = vi.fn();
+    consent.onStatisticsDeclined(declined);
+    consent.startConsent("de");
+
+    window.Cookiebot = { consent: { statistics: false } };
+    window.dispatchEvent(new Event("CookiebotOnConsentReady"));
+    expect(declined).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+
+    window.Cookiebot = { consent: { statistics: true } };
+    window.dispatchEvent(new Event("CookiebotOnAccept"));
+    window.Cookiebot = { consent: { statistics: false } };
+    window.dispatchEvent(new Event("CookiebotOnDecline"));
+
+    // Window listeners of earlier tests' module instances may answer too; this one must reload.
+    expect(reload).toHaveBeenCalled();
+    expect(declined).toHaveBeenCalledTimes(2);
+  });
+});

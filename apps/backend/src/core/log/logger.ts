@@ -3,6 +3,7 @@ import pino, { type DestinationStream, type Logger, type LoggerOptions } from "p
 
 import type { AppEnv } from "#core/env";
 import { logContextFields } from "#core/log/logContext";
+import { safeError } from "#core/log/safeError";
 import { createOtelLogStream } from "#core/log/otelLogStream";
 import { createSentryLogStream } from "#core/log/sentryLogStream";
 import { isSentryStarted, isTelemetryStarted } from "#core/telemetry/lifecycle";
@@ -96,8 +97,9 @@ function loggerOptions(settings: LoggerSettings): LoggerOptions {
     base: { service: settings.service, env: settings.environment },
     redact: { paths: [...REDACTED_LOG_PATHS], censor: "[redacted]" },
     serializers: {
-      err: pino.stdSerializers.errWithCause,
-      error: pino.stdSerializers.errWithCause,
+      // Without the values library errors carry (query parameters, conflicting keys, recipients).
+      err: (error: unknown) => pino.stdSerializers.errWithCause(safeError(error) as Error),
+      error: (error: unknown) => pino.stdSerializers.errWithCause(safeError(error) as Error),
     },
     mixin,
   };

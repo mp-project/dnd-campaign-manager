@@ -3,7 +3,8 @@
  * out of the start bundle). Errors come only through `reportError` (the app's handlers decide what
  * is unexpected), so Sentry's own window handlers are left out. Log lines become breadcrumbs, and
  * Sentry Logs from `VITE_LOG_REMOTE_LEVEL`. Session Replay is added only with the consent for
- * statistics (masked text, blocked media) and stopped when it is withdrawn.
+ * statistics (masked text, blocked media, sampled by `VITE_SENTRY_REPLAY_*`) and stopped when it is
+ * withdrawn.
  */
 import {
   addBreadcrumb,
@@ -16,7 +17,7 @@ import {
 } from "@sentry/vue";
 
 import type { LogContext, LogEntry } from "@/core/log";
-import { scrubAddress, scrubAddresses } from "@/core/telemetry/faroPrivacy";
+import { scrubAddress, scrubAddresses } from "@/core/telemetry/addressPrivacy";
 import { toStringContext } from "@/core/telemetry/stringContext";
 
 type Replay = Awaited<ReturnType<typeof import("@/core/telemetry/sentryReplay").addReplay>>;
@@ -34,12 +35,27 @@ const LEFT_OUT = new Set(["GlobalHandlers", "Console"]);
 
 const TAGS = ["source", "status", "code", "requestId"];
 
+/**
+ * Keeps only the scrubbed address and the user id of the request; addresses anywhere else (tags,
+ * contexts, breadcrumbs, exception messages) lose query, fragment and slug.
+ */
 export function scrubSentryEvent<T extends ErrorEvent>(event: T): T {
   if (event.request?.url) event.request = { url: scrubAddress(event.request.url) };
   else delete event.request;
   if (event.user) event.user = event.user.id === undefined ? {} : { id: event.user.id };
   if (event.breadcrumbs) event.breadcrumbs = scrubAddresses(event.breadcrumbs);
+  if (event.tags) event.tags = scrubAddresses(event.tags);
+  if (event.contexts) event.contexts = scrubAddresses(event.contexts);
+  if (event.extra) event.extra = scrubAddresses(event.extra);
+  for (const value of event.exception?.values ?? []) {
+    if (value.value) value.value = scrubMessage(value.value);
+  }
   return event;
+}
+
+/** Addresses inside a text (an error message naming a URL). */
+function scrubMessage(text: string): string {
+  return text.replace(/(https?:\/\/|\/)[^\s"'<>]*/g, (address) => scrubAddress(address));
 }
 
 export function startSentryClient(settings: SentryClientSettings) {
@@ -53,6 +69,11 @@ export function startSentryClient(settings: SentryClientSettings) {
     replaysOnErrorSampleRate: settings.replayOnErrorSampleRate,
     beforeSend: scrubSentryEvent,
     beforeBreadcrumb: (breadcrumb) => scrubAddresses(breadcrumb),
+    beforeSendLog: (log) => ({
+      ...log,
+      message: scrubMessage(String(log.message)),
+      ...(log.attributes ? { attributes: scrubAddresses(log.attributes) } : {}),
+    }),
   });
 
   let replay: Replay | null = null;
@@ -81,10 +102,8 @@ export function startSentryClient(settings: SentryClientSettings) {
     },
     startReplay() {
       replayWanted = true;
-      if (replay) {
-        replay.start();
-        return;
-      }
+      // A withdrawal reloads the page, so a replay is only ever added once per page.
+      if (replay) return;
       void import("@/core/telemetry/sentryReplay").then(({ addReplay }) => {
         // The consent may have been withdrawn while the chunk loaded.
         if (!replay && replayWanted) replay = addReplay();

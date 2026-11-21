@@ -9,7 +9,6 @@ import {
   getWebInstrumentations,
   initializeFaro,
   LogLevel,
-  STORAGE_KEY,
   type Faro,
   type TransportItem,
 } from "@grafana/faro-web-sdk";
@@ -17,7 +16,7 @@ import { TracingInstrumentation } from "@grafana/faro-web-tracing";
 
 import { apiOrigin } from "@/core/api/client";
 import type { LogEntry, LogLevel as AppLogLevel } from "@/core/log";
-import { scrubAddresses } from "@/core/telemetry/faroPrivacy";
+import { scrubAddresses } from "@/core/telemetry/addressPrivacy";
 import { toStringContext } from "@/core/telemetry/stringContext";
 
 const FARO_LEVEL: Record<AppLogLevel, LogLevel> = {
@@ -70,15 +69,4 @@ export function createFaroClient(options: { url: string; environment: string; ve
       faro.api.pushLog([entry.message], { level: FARO_LEVEL[entry.level], context: toStringContext(entry.context) });
     },
   };
-}
-
-/** Removes what Faro stored in the browser (withdrawn consent). */
-export function forgetFaroSession(): void {
-  for (const storage of [window.localStorage, window.sessionStorage]) {
-    try {
-      storage.removeItem(STORAGE_KEY);
-    } catch {
-      // Storage blocked: then nothing could have been stored either.
-    }
-  }
 }

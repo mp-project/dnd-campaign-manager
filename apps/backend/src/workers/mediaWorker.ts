@@ -35,18 +35,32 @@ async function runWorker(): Promise<void> {
 
   logger.info("Media worker started");
 
+  // A database outage fails every poll; only the first failure of a series is reported, the
+  // rest is a warning until a poll succeeds again.
+  let failing = false;
+
   try {
     while (!stop.signal.aborted) {
       const worked = await runWithLogContext({ task: "media.variants" }, () =>
         variants.processNext(),
-      ).catch((error: unknown) => {
-        // Usually the database; the worker waits and asks again instead of ending.
-        reportError(logger, error, "Media worker could not get its next job", {
-          task: "media.variants",
-        });
+      )
+        .then((result) => {
+          failing = false;
+          return result;
+        })
+        .catch((error: unknown) => {
+          // Usually the database; the worker waits and asks again instead of ending.
+          if (failing) {
+            logger.warn({ err: error, task: "media.variants" }, "Media worker still cannot get its next job");
+          } else {
+            reportError(logger, error, "Media worker could not get its next job", {
+              task: "media.variants",
+            });
+          }
+          failing = true;
 
-        return false;
-      });
+          return false;
+        });
 
       if (!worked) {
         // Aborting the wait is how the worker stops; there is nothing to handle.

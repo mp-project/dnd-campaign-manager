@@ -338,3 +338,64 @@ describe("Sentry", () => {
     expect(target.error).toHaveBeenCalledWith("boom", { task: "media.variants" });
   });
 });
+
+describe("errors without the values they carry", () => {
+  async function drizzleError() {
+    const { DrizzleQueryError } = await import("drizzle-orm/errors");
+    const pgError = Object.assign(new Error('duplicate key value violates unique constraint "users_email_key"'), {
+      code: "23505",
+      severity: "ERROR",
+      constraint: "users_email_key",
+      table: "users",
+      detail: "Key (email)=(geheim@example.de) already exists.",
+    });
+    return new DrizzleQueryError('insert into "users" ("email", "password_hash") values ($1, $2)', ["geheim@example.de", "$argon2id$hash"], pgError);
+  }
+
+  it("keeps the SQL and codes of a failed query but no parameter values", async () => {
+    const { safeError } = await import("#core/log/safeError");
+    const { InternalError } = await import("#core/error/http/index");
+
+    const safe = safeError(new InternalError("Internal server error", null, { cause: await drizzleError() }));
+    const text = JSON.stringify(safe, Object.getOwnPropertyNames(safe)) + String((safe as Error).stack);
+    const cause = (safe as Error).cause as Error & Record<string, unknown>;
+    const pg = cause.cause as Error & Record<string, unknown>;
+
+    expect(cause.message).toBe('Failed query: insert into "users" ("email", "password_hash") values ($1, $2)');
+    expect(cause).not.toHaveProperty("params");
+    expect(pg).toMatchObject({ code: "23505", constraint: "users_email_key", table: "users" });
+    expect(pg).not.toHaveProperty("detail");
+    for (const leaked of [text, String(cause.stack), String(pg.stack), pg.message]) {
+      expect(leaked).not.toContain("geheim@example.de");
+      expect(leaked).not.toContain("argon2id");
+    }
+  });
+
+  it("writes log lines without them", async () => {
+    const { lines, stream } = captureLines();
+
+    createLogger({ service: "api", pretty: false, environment: "test", level: "info" }, stream).error(
+      { err: await drizzleError() },
+      "Request failed",
+    );
+
+    expect(JSON.stringify(lines[0])).not.toContain("geheim@example.de");
+    expect(JSON.stringify(lines[0])).toContain("23505");
+  });
+
+  it("drops recipients and answers of mail errors", async () => {
+    const { safeError } = await import("#core/log/safeError");
+    const smtp = Object.assign(new Error("Can't send mail - all recipients were rejected: 550 <geheim@example.de>"), {
+      code: "EENVELOPE",
+      responseCode: 550,
+      command: "RCPT TO",
+      rejected: ["geheim@example.de"],
+      response: "550 <geheim@example.de> unknown",
+    });
+
+    const safe = safeError(smtp) as Error & Record<string, unknown>;
+
+    expect(safe).toMatchObject({ code: "EENVELOPE", responseCode: 550, command: "RCPT TO" });
+    expect(JSON.stringify(safe, Object.getOwnPropertyNames(safe))).not.toContain("geheim@example.de");
+  });
+});

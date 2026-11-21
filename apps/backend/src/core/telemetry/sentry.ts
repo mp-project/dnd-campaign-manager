@@ -8,6 +8,7 @@
 import * as Sentry from "@sentry/node";
 
 import type { ErrorReportContext, ErrorReporter } from "#core/log/errorReporter";
+import { safeError } from "#core/log/safeError";
 
 export type SentrySettings = {
   dsn: string;
@@ -105,7 +106,7 @@ export function createSentryErrorReporter(): ErrorReporter {
         }
         if (Object.keys(rest).length > 0) scope.setContext("report", rest);
 
-        Sentry.captureException(error);
+        Sentry.captureException(safeError(error));
       });
     },
     flush(timeoutMs = 2000) {

@@ -27,12 +27,33 @@ const COOKIEBOT_SCRIPT = "https://consent.cookiebot.com/uc.js";
 const COOKIEBOT_EVENTS = ["CookiebotOnConsentReady", "CookiebotOnAccept", "CookiebotOnDecline"];
 
 const listeners = new Set<ConsentListener>();
+const declinedListeners = new Set<() => void>();
 let statistics = false;
 
 function publish(next: boolean): void {
   if (next === statistics) return;
+  const withdrawn = statistics && !next;
   statistics = next;
   for (const listener of listeners) listener(next);
+  // Faro and Session Replay keep parts running that can't be stopped from outside (session
+  // writes on visibility changes); the page loads once more without them.
+  if (withdrawn) window.location.reload();
+}
+
+/** A visitor's answer from Cookiebot: statistics allowed or not. */
+function decide(next: boolean): void {
+  publish(next);
+  if (!next) for (const listener of declinedListeners) listener();
+}
+
+/**
+ * Called whenever Cookiebot reports statistics as not allowed (on every page load after a decline
+ * or withdrawal): optional services remove what they stored in the browser, including what they
+ * wrote while the page was left.
+ */
+export function onStatisticsDeclined(listener: () => void): () => void {
+  declinedListeners.add(listener);
+  return () => declinedListeners.delete(listener);
 }
 
 /** Calls `listener` now with the current answer and again whenever it changes; returns the unsubscribe. */
@@ -70,13 +91,13 @@ export function startConsent(locale: string): void {
   const id = cookiebotId();
 
   if (!id) {
-    if (import.meta.env.DEV && import.meta.env.VITE_DEV_CONSENT === "statistics") publish(true);
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_CONSENT === "statistics") decide(true);
     return;
   }
 
   if (document.getElementById("Cookiebot")) return;
 
-  const read = () => publish(window.Cookiebot?.consent?.statistics === true);
+  const read = () => decide(window.Cookiebot?.consent?.statistics === true);
   for (const name of COOKIEBOT_EVENTS) window.addEventListener(name, read);
 
   const script = document.createElement("script");

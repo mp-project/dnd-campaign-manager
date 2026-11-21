@@ -1,5 +1,5 @@
 /**
- * What Faro may send about addresses. Queries and fragments carry tokens and email addresses
+ * What may leave the browser about addresses (Faro, Sentry, logs). Queries and fragments carry tokens and email addresses
  * (`/passwort-zuruecksetzen?token=`, `/invitations/accept#token=`), slugs carry campaign and content
  * names (`/k/<short id>-<name>`). Every address in an item keeps its path with the short ids only;
  * those are pseudonymous and enough to tell pages apart.

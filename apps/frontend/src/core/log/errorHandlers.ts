@@ -3,6 +3,7 @@ import type { Router } from "vue-router";
 
 import { logger } from "@/core/log/logger";
 import { reportError } from "@/core/log/reportError";
+import { scrubAddress } from "@/core/telemetry/addressPrivacy";
 
 const CHUNK_RELOAD_KEY = "questaria.chunkReload";
 
@@ -42,11 +43,12 @@ function writeFlag(value: string | null): void {
 export function handleRouterError(error: unknown, to: string, reload: (to: string) => void): void {
   if (isChunkLoadError(error) && readFlag() === null) {
     writeFlag(to);
-    logger.warn("Reloading after a deploy", { to });
+    // The full address is needed to load the page again, but only its path goes into the report.
+    logger.warn("Reloading after a deploy", { to: scrubAddress(to) });
     reload(to);
     return;
   }
-  reportError(error, { source: "router", to });
+  reportError(error, { source: "router", to: scrubAddress(to) });
 }
 
 /**

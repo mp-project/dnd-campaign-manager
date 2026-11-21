@@ -1,7 +1,7 @@
 /**
  * The one logger of the frontend. In development every line goes to the console; outside it only
- * to the sinks that are installed (Sentry breadcrumbs and logs, Faro after consent – they come with
- * the monitoring accounts). Context carries ids and codes, never typed text or personal data.
+ * to the sinks that are installed (Sentry breadcrumbs and logs, Faro after consent; see
+ * `@/core/telemetry`). Context carries ids and codes, never typed text or personal data.
  */
 export type LogLevel = "debug" | "info" | "warn" | "error";
 

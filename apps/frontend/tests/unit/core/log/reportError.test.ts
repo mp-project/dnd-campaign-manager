@@ -100,4 +100,16 @@ describe("router errors", () => {
     expect(reload).toHaveBeenCalledWith("/k/abc/notizen");
     expect(reported).toEqual([chunkError]);
   });
+
+  it("reports the page without query and fragment, but reloads the full address", () => {
+    const reload = vi.fn();
+    const contexts: unknown[] = [];
+    const remove = addErrorReporter((_error, context) => contexts.push(context));
+
+    handleRouterError(new Error("boom"), "/passwort-zuruecksetzen?token=geheim", reload);
+    remove();
+
+    expect(contexts).toEqual([expect.objectContaining({ source: "router", to: "/passwort-zuruecksetzen" })]);
+    expect(JSON.stringify(contexts)).not.toContain("geheim");
+  });
 });

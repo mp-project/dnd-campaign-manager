@@ -144,6 +144,7 @@ const features: Feature[] = [
     layout: "wide",
     showcase: "storylineTour",
     band: "navy",
+    landscape: "etchedHills",
   },
   {
     id: "quests",
@@ -434,7 +435,10 @@ const reputationPoints: MessageKey[] = [
         class="navy-shade relative z-10 overflow-x-clip"
         aria-labelledby="landing-more"
       >
-        <LandscapeEdge flip />
+        <LandscapeEdge
+          flip
+          landscape="etchedHills"
+        />
         <div class="more-glow pointer-events-none absolute inset-0" />
         <div
           v-reveal

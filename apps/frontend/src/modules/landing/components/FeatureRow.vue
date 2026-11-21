@@ -15,7 +15,7 @@ import { useAppI18n } from "@/core/i18n";
 import type { MessageKey } from "@/core/i18n/keys";
 import { type RevealFrom, vReveal } from "@/core/motion/reveal";
 
-import LandscapeEdge from "./LandscapeEdge.vue";
+import LandscapeEdge, { type Landscape } from "./LandscapeEdge.vue";
 
 export type FeatureRowData = {
   id: string;
@@ -30,6 +30,8 @@ export type FeatureRowData = {
    * with the paper texture, to set a feature apart from its light neighbours.
    */
   band?: "navy" | "parchment";
+  /** The landscape on the upper edge of a navy band (default: the hills). */
+  landscape?: Landscape;
   /** A watercolour at the outer edge of the given side, behind the text. */
   scene?: { src: string; side: "left" | "right" };
 };
@@ -56,7 +58,10 @@ const LAYOUT = {
   <div
     :class="feature.band ? BAND[feature.band] : 'relative overflow-x-clip py-10 md:py-16'"
   >
-    <LandscapeEdge v-if="dark" />
+    <LandscapeEdge
+      v-if="dark"
+      :landscape="feature.landscape"
+    />
     <div
       v-if="dark"
       class="feature-dark-glow pointer-events-none absolute inset-0"

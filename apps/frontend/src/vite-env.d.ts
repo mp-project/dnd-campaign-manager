@@ -12,6 +12,16 @@ interface ImportMetaEnv {
   readonly VITE_COOKIEBOT_ID?: string;
   /** Clerk's publishable key (`pk_…`); without it nobody can sign in. */
   readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
+  /** Development only, without Cookiebot: `statistics` grants that consent (Faro) locally. */
+  readonly VITE_DEV_CONSENT?: string;
+  /** Grafana Faro collector address; empty = no frontend observability. */
+  readonly VITE_FARO_URL?: string;
+  /** Lowest level of the app's log lines sent to Faro: debug, info, warn, error. */
+  readonly VITE_LOG_REMOTE_LEVEL?: string;
+  /** development, stage or production; Faro's environment (else the Vite mode). */
+  readonly VITE_APP_ENV?: string;
+  /** Release (git SHA) for Faro; else `dev`. */
+  readonly VITE_APP_RELEASE?: string;
 }
 
 interface ImportMeta {

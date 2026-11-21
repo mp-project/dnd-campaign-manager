@@ -217,7 +217,8 @@
     "title": "Ready for the next adventure?",
     "text": "Try the demo or pre-register – we'll get in touch as soon as your access is ready.",
     "demo": "Try the demo",
-    "navLabel": "Legal"
+    "navLabel": "Legal",
+    "cookieSettings": "Cookie settings"
   },
   "publicNav": {
     "label": "Main navigation",

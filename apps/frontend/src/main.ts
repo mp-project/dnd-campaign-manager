@@ -17,12 +17,14 @@ import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
 import { clearSessionCache } from "./core/api/queryClient";
 import { installClerk, onClerkSessionChange } from "./core/auth/clerk";
+import { startConsent } from "./core/consent/consent";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
 import { createAppQueryClient } from "./core/api/queryClient";
 import { installErrorHandlers } from "./core/log/errorHandlers";
 import { installReducedMotion } from "./core/motion/reducedMotion";
 import { installAppHead } from "./core/seo/appHead";
 import { NAV_ITEMS } from "./core/navigation/navigation";
+import { installFaro } from "./core/telemetry/faro";
 import { startPushNotifications } from "./services/pushNotifications";
 
 const app = createApp(App);
@@ -39,6 +41,7 @@ onClerkSessionChange(() => clearSessionCache(queryClient));
 installGuards(router, queryClient);
 installAppHead(router);
 watchCampaignAccess(router, queryClient);
+installFaro(router, queryClient);
 
 app.use(createPinia());
 app.use(router);
@@ -51,6 +54,10 @@ const override = devLocaleOverride();
 const startLocale = setLocale(i18n, override ?? initialLocale(), { remember: !override });
 applyProfileSettings(queryClient, i18n, { keepLocale: override !== null, after: startLocale });
 installLocaleRoutes(router, i18n, { keepLocale: override !== null, after: startLocale });
-void startLocale.finally(() => app.mount("#app"));
+void startLocale.finally(() => {
+  app.mount("#app");
+  // After the first paint, in the page's language; Faro starts once statistics are allowed.
+  startConsent(i18n.global.locale.value);
+});
 
 void startPushNotifications();

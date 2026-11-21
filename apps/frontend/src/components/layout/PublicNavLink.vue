@@ -3,19 +3,23 @@
  * Text link of the public pages' navigation (header, phone menu, footer): pointed at or focused,
  * a line in the primary colour grows underneath; the page shown keeps it (`active`, announced as
  * `aria-current="page"`). Buttons never get it. `tone` names the ground: `dark` on navy (a lighter
- * primary, so the line stays visible), `light` on parchment.
+ * primary, so the line stays visible), `light` on parchment. Without `to` it is a button that
+ * looks like the links (a footer action such as the cookie settings) and emits `click`.
  */
 import type { RouteLocationRaw } from "vue-router";
 
-withDefaults(defineProps<{ to: RouteLocationRaw; active?: boolean; tone?: "dark" | "light" }>(), {
+withDefaults(defineProps<{ to?: RouteLocationRaw; active?: boolean; tone?: "dark" | "light" }>(), {
+  to: undefined,
   active: false,
   tone: "dark",
 });
+defineEmits<{ click: [] }>();
 defineSlots<{ default(): unknown }>();
 </script>
 
 <template>
   <RouterLink
+    v-if="to !== undefined"
     :to="to"
     class="public-nav-link inline-flex min-h-11 items-center px-2"
     :class="tone === 'dark' ? 'is-dark' : 'is-light'"
@@ -25,6 +29,17 @@ defineSlots<{ default(): unknown }>();
       <slot />
     </span>
   </RouterLink>
+  <button
+    v-else
+    type="button"
+    class="public-nav-link inline-flex min-h-11 cursor-pointer items-center px-2"
+    :class="tone === 'dark' ? 'is-dark' : 'is-light'"
+    @click="$emit('click')"
+  >
+    <span class="public-nav-label">
+      <slot />
+    </span>
+  </button>
 </template>
 
 <style scoped>

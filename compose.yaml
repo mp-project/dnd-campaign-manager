@@ -226,6 +226,10 @@ services:
         VITE_SITE_URL: ${COMPOSE_FRONTEND_PUBLIC_URL}
         # Consent banner (public id) and Grafana Faro, which starts only after consent.
         VITE_COOKIEBOT_ID: ${COOKIEBOT_ID:-}
+        VITE_FARO_URL: ${FARO_URL:-}
+        VITE_LOG_REMOTE_LEVEL: ${LOG_REMOTE_LEVEL:-info}
+        VITE_APP_ENV: ${APP_ENV:-production}
+        VITE_APP_RELEASE: ${APP_RELEASE:-}
     depends_on:
       backend:
         condition: service_started

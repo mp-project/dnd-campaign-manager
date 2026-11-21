@@ -116,7 +116,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
           class="faq-seal pointer-events-none absolute hidden lg:block"
           aria-hidden="true"
         />
-        <div class="relative mx-auto max-w-400 px-4 pt-8 pb-14 md:px-10 md:pt-12 md:pb-20">
+        <div class="relative mx-auto max-w-400 px-4 pt-10 pb-20 md:px-10 md:pt-16 md:pb-28">
           <nav :aria-label="t('common.shell.breadcrumb')">
             <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
               <li>
@@ -209,7 +209,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
           decoding="async"
           class="faq-scene pointer-events-none absolute"
         >
-        <div class="relative mx-auto grid max-w-400 gap-10 px-4 pt-12 pb-32 md:px-10 md:pt-16 md:pb-44 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-14 xl:grid-cols-[19rem_minmax(0,52rem)] xl:justify-center">
+        <div class="relative mx-auto grid max-w-400 gap-10 px-4 pt-16 pb-40 md:px-10 md:pt-24 md:pb-56 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-14 xl:grid-cols-[19rem_minmax(0,52rem)] xl:justify-center">
           <aside class="hidden lg:block">
             <nav
               class="faq-topics sticky"

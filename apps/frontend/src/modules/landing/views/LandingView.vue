@@ -255,7 +255,7 @@ const reputationPoints: MessageKey[] = [
           class="hero-art pointer-events-none absolute"
         >
         <div class="hero-shade pointer-events-none absolute inset-0 hidden lg:block" />
-        <div class="relative mx-auto w-full max-w-400 px-4 pt-12 md:px-10 md:pt-16 lg:py-20">
+        <div class="relative mx-auto w-full max-w-400 px-4 pt-20 md:px-10 md:pt-28 lg:pt-32 lg:pb-20">
           <div class="max-w-150">
             <p class="eyebrow text-gold-light">
               {{ t("landing.hero.eyebrow") }}
@@ -312,7 +312,7 @@ const reputationPoints: MessageKey[] = [
         class="parchment on-parchment overflow-x-clip text-ink"
         aria-labelledby="landing-audience"
       >
-        <div class="mx-auto max-w-400 px-4 pt-28 pb-14 md:px-10 md:pt-36 md:pb-20">
+        <div class="mx-auto max-w-400 px-4 pt-36 pb-24 md:px-10 md:pt-48 md:pb-32">
           <h2
             id="landing-audience"
             v-reveal
@@ -362,12 +362,12 @@ const reputationPoints: MessageKey[] = [
 
       <!-- Main features, each with a screen of the clickdummy; some as a navy or parchment band across the page -->
       <section
-        class="bg-backdrop pb-24 text-ink md:pb-36"
+        class="bg-backdrop pb-32 text-ink md:pb-52"
         aria-labelledby="landing-features"
       >
         <div
           v-reveal
-          class="relative mx-auto max-w-400 px-4 pt-14 pb-5 md:px-10 md:pt-20 md:pb-2"
+          class="relative mx-auto max-w-400 px-4 pt-20 pb-8 md:px-10 md:pt-28 md:pb-10"
         >
           <WingSeal
             :size="96"
@@ -438,7 +438,7 @@ const reputationPoints: MessageKey[] = [
         <div class="more-glow pointer-events-none absolute inset-0" />
         <div
           v-reveal
-          class="relative mx-auto max-w-400 px-4 py-14 md:px-10 md:py-20"
+          class="relative mx-auto max-w-400 px-4 py-20 md:px-10 md:py-28"
         >
           <p class="eyebrow text-center text-gold-light">
             {{ t("landing.more.eyebrow") }}
@@ -462,7 +462,7 @@ const reputationPoints: MessageKey[] = [
 
       <!-- Inventory: a living list of Arvel's items -->
       <section
-        class="bg-backdrop pt-7 pb-24 text-ink md:pt-10 md:pb-36"
+        class="bg-backdrop pt-16 pb-36 text-ink md:pt-24 md:pb-56"
         aria-labelledby="landing-feature-inventory"
       >
         <FeatureRow :feature="inventory">
@@ -505,7 +505,7 @@ const reputationPoints: MessageKey[] = [
         <div class="marketplace-glow pointer-events-none absolute inset-0" />
         <div
           v-reveal
-          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 py-14 md:px-10 md:py-24 lg:grid-cols-[2fr_3fr]"
+          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 py-20 md:px-10 md:py-32 lg:grid-cols-[2fr_3fr]"
         >
           <div>
             <p class="eyebrow text-gold-light">
@@ -552,7 +552,7 @@ const reputationPoints: MessageKey[] = [
         >
         <div
           v-reveal
-          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 pt-14 pb-28 md:px-10 md:pt-20 md:pb-40 lg:grid-cols-[3fr_2fr]"
+          class="relative mx-auto grid max-w-400 items-center gap-10 px-4 pt-20 pb-36 md:px-10 md:pt-32 md:pb-52 lg:grid-cols-[3fr_2fr]"
         >
           <div class="lg:order-last">
             <p class="eyebrow text-brand">

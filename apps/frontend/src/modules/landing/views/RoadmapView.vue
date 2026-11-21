@@ -73,7 +73,7 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
           class="roadmap-seal pointer-events-none absolute hidden lg:block"
           aria-hidden="true"
         />
-        <div class="relative mx-auto max-w-400 px-4 pt-8 pb-14 md:px-10 md:pt-12 md:pb-20">
+        <div class="relative mx-auto max-w-400 px-4 pt-10 pb-20 md:px-10 md:pt-16 md:pb-28">
           <nav :aria-label="t('common.shell.breadcrumb')">
             <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
               <li>
@@ -132,14 +132,14 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
         class="parchment on-parchment relative text-ink"
         :aria-label="t('landing.roadmap.hero.title')"
       >
-        <div class="relative mx-auto max-w-200 px-4 pt-12 pb-32 md:px-10 md:pt-16 md:pb-44">
+        <div class="relative mx-auto max-w-200 px-4 pt-16 pb-40 md:px-10 md:pt-24 md:pb-56">
           <ol class="roadmap-path relative">
             <li
               v-for="(phase, index) in ROADMAP_PHASES"
               :key="phase.id"
               v-reveal
               class="roadmap-phase relative pl-16 md:pl-20"
-              :class="[`is-${phase.status.toLowerCase().replace('_', '-')}`, { 'mt-8': index > 0 }]"
+              :class="[`is-${phase.status.toLowerCase().replace('_', '-')}`, { 'mt-10 md:mt-12': index > 0 }]"
             >
               <span
                 class="roadmap-seal absolute top-4 left-0 flex size-12 items-center justify-center rounded-full border border-gold bg-parchment text-brand shadow-soft md:size-14"

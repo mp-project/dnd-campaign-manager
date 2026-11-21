@@ -314,6 +314,8 @@ describe("landing page", () => {
   });
 
   it("sets title, description and the language links for search engines, and removes them again", async () => {
+    // Without a site address the links use the page's own origin (a local .env may set one).
+    vi.stubEnv("VITE_SITE_URL", "");
     const { wrapper } = await open({ url: "/en", locale: "en" });
     expect(document.title).toBe("Questaria – campaign manager for D&D 5E");
     expect(document.head.querySelector<HTMLMetaElement>("meta[name=description]")?.content).toContain("game masters");

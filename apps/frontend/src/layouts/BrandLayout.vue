@@ -24,7 +24,7 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
   <div class="relative flex min-h-dvh flex-col overflow-clip bg-navy-950 text-parchment">
     <PublicHeader />
 
-    <main class="relative z-10 flex flex-1 flex-col items-center justify-start px-4 pt-6 pb-16 md:justify-center md:pt-10 md:pb-28">
+    <main class="relative z-10 flex flex-1 flex-col items-center justify-start px-4 pt-6 pb-28 md:justify-center md:pt-10 md:pb-44">
       <ParchmentFrame
         class="w-full rounded-card px-5 py-7 text-ink shadow-soft md:px-12 md:py-9"
         :class="WIDTH[size]"

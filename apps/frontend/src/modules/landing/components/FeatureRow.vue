@@ -38,8 +38,8 @@ const props = defineProps<{ feature: FeatureRowData }>();
 const dark = computed(() => props.feature.band === "navy");
 
 const BAND = {
-  navy: "navy-shade relative z-10 mt-24 mb-7 overflow-x-clip bg-navy-950 py-14 text-parchment md:mt-36 md:mb-10 md:py-20",
-  parchment: "parchment on-parchment relative my-7 overflow-x-clip border-y border-gold/60 py-14 md:my-10 md:py-20",
+  navy: "navy-shade relative z-10 mt-28 mb-10 overflow-x-clip bg-navy-950 py-20 text-parchment md:mt-44 md:mb-16 md:py-28",
+  parchment: "parchment on-parchment relative my-10 overflow-x-clip border-y border-gold/60 py-20 md:my-16 md:py-28",
 } as const;
 defineSlots<{ default(): unknown; decor?(): unknown }>();
 const { t } = useAppI18n();
@@ -54,7 +54,7 @@ const LAYOUT = {
 
 <template>
   <div
-    :class="feature.band ? BAND[feature.band] : 'relative overflow-x-clip py-7 md:py-10'"
+    :class="feature.band ? BAND[feature.band] : 'relative overflow-x-clip py-10 md:py-16'"
   >
     <LandscapeEdge v-if="dark" />
     <div

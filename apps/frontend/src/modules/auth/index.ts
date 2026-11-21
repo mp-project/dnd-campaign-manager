@@ -1,27 +1,33 @@
+import type { RouteRecordRedirectOption } from "vue-router";
+
+import { localizedRoutes } from "@/core/i18n/localizedRoutes";
 import { defineFrontendModule } from "@/core/modules";
 
+/** Earlier sign-in addresses (links in old mails, bookmarks) lead to the sign-in. */
+const toLogin: RouteRecordRedirectOption = (to) => ({ name: "auth-login", query: to.query });
+
 /**
- * Sign-in pages without navigation: sign in, register, confirm the email with the code, forgot and
- * reset the password, back from an OAuth provider. The backend links to `/login`, `/login/oauth`
- * and `/passwort-zuruecksetzen` (`AUTH_FRONTEND_PATHS` in the backend's auth module); keep them in
- * step. Signing out lives in the user menu, account security in the profile.
+ * Sign-in pages without navigation, all through Clerk: sign in (`/login`), register (`/registrieren`,
+ * while the waitlist is on only with Clerk's invitation) and the waitlist (`/warteliste`, the
+ * pre-registration, in every language). Clerk's own steps (codes, second factor, SSO callback) live
+ * under the first two paths, so they take any rest. Signing out lives in the user menu, account
+ * security in the profile.
  */
 export const authModule = defineFrontendModule({
   name: "auth",
   routes: {
     bare: [
-      { path: "login", name: "auth-login", component: () => import("./views/LoginView.vue") },
-      { path: "login/oauth", name: "auth-oauth", component: () => import("./views/OAuthCallbackView.vue") },
-      { path: "registrieren", name: "auth-register", component: () => import("./views/RegisterView.vue") },
-      { path: "aktivierung", name: "auth-activate", component: () => import("./views/ActivateView.vue") },
-      { path: "passwort-vergessen", name: "auth-forgot-password", component: () => import("./views/ForgotPasswordView.vue") },
-      { path: "passwort-zuruecksetzen", name: "auth-reset-password", component: () => import("./views/ResetPasswordView.vue") },
-      // Earlier addresses: reset links in mails sent before the move, bookmarks.
-      { path: "auth", redirect: (to) => ({ name: "auth-login", query: to.query }) },
-      { path: "auth/login", redirect: (to) => ({ name: "auth-login", query: to.query }) },
+      { path: "login/:step(.*)*", name: "auth-login", component: () => import("./views/LoginView.vue") },
+      { path: "registrieren/:step(.*)*", name: "auth-register", component: () => import("./views/RegisterView.vue") },
+      ...localizedRoutes({ path: "warteliste", name: "auth-waitlist", component: () => import("./views/WaitlistView.vue") }),
+      { path: "aktivierung", redirect: toLogin },
+      { path: "passwort-vergessen", redirect: toLogin },
+      { path: "passwort-zuruecksetzen", redirect: toLogin },
+      { path: "auth", redirect: toLogin },
+      { path: "auth/login", redirect: toLogin },
       { path: "auth/register", redirect: (to) => ({ name: "auth-register", query: to.query }) },
-      { path: "auth/callback", redirect: (to) => ({ name: "auth-oauth", query: to.query }) },
-      { path: "auth/reset-password", redirect: (to) => ({ name: "auth-reset-password", query: to.query }) },
+      { path: "auth/callback", redirect: toLogin },
+      { path: "auth/reset-password", redirect: toLogin },
     ],
   },
 });

@@ -388,7 +388,7 @@
       },
       "devices": {
         "question": "How do I keep track of my devices?",
-        "answer": "Your account settings list all your sessions and trusted devices; you can end single ones or sign out everywhere at once. Changing your password signs you out on every device."
+        "answer": "Your account settings list every device you're signed in on, and you can sign out single ones. The user menu signs you out everywhere at once."
       },
       "privacy": {
         "question": "What happens to my data?",

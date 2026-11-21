@@ -4,6 +4,9 @@
  * (clickdummy/src/styles/main.css). Colors, fonts, radii and shadows are defined here only; components use
  * the semantic utilities (bg-primary, text-ink, border-gold …), never raw hex or arbitrary color values.
  */
+/* Layer order: Clerk's styles (appearance.cssLayerName "clerk") sit below the app's components and
+   utilities, so Clerk's elements take the app's classes (`clerkAppearance`). Must come first. */
+@layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
 @theme {

@@ -1,7 +1,8 @@
 import createClient, { type Client } from "openapi-fetch";
 
-import { createAuthFetch, type SessionExpiredListener } from "@/core/api/authFetch";
+import { createAuthFetch, type SessionExpiredListener, type SessionTokenSource } from "@/core/api/authFetch";
 import { networkError, toApiError } from "@/core/api/errors";
+import { sessionToken } from "@/core/auth/clerk";
 import type { operations, paths } from "@/core/api/generated/schema";
 
 /**
@@ -27,7 +28,7 @@ export type ApiData<Operation extends keyof operations> = operations[Operation][
 
 const sessionExpiredListeners = new Set<SessionExpiredListener>();
 
-/** Called once per expired session (refresh failed); returns the unsubscribe function. */
+/** Called once per expired session (a fresh token is refused too); returns the unsubscribe function. */
 export function onSessionExpired(listener: SessionExpiredListener): () => void {
   sessionExpiredListeners.add(listener);
   return () => sessionExpiredListeners.delete(listener);
@@ -43,23 +44,24 @@ export function apiOrigin(apiBaseUrl: string): string {
 
 export function createApiClient(options: {
   apiBaseUrl: string;
+  sessionToken: SessionTokenSource;
   fetch?: typeof globalThis.fetch;
 }): ApiClient {
   const authFetch = createAuthFetch({
-    baseUrl: options.apiBaseUrl,
+    sessionToken: options.sessionToken,
     ...(options.fetch ? { fetch: options.fetch } : {}),
     onSessionExpired: () => sessionExpiredListeners.forEach((listener) => listener()),
   });
 
   return createClient<paths>({
     baseUrl: apiOrigin(options.apiBaseUrl),
-    credentials: "include",
     fetch: authFetch,
   });
 }
 
 export const api: ApiClient = createApiClient({
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  sessionToken,
 });
 
 type ClientResult<T> = { data?: T; error?: unknown; response: Response };

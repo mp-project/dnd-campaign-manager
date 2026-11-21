@@ -4,6 +4,7 @@ import type { RouteLocationNormalized, RouteLocationRaw, Router } from "vue-rout
 
 import { isApiError } from "@/core/api/errors";
 import { clearSessionCache } from "@/core/api/queryClient";
+import { loadClerk } from "@/core/auth/clerk";
 import { isAdministrator, type Me, meQuery } from "@/core/auth/session";
 import { campaignQuery, campaignSegment, lastCampaignId, rememberCampaign } from "@/core/campaign/campaign";
 
@@ -18,6 +19,13 @@ function notFound(to: RouteLocationNormalized): RouteLocationRaw {
     hash: to.hash,
   };
 }
+
+/**
+ * Signed in at Clerk, but the API refuses the account (locked, disabled, or its address belongs to
+ * another account). The sign-in would send the session straight back, so it says so and offers to
+ * sign out instead.
+ */
+const NO_ACCESS: RouteLocationRaw = { name: "auth-login", query: { noAccess: "1" } };
 
 function signIn(to: RouteLocationNormalized): RouteLocationRaw {
   return { name: "auth-login", query: { redirect: to.fullPath } };
@@ -67,20 +75,27 @@ async function resolveCampaign(
 }
 
 /**
- * Every page with an area needs a session; without one (401 after the renewal failed) the sign-in
- * follows and comes back afterwards. Pages without an area (old scaffold pages, development) and
- * bare pages are open.
+ * Every page with an area needs a session: Clerk is loaded first, then the account (`/me`, which
+ * creates the local account on the first visit). Without a session (or a
+ * 401 after a fresh token) the sign-in follows and comes back afterwards. Pages without an area
+ * (old scaffold pages, development) and bare pages are open.
  */
 export function installGuards(router: Router, queryClient: QueryClient): void {
   router.beforeEach(async (to): Promise<GuardResult> => {
     const area = to.meta.area;
     if (!area || area === "bare") return true;
 
+    // Without a Clerk session there is nothing to ask the API; without Clerk at all (not
+    // configured, not reachable) `/me` answers 401 and the sign-in says what is wrong.
+    const clerk = await loadClerk();
+    // A session with open tasks (e.g. a second factor to set up) is not signed in yet.
+    if (clerk && !clerk.isSignedIn) return signIn(to);
+
     let me: Me | undefined;
     try {
       me = await queryClient.ensureQueryData(meQuery);
     } catch (error) {
-      if (isApiError(error) && error.status === 401) return signIn(to);
+      if (isApiError(error) && error.status === 401) return clerk?.isSignedIn ? NO_ACCESS : signIn(to);
     }
 
     return area === "campaign" || area === "player" ? resolveCampaign(to, queryClient, me) : true;
@@ -88,7 +103,7 @@ export function installGuards(router: Router, queryClient: QueryClient): void {
 }
 
 /**
- * The session is over (its renewal failed): pages that need one go to the sign-in and come back
+ * The session is over (a fresh token is refused too): pages that need one go to the sign-in and come back
  * afterwards, and nothing of the account stays in the cache. The cache is cleared only after the
  * failing requests have settled: clearing it at once cancels them silently, which leaves pages
  * loading forever and the guard without the 401 that sends it to the sign-in.
@@ -97,6 +112,8 @@ export function handleSessionExpired(router: Router, queryClient: QueryClient): 
   setTimeout(() => clearSessionCache(queryClient), 0);
   const current = router.currentRoute.value;
   if (current.meta.area && current.meta.area !== "bare") {
-    void router.replace({ name: "auth-login", query: { redirect: current.fullPath } });
+    void loadClerk().then((clerk) =>
+      router.replace(clerk?.isSignedIn ? NO_ACCESS : { name: "auth-login", query: { redirect: current.fullPath } }),
+    );
   }
 }

@@ -388,7 +388,7 @@
       },
       "devices": {
         "question": "Wie behalte ich den Überblick über meine Geräte?",
-        "answer": "In deinen Kontoeinstellungen siehst du alle Sitzungen und vertrauenswürdigen Geräte und beendest einzelne davon oder meldest dich überall auf einmal ab. Wenn du dein Passwort änderst, wirst du auf allen Geräten abgemeldet."
+        "answer": "In deinen Kontoeinstellungen siehst du alle Geräte, auf denen du angemeldet bist, und meldest einzelne davon ab. Über das Benutzermenü meldest du dich überall auf einmal ab."
       },
       "privacy": {
         "question": "Was passiert mit meinen Daten?",

@@ -48,7 +48,7 @@
     },
     "account": {
       "title": "Dein Konto",
-      "body": "Für dein Konto speichern wir E-Mail-Adresse, Anzeigename, Benutzername, Sprache und Zeitzone sowie dein Passwort als sicheren Hash, nie im Klartext. Rechtsgrundlage ist die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO)."
+      "body": "Anmeldung, Registrierung und Vorabregistrierung (Warteliste) laufen über den Dienst Clerk (Clerk, Inc., USA) als Auftragsverarbeiter. Clerk speichert deine E-Mail-Adresse, dein Passwort als sicheren Hash, deine Sitzungen mit Gerät, Browser und IP-Adresse und gegebenenfalls verbundene Konten. Clerk ist unter dem EU-U.S. Data Privacy Framework zertifiziert. Bei uns liegen eine Kopie deiner E-Mail-Adresse, Anzeigename, Benutzername, Sprache und Zeitzone. Rechtsgrundlage ist die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO), für die Warteliste dein Wunsch, eingeladen zu werden (Art. 6 Abs. 1 lit. b DSGVO)."
     },
     "content": {
       "title": "Deine Inhalte",
@@ -56,19 +56,19 @@
     },
     "oauth": {
       "title": "Anmeldung über Google oder Discord",
-      "body": "Wenn du dich über Google oder Discord anmeldest, erhalten wir vom Anbieter deine bestätigte E-Mail-Adresse, deinen Namen und eine Kennung deines Kontos dort. Weitere Daten fragen wir nicht ab. Für die Verarbeitung beim Anbieter gelten dessen Datenschutzbestimmungen."
+      "body": "Wenn du dich über Google oder Discord anmeldest, erhält Clerk vom Anbieter deine bestätigte E-Mail-Adresse, deinen Namen und eine Kennung deines Kontos dort; wir bekommen davon nur E-Mail-Adresse und Namen. Weitere Daten fragen wir nicht ab. Für die Verarbeitung beim Anbieter gelten dessen Datenschutzbestimmungen."
     },
     "cookies": {
       "title": "Cookies und lokale Speicherung",
-      "body": "Wir verwenden nur technisch notwendige Cookies: für deine Sitzung, ihre Erneuerung, ein von dir als vertrauenswürdig markiertes Gerät und den Ablauf einer Anmeldung über einen Anbieter. Im Browser merken wir uns außerdem deine Sprache und die zuletzt geöffnete Kampagne. Tracking- oder Werbe-Cookies setzen wir nicht."
+      "body": "Wir verwenden nur technisch notwendige Cookies: Clerk setzt sie für deine Sitzung und den Ablauf einer Anmeldung, und zwar nur auf den Anmeldeseiten und in der App, nicht auf den übrigen öffentlichen Seiten. Im Browser merken wir uns außerdem deine Sprache und die zuletzt geöffnete Kampagne. Tracking- oder Werbe-Cookies setzen wir nicht."
     },
     "security": {
       "title": "Schutz deines Kontos",
-      "body": "Um Angriffe abzuwehren, zählen wir fehlgeschlagene Anmeldungen und Bestätigungsversuche mit IP-Adresse und Zeitpunkt und speichern zu jeder Sitzung Gerät und Browser. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO)."
+      "body": "Um Angriffe abzuwehren, zählt Clerk fehlgeschlagene Anmeldungen mit IP-Adresse und Zeitpunkt und speichert zu jeder Sitzung Gerät und Browser. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO)."
     },
     "email": {
       "title": "E-Mails",
-      "body": "Wir schicken dir E-Mails, die für dein Konto nötig sind: Bestätigungscodes, Links zum Zurücksetzen des Passworts, Hinweise zu Änderungen deiner E-Mail-Adresse und Einladungen in Kampagnen."
+      "body": "E-Mails, die für dein Konto nötig sind (Bestätigungscodes, Zurücksetzen des Passworts, die Einladung von der Warteliste), verschickt Clerk. Einladungen in Kampagnen verschicken wir selbst."
     },
     "contact": {
       "title": "Kontaktformular",

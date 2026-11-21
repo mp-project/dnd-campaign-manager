@@ -31,7 +31,8 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
   { name: "legal-privacy", path: "datenschutz", locales: GERMAN_ONLY, index: true, prerender: true, pageTransition: true },
   // Only the frame is prerendered; the form needs the browser.
   { name: "auth-login", path: "login", locales: GERMAN_ONLY, index: true, prerender: true, pageTransition: false },
-  { name: "auth-register", path: "registrieren", locales: GERMAN_ONLY, index: true, prerender: true, pageTransition: false },
+  { name: "auth-register", path: "registrieren", locales: GERMAN_ONLY, index: false, prerender: true, pageTransition: false },
+  { name: "auth-waitlist", path: "warteliste", locales: SUPPORTED_LOCALES, index: true, prerender: true, pageTransition: false },
 ];
 
 /** The listed page a route shows, if any. */

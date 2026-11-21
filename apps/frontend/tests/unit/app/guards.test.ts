@@ -3,6 +3,13 @@ import { QueryClient } from "@tanstack/vue-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryHistory, createRouter } from "vue-router";
 
+// Clerk's state in this browser; null = Clerk not configured (most tests).
+const clerk = vi.hoisted(() => ({ instance: null as null | { isSignedIn: boolean; session: { id: string } | null } }));
+vi.mock("@/core/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/core/auth/clerk")>()),
+  loadClerk: async () => clerk.instance,
+}));
+
 import { handleSessionExpired, installGuards } from "@/app/guards";
 import { buildRoutes } from "@/app/router";
 import { ApiError } from "@/core/api/errors";
@@ -47,7 +54,25 @@ const me = { id: "u1", displayName: "Mara", systemRole: "USER" };
 const campaign = (role: string | null) => ({ id: CAMPAIGN_ID, slug: "die-schatten-von-elaria", role });
 
 describe("route guards", () => {
-  beforeEach(() => rememberCampaign(null));
+  beforeEach(() => {
+    rememberCampaign(null);
+    clerk.instance = null;
+  });
+
+  it("sends a browser without a Clerk session (or with open tasks) to the sign-in without asking the API", async () => {
+    clerk.instance = { isSignedIn: false, session: { id: "sess_pending" } };
+    const router = setup({ me });
+    await router.push("/dashboard");
+    expect(router.currentRoute.value.name).toBe("auth-login");
+    expect(router.currentRoute.value.query.redirect).toBe("/dashboard");
+  });
+
+  it("says when the API refuses a signed-in account instead of looping through the sign-in", async () => {
+    clerk.instance = { isSignedIn: true, session: { id: "sess_1" } };
+    const router = setup({ me: apiError(401) });
+    await router.push("/dashboard");
+    expect(router.currentRoute.value.fullPath).toBe("/login?noAccess=1");
+  });
 
   it("sends visitors without a session to the sign-in and back afterwards", async () => {
     const router = setup({ me: apiError(401) });

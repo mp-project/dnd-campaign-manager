@@ -43,7 +43,7 @@ describe("legal pages", () => {
     const footer = wrapper.find("footer");
     expect(footer.find("h2").text()).toBe("Ready for the next adventure?");
     const footerLinks = footer.findAll("a").map((link) => link.attributes("href"));
-    expect(footerLinks).toContain("/registrieren");
+    expect(footerLinks).toContain("/en/warteliste");
     expect(footerLinks).not.toContain("/login");
     const legal = footer.find("nav").findAll("a");
     expect(legal.map((link) => link.attributes("href"))).toEqual(["/datenschutz", "/impressum"]);

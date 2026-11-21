@@ -88,7 +88,7 @@ function toggleAll(): void {
 }
 
 const privacy = { name: "legal-privacy" } as const;
-const register = { name: "auth-register" } as const;
+const register = useLocalizedPage("auth-waitlist");
 const LINK_LABEL: Record<FaqLink, MessageKey> = {
   demo: "landing.faq.links.demo",
   register: "landing.faq.links.register",

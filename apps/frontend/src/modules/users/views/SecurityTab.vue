@@ -1,41 +1,19 @@
 <script setup lang="ts">
-/** Sign-in & security: email, password, sign-in methods, trusted devices and sessions. */
-import InfoNote from "@/components/page/InfoNote.vue";
-import { errorMessageKey } from "@/core/api/errors";
-import { useMe } from "@/core/auth/session";
-import { useAppI18n } from "@/core/i18n";
+/**
+ * Sign-in & security, all Clerk's: email addresses, password, connected accounts (Google,
+ * Discord), second factor and the signed-in devices. A changed address reaches the app through
+ * Clerk's webhook. Clerk's own steps (adding an address, setting a password) live under this path.
+ */
+import { UserProfile } from "@clerk/vue";
 
-import EmailSection from "../components/EmailSection.vue";
-import PasswordSection from "../components/PasswordSection.vue";
-import SessionsSection from "../components/SessionsSection.vue";
-import SignInMethods from "../components/SignInMethods.vue";
-import TrustedDevicesSection from "../components/TrustedDevicesSection.vue";
-
-const { t } = useAppI18n();
-const me = useMe();
+import ClerkPanel from "@/core/auth/ClerkPanel.vue";
 </script>
 
 <template>
-  <div
-    v-if="me.data.value"
-    class="grid gap-4 md:grid-cols-2 md:gap-5"
-  >
-    <EmailSection :me="me.data.value" />
-    <PasswordSection :me="me.data.value" />
-    <SignInMethods :me="me.data.value" />
-    <TrustedDevicesSection />
-    <SessionsSection class="md:col-span-2" />
-  </div>
-  <p
-    v-else-if="me.isPending.value"
-    class="text-ink-2"
-  >
-    {{ t("common.states.loading") }}
-  </p>
-  <InfoNote
-    v-else
-    tone="danger"
-  >
-    {{ t(errorMessageKey(me.error.value)) }}
-  </InfoNote>
+  <ClerkPanel>
+    <UserProfile
+      routing="path"
+      path="/konto/anmeldung"
+    />
+  </ClerkPanel>
 </template>

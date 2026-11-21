@@ -235,5 +235,9 @@
       "contents": "Contents",
       "chapter": "Chapter {number}"
     }
+  },
+  "signIn": {
+    "loading": "Loading sign-in …",
+    "unavailable": "Sign-in is not available right now. Please reload the page or try again later."
   }
 }

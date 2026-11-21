@@ -17,6 +17,8 @@ import { installLocaleRoutes } from "./app/localeRoutes";
 import { applyProfileSettings } from "./app/profileSettings";
 import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
+import { clearSessionCache } from "./core/api/queryClient";
+import { installClerk, onClerkSessionChange } from "./core/auth/clerk";
 import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./core/i18n";
 import { createAppQueryClient } from "./core/api/queryClient";
 import { installErrorHandlers } from "./core/log/errorHandlers";
@@ -32,6 +34,9 @@ const i18n = createAppI18n();
 installErrorHandlers(app, router);
 installReducedMotion();
 onSessionExpired(() => handleSessionExpired(router, queryClient));
+// Clerk loads only on the sign-in pages and in the app; a new or ended session clears the cache.
+installClerk(app, router, () => i18n.global.locale.value);
+onClerkSessionChange(() => clearSessionCache(queryClient));
 
 installGuards(router, queryClient);
 installAppHead(router);

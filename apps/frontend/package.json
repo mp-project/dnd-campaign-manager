@@ -18,6 +18,8 @@
     "og:images": "node scripts/og-images.ts"
   },
   "dependencies": {
+    "@clerk/localizations": "^4.26.3",
+    "@clerk/vue": "^2.5.27",
     "@dnd/contracts": "0.1.0",
     "@dnd/i18n": "0.1.0",
     "@fontsource-variable/lora": "^5.3.0",

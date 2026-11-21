@@ -80,6 +80,17 @@ const envSchema = z
     JWT_REFRESH_SECRET: z.string().min(16),
     JWT_ACCESS_TTL: z.string().min(2),
     JWT_REFRESH_TTL: z.string().min(2),
+    // Clerk (sign-in, registration, waitlist). Without the secret key no request is signed in.
+    CLERK_SECRET_KEY: optionalNonEmptyString,
+    // PEM public key of the instance; verifies session tokens without fetching the JWKS.
+    CLERK_JWT_KEY: optionalNonEmptyString,
+    // Frontend origins whose session tokens are accepted (comma separated; `azp` claim).
+    CLERK_AUTHORIZED_PARTIES: optionalNonEmptyString,
+    // Signing secret of the Clerk webhook (`whsec_…`); without it the webhook answers 503.
+    CLERK_WEBHOOK_SIGNING_SECRET: optionalNonEmptyString,
+    // The account that signs in with this verified address becomes the first system maintainer
+    // when its local account is created or linked; replaces creating one by SQL.
+    BOOTSTRAP_MAINTAINER_EMAIL: optionalEmailString,
     MAIL_DRIVER: z.enum(["smtp", "noop"]).default("smtp"),
     MAIL_FROM_ADDRESS: z.string().email().default("no-reply@api.localhost"),
     MAIL_FROM_NAME: z.string().min(1).max(120).default("Questaria"),
@@ -231,6 +242,18 @@ const envSchema = z
       ] as const;
 
       for (const key of requiredProductionOAuthKeys) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when NODE_ENV=production or stage`,
+          });
+        }
+      }
+    }
+
+    if (isProductionLikeNodeEnv(env.NODE_ENV)) {
+      for (const key of ["CLERK_SECRET_KEY", "CLERK_AUTHORIZED_PARTIES"] as const) {
         if (!env[key]) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

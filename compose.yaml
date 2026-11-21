@@ -199,6 +199,8 @@ services:
         VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
         VITE_PUSHER_BEAMS_INSTANCE_ID: ${PUSHER_BEAMS_INSTANCE_ID:-}
         VITE_DEMO_URL: ${DEMO_URL:-}
+        # Clerk's publishable key (sign-in, registration, waitlist); empty = nobody can sign in.
+        VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
         # Public address of the site: canonical links, link previews, sitemap.
         VITE_SITE_URL: ${COMPOSE_FRONTEND_PUBLIC_URL}
     depends_on:

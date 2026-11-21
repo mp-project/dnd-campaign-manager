@@ -179,26 +179,35 @@ describe("landing page", () => {
     wrapper.unmount();
   });
 
-  it("rides over the storyline board scene by scene, on the route the visitor chooses", async () => {
+  it("rides over the storyline board scene by scene, on the route the visitor chooses", { timeout: 20000 }, async () => {
     vi.stubEnv("VITE_DEMO_URL", "https://demo.example.com/");
     const { wrapper } = await open();
     const article = wrapper.find("article[aria-labelledby=landing-feature-storylines]");
-    // At first the whole board with a hint, no scene.
-    expect(article.text()).toContain("zwei Routen, die sich am alten Tor wieder treffen");
+    // At first the whole board with a hint, no scene. The board is drawn live: its cards, not a picture.
+    expect(article.text()).toContain("zwei Routen durch die Festung und zwei mögliche Enden");
+    const board = article.find("[role=img]");
+    expect(board.findAll("article").map((card) => card.find("h3").text())).toContain("Am alten Tor");
+    expect(board.findAll(".is-lit, .is-current")).toHaveLength(0);
     const steps = () => article.findAll("ol button");
     expect(steps().map((step) => step.text())).toEqual([
       "1Spuren im Nebel",
       "2Die Wache bestechen",
       "3Am alten Tor",
       "4Torwache",
+      "5Licht über Grauhafen",
     ]);
     await steps()[2]!.trigger("click");
     expect(steps()[2]!.attributes("aria-current")).toBe("step");
-    expect(article.text()).toContain("Szene 3 von 4 · Offizieller Weg");
+    expect(article.text()).toContain("Szene 3 von 5 · Offizieller Weg");
+    // Once the camera arrived, the lines of the way get thicker and the gold runs along them,
+    // one after the other; the section lights up when the gold reached it.
+    await vi.waitFor(() => expect(board.findAll("path.line.is-lit")).not.toHaveLength(0), { timeout: 3000 });
+    await vi.waitFor(() => expect(board.find(".is-current h3").text()).toBe("Am alten Tor"), { timeout: 9000 });
     await article.findAll("[role=radio]")[1]!.trigger("click");
     expect(steps().map((step) => step.text())).toContain("4Das versiegelte Gewölbe");
+    expect(steps().map((step) => step.text())).toContain("5Der Nebel bleibt");
     expect(steps()[0]!.attributes("aria-current")).toBe("step");
-    expect(article.text()).toContain("Szene 1 von 4 · Geheimer Zugang");
+    expect(article.text()).toContain("Szene 1 von 5 · Geheimer Zugang");
     // The stage leads nowhere itself; the demo link sits below it.
     expect(article.find("a").attributes("href")).toBe(
       "https://demo.example.com/#/kampagne/abenteuer/storylines/schatten-elaria/akt",
@@ -392,7 +401,9 @@ describe("landing page", () => {
     vi.stubEnv("VITE_DEMO_URL", "");
     const { wrapper } = await open();
     const alts = wrapper.findAll("img[alt]").map((image) => image.attributes("alt")).filter(Boolean);
-    expect(alts).toHaveLength(9);
+    expect(alts).toHaveLength(8);
+    // The storyline board is no picture but drawn live, named as a whole.
+    expect(wrapper.find("[role=img]").attributes("aria-label")).toContain("Akt-Board der Storyline");
     // The hero's dragon is decoration and loads first; everything else waits until needed.
     const hero = wrapper.find("section[aria-labelledby=landing-title] img");
     expect(hero.attributes("aria-hidden")).toBe("true");
@@ -400,7 +411,6 @@ describe("landing page", () => {
     expect(alts).toEqual(
       expect.arrayContaining([
         expect.stringContaining("Charakterbogen von Arvel Merad"),
-        expect.stringContaining("Akt-Board der Storyline"),
         expect.stringContaining("Weltkarte von Elaria"),
         expect.stringContaining("Marktplatz"),
         expect.stringContaining("SRD 5.2 – Gesamtpaket"),
@@ -409,9 +419,11 @@ describe("landing page", () => {
     );
     // Below the hero the pictures load only when needed: the screens, the slider's motifs and
     // the decoration (landscapes, watercolours, props), which screen readers don't see.
-    const lazy = wrapper.findAll("img[loading=lazy]");
-    expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(9);
-    expect(lazy).toHaveLength(9 + 7 + 16);
+    // The board's scene pictures are part of the board, which screen readers get as a whole.
+    const lazy = wrapper.findAll("img[loading=lazy]").filter((img) => !img.element.closest("[role=img]"));
+    expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(8);
+    expect(lazy).toHaveLength(8 + 7 + 16);
+    expect(wrapper.findAll("[role=img] img[loading=lazy]")).toHaveLength(9);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);
     wrapper.unmount();

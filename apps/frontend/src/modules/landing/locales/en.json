@@ -107,7 +107,7 @@
     "pause": "Pause the camera ride",
     "overview": "Show the whole board",
     "closer": "Move in on the scene",
-    "overviewHint": "Act I of the storyline “The Mist Pact”: two routes that meet again at the old gate.",
+    "overviewHint": "The storyline “The Mist Pact” in three acts: two routes through the fortress and two possible endings.",
     "routes": {
       "official": "Official way",
       "secret": "Secret passage"
@@ -140,6 +140,14 @@
       "vault": {
         "title": "The sealed vault",
         "text": "Three seals lock the door. One of them is already in the group's pack."
+      },
+      "light": {
+        "title": "Light over Greyhaven",
+        "text": "The good ending: the pact is broken, and the town is in the group's debt."
+      },
+      "mist": {
+        "title": "The mist remains",
+        "text": "The bad ending: Veyra escapes with the last seal – whoever hesitates too long loses the town."
       }
     }
   },
@@ -486,6 +494,109 @@
           "dice": "Dice everybody sees",
           "combat": "Combat with initiative and battle map"
         }
+      }
+    }
+  },
+  "storylineBoard": {
+    "startHead": "{id} · Start",
+    "choice": "Choice: {choice}",
+    "condition": "Condition: {condition}",
+    "entrances": "{n} way in | {n} ways in",
+    "continuations": "{n} way on | {n} ways on",
+    "endFooter": "{n} way leads here · end of the storyline | {n} ways lead here · end of the storyline",
+    "acts": {
+      "1": {
+        "title": "Act I · Tracks in the mist",
+        "summary": "3 decisions → 2 paths onward"
+      },
+      "2": {
+        "title": "Act II · Fortress",
+        "summary": "Both paths continue"
+      },
+      "3": {
+        "title": "Act III · Endings",
+        "summary": "Two possible endings"
+      }
+    },
+    "sections": {
+      "S00": {
+        "title": "Tracks in the mist",
+        "description": "Mist lies over the harbour. The group decides how to get into the fortress.",
+        "location": "Harbour · Greyhaven",
+        "tag": "Start"
+      },
+      "S01": {
+        "title": "Bribe the guard",
+        "description": "A discreet deal opens the way to the fortress. The guard expects something in return.",
+        "location": "North gate · Greyhaven",
+        "tag": "Decision 01",
+        "link": "NPC: Captain Rovan"
+      },
+      "S02": {
+        "title": "Follow the tracks",
+        "description": "Fresh prints lead from the harbour to the old gate. A seal lies between the stones.",
+        "location": "Harbour quarter · Greyhaven",
+        "tag": "Decision 02",
+        "link": "Clue: broken seal"
+      },
+      "S03": {
+        "title": "Take the tunnel",
+        "description": "Below the quay wall lies a hidden passage. Quiet voices rise from the depths.",
+        "location": "Sewers · Greyhaven",
+        "tag": "Decision 03",
+        "link": "Linked: hidden passage"
+      },
+      "S04": {
+        "title": "At the old gate",
+        "description": "Both ways meet again at the gate. Rovan tells of a patrol that went missing.",
+        "location": "Old gate · Fortress",
+        "tag": "Merge"
+      },
+      "S05": {
+        "title": "Below the fortress",
+        "description": "The tunnel leads into an old vault. Behind the sealed door another way begins.",
+        "location": "Lower vault · Fortress",
+        "tag": "Separate path"
+      },
+      "S06": {
+        "title": "Gate watch",
+        "description": "The relief waits on the battlements. Rovan's people distrust every stranger.",
+        "location": "Ravenheight watchtower",
+        "tag": "Continuation",
+        "link": "NPC: Captain Rovan"
+      },
+      "S07": {
+        "title": "The sealed vault",
+        "description": "Three seals lock the door. One is missing – it lies in the group's pack.",
+        "location": "Cave on the west path",
+        "tag": "Continuation",
+        "link": "Item: bronze seal"
+      },
+      "E1": {
+        "title": "Light over Greyhaven",
+        "description": "The pact is broken, the mist lifts. Rovan and the town are in the group's debt.",
+        "location": "Greyhaven",
+        "tag": "Good ending"
+      },
+      "E2": {
+        "title": "The mist remains",
+        "description": "Veyra escapes with the last seal. A mist settles over Greyhaven that never lifts again.",
+        "location": "Lower vault · Fortress",
+        "tag": "Bad ending"
+      }
+    },
+    "edges": {
+      "S01-S04": {
+        "choice": "Bribe",
+        "condition": "≥ 10 gold"
+      },
+      "S02-S04": {
+        "choice": "Follow",
+        "condition": "Tracks found"
+      },
+      "S03-S05": {
+        "choice": "Sneak",
+        "condition": "Night"
       }
     }
   }

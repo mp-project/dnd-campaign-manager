@@ -107,7 +107,7 @@
     "pause": "Kamerafahrt anhalten",
     "overview": "Ganzes Board zeigen",
     "closer": "Zur Szene heranfahren",
-    "overviewHint": "Akt I der Storyline „Der Nebelpakt“: zwei Routen, die sich am alten Tor wieder treffen.",
+    "overviewHint": "Die Storyline „Der Nebelpakt“ in drei Akten: zwei Routen durch die Festung und zwei mögliche Enden.",
     "routes": {
       "official": "Offizieller Weg",
       "secret": "Geheimer Zugang"
@@ -140,6 +140,14 @@
       "vault": {
         "title": "Das versiegelte Gewölbe",
         "text": "Drei Siegel verschließen die Tür. Eines davon liegt schon im Gepäck der Gruppe."
+      },
+      "light": {
+        "title": "Licht über Grauhafen",
+        "text": "Das gute Ende: Der Pakt ist gebrochen, und die Stadt steht in der Schuld der Gruppe."
+      },
+      "mist": {
+        "title": "Der Nebel bleibt",
+        "text": "Das schlechte Ende: Veyra entkommt mit dem letzten Siegel – wer zu lange zögert, verliert die Stadt."
       }
     }
   },
@@ -486,6 +494,109 @@
           "dice": "Würfel, die alle sehen",
           "combat": "Kampf mit Initiative und Battlemap"
         }
+      }
+    }
+  },
+  "storylineBoard": {
+    "startHead": "{id} · Start",
+    "choice": "Wahl: {choice}",
+    "condition": "Bedingung: {condition}",
+    "entrances": "{n} Eingang | {n} Eingänge",
+    "continuations": "{n} Fortsetzung | {n} Fortsetzungen",
+    "endFooter": "{n} Weg führt hierher · Ende der Storyline | {n} Wege führen hierher · Ende der Storyline",
+    "acts": {
+      "1": {
+        "title": "Akt I · Spuren im Nebel",
+        "summary": "3 Entscheidungen → 2 weiterführende Pfade"
+      },
+      "2": {
+        "title": "Akt II · Festung",
+        "summary": "Fortsetzungen beider Pfade"
+      },
+      "3": {
+        "title": "Akt III · Enden",
+        "summary": "Zwei mögliche Enden"
+      }
+    },
+    "sections": {
+      "S00": {
+        "title": "Spuren im Nebel",
+        "description": "Nebel liegt über dem Hafen. Die Gruppe entscheidet, wie sie in die Festung gelangt.",
+        "location": "Hafen · Grauhafen",
+        "tag": "Start"
+      },
+      "S01": {
+        "title": "Die Wache bestechen",
+        "description": "Ein diskreter Handel öffnet den Weg zur Festung. Die Wache erwartet eine Gegenleistung.",
+        "location": "Nordtor · Grauhafen",
+        "tag": "Entscheidung 01",
+        "link": "NPC: Hauptmann Rovan"
+      },
+      "S02": {
+        "title": "Den Spuren folgen",
+        "description": "Frische Abdrücke führen vom Hafen zum alten Tor. Zwischen den Steinen liegt ein Siegel.",
+        "location": "Hafenviertel · Grauhafen",
+        "tag": "Entscheidung 02",
+        "link": "Hinweis: Zerbrochenes Siegel"
+      },
+      "S03": {
+        "title": "Den Tunnel nehmen",
+        "description": "Unter der Kaimauer liegt ein verborgener Zugang. Aus der Tiefe dringen leise Stimmen.",
+        "location": "Kanalisation · Grauhafen",
+        "tag": "Entscheidung 03",
+        "link": "Verknüpft: Verborgener Zugang"
+      },
+      "S04": {
+        "title": "Am alten Tor",
+        "description": "Beide Wege treffen am Tor wieder aufeinander. Rovan berichtet von einer verschwundenen Patrouille.",
+        "location": "Altes Tor · Festung",
+        "tag": "Zusammenführung"
+      },
+      "S05": {
+        "title": "Unter der Festung",
+        "description": "Der Tunnel führt in ein altes Gewölbe. Hinter der versiegelten Tür beginnt ein anderer Weg.",
+        "location": "Unteres Gewölbe · Festung",
+        "tag": "Getrennter Pfad"
+      },
+      "S06": {
+        "title": "Torwache",
+        "description": "Auf dem Wehrgang wartet die Ablösung. Rovans Leute misstrauen jedem Fremden.",
+        "location": "Wachturm Rabenhöhe",
+        "tag": "Fortsetzung",
+        "link": "NPC: Hauptmann Rovan"
+      },
+      "S07": {
+        "title": "Das versiegelte Gewölbe",
+        "description": "Drei Siegel verschließen die Tür. Eines davon fehlt – es liegt im Gepäck der Gruppe.",
+        "location": "Höhle am Westpfad",
+        "tag": "Fortsetzung",
+        "link": "Gegenstand: Bronzenes Siegel"
+      },
+      "E1": {
+        "title": "Licht über Grauhafen",
+        "description": "Der Pakt ist gebrochen, der Nebel weicht. Rovan und die Stadt stehen in der Schuld der Gruppe.",
+        "location": "Grauhafen",
+        "tag": "Gutes Ende"
+      },
+      "E2": {
+        "title": "Der Nebel bleibt",
+        "description": "Veyra entkommt mit dem letzten Siegel. Über Grauhafen legt sich ein Nebel, der sich nicht mehr hebt.",
+        "location": "Unteres Gewölbe · Festung",
+        "tag": "Schlechtes Ende"
+      }
+    },
+    "edges": {
+      "S01-S04": {
+        "choice": "Bestechen",
+        "condition": "≥ 10 Gold"
+      },
+      "S02-S04": {
+        "choice": "Verfolgen",
+        "condition": "Spur entdeckt"
+      },
+      "S03-S05": {
+        "choice": "Schleichen",
+        "condition": "Nacht"
       }
     }
   }

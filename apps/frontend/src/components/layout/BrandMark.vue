@@ -17,7 +17,7 @@ const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
 <template>
   <RouterLink
     :to="home"
-    class="flex flex-col items-start gap-1 text-parchment"
+    class="flex flex-col items-start text-parchment"
     :aria-label="t('common.shell.toHome')"
   >
     <img
@@ -30,7 +30,7 @@ const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
     >
     <span
       v-if="!compact"
-      class="text-[12.5px] whitespace-nowrap text-parchment/80"
+      class="-mt-1 text-[12.5px] whitespace-nowrap text-gold-bright"
     >{{ t("common.app.tagline") }}</span>
   </RouterLink>
 </template>

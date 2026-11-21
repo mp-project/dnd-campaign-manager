@@ -44,7 +44,7 @@ onBeforeUnmount(() => window.removeEventListener("scroll", update));
       <BrandMark class="site-header-brand min-w-0" />
       <div
         v-if="$slots.default"
-        class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2"
+        class="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:gap-6"
       >
         <slot />
       </div>

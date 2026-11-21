@@ -34,7 +34,7 @@ const multilingual = computed(() => !!route.meta.localizedName);
   <SiteHeader :condensed="condensed">
     <nav
       v-if="links.length"
-      class="hidden items-center gap-1 text-[15px] lg:flex"
+      class="hidden items-center gap-4 text-[15px] lg:flex xl:gap-6"
       :aria-label="t('common.publicNav.label')"
     >
       <PublicNavLink
@@ -47,7 +47,7 @@ const multilingual = computed(() => !!route.meta.localizedName);
       </PublicNavLink>
     </nav>
     <LanguageSwitch v-if="multilingual" />
-    <div class="hidden items-center gap-2 lg:flex">
+    <div class="hidden items-center gap-3 lg:flex">
       <BaseButton
         v-if="demo"
         as="a"
@@ -55,14 +55,14 @@ const multilingual = computed(() => !!route.meta.localizedName);
         target="_blank"
         rel="noopener"
         variant="outline-gold"
-        size="sm"
+        size="md"
       >
         {{ t("common.publicNav.demo") }}
       </BaseButton>
       <BaseButton
         :to="primary.to"
         variant="primary"
-        size="sm"
+        size="md"
       >
         {{ primary.label }}
       </BaseButton>

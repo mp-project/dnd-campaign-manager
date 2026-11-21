@@ -34,7 +34,6 @@ describe("campaigns HTTP routes", () => {
     await db.insert(users).values({
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       email: "owner@example.test",
-      passwordHash: "hash",
       displayName: "Owner",
       systemRole: "USER",
       status: "ACTIVE",
@@ -44,7 +43,6 @@ describe("campaigns HTTP routes", () => {
     await db.insert(users).values({
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       email: "other@example.test",
-      passwordHash: "hash",
       displayName: "Other",
       systemRole: "USER",
       status: "ACTIVE",
@@ -54,7 +52,6 @@ describe("campaigns HTTP routes", () => {
     await db.insert(users).values({
       id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       email: "admin@example.test",
-      passwordHash: "hash",
       displayName: "Admin",
       systemRole: "ADMIN",
       status: "ACTIVE",

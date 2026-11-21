@@ -58,9 +58,9 @@ describe("campaign invitations over HTTP", () => {
       attribution: null,
     });
     await db.insert(users).values([
-      { id: ID.gm, email: "gm@example.test", passwordHash: "hash", displayName: "Mira Falkenstein", userTag: "mira#000001", status: "ACTIVE", emailVerifiedAt: new Date() },
-      { id: ID.player, email: PLAYER_EMAIL, passwordHash: "hash", displayName: "Jonas Weber", userTag: PLAYER_TAG, status: "ACTIVE", emailVerifiedAt: new Date() },
-      { id: ID.outsider, email: "outsider@example.test", passwordHash: "hash", displayName: "Somebody", userTag: "other#000003", status: "ACTIVE", emailVerifiedAt: new Date() },
+      { id: ID.gm, email: "gm@example.test", displayName: "Mira Falkenstein", userTag: "mira#000001", status: "ACTIVE", emailVerifiedAt: new Date() },
+      { id: ID.player, email: PLAYER_EMAIL, displayName: "Jonas Weber", userTag: PLAYER_TAG, status: "ACTIVE", emailVerifiedAt: new Date() },
+      { id: ID.outsider, email: "outsider@example.test", displayName: "Somebody", userTag: "other#000003", status: "ACTIVE", emailVerifiedAt: new Date() },
     ]);
     await db.insert(campaigns).values({
       id: ID.campaign,

@@ -22,23 +22,12 @@ export {
 } from "../../../modules/ruleset/domain/entities/RulesetTable.js";
 
 export {
-  emailVerificationRequests,
-  emailVerificationStatusEnum,
   userSettings,
   users,
   userStatusEnum,
   userSystemRoleEnum,
   userThemeEnum,
 } from "../../../modules/users/domain/entities/UsersTable.js";
-
-export {
-  authAttemptActionEnum,
-  authAttempts,
-  oauthProviderEnum,
-  passwordResetTokens,
-  refreshTokens,
-  trustedDevices,
-} from "../../../modules/auth/domain/entities/AuthTable.js";
 
 export {
   campaigns,

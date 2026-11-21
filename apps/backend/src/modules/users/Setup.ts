@@ -2,10 +2,6 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
-import {
-  AUTH_SESSION_DEPENDENCIES,
-  type AuthSessionDependencies,
-} from "#src/modules/auth/index";
 import { trackedUser } from "#src/modules/users/history/TrackedUser";
 import { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
 import { DeleteUserController } from "#src/modules/users/http/controller/DeleteUserController";
@@ -63,7 +59,7 @@ async function registerUsersModule(
     repository,
     history,
     container.ports.permissionService,
-    container.dependencies.get<AuthSessionDependencies>(AUTH_SESSION_DEPENDENCIES),
+    container.ports.identityPort,
   );
 
   container.dependencies.set<UsersModuleDependencies>(USERS_MODULE_DEPENDENCIES, {

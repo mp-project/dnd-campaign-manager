@@ -11,7 +11,8 @@ import type { CampaignContext, RequestContext, SystemRole } from "#core/http/req
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { isAdminRole, isSysAdminRole, SYSTEM_ROLE } from "#core/permissions/roles";
 import type { PermissionService } from "#core/permissions/service";
-import type { AuthSessionDependencies } from "#src/modules/auth/index";
+import type { IdentityPort } from "#core/auth/identity";
+import { reportErrorInContext } from "#core/log/reportError";
 import type { UpdateUserDto } from "#src/modules/users/domain/dto/UpdateUserDto";
 import type { UserRow } from "#src/modules/users/domain/repository/UsersRepository";
 import { UsersRepository } from "#src/modules/users/domain/repository/UsersRepository";
@@ -24,7 +25,7 @@ export class UsersService {
     public readonly repository: UsersRepository,
     private readonly history: HistoryPort,
     private readonly permissionService?: PermissionService,
-    private readonly authSessionDependencies?: AuthSessionDependencies,
+    private readonly identityPort?: IdentityPort,
   ) {}
 
   async getOneBy(input: { userId: string } | { email: string }): Promise<UserRow | null> {
@@ -45,9 +46,9 @@ export class UsersService {
 
   /**
    * Applies a managed change to a user, guarded against role escalation and losing the last admin.
-   * A role or status change raises the session version, which ends the access tokens at once.
-   * Refresh tokens are revoked after the commit: the auth module uses its own connection, which
-   * must not be requested while this transaction holds the user's row lock.
+   * Role and status are read from the database on every request, so a change applies at once.
+   * The identity provider is told after the commit (locking ends the account's sessions there
+   * too): it is a network call, which must not run while this transaction holds the row lock.
    */
   async applyUserUpdate(
     context: RequestContext,
@@ -57,7 +58,7 @@ export class UsersService {
   ): Promise<UserRow> {
     const actorId = this.assertAuthenticated(context);
 
-    const { updated, disabled } = await this.history.runAction(
+    const { updated } = await this.history.runAction(
       {
         action,
         context,
@@ -68,8 +69,6 @@ export class UsersService {
         if (!(await this.repository.findById(scope.tx, userId))) {
           throw new NotFoundError("User not found");
         }
-
-        let wasDisabled = false;
 
         const { row } = await scope.change(trackedUser, userId, async (current) => {
           const nextRole = input.systemRole ?? current.systemRole;
@@ -85,34 +84,50 @@ export class UsersService {
             throw new VersionConflictError("User update version mismatch");
           }
 
-          wasDisabled = nextStatus === "DISABLED" && current.status !== "DISABLED";
-
-          // A new role or status ends the user's access tokens; the next refresh carries the new
-          // role, and refreshing fails for anyone who is no longer active.
-          const accessChanged =
-            nextRole !== current.systemRole || nextStatus !== current.status;
-
           return {
             set: Object.fromEntries(
               Object.entries({
                 displayName: input.displayName,
                 systemRole: input.systemRole,
                 status: input.status,
-                sessionVersion: accessChanged ? current.sessionVersion + 1 : undefined,
               }).filter(([, value]) => value !== undefined),
             ),
           };
         });
 
-        return { updated: row, disabled: wasDisabled };
+        return { updated: row };
       },
     );
 
-    if (disabled) {
-      await this.authSessionDependencies?.revokeRefreshTokensForUser(updated.id);
-    }
+    await this.syncProviderLock(updated, input.status);
 
     return updated;
+  }
+
+  /**
+   * Keeps the identity provider in step with the status: not ACTIVE bans the account there (ends
+   * its sessions), ACTIVE lifts the ban. Runs for every change that names a status, not only on a
+   * transition, so saving the status again repairs a ban that failed before. The change is already
+   * committed and the database refuses a locked account on every request anyway, so a failure here
+   * is reported, not thrown.
+   */
+  private async syncProviderLock(user: UserRow, requestedStatus: UserRow["status"] | undefined): Promise<void> {
+    if (!this.identityPort || !user.clerkUserId || requestedStatus === undefined) {
+      return;
+    }
+
+    try {
+      if (user.status === "ACTIVE") {
+        await this.identityPort.unlockUser(user.clerkUserId);
+      } else {
+        await this.identityPort.lockUser(user.clerkUserId);
+      }
+    } catch (error) {
+      reportErrorInContext(error, "Identity provider lock not in step with the account status", {
+        userId: user.id,
+        status: user.status,
+      });
+    }
   }
 
   /**

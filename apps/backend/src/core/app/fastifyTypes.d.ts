@@ -1,12 +1,9 @@
 import "fastify";
 
-import type { CampaignContext, RequestContext, SystemRole } from "#core/http/requestContext";
+import type { ResolvedActor } from "#core/auth/identity";
+import type { CampaignContext, RequestContext } from "#core/http/requestContext";
 import type { RoutePermissionConfig } from "#core/http/authorization";
 
-type VerifiedAccessToken = {
-  actorId: string;
-  systemRole: SystemRole;
-};
 
 declare module "fastify" {
   interface FastifyContextConfig {
@@ -16,8 +13,10 @@ declare module "fastify" {
   }
 
   interface FastifyRequest {
-    authToken: string | null;
-    verifiedAccessToken: VerifiedAccessToken | null;
+    /** The signed-in local account, set by the `onRequest` auth hook. */
+    authenticatedActor: ResolvedActor | null;
+    /** The identity provider's session id of the request, for logs. */
+    authSessionId: string | null;
     requestContext: RequestContext;
     campaignContext: CampaignContext | null;
   }

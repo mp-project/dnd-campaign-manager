@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { oauthProviderEnum } from "#core/db/schema";
 import { standardListResponseDto, uuidDto } from "#core/http/dto";
 import { createStandardListResponse } from "#core/http/listResponse";
 import {
@@ -32,15 +31,8 @@ export const ResponseMeSchema = UserBaseSchema.pick({
   status: true,
 }).extend({
   emailVerificationRequiredCode: z.enum(["EMAIL_NOT_VERIFIED"]).nullable(),
-  // Requested new address that is not confirmed yet; `email` stays in use until then.
-  pendingEmail: UserBaseSchema.shape.email.nullable(),
   settings: ResponseUserSettingsSchema,
   effectiveGlobalPermissions: z.array(z.string().min(1)),
-  /** How the account signs in: with a password (OAuth-only accounts have none) and/or providers. */
-  signIn: z.strictObject({
-    password: z.boolean(),
-    providers: z.array(z.enum(oauthProviderEnum.enumValues)),
-  }),
 });
 
 /**
@@ -107,16 +99,8 @@ export function toMeResponse(
     systemRole: user.systemRole,
     status: user.status,
     emailVerificationRequiredCode: user.emailVerifiedAt ? null : "EMAIL_NOT_VERIFIED",
-    pendingEmail: user.pendingEmail,
     settings: toUserSettingsResponse(settings),
     effectiveGlobalPermissions,
-    signIn: {
-      password: user.passwordHash !== null,
-      providers: [
-        ...(user.googleSubject ? (["GOOGLE"] as const) : []),
-        ...(user.discordUserId ? (["DISCORD"] as const) : []),
-      ],
-    },
   };
 }
 

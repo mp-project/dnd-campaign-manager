@@ -1,173 +1,23 @@
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import jsonwebtoken, { type JwtPayload } from "jsonwebtoken";
 
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
+import type { ResolvedActor } from "#core/auth/identity";
 import type { AppEnv } from "#core/env";
 import { uuidDto } from "#core/http/dto";
 import { ROUTE_RATE_LIMIT, buildRateLimitKey } from "#core/http/rateLimit";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
-import type {
-  CampaignContext,
-  RequestContext,
-  SystemRole,
-} from "#core/http/requestContext";
+import type { CampaignContext, RequestContext } from "#core/http/requestContext";
 
-type VerifiedAccessToken = {
-  actorId: string;
-  systemRole: SystemRole;
-};
-
-type SignedAccessToken = VerifiedAccessToken & {
-  sessionVersion: number | null;
-  /** The session (refresh token family) the token was issued for; null in older tokens. */
-  sessionId: string | null;
-};
-
-type AccessTokenPayload = JwtPayload & {
-  actorId?: unknown;
-  systemRole?: unknown;
-  role?: unknown;
-  sv?: unknown;
-  sid?: unknown;
-};
-
-const AUTH_COOKIE_KEYS = ["access_token", "auth_token", "token"] as const;
-
-function parseCookieHeader(cookieHeader: string): Map<string, string> {
-  const values = new Map<string, string>();
-
-  for (const pair of cookieHeader.split(";")) {
-    const separatorIndex = pair.indexOf("=");
-
-    if (separatorIndex === -1) {
-      continue;
-    }
-
-    const key = pair.slice(0, separatorIndex).trim();
-    const rawValue = pair.slice(separatorIndex + 1).trim();
-
-    if (!key || !rawValue) {
-      continue;
-    }
-
-    values.set(key, decodeURIComponent(rawValue));
-  }
-
-  return values;
-}
-
-function extractTokenFromCookies(request: FastifyRequest): string | null {
-  const cookieHeader = request.headers.cookie;
-
-  if (typeof cookieHeader !== "string" || !cookieHeader.trim()) {
-    return null;
-  }
-
-  const cookies = parseCookieHeader(cookieHeader);
-
-  for (const cookieKey of AUTH_COOKIE_KEYS) {
-    const value = cookies.get(cookieKey);
-
-    if (value?.trim()) {
-      return value.trim();
-    }
-  }
-
-  return null;
-}
-
-function extractTokenFromAuthorizationHeader(request: FastifyRequest): string | null {
+function extractBearerToken(request: FastifyRequest): string | null {
   const authorizationHeader = request.headers.authorization;
 
   if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
     return null;
   }
 
-  const token = authorizationHeader.slice("Bearer ".length).trim();
-
-  return token || null;
-}
-
-function resolveActorId(payload: AccessTokenPayload): string | null {
-  const candidates = [payload.sub, payload.actorId];
-
-  for (const candidate of candidates) {
-    if (typeof candidate !== "string") {
-      continue;
-    }
-
-    const actorId = candidate.trim();
-
-    if (actorId.length > 0) {
-      return actorId;
-    }
-  }
-
-  return null;
-}
-
-function resolveSystemRole(payload: AccessTokenPayload): SystemRole | null {
-  const roleValue =
-    typeof payload.systemRole === "string"
-      ? payload.systemRole
-      : typeof payload.role === "string"
-        ? payload.role
-        : null;
-
-  if (
-    roleValue === SYSTEM_ROLE.SYSTEM ||
-    roleValue === SYSTEM_ROLE.SYSTEM_MAINTAINER ||
-    roleValue === SYSTEM_ROLE.ADMIN ||
-    roleValue === SYSTEM_ROLE.USER
-  ) {
-    return roleValue;
-  }
-
-  return null;
-}
-
-/**
- * Verifies an access token as signed JWT using backend secret configuration.
- *
- * @param token Bearer token value.
- * @param env Validated runtime environment.
- * @returns Verified token payload or null when verification fails.
- */
-async function verifyAccessToken(
-  token: string,
-  env: AppEnv,
-): Promise<SignedAccessToken | null> {
-  try {
-    const verificationResult = jsonwebtoken.verify(token, env.JWT_ACCESS_SECRET, {
-      algorithms: ["HS256", "HS384", "HS512"],
-      maxAge: env.JWT_ACCESS_TTL,
-      clockTolerance: 5,
-    });
-
-    if (typeof verificationResult === "string") {
-      return null;
-    }
-
-    const payload = verificationResult as AccessTokenPayload;
-    const actorId = resolveActorId(payload);
-    const systemRole = resolveSystemRole(payload);
-
-    if (!actorId || !systemRole) {
-      return null;
-    }
-
-    return {
-      actorId,
-      systemRole,
-      sessionVersion: Number.isSafeInteger(payload.sv) ? (payload.sv as number) : null,
-      sessionId: typeof payload.sid === "string" && payload.sid.length > 0 ? payload.sid : null,
-    };
-  } catch {
-    // An invalid or expired token is no identity; routes that need one answer 401.
-    return null;
-  }
+  return authorizationHeader.slice("Bearer ".length).trim() || null;
 }
 
 /**
@@ -249,65 +99,55 @@ export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void
 }
 
 /**
- * Authenticates a request by verifying cookie or bearer JWT values. A valid signature is not
- * enough: the session state port must confirm the account and the session version, and it
- * supplies the current role. Without the port, no token is accepted.
+ * Authenticates a request: the identity port confirms the provider's session token, the account
+ * port maps it to the local account (creating it on the first request) and supplies the current
+ * role. A valid token of a locked or disabled account is no identity. Without both ports nobody
+ * is signed in.
  *
  * @param request Fastify request to enrich with auth fields.
- * @param env Validated runtime environment.
- * @param container Application container holding the session state port.
+ * @param container Application container holding the identity and account ports.
  */
 export async function authenticate(
   request: FastifyRequest,
-  env: AppEnv,
   container: AppContainer,
 ): Promise<void> {
-  request.authToken = null;
-  request.verifiedAccessToken = null;
+  request.authenticatedActor = null;
+  request.authSessionId = null;
 
-  const token =
-    extractTokenFromCookies(request) ?? extractTokenFromAuthorizationHeader(request);
+  const { identityPort, accountPort } = container.ports;
 
-  if (!token) {
+  if (!identityPort || !accountPort || !extractBearerToken(request)) {
     return;
   }
 
-  const signedToken = await verifyAccessToken(token, env);
+  const identity = await identityPort.authenticate(request);
 
-  if (!signedToken) {
+  if (!identity) {
     return;
   }
 
-  const actor = await container.ports.sessionStatePort?.resolveActor(signedToken);
+  const actor = await accountPort.resolveActor(identity);
 
   if (!actor) {
     return;
   }
 
-  request.authToken = token;
-  request.verifiedAccessToken = {
-    actorId: signedToken.actorId,
-    systemRole: actor.systemRole,
-  };
+  request.authenticatedActor = actor;
+  request.authSessionId = identity.sessionId;
 }
 
 /**
  * Registers request decorations and onRequest auth hook.
  *
  * @param app Fastify app instance.
- * @param env Validated runtime environment.
- * @param container Application container holding the session state port.
+ * @param container Application container holding the identity and account ports.
  */
-export function registerAuthPlugin(
-  app: FastifyInstance,
-  env: AppEnv,
-  container: AppContainer,
-): void {
-  app.decorateRequest("authToken", null as string | null);
-  app.decorateRequest("verifiedAccessToken", null as VerifiedAccessToken | null);
+export function registerAuthPlugin(app: FastifyInstance, container: AppContainer): void {
+  app.decorateRequest("authenticatedActor", null as ResolvedActor | null);
+  app.decorateRequest("authSessionId", null as string | null);
 
   app.addHook("onRequest", async (request) => {
-    await authenticate(request, env, container);
+    await authenticate(request, container);
   });
 }
 
@@ -318,7 +158,7 @@ export function registerAuthPlugin(
  * @returns Request context with actor and system role.
  */
 export function resolveRequestContext(request: FastifyRequest): RequestContext {
-  if (!request.verifiedAccessToken) {
+  if (!request.authenticatedActor) {
     return {
       actorId: null,
       systemRole: SYSTEM_ROLE.USER,
@@ -326,8 +166,8 @@ export function resolveRequestContext(request: FastifyRequest): RequestContext {
   }
 
   return {
-    actorId: request.verifiedAccessToken.actorId,
-    systemRole: request.verifiedAccessToken.systemRole,
+    actorId: request.authenticatedActor.actorId,
+    systemRole: request.authenticatedActor.systemRole,
   };
 }
 

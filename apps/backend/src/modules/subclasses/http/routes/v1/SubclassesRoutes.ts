@@ -62,7 +62,7 @@ export type SubclassesRouteControllers = {
   getCatalogSubclassUsagesController: GetSubclassUsagesController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Subclasses"];
 
 const readErrorResponses = {

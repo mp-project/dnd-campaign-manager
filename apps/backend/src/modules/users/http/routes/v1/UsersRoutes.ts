@@ -38,7 +38,7 @@ export type UsersRouteControllers = {
 };
 
 const tags = ["Users"];
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 export function registerUsersRoutes(
   app: FastifyInstance,

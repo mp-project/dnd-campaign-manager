@@ -1,9 +1,8 @@
 import { z } from "zod";
 
-import { baseEntityResponseDto, isoDateTimeDto, uuidDto } from "#core/http/dto";
+import { baseEntityResponseDto, isoDateTimeDto } from "#core/http/dto";
 import { SYSTEM_ROLES } from "#core/permissions/roles";
 import {
-  emailVerificationStatusEnum,
   userStatusEnum,
   userThemeEnum,
 } from "#src/modules/users/domain/entities/UsersTable";
@@ -64,17 +63,6 @@ export const UserSettingsBaseSchema = z.strictObject({
   theme: z.enum(userThemeEnum.enumValues),
   reducedMotion: z.boolean(),
   uiPreferences: z.record(z.string(), z.unknown()),
-});
-
-/**
- * All email verification fields with their validation rules.
- */
-export const EmailVerificationBaseSchema = z.strictObject({
-  verificationId: uuidDto,
-  status: z.enum(emailVerificationStatusEnum.enumValues),
-  expiresAt: isoDateTimeDto,
-  verifiedAt: isoDateTimeDto.nullable(),
-  verificationCode: z.string().regex(/^\d{6}$/),
 });
 
 export type UserBaseDto = z.infer<typeof UserBaseSchema>;

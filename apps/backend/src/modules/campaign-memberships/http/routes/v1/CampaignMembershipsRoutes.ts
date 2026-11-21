@@ -26,7 +26,7 @@ export type CampaignMembershipsRouteControllers = {
 };
 
 const tags = ["Campaign Memberships"];
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 export function registerCampaignMembershipsRoutes(
   app: FastifyInstance,

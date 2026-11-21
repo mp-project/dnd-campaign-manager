@@ -69,7 +69,7 @@ export type FeatsRouteControllers = {
   validateFeatController: ValidateFeatController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Feats"];
 
 const readErrorResponses = {

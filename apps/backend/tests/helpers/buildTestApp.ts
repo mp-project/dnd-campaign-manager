@@ -1,5 +1,4 @@
 import type { InjectOptions, Response as InjectResponse } from "light-my-request";
-import jsonwebtoken, { type SignOptions } from "jsonwebtoken";
 
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
@@ -8,6 +7,7 @@ import type { AppEnv } from "#core/env";
 import type { AppLogger } from "#core/log/logger";
 import type { SystemRole } from "#core/permissions/roles";
 import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
+import { FakeIdentityPort, testIdentityToken } from "#test/helpers/fakeIdentity";
 import { createTestEnv } from "#test/helpers/testEnv";
 
 export type TestActor = {
@@ -21,35 +21,31 @@ export type BuildTestAppOptions = {
   readyProbe?: () => Promise<{ database: boolean; migrations: boolean }>;
   publicPorts?: AppPublicPorts;
   /**
-   * Checks access tokens against the database like production (status, role, session version).
-   * Off by default, because most tests sign tokens for actors without a user row.
+   * Maps identities to `users` rows like production (creating accounts, status, role); requests
+   * then go out with `injectAsIdentity`. Off by default, because most tests act as actors without
+   * a user row.
    */
-  realSessionState?: boolean;
+  realAccounts?: boolean;
   /** A logger whose lines the test reads (`captureLogs`); silent otherwise. */
   logger?: AppLogger;
 };
 
 export type TestInjectRequest = InjectOptions;
 
-function createActorToken(actor: TestActor, env: AppEnv): string {
-  const expiresIn = env.JWT_ACCESS_TTL as NonNullable<SignOptions["expiresIn"]>;
-
-  return jsonwebtoken.sign(
-    { systemRole: actor.systemRole },
-    env.JWT_ACCESS_SECRET,
-    {
-      algorithm: "HS256",
-      subject: actor.actorId,
-      expiresIn,
-    },
-  );
-}
-
-function createDefaultTestPorts(): AppPublicPorts {
+function createDefaultTestPorts(
+  identity: FakeIdentityPort,
+  actorRoles: Map<string, SystemRole>,
+): AppPublicPorts {
   return {
-    // Trusts the signed token as it is; tests opt into the real check with realSessionState.
-    sessionStatePort: {
-      resolveActor: async ({ systemRole }) => ({ systemRole }),
+    identityPort: identity,
+    // The identity is the actor itself, with the role the test acts in; tests opt into the real
+    // mapping with realAccounts.
+    accountPort: {
+      resolveActor: async ({ externalUserId }) => {
+        const systemRole = actorRoles.get(externalUserId);
+
+        return systemRole ? { actorId: externalUserId, systemRole } : null;
+      },
     },
     campaignFactPort: {
       ...createUnknownCampaignFactPort(),
@@ -67,14 +63,16 @@ function createDefaultTestPorts(): AppPublicPorts {
 
 export function buildTestApp(options: BuildTestAppOptions = {}) {
   const env = createTestEnv(options.env ?? {});
+  const identity = new FakeIdentityPort();
+  const actorRoles = new Map<string, SystemRole>();
   const publicPorts: AppPublicPorts = {
-    ...createDefaultTestPorts(),
+    ...createDefaultTestPorts(identity, actorRoles),
     ...(options.publicPorts ?? {}),
   };
 
-  if (options.realSessionState) {
-    // The auth module then installs the production port.
-    delete publicPorts.sessionStatePort;
+  if (options.realAccounts) {
+    // The auth module then installs the production account service.
+    delete publicPorts.accountPort;
   }
 
   const buildOptions: {
@@ -104,33 +102,42 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
 
   const app = buildApp(buildOptions);
 
-  const injectAs = async (
-    actor: TestActor,
+  /** The authorization header for an actor; also for requests sent outside `inject`. */
+  const authorizationFor = (actor: TestActor): string => {
+    actorRoles.set(actor.actorId, actor.systemRole);
+
+    return `Bearer ${testIdentityToken(actor.actorId)}`;
+  };
+
+  const injectWith = async (
+    authorization: string,
     request: TestInjectRequest,
   ): Promise<InjectResponse> => {
     const existingHeaders =
       (request.headers as Record<string, string | string[] | undefined> | undefined) ?? {};
-    const actorToken = createActorToken(actor, env);
-    const existingCookieHeader =
-      typeof existingHeaders.cookie === "string" ? existingHeaders.cookie : "";
-    const authCookie = `access_token=${encodeURIComponent(actorToken)}`;
-    const mergedCookieHeader = existingCookieHeader
-      ? `${existingCookieHeader}; ${authCookie}`
-      : authCookie;
 
     return app.inject({
       ...request,
-      headers: {
-        ...existingHeaders,
-        authorization: `Bearer ${actorToken}`,
-        cookie: mergedCookieHeader,
-      },
+      headers: { ...existingHeaders, authorization },
     }) as Promise<InjectResponse>;
   };
+
+  const injectAs = async (actor: TestActor, request: TestInjectRequest) =>
+    injectWith(authorizationFor(actor), request);
+
+  /** With `realAccounts`: a request with the session of a provider account. */
+  const injectAsIdentity = async (
+    externalUserId: string,
+    request: TestInjectRequest,
+    sessionId?: string,
+  ) => injectWith(`Bearer ${testIdentityToken(externalUserId, sessionId)}`, request);
 
   return {
     app,
     env,
+    identity,
+    authorizationFor,
     injectAs,
+    injectAsIdentity,
   };
 }

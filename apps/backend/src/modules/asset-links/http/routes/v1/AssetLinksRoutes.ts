@@ -30,7 +30,7 @@ export type AssetLinksRouteControllers = {
   getAssetUsagesController: GetAssetUsagesController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Asset Links"];
 
 const readErrorResponses = {

@@ -644,7 +644,6 @@ describe("history rights of every tracked entity", () => {
       [ID.gm, ID.player, ID.outsider, ID.admin, ID.editor, ID.former, ID.foreignGm].map((id) => ({
         id,
         email: `${id}@example.test`,
-        passwordHash: "hash",
         displayName: "User",
         systemRole: id === ID.admin ? ("ADMIN" as const) : ("USER" as const),
         status: "ACTIVE" as const,

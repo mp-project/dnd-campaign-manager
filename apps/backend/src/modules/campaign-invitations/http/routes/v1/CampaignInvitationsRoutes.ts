@@ -40,7 +40,7 @@ export type CampaignInvitationsRouteControllers = {
 };
 
 const tags = ["Campaign Invitations"];
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 export function registerCampaignInvitationsRoutes(
   app: FastifyInstance,

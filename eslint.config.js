@@ -73,9 +73,10 @@ export default [
   },
   {
     // Decided on purpose: the history of users only covers changes by administrators. `history`
-    // depends on `auth`, and the own profile and login data have nothing worth restoring.
+    // depends on `auth`, and the own profile and the copy of the provider account have nothing
+    // worth restoring.
     files: [
-      "apps/backend/src/modules/auth/domain/repository/AuthRepository.ts",
+      "apps/backend/src/modules/auth/domain/repository/AccountRepository.ts",
       "apps/backend/src/modules/users/domain/repository/UsersRepository.ts",
     ],
     rules: {

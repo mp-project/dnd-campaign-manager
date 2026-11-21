@@ -55,7 +55,6 @@ describe("users use cases", () => {
         createdBy: null,
         updatedBy: null,
         email: "admin@example.test",
-        passwordHash: "hash",
         displayName: "Admin",
         systemRole: "ADMIN",
         status: "ACTIVE",
@@ -90,7 +89,6 @@ describe("users use cases", () => {
         createdBy: null,
         updatedBy: null,
         email: "admin@example.test",
-        passwordHash: "hash",
         displayName: "Admin",
         systemRole: "ADMIN",
         status: "ACTIVE",
@@ -124,7 +122,6 @@ describe("users use cases", () => {
         createdBy: null,
         updatedBy: null,
         email: "super-admin@example.test",
-        passwordHash: "hash",
         displayName: "Super Admin",
         systemRole: "SYSTEM_MAINTAINER",
         status: "ACTIVE",
@@ -162,7 +159,6 @@ describe("users use cases", () => {
       createdBy: null,
       updatedBy: null,
       email: "new.email@example.test",
-      passwordHash: "hash",
       displayName: "User",
       systemRole: "USER",
       status: "ACTIVE",
@@ -180,7 +176,6 @@ describe("users use cases", () => {
         createdBy: null,
         updatedBy: null,
         email: "old@example.test",
-        passwordHash: "hash",
         displayName: "User",
         systemRole: "USER",
         status: "ACTIVE",
@@ -198,7 +193,6 @@ describe("users use cases", () => {
           createdBy: null,
           updatedBy: null,
           email: "new.email@example.test",
-          passwordHash: "hash",
           displayName: "User",
           systemRole: "USER",
           status: "ACTIVE",
@@ -243,7 +237,7 @@ describe("users use cases", () => {
     );
   });
 
-  it("revokes refresh tokens only after the transaction committed", async () => {
+  it("locks the account at the identity provider only after the transaction committed", async () => {
     const userId = "44444444-4444-4444-8444-444444444444";
     const steps: string[] = [];
     const row = {
@@ -262,6 +256,7 @@ describe("users use cases", () => {
       status: "DISABLED",
       emailVerifiedAt: null,
       lastLoginAt: null,
+      clerkUserId: "user_clerk",
     };
     const repository: Partial<UsersRepository> = {
       findById: jest.fn().mockResolvedValue({ ...row, version: 1, status: "ACTIVE" }),
@@ -280,9 +275,12 @@ describe("users use cases", () => {
       buildHistory(repository, tx),
       undefined,
       {
-        revokeRefreshTokensForUser: async () => {
-          steps.push("revoke");
+        authenticate: async () => null,
+        loadUser: async () => null,
+        lockUser: async (externalUserId) => {
+          steps.push(`lock:${externalUserId}`);
         },
+        unlockUser: async () => undefined,
       },
     );
 
@@ -292,6 +290,6 @@ describe("users use cases", () => {
       { expectedVersion: 1, status: "DISABLED" },
     );
 
-    expect(steps).toEqual(["commit", "revoke"]);
+    expect(steps).toEqual(["commit", "lock:user_clerk"]);
   });
 });

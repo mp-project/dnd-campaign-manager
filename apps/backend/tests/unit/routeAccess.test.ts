@@ -14,21 +14,10 @@ import { buildTestApp } from "#test/helpers/buildTestApp";
  */
 const PUBLIC_API_ROUTES = [
   "GET /api/v1",
-  "GET /api/v1/auth/email-change/confirm-link",
-  "GET /api/v1/auth/oauth/:provider/callback",
-  "GET /api/v1/auth/oauth/:provider/start",
-  "GET /api/v1/auth/register/verify-email-link",
   "GET /api/v1/contact/challenge",
   "GET /api/v1/ping",
-  "POST /api/v1/auth/forgot-password",
-  "POST /api/v1/auth/login",
-  "POST /api/v1/auth/oauth/complete-registration",
-  "POST /api/v1/auth/refresh",
-  "POST /api/v1/auth/register",
-  "POST /api/v1/auth/register/request-verification",
-  "POST /api/v1/auth/register/verify-email",
-  "POST /api/v1/auth/reset-password",
   "POST /api/v1/contact",
+  "POST /api/v1/webhooks/clerk",
 ];
 
 function route(config: Record<string, unknown>): RouteOptions {

@@ -89,7 +89,7 @@ export type SpeciesRouteControllers = {
   getCatalogUsagesController: GetSpeciesUsagesController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Species"];
 
 const readErrorResponses = {

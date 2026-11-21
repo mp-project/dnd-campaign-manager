@@ -27,7 +27,6 @@ describe("users HTTP routes", () => {
     await db.insert(users).values({
       id: input.id,
       email: input.email,
-      passwordHash: "test-password-hash",
       displayName: input.displayName,
       systemRole: input.systemRole,
       status: input.status ?? "ACTIVE",

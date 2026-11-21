@@ -273,7 +273,6 @@ describe("history module", () => {
       }).map(([name, id]) => ({
         id,
         email: `${name}@example.test`,
-        passwordHash: "hash",
         displayName: name,
         systemRole: id === ID.admin ? ("ADMIN" as const) : ("USER" as const),
         status: "ACTIVE" as const,

@@ -5,8 +5,6 @@ export {
 } from "#src/modules/users/Setup";
 export { usersPermissionDefinitions } from "#src/modules/users/permissions/UsersPermissions";
 export {
-  emailVerificationRequests,
-  emailVerificationStatusEnum,
   userSettings,
   users,
   userStatusEnum,

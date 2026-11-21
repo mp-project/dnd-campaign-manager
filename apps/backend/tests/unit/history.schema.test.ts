@@ -16,11 +16,6 @@ const UNTRACKED_TABLES: Record<string, string> = {
   entity_history_horizons: "Stores the history",
   history_idempotency_keys: "Technical state of the history",
   // Technical state without content.
-  auth_attempts: "Technical counters",
-  refresh_tokens: "Technical session state",
-  trusted_devices: "Technical session state",
-  password_reset_tokens: "Short-lived tokens",
-  email_verification_requests: "Short-lived codes",
   campaign_runtime_state: "Technical runtime state, unused so far",
   system_runtime_state: "Technical runtime state",
   // Decided against: nothing worth restoring, and the row records its own course.
@@ -102,7 +97,7 @@ describe("history coverage", () => {
     const kindOf = (field: string) =>
       (user.fields as Record<string, { kind: string }>)[field]?.kind;
 
-    expect(kindOf("passwordHash")).toBe("secret");
+    expect(kindOf("clerkUserId")).toBe("ignore");
     expect(kindOf("email")).toBe("account");
     expect(kindOf("displayName")).toBe("account");
     expect(kindOf("username")).toBe("account");

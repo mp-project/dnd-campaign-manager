@@ -10,18 +10,10 @@ const defaults: Record<string, string> = {
   TEST_DATABASE_URL:
     process.env.TEST_DATABASE_URL ??
     "postgres://postgres:postgres@127.0.0.1:55433/dnd_campaign_manager_test",
-  JWT_ACCESS_SECRET: "test-access-secret-1234",
-  JWT_REFRESH_SECRET: "test-refresh-secret-1234",
-  JWT_ACCESS_TTL: "15m",
-  JWT_REFRESH_TTL: "7d",
   // Tests that check log lines give their own destination.
   LOG_LEVEL: "silent",
   CORS_ORIGIN: "http://app.localhost:5173",
   FRONTEND_ORIGIN: "http://app.localhost:5173",
-  VITE_API_BASE_URL:
-    process.env.COMPOSE_BACKEND_PUBLIC_API_URL ??
-    "http://localhost:3100/api/v1",
-  OAUTH_STATE_SECRET: "test-oauth-state-secret-1234",
 };
 
 for (const [key, value] of Object.entries(defaults)) {

@@ -73,7 +73,6 @@ services:
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
-      VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
       MAIL_FROM_ADDRESS: benachrichtigung@${FRONTEND_DOMAIN}
@@ -87,7 +86,6 @@ services:
       MAIL_SMTP_PORT: 1025
       MAIL_SMTP_SECURE: "false"
       MAILPIT_UI_URL: ${COMPOSE_MAILPIT_UI_URL:-http://127.0.0.1:8025}
-      EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
       # Recipient of the contact form; empty = the form answers 503.
       CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-}
       # Signs the contact form's JS challenge; empty = random per container start.
@@ -122,7 +120,6 @@ services:
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
-      VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: smtp
       MAIL_FROM_ADDRESS: benachrichtigung@${FRONTEND_DOMAIN}
@@ -138,7 +135,6 @@ services:
       MAIL_SMTP_PORT: 1025
       MAIL_SMTP_SECURE: "false"
       MAILPIT_UI_URL: ${COMPOSE_MAILPIT_UI_URL:-http://127.0.0.1:8025}
-      EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
       # Recipient of the contact form; empty = the form answers 503.
       CONTACT_EMAIL_TO: ${CONTACT_EMAIL_TO:-}
       # Signs the contact form's JS challenge; empty = random per container start.
@@ -281,7 +277,6 @@ services:
       BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL}
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@db:${DB_INTERNAL_PORT}/dnd_campaign_manager
       TEST_DATABASE_URL: postgres://postgres:postgres@db-test:${DB_TEST_INTERNAL_PORT}/dnd_campaign_manager_test
-      VITE_API_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_API_URL}
       CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL}
       MAIL_DRIVER: noop
       MAIL_FROM_ADDRESS: no-reply@example.test
@@ -289,7 +284,6 @@ services:
       MAIL_SMTP_HOST: mailpit
       MAIL_SMTP_PORT: 1025
       MAIL_SMTP_SECURE: "false"
-      EMAIL_VERIFICATION_CODE_TTL_HOURS: 24
       TEST_S3_ENDPOINT: http://rustfs-test:9000
     depends_on:
       db-test:

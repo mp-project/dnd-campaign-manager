@@ -98,7 +98,6 @@ describe("assets HTTP routes", () => {
       ].map(([id, systemRole]) => ({
         id: id as string,
         email: `${id}@example.test`,
-        passwordHash: "hash",
         displayName: "Test",
         systemRole: systemRole as "USER" | "ADMIN",
         status: "ACTIVE" as const,

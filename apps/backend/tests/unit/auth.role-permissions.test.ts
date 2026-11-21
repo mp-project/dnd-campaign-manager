@@ -23,10 +23,6 @@ describe("auth role permission assignments", () => {
   it("keeps application-user permissions focused on self-service and read access", () => {
     expect(APPLICATION_USER_PERMISSIONS).toEqual(
       expect.arrayContaining([
-        "auth.logoutSelf",
-        "auth.logoutAllSelf",
-        "auth.changePasswordSelf",
-        "auth.trustDeviceSelf",
         "users.readSelf",
         "users.updateSelf",
         "users.read",

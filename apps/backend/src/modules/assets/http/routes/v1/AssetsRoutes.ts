@@ -39,7 +39,7 @@ export type AssetsRouteControllers = {
   restoreAssetController: RestoreAssetController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 
 
 const readErrorResponses = {

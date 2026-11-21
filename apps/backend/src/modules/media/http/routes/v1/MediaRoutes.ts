@@ -59,7 +59,7 @@ export type MediaRouteControllers = {
   detachMediaController: DetachMediaController;
 };
 
-const security = [{ cookieAuth: [] }] as const;
+const security = [{ bearerAuth: [] }] as const;
 const tags = ["Media"];
 
 const readErrorResponses = {

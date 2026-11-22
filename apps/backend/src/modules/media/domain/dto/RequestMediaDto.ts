@@ -33,9 +33,11 @@ export const RequestMediaUploadPartParamsSchema = RequestMediaUploadParamsSchema
 
 export const RequestMediaQuerySchema = paginationDto;
 
+export const mediaVariantDto = z.enum(["thumbnail", "display"]);
+
 /** Without `variant` the original; a variant not ready yet also delivers the original. */
 export const RequestMediaContentQuerySchema = z.strictObject({
-  variant: z.enum(["thumbnail", "display"]).optional(),
+  variant: mediaVariantDto.optional(),
 });
 
 export const CreateMediaUploadSchema = MediaUploadBaseSchema.pick({
@@ -86,3 +88,4 @@ export type RequestMediaContentQueryDto = z.infer<typeof RequestMediaContentQuer
 export type CreateMediaUploadDto = z.infer<typeof CreateMediaUploadSchema>;
 export type AttachMediaDto = z.infer<typeof AttachMediaSchema>;
 export type UpdateAssetMediaDto = z.infer<typeof UpdateAssetMediaSchema>;
+export type MediaVariantDto = z.infer<typeof mediaVariantDto>;

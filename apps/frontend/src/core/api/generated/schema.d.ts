@@ -1407,6 +1407,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campaigns/{campaignId}/media/{mediaId}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Checks the rights like the content route and returns its short-lived link instead of redirecting, for `<img src>` and other places where the browser can't send the session token. */
+        get: operations["getMediaLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaigns/{campaignId}/media/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The links of `getMediaLink` for many files at once. Files the viewer may not see, or that have no content yet, are left out. */
+        post: operations["listMediaLinks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/links/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Delivers a link of `getMediaLink` when the storage can't sign links itself (local storage in development). */
+        get: operations["getMediaLinkContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaigns/{campaignId}/assets/{assetId}/media": {
         parameters: {
             query?: never;
@@ -11986,6 +12037,220 @@ export interface operations {
                     };
                 };
             };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    getMediaLink: {
+        parameters: {
+            query?: {
+                variant?: "thumbnail" | "display";
+            };
+            header?: never;
+            path: {
+                campaignId: string;
+                mediaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        mediaId: string;
+                        url: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        expiresInSeconds: number;
+                        mimeType: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    listMediaLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    mediaIds: string[];
+                    /** @enum {string} */
+                    variant?: "thumbnail" | "display";
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            mediaId: string;
+                            url: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                            expiresInSeconds: number;
+                            mimeType: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            code: string;
+                            message: string;
+                            details: unknown;
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    getMediaLinkContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
             /** @description Default Response */
             404: {
                 headers: {

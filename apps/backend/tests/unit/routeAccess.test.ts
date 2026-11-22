@@ -15,6 +15,7 @@ import { buildTestApp } from "#test/helpers/buildTestApp";
 const PUBLIC_API_ROUTES = [
   "GET /api/v1",
   "GET /api/v1/contact/challenge",
+  "GET /api/v1/media/links/:token",
   "GET /api/v1/ping",
   "POST /api/v1/contact",
   "POST /api/v1/webhooks/clerk",

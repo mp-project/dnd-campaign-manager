@@ -1,11 +1,12 @@
 import type { Readable } from "node:stream";
 
+import { API_BASE_PATH } from "#core/config/constants";
 import { campaignRoleOf } from "#core/content/viewer";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope, ChangeResult } from "#core/history/types";
-import type { StoragePort } from "#core/storage/index";
+import { downloadUrlWindow, normalizeFilename, type StoragePort } from "#core/storage/index";
 import type {
   AssetRow,
   AssetsService,
@@ -27,6 +28,7 @@ import {
   type TrackedAssetMedia,
 } from "#src/modules/media/history/TrackedAssetMedia";
 import type { MediaCleanupService } from "#src/modules/media/service/MediaCleanupService";
+import { MediaLinkSigner } from "#src/modules/media/service/MediaLinkSigner";
 
 /** Campaign facts the module needs; provided by the campaigns module. */
 export type MediaCampaignAccessPort = {
@@ -43,11 +45,18 @@ export type MediaDeliveryConfig = {
 
 /** What a request gets: the file itself, or a smaller variant of it. */
 export type MediaContentTarget = {
+  mediaId: string;
+  /** The variant delivered; null for the original, also when a requested variant isn't ready. */
+  kind: MediaVariantRow["kind"] | null;
   storageKey: string;
   mimeType: string;
   sizeBytes: number;
   etag: string;
+  /** Only images are shown inline; everything else downloads. */
+  disposition: string;
 };
+
+export type MediaContentLink = { url: string; expiresAt: Date };
 
 type AssignmentPath = { campaignId: string; assetId: string; assignmentId: string };
 
@@ -69,6 +78,7 @@ export class MediaService {
     campaignAccess: MediaCampaignAccessPort,
     private readonly cleanup: MediaCleanupService,
     public readonly config: MediaDeliveryConfig,
+    private readonly linkSigner: MediaLinkSigner = new MediaLinkSigner(),
   ) {
     this.trackedAssignment = createTrackedAssetMedia({
       resolveRole: async (campaignId, actorId, tx) =>
@@ -100,26 +110,40 @@ export class MediaService {
 
   /** Players only get ready files attached for them to an asset they may see. */
   async requireFileForViewer(access: ContentAccess, mediaId: string): Promise<MediaFileRow> {
-    const file = await this.requireFileInCampaign(access.viewer.campaignId, mediaId);
+    const [file] = await this.listFilesForViewer(access, [mediaId]);
 
-    if (access.isFullView) {
-      return file;
-    }
-
-    const assetIds = await this.repository.listPlayerAssetIdsOfFile(this.db, {
-      campaignId: access.viewer.campaignId,
-      mediaId,
-    });
-    const readable = await access.filter(
-      "MANAGE",
-      [...(await this.assets.findMany(assetIds)).values()],
-    );
-
-    if (file.status !== "READY" || readable.length === 0) {
+    if (!file) {
       throw new NotFoundError("Media not found");
     }
 
     return file;
+  }
+
+  /**
+   * The files of `requireFileForViewer`, for many at once; those the viewer may not see (or that
+   * don't exist) are left out without a trace. Global files are visible to every campaign.
+   */
+  async listFilesForViewer(access: ContentAccess, mediaIds: string[]): Promise<MediaFileRow[]> {
+    const { campaignId } = access.viewer;
+    const files = (await this.repository.listFilesByIds(this.db, [...new Set(mediaIds)])).filter(
+      (file) => file.scope !== "CAMPAIGN" || file.campaignId === campaignId,
+    );
+
+    if (access.isFullView) {
+      return files;
+    }
+
+    const ready = files.filter((file) => file.status === "READY");
+    const assetIdsByFile = await this.repository.listPlayerAssetIdsOfFiles(this.db, {
+      campaignId,
+      mediaIds: ready.map((file) => file.id),
+    });
+    const assets = await this.assets.findMany([...new Set([...assetIdsByFile.values()].flat())]);
+    const readable = await access.readableIds("MANAGE", [...assets.values()]);
+
+    return ready.filter((file) =>
+      (assetIdsByFile.get(file.id) ?? []).some((assetId) => readable.has(assetId)),
+    );
   }
 
   /** A variant that isn't ready yet, or doesn't exist for this type, falls back to the file. */
@@ -127,39 +151,114 @@ export class MediaService {
     file: MediaFileRow,
     kind?: MediaVariantRow["kind"],
   ): Promise<MediaContentTarget> {
-    if (file.status !== "READY") {
+    const target = (await this.resolveContentTargets([file], kind)).get(file.id);
+
+    if (!target) {
       throw new NotFoundError("Media not found");
     }
 
-    const variant = kind ? await this.repository.findReadyVariant(this.db, file.id, kind) : null;
+    return target;
+  }
 
-    return variant
-      ? {
-          storageKey: variant.storageKey,
-          mimeType: variant.mimeType,
-          sizeBytes: variant.sizeBytes ?? 0,
-          etag: `${file.sha256}-${variant.kind.toLowerCase()}`,
-        }
-      : {
-          storageKey: file.storageKey,
-          mimeType: file.mimeType,
-          sizeBytes: file.sizeBytes,
-          etag: file.sha256,
-        };
+  /** Per ready file what to deliver; files that aren't ready have no content yet. */
+  async resolveContentTargets(
+    files: MediaFileRow[],
+    kind?: MediaVariantRow["kind"],
+  ): Promise<Map<string, MediaContentTarget>> {
+    const ready = files.filter((file) => file.status === "READY");
+    const variants = kind
+      ? await this.repository.listReadyVariants(
+          this.db,
+          ready.map((file) => file.id),
+          kind,
+        )
+      : [];
+    const variantByFile = new Map(variants.map((variant) => [variant.mediaId, variant]));
+
+    return new Map(
+      ready.map((file) => {
+        const variant = variantByFile.get(file.id);
+
+        return [
+          file.id,
+          variant
+            ? {
+                mediaId: file.id,
+                kind: variant.kind,
+                storageKey: variant.storageKey,
+                mimeType: variant.mimeType,
+                sizeBytes: variant.sizeBytes ?? 0,
+                etag: `${file.sha256}-${variant.kind.toLowerCase()}`,
+                disposition: contentDisposition(file, variant.mimeType),
+              }
+            : {
+                mediaId: file.id,
+                kind: null,
+                storageKey: file.storageKey,
+                mimeType: file.mimeType,
+                sizeBytes: file.sizeBytes,
+                etag: file.sha256,
+                disposition: contentDisposition(file, file.mimeType),
+              },
+        ];
+      }),
+    );
   }
 
   get supportsDirectDownload(): boolean {
     return this.storage.supportsDirectDownload;
   }
 
-  createContentUrl(target: MediaContentTarget, headers: { disposition: string }): Promise<string> {
+  createContentUrl(target: MediaContentTarget): Promise<string> {
     const ttl = this.config.downloadUrlTtlSeconds;
 
     return this.storage.createDownloadUrl(target.storageKey, ttl, {
       contentType: target.mimeType,
-      contentDisposition: headers.disposition,
+      contentDisposition: target.disposition,
       cacheControl: `private, max-age=${ttl}`,
     });
+  }
+
+  /**
+   * A link the browser can fetch without a session, for `<img src>` and the like: the signed
+   * storage link, or without one a signed link to the API's own content route. `expiresAt` is the
+   * time until which it works at least.
+   */
+  async createContentLink(target: MediaContentTarget): Promise<MediaContentLink> {
+    // Taken before signing: a storage that signs a moment later lands in the same or a later
+    // window, so its link lasts at least this long.
+    const { expiresAt } = downloadUrlWindow(this.config.downloadUrlTtlSeconds);
+
+    if (this.storage.supportsDirectDownload) {
+      return { url: await this.createContentUrl(target), expiresAt };
+    }
+
+    const token = this.linkSigner.sign({
+      mediaId: target.mediaId,
+      kind: target.kind,
+      expiresAt: expiresAt.getTime(),
+    });
+
+    return { url: `${API_BASE_PATH}/media/links/${token}`, expiresAt };
+  }
+
+  /**
+   * The content behind a link of `createContentLink`; a damaged or expired link, or a file deleted
+   * meanwhile, is a 404.
+   */
+  async openLinkedContent(
+    token: string,
+  ): Promise<{ target: MediaContentTarget; stream: Readable }> {
+    const signed = this.linkSigner.verify(token);
+    const file = signed ? await this.repository.findFileById(this.db, signed.mediaId) : null;
+
+    if (!signed || !file) {
+      throw new NotFoundError("Media not found");
+    }
+
+    const target = await this.resolveContentTarget(file, signed.kind ?? undefined);
+
+    return { target, stream: await this.openContent(target) };
   }
 
   async openContent(target: MediaContentTarget): Promise<Readable> {
@@ -359,4 +458,28 @@ export class MediaService {
       throw error;
     }
   }
+}
+
+/** The variant a request names; without one the original. */
+export function variantKindOf(
+  variant: "thumbnail" | "display" | undefined,
+): MediaVariantRow["kind"] | undefined {
+  return variant === "thumbnail" ? "THUMBNAIL" : variant === "display" ? "DISPLAY" : undefined;
+}
+
+function contentDisposition(file: MediaFileRow, mimeType: string): string {
+  const inline = mimeType.startsWith("image/") ? "inline" : "attachment";
+
+  return `${inline}; filename="${normalizeFilename(file.originalName)}"`;
+}
+
+/** Headers for content the API streams itself; the caller adds `cache-control`. */
+export function streamedContentHeaders(target: MediaContentTarget): Record<string, string> {
+  return {
+    "content-type": target.mimeType,
+    "content-length": String(target.sizeBytes),
+    "content-disposition": target.disposition,
+    etag: `"${target.etag}"`,
+    "x-content-type-options": "nosniff",
+  };
 }

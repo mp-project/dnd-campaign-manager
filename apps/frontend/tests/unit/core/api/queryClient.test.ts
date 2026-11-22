@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CACHE_POLICY } from "@/core/api/cachePolicy";
+import { CACHE_POLICY, SIGNED_URL_MARGIN_MS, signedUrlStaleTime } from "@/core/api/cachePolicy";
 import { ApiError } from "@/core/api/errors";
 import {
   campaignKey,
@@ -47,8 +47,22 @@ describe("query client", () => {
     }
   });
 
-  it("never keeps signed links and refetches live data", () => {
-    expect(CACHE_POLICY.signedUrl).toMatchObject({ staleTime: 0, gcTime: 0 });
+  it("keeps signed links until shortly before they expire", () => {
+    const now = Date.now();
+    const at = (expiresInSeconds: unknown, dataUpdatedAt = now) =>
+      signedUrlStaleTime({ state: { data: { expiresInSeconds }, dataUpdatedAt } });
+
+    expect(at(300)).toBeGreaterThan(300_000 - SIGNED_URL_MARGIN_MS - 1000);
+    expect(at(300)).toBeLessThanOrEqual(300_000 - SIGNED_URL_MARGIN_MS);
+    // Counted from the arrival of the answer, not from the server's clock.
+    expect(at(300, now - 290_000)).toBe(0);
+    expect(at(10)).toBe(0);
+    expect(at("nonsense")).toBe(0);
+    expect(signedUrlStaleTime({ state: { data: undefined, dataUpdatedAt: now } })).toBe(0);
+    expect(CACHE_POLICY.signedUrl).toMatchObject({ refetchOnWindowFocus: false, refetchOnReconnect: false });
+  });
+
+  it("refetches live data", () => {
     expect(CACHE_POLICY.live).toMatchObject({ staleTime: 0, refetchOnReconnect: "always" });
     expect(CACHE_POLICY.static.staleTime).toBeGreaterThan(CACHE_POLICY.content.staleTime);
   });

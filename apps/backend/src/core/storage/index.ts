@@ -1,4 +1,5 @@
 export * from "#core/storage/cleanup";
+export * from "#core/storage/downloadWindow";
 export * from "#core/storage/errors";
 export * from "#core/storage/factory";
 export * from "#core/storage/filename";

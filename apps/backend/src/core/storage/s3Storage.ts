@@ -20,6 +20,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Readable } from "node:stream";
 import { PassThrough, Readable as NodeReadable } from "node:stream";
 
+import { downloadUrlWindow } from "#core/storage/downloadWindow";
 import { StorageError } from "#core/storage/errors";
 import {
   type StorageDownloadOptions,
@@ -496,16 +497,13 @@ export class S3CompatibleStorage implements StoragePort {
     }
   }
 
-  /**
-   * Signs with the start of the current time window, so the URL stays the same within it and the
-   * browser can use its cache. Twice the time keeps it valid for at least `ttlSeconds`.
-   */
+  /** Signed per time window (`downloadUrlWindow`), so the URL stays the same within it. */
   async createDownloadUrl(
     key: string,
     ttlSeconds: number,
     options: StorageDownloadOptions = {},
   ): Promise<string> {
-    const windowMs = ttlSeconds * 1000;
+    const { signedAt } = downloadUrlWindow(ttlSeconds);
 
     return getSignedUrl(
       this.signingClient,
@@ -516,10 +514,7 @@ export class S3CompatibleStorage implements StoragePort {
         ResponseContentDisposition: options.contentDisposition,
         ResponseCacheControl: options.cacheControl,
       }),
-      {
-        expiresIn: ttlSeconds * 2,
-        signingDate: new Date(Math.floor(Date.now() / windowMs) * windowMs),
-      },
+      { expiresIn: ttlSeconds * 2, signingDate: signedAt },
     );
   }
 

@@ -4,6 +4,12 @@ import { z } from "zod";
 import { errorResponseDto } from "#core/http/dto";
 import { MEDIA_READ_ROUTE_RATE_LIMIT } from "#core/http/rateLimit";
 import {
+  ListMediaLinksSchema,
+  RequestMediaLinkContentParamsSchema,
+  ResponseMediaLinkListSchema,
+  ResponseMediaLinkSchema,
+} from "#src/modules/media/domain/dto/MediaLinkDto";
+import {
   AttachMediaSchema,
   CreateMediaUploadSchema,
   RequestAssetMediaItemParamsSchema,
@@ -36,9 +42,12 @@ import { DeleteMediaController } from "#src/modules/media/http/controller/Delete
 import { DetachMediaController } from "#src/modules/media/http/controller/DetachMediaController";
 import { GetMediaContentController } from "#src/modules/media/http/controller/GetMediaContentController";
 import { GetMediaController } from "#src/modules/media/http/controller/GetMediaController";
+import { GetMediaLinkContentController } from "#src/modules/media/http/controller/GetMediaLinkContentController";
+import { GetMediaLinkController } from "#src/modules/media/http/controller/GetMediaLinkController";
 import { GetMediaUploadController } from "#src/modules/media/http/controller/GetMediaUploadController";
 import { ListAssetMediaController } from "#src/modules/media/http/controller/ListAssetMediaController";
 import { ListMediaController } from "#src/modules/media/http/controller/ListMediaController";
+import { ListMediaLinksController } from "#src/modules/media/http/controller/ListMediaLinksController";
 import { UpdateAssetMediaController } from "#src/modules/media/http/controller/UpdateAssetMediaController";
 import { UploadMediaPartController } from "#src/modules/media/http/controller/UploadMediaPartController";
 import { MEDIA_PERMISSIONS } from "#src/modules/media/permissions/MediaPermissions";
@@ -52,6 +61,9 @@ export type MediaRouteControllers = {
   abortMediaUploadController: AbortMediaUploadController;
   getMediaController: GetMediaController;
   getMediaContentController: GetMediaContentController;
+  getMediaLinkController: GetMediaLinkController;
+  listMediaLinksController: ListMediaLinksController;
+  getMediaLinkContentController: GetMediaLinkContentController;
   deleteMediaController: DeleteMediaController;
   listAssetMediaController: ListAssetMediaController;
   attachMediaController: AttachMediaController;
@@ -244,6 +256,72 @@ export function registerMediaRoutes(
       return "redirectUrl" in content
         ? reply.redirect(content.redirectUrl, 302)
         : reply.send(content.stream);
+    },
+  );
+
+  app.get(
+    "/campaigns/:campaignId/media/:mediaId/link",
+    {
+      config: {
+        permission: { key: MEDIA_PERMISSIONS.read, hideAsNotFoundForPlayers: true },
+        rateLimit: MEDIA_READ_ROUTE_RATE_LIMIT,
+      },
+      schema: {
+        tags,
+        operationId: "getMediaLink",
+        description:
+          "Checks the rights like the content route and returns its short-lived link instead of redirecting, for `<img src>` and other places where the browser can't send the session token.",
+        security,
+        params: RequestMediaItemParamsSchema,
+        querystring: RequestMediaContentQuerySchema,
+        response: { 200: ResponseMediaLinkSchema, ...readErrorResponses },
+      },
+    },
+    controllers.getMediaLinkController.handle,
+  );
+
+  app.post(
+    "/campaigns/:campaignId/media/links",
+    {
+      config: {
+        permission: { key: MEDIA_PERMISSIONS.read, hideAsNotFoundForPlayers: true },
+        // Only reads, for a whole gallery at once.
+        rateLimit: MEDIA_READ_ROUTE_RATE_LIMIT,
+      },
+      schema: {
+        tags,
+        operationId: "listMediaLinks",
+        description:
+          "The links of `getMediaLink` for many files at once. Files the viewer may not see, or that have no content yet, are left out.",
+        security,
+        params: RequestMediaParamsSchema,
+        body: ListMediaLinksSchema,
+        response: { 200: ResponseMediaLinkListSchema, 400: errorResponseDto, ...readErrorResponses },
+      },
+    },
+    controllers.listMediaLinksController.handle,
+  );
+
+  app.get(
+    "/media/links/:token",
+    {
+      config: {
+        public: "signed media link; the signature stands for the rights checked when it was handed out",
+        rateLimit: MEDIA_READ_ROUTE_RATE_LIMIT,
+      },
+      schema: {
+        tags,
+        operationId: "getMediaLinkContent",
+        description:
+          "Delivers a link of `getMediaLink` when the storage can't sign links itself (local storage in development).",
+        params: RequestMediaLinkContentParamsSchema,
+        response: { 404: errorResponseDto },
+      },
+    },
+    async (request, reply) => {
+      const content = await controllers.getMediaLinkContentController.handle(request);
+
+      return reply.headers(content.headers).send(content.stream);
     },
   );
 

@@ -64,7 +64,7 @@ const shadows = ["shadow-soft", "shadow-drawer", "shadow-popover", "shadow-prima
 
     <ShowcaseComponent
       name="Typografie"
-      description="Libre Baskerville (Überschriften), Lora (Text)"
+      description="Literata (Text und Überschriften), Cinzel (Hervorhebungen)"
     >
       <ShowcaseVariant
         label=".page-title"
@@ -74,6 +74,12 @@ const shadows = ["shadow-soft", "shadow-drawer", "shadow-popover", "shadow-prima
       </ShowcaseVariant>
       <ShowcaseVariant label=".section-title / h1–h4">
         <span class="section-title">Grauhafen</span>
+      </ShowcaseVariant>
+      <ShowcaseVariant
+        label="font-display (Hero-Titel)"
+        wide
+      >
+        <span class="font-display text-[34px] leading-tight font-bold text-heading">Die Schatten von Elaria</span>
       </ShowcaseVariant>
       <ShowcaseVariant label=".name-link">
         <span class="name-link">Hauptmann Rovan</span>

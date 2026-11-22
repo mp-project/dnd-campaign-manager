@@ -1,91 +1,143 @@
 {
-  "example": "Example content: these details are placeholders and must be replaced with the real ones and legally reviewed before going live.",
   "updated": "Last updated: November 2026",
   "back": "Back",
   "imprint": {
     "title": "Legal notice",
     "subtitle": "Information according to § 5 DDG (German Digital Services Act)",
+    "description": "Legal notice of Questaria: provider and contact of the campaign manager for D&D 5E.",
     "provider": {
       "title": "Provider",
-      "body": "Questaria Beispiel GmbH\nMusterstraße 1\n12345 Musterstadt\nGermany"
+      "body": "Mark Pimpl\nGrabenkamp 25\n33649 Bielefeld\nGermany"
     },
     "contact": {
       "title": "Contact",
-      "body": "Phone: +49 123 456789-0\nEmail: kontakt{'@'}example.com"
+      "body": "Email: info{'@'}questaria.de"
     },
-    "represented": {
-      "title": "Represented by",
-      "body": "Erika Mustermann (Managing Director)"
-    },
-    "register": {
-      "title": "Commercial register",
-      "body": "Register court: Amtsgericht Musterstadt\nRegistration number: HRB 00000"
-    },
-    "vat": {
-      "title": "VAT ID",
-      "body": "VAT identification number according to § 27a UStG: DE000000000"
-    },
-    "editorial": {
-      "title": "Responsible for the content",
-      "body": "Erika Mustermann, address as above"
-    },
-    "dispute": {
-      "title": "Consumer dispute resolution",
-      "body": "We are neither willing nor obliged to take part in dispute resolution proceedings before a consumer arbitration board."
-    },
-    "content": {
-      "title": "Content of our users",
-      "body": "Campaigns, notes, images and other content are created by our users, who are responsible for it. We accept reports of unlawful content at the address above and review them promptly."
-    },
-    "description": "Legal notice of Questaria: provider, contact and those responsible for the campaign manager for D&D 5E."
+    "source": {
+      "body": "Source:\nhttps://www.e-recht24.de/impressum-generator.html"
+    }
   },
   "privacy": {
-    "title": "Privacy",
+    "title": "Privacy policy",
     "subtitle": "How we handle your data",
+    "description": "Privacy policy of Questaria: which data the campaign manager processes, what for, who receives it and which rights you have.",
+    "chapters": {
+      "overview": "1. Data protection at a glance",
+      "hosting": "2. Hosting and content delivery networks (CDN)",
+      "duties": "3. General information and mandatory information",
+      "website": "4. Data collection on this website",
+      "platform": "5. Account and campaigns",
+      "analytics": "6. Analytics tools",
+      "tools": "7. Plugins and tools",
+      "changes": "8. Changes to this privacy policy"
+    },
+    "general": {
+      "title": "General information",
+      "body": "The following information provides a simple overview of what happens to your personal data when you visit this website. Personal data is any data that can be used to identify you personally. Detailed information on data protection can be found in our privacy policy below this text."
+    },
+    "collection": {
+      "title": "Data collection on this website",
+      "body": "Who is responsible for the data collection on this website?\nThe data processing on this website is carried out by the website operator. You can find their contact details in the section “Information about the controller” in this privacy policy.\n\nHow do we collect your data?\nYour data is collected on the one hand when you provide it to us. This can be, for example, data you enter in a contact form.\n\nOther data is collected automatically or with your consent by our IT systems when you visit the website. This is mainly technical data (e.g. internet browser, operating system or time of the page view). This data is collected automatically as soon as you enter this website.\n\nWhat do we use your data for?\nSome of the data is collected to ensure that the website is provided without errors. Other data may be used to analyse your user behaviour. If contracts can be concluded or initiated via the website, the transmitted data is also processed for contract offers, orders or other order requests.\n\nWhat rights do you have regarding your data?\nYou have the right at any time to receive information free of charge about the origin, recipient and purpose of your stored personal data. You also have the right to request the correction or deletion of this data. If you have given your consent to data processing, you can revoke this consent at any time for the future. You also have the right, under certain circumstances, to request the restriction of the processing of your personal data. Furthermore, you have the right to lodge a complaint with the competent supervisory authority.\n\nYou can contact us at any time about this and other questions on the subject of data protection."
+    },
+    "hetzner": {
+      "title": "Hetzner",
+      "body": "We host the content of our website with the following provider:\n\nThe provider is Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen, Germany (hereinafter Hetzner).\n\nFor details, please refer to Hetzner's privacy policy: https://www.hetzner.com/legal/privacy-policy/.\n\nHetzner is used on the basis of Art. 6(1)(f) GDPR. We have a legitimate interest in presenting our website as reliably as possible. If consent has been requested, processing is based exclusively on Art. 6(1)(a) GDPR and § 25(1) TDDDG, insofar as the consent covers the storage of cookies or access to information on the user's device (e.g. device fingerprinting) within the meaning of the TDDDG. Consent can be revoked at any time.\n\nData processing\nWe have concluded a data processing agreement (DPA) for the use of the above service. This is a contract required by data protection law, which ensures that the provider processes the personal data of our website visitors only in accordance with our instructions and in compliance with the GDPR."
+    },
+    "cloudflare": {
+      "title": "Cloudflare",
+      "body": "We use the service “Cloudflare”. The provider is Cloudflare Inc., 101 Townsend St., San Francisco, CA 94107, USA (hereinafter “Cloudflare”).\n\nCloudflare offers a globally distributed content delivery network with DNS. Technically, the transfer of information between your browser and our website is routed through Cloudflare's network. This enables Cloudflare to analyse the data traffic between your browser and our website and to act as a filter between our servers and potentially malicious data traffic from the internet. Cloudflare may also use cookies or other technologies to recognise internet users, which are, however, used solely for the purpose described here.\n\nCloudflare is used on the basis of our legitimate interest in providing our website as error-free and securely as possible (Art. 6(1)(f) GDPR).\n\nThe transfer of data to the USA is based on the standard contractual clauses of the EU Commission. Details and further information on security and data protection at Cloudflare can be found here: https://www.cloudflare.com/privacypolicy/.\n\nThe company is certified under the “EU-US Data Privacy Framework” (DPF). The DPF is an agreement between the European Union and the USA intended to ensure compliance with European data protection standards for data processing in the USA. Every company certified under the DPF undertakes to comply with these data protection standards. Further information is available from the provider at the following link: https://www.dataprivacyframework.gov/participant/5666.\n\nData processing\nWe have concluded a data processing agreement (DPA) for the use of the above service. This is a contract required by data protection law, which ensures that the provider processes the personal data of our website visitors only in accordance with our instructions and in compliance with the GDPR."
+    },
+    "privacy": {
+      "title": "Data protection",
+      "body": "The operators of these pages take the protection of your personal data very seriously. We treat your personal data confidentially and in accordance with the statutory data protection regulations and this privacy policy.\n\nWhen you use this website, various personal data is collected. Personal data is data that can be used to identify you personally. This privacy policy explains what data we collect and what we use it for. It also explains how and for what purpose this is done.\n\nPlease note that data transmission over the internet (e.g. when communicating by email) may be subject to security vulnerabilities. Complete protection of data against access by third parties is not possible."
+    },
     "controller": {
-      "title": "Controller",
-      "body": "Questaria Beispiel GmbH, Musterstraße 1, 12345 Musterstadt, Germany\nEmail: datenschutz{'@'}example.com"
+      "title": "Information about the controller",
+      "body": "The controller responsible for data processing on this website is:\n\nMark Pimpl\nGrabenkamp 25\n33649 Bielefeld\nGermany\n\nEmail: info{'@'}questaria.de\n\nThe controller is the natural or legal person who alone or jointly with others decides on the purposes and means of processing personal data (e.g. names, email addresses or similar)."
     },
-    "account": {
-      "title": "Your account",
-      "body": "Signing in, registration and pre-registration (the waitlist) run through the service Clerk (Clerk, Inc., USA) as our processor. Clerk stores your email address, your password as a secure hash, your sessions with device, browser and IP address and any connected accounts. Clerk is certified under the EU-U.S. Data Privacy Framework. We keep a copy of your email address, your display name, username, language and time zone. The legal basis is the performance of the contract of use (Art. 6(1)(b) GDPR), for the waitlist your request to be invited (Art. 6(1)(b) GDPR)."
+    "retention": {
+      "title": "Storage period",
+      "body": "Unless a more specific storage period has been specified in this privacy policy, your personal data will remain with us until the purpose for the data processing no longer applies. If you assert a justified request for deletion or revoke your consent to data processing, your data will be deleted unless we have other legally permissible reasons for storing your personal data (e.g. retention periods under tax or commercial law); in the latter case, the data will be deleted once these reasons no longer apply."
     },
-    "content": {
-      "title": "Your content",
-      "body": "We store campaigns, notes, characters, uploaded images and other content so that you and the members of your campaigns can use them. Who sees which content is decided by the rights within the campaign. Changes to content are stored with their history so they can be undone."
+    "legalBasis": {
+      "title": "General information on the legal basis for data processing on this website",
+      "body": "If you have consented to data processing, we process your personal data on the basis of Art. 6(1)(a) GDPR or Art. 9(2)(a) GDPR if special categories of data under Art. 9(1) GDPR are processed. In the case of express consent to the transfer of personal data to third countries, the data processing is also based on Art. 49(1)(a) GDPR. If you have consented to the storage of cookies or to access to information on your device (e.g. via device fingerprinting), the data processing is additionally based on § 25(1) TDDDG. Consent can be revoked at any time. If your data is required to fulfil a contract or to carry out pre-contractual measures, we process your data on the basis of Art. 6(1)(b) GDPR. Furthermore, we process your data if it is required to fulfil a legal obligation on the basis of Art. 6(1)(c) GDPR. Data processing may also be carried out on the basis of our legitimate interest under Art. 6(1)(f) GDPR. The relevant legal bases in each individual case are explained in the following paragraphs of this privacy policy."
     },
-    "oauth": {
-      "title": "Signing in with Google or Discord",
-      "body": "If you sign in with Google or Discord, the provider sends Clerk your confirmed email address, your name and an identifier of your account there; we only receive the email address and the name. We don't request any other data. The provider's privacy policy applies to its own processing."
+    "recipients": {
+      "title": "Recipients of personal data",
+      "body": "In the course of our business activities, we work with various external parties. In some cases, this also requires the transfer of personal data to these external parties. We only pass on personal data to external parties if this is necessary for the fulfilment of a contract, if we are legally obliged to do so (e.g. passing on data to tax authorities), if we have a legitimate interest under Art. 6(1)(f) GDPR in passing it on or if another legal basis permits the transfer of data. When using processors, we only pass on our customers' personal data on the basis of a valid data processing agreement. In the case of joint processing, a joint processing agreement is concluded."
+    },
+    "revocation": {
+      "title": "Revocation of your consent to data processing",
+      "body": "Many data processing operations are only possible with your express consent. You can revoke consent you have already given at any time. The lawfulness of the data processing carried out until the revocation remains unaffected by the revocation."
+    },
+    "objection": {
+      "title": "Right to object to data collection in special cases and to direct marketing (Art. 21 GDPR)",
+      "body": "IF THE DATA PROCESSING IS BASED ON ART. 6(1)(E) OR (F) GDPR, YOU HAVE THE RIGHT TO OBJECT TO THE PROCESSING OF YOUR PERSONAL DATA AT ANY TIME ON GROUNDS RELATING TO YOUR PARTICULAR SITUATION; THIS ALSO APPLIES TO PROFILING BASED ON THESE PROVISIONS. THE RESPECTIVE LEGAL BASIS ON WHICH PROCESSING IS BASED CAN BE FOUND IN THIS PRIVACY POLICY. IF YOU OBJECT, WE WILL NO LONGER PROCESS YOUR PERSONAL DATA CONCERNED UNLESS WE CAN DEMONSTRATE COMPELLING LEGITIMATE GROUNDS FOR THE PROCESSING WHICH OVERRIDE YOUR INTERESTS, RIGHTS AND FREEDOMS, OR THE PROCESSING SERVES THE ESTABLISHMENT, EXERCISE OR DEFENCE OF LEGAL CLAIMS (OBJECTION PURSUANT TO ART. 21(1) GDPR).\n\nIF YOUR PERSONAL DATA IS PROCESSED FOR THE PURPOSE OF DIRECT MARKETING, YOU HAVE THE RIGHT TO OBJECT AT ANY TIME TO THE PROCESSING OF PERSONAL DATA CONCERNING YOU FOR THE PURPOSE OF SUCH MARKETING; THIS ALSO APPLIES TO PROFILING INSOFAR AS IT IS RELATED TO SUCH DIRECT MARKETING. IF YOU OBJECT, YOUR PERSONAL DATA WILL NO LONGER BE USED FOR THE PURPOSE OF DIRECT MARKETING (OBJECTION PURSUANT TO ART. 21(2) GDPR)."
+    },
+    "complaint": {
+      "title": "Right to lodge a complaint with the competent supervisory authority",
+      "body": "In the event of breaches of the GDPR, data subjects have the right to lodge a complaint with a supervisory authority, in particular in the member state of their habitual residence, their place of work or the place of the alleged breach. The right to lodge a complaint is without prejudice to any other administrative or judicial remedies."
+    },
+    "portability": {
+      "title": "Right to data portability",
+      "body": "You have the right to have data that we process automatically on the basis of your consent or in fulfilment of a contract handed over to you or to a third party in a common, machine-readable format. If you request the direct transfer of the data to another controller, this will only be done insofar as it is technically feasible."
+    },
+    "access": {
+      "title": "Information, correction and deletion",
+      "body": "Within the framework of the applicable legal provisions, you have the right at any time to free information about your stored personal data, its origin and recipients and the purpose of the data processing and, if applicable, a right to correction or deletion of this data. You can contact us at any time about this and other questions on the subject of personal data."
+    },
+    "restriction": {
+      "title": "Right to restriction of processing",
+      "body": "You have the right to request the restriction of the processing of your personal data. You can contact us at any time about this. The right to restriction of processing exists in the following cases:\n\n• If you dispute the accuracy of your personal data stored by us, we usually need time to verify this. For the duration of the verification, you have the right to request the restriction of the processing of your personal data.\n• If the processing of your personal data was/is unlawful, you can request the restriction of data processing instead of deletion.\n• If we no longer need your personal data, but you need it to exercise, defend or assert legal claims, you have the right to request the restriction of the processing of your personal data instead of deletion.\n• If you have lodged an objection pursuant to Art. 21(1) GDPR, a balance must be struck between your interests and ours. As long as it has not yet been determined whose interests prevail, you have the right to request the restriction of the processing of your personal data.\n\nIf you have restricted the processing of your personal data, this data may – apart from its storage – only be processed with your consent or for the establishment, exercise or defence of legal claims or for the protection of the rights of another natural or legal person or for reasons of important public interest of the European Union or a member state."
+    },
+    "encryption": {
+      "title": "SSL or TLS encryption",
+      "body": "For security reasons and to protect the transmission of confidential content, such as orders or enquiries that you send to us as the site operator, this site uses SSL or TLS encryption. You can recognise an encrypted connection by the fact that the address line of the browser changes from “http://” to “https://” and by the lock symbol in your browser line.\n\nIf SSL or TLS encryption is activated, the data you transmit to us cannot be read by third parties."
     },
     "cookies": {
-      "title": "Cookies and local storage",
-      "body": "We only use technically necessary cookies: Clerk sets them for your session and the flow of a sign-in, only on the sign-in pages and in the app, not on the other public pages. In your browser we also remember your language and the campaign you opened last. We don't set tracking or advertising cookies."
+      "title": "Cookies",
+      "body": "Our websites use so-called “cookies”. Cookies are small data packets and do not cause any damage to your device. They are stored on your device either temporarily for the duration of a session (session cookies) or permanently (permanent cookies). Session cookies are automatically deleted at the end of your visit. Permanent cookies remain stored on your device until you delete them yourself or they are automatically deleted by your web browser.\n\nCookies can come from us (first-party cookies) or from third-party companies (so-called third-party cookies). Third-party cookies enable the integration of certain services of third-party companies within websites (e.g. cookies for processing payment services).\n\nCookies have various functions. Many cookies are technically necessary, as certain website functions would not work without them (e.g. the shopping cart function or the display of videos). Other cookies can be used to evaluate user behaviour or for advertising purposes.\n\nCookies that are required to carry out the electronic communication process, to provide certain functions you have requested (e.g. for the shopping cart function) or to optimise the website (e.g. cookies to measure the web audience) (necessary cookies) are stored on the basis of Art. 6(1)(f) GDPR, unless another legal basis is specified. The website operator has a legitimate interest in storing necessary cookies for the technically error-free and optimised provision of its services. If consent to the storage of cookies and similar recognition technologies has been requested, the processing is based exclusively on this consent (Art. 6(1)(a) GDPR and § 25(1) TDDDG); consent can be revoked at any time.\n\nYou can set your browser so that you are informed about the setting of cookies and only allow cookies in individual cases, exclude the acceptance of cookies for certain cases or in general and activate the automatic deletion of cookies when closing the browser. If cookies are deactivated, the functionality of this website may be restricted.\n\nIf further cookies and services are used on this website, you can find this in this privacy policy.\n\nThe following types of cookies are used:\n• Technically necessary cookies: session cookies for signing in (via our authentication service Clerk) – these are strictly necessary for operating the platform and are only set on the sign-in pages and in the app\n• Functional storage: user interface settings in local storage (e.g. the chosen language and the campaign opened last)"
     },
-    "security": {
-      "title": "Protecting your account",
-      "body": "To fend off attacks, Clerk counts failed sign-ins with IP address and time and stores the device and browser of each session. The legal basis is our legitimate interest in secure operation (Art. 6(1)(f) GDPR)."
-    },
-    "email": {
-      "title": "Emails",
-      "body": "Emails your account needs (confirmation codes, password resets, the invitation from the waitlist) are sent by Clerk. Invitations to campaigns we send ourselves."
+    "consent": {
+      "title": "Consent with Cookiebot",
+      "body": "Our website uses the consent technology of Cookiebot to obtain your consent to the storage of certain cookies on your device or to the use of certain technologies and to document this in compliance with data protection law. The provider of this technology is Cybot A/S, Havnegade 39, 1058 Copenhagen, Denmark (hereinafter “Cookiebot”).\n\nWhen you enter our website, a Cookiebot cookie is stored in your browser, in which the consents you have given or the revocation of these consents are stored.\n\nThe collected data is stored until you ask us to delete it, delete the Cookiebot cookie yourself or the purpose for storing the data no longer applies. Mandatory statutory retention obligations remain unaffected. Details on Cookiebot's data processing can be found at: https://www.cookiebot.com/en/privacy-policy/.\n\nThe cookie consent technology is used to obtain the legally required consent for the use of cookies. The legal basis for this is Art. 6(1)(c) GDPR.\n\nData processing\nWe have concluded a data processing agreement (DPA) for the use of the above service. This is a contract required by data protection law, which ensures that the provider processes the personal data of our website visitors only in accordance with our instructions and in compliance with the GDPR.\n\nThe cookie declaration below shows which cookies we use and which consent you have given; there you can change or revoke your consent at any time.",
+      "declaration": "The following cookie declaration is loaded by Cookiebot. If it is missing, your browser blocks Cookiebot or JavaScript.",
+      "declarationMissing": "The cookie declaration appears here once Cookiebot is integrated."
     },
     "contact": {
       "title": "Contact form",
-      "body": "When you write to us through the contact form, we process your first name, last name, email address, topic and message to answer your request. The details reach our team by email and are not stored in the app. We delete the email once your request is settled and no retention obligation applies."
+      "body": "If you send us enquiries via the contact form, your details from the enquiry form, including the contact details you provided there (first name, last name, email address, topic and message), will be stored by us for the purpose of processing the enquiry and in the event of follow-up questions. The details are sent to us by email and are not stored in the application itself. We do not pass on this data without your consent.\n\nThis data is processed on the basis of Art. 6(1)(b) GDPR if your enquiry is related to the fulfilment of a contract or is necessary to carry out pre-contractual measures. In all other cases, the processing is based on our legitimate interest in the effective processing of the enquiries addressed to us (Art. 6(1)(f) GDPR) or on your consent (Art. 6(1)(a) GDPR) if this has been requested; consent can be revoked at any time.\n\nThe data you enter in the contact form will remain with us until you ask us to delete it, revoke your consent to storage or the purpose for data storage no longer applies (e.g. after your enquiry has been processed). Mandatory statutory provisions – in particular retention periods – remain unaffected."
+    },
+    "data": {
+      "title": "What data do we collect?",
+      "body": "We process personal data to provide the Questaria platform and the associated services and for the purposes stated in this policy. In particular, the following personal data may be processed:\n\n• Account data: email address, display name, user name, language and time zone on registration (via our authentication service Clerk)\n• Usage data: technical information such as browser type, operating system, device type, IP address and access times\n• Content data: content you create (campaigns, notes, characters, uploaded images and other content) including its change history, so that changes can be undone; the permissions in each campaign decide who sees which content\n• Invitation data: email address or user name when you invite other people to a campaign\n\nThe processing takes place to fulfil the user agreement on the basis of Art. 6(1)(b) GDPR. We store your account and content data as long as your account exists; after your account is deleted, it is deleted unless statutory retention obligations apply."
+    },
+    "account": {
+      "title": "Registration and sign-in with Clerk",
+      "body": "For registration, sign-in and pre-registration (waitlist) we use the service Clerk. The provider is Clerk, Inc., USA (hereinafter Clerk). Clerk stores your email address, your password as a secure hash, your sessions with device, browser and IP address and any connected accounts. To fend off attacks, Clerk counts failed sign-ins with IP address and time. Emails required for your account (verification codes, password resets, the invitation from the waitlist) are sent by Clerk.\n\nClerk is used to fulfil the user agreement on the basis of Art. 6(1)(b) GDPR; the protective measures against attacks are based on our legitimate interest in secure operation (Art. 6(1)(f) GDPR).\n\nThe transfer of data to the USA is based on the standard contractual clauses of the EU Commission. For details, please refer to Clerk's privacy policy: https://clerk.com/legal/privacy.\n\nThe company is certified under the “EU-US Data Privacy Framework” (DPF). The DPF is an agreement between the European Union and the USA intended to ensure compliance with European data protection standards for data processing in the USA. Every company certified under the DPF undertakes to comply with these data protection standards. Further information is available from the provider at the following link: https://www.dataprivacyframework.gov/list.\n\nData processing\nWe have concluded a data processing agreement (DPA) for the use of the above service. This is a contract required by data protection law, which ensures that the provider processes the personal data of our website visitors only in accordance with our instructions and in compliance with the GDPR."
+    },
+    "oauth": {
+      "title": "Signing in with Google or Discord",
+      "body": "If you sign in with Google or Discord, Clerk receives your verified email address, your name and an identifier of your account there from the respective provider; we only receive the email address and name. We do not request any further data. The processing is based on Art. 6(1)(b) GDPR. The privacy policy of the respective provider applies to the processing there."
     },
     "push": {
-      "title": "Push notifications",
-      "body": "If you allow push notifications, we use the Pusher Beams service for them, which receives an identifier of your browser. You can turn the notifications off in your browser at any time."
+      "title": "Push notifications with Pusher Beams",
+      "body": "If you allow push notifications, we use the service Pusher Beams for them. The provider is Pusher Ltd., United Kingdom. An identifier of your browser is transmitted to Pusher so that we can deliver notifications to you. The processing is based on your consent (Art. 6(1)(a) GDPR and § 25(1) TDDDG), which you give by allowing the notifications. You can turn off the notifications in your browser at any time and thereby revoke your consent."
     },
-    "retention": {
-      "title": "Retention",
-      "body": "We keep your data as long as your account exists. Expired sessions and sign-in attempts are deleted after a short time. When your account is deleted, we remove your data unless legal retention obligations apply."
+    "googleAnalytics": {
+      "title": "Google Analytics",
+      "body": "This website uses functions of the web analytics service Google Analytics. The provider is Google Ireland Limited (“Google”), Gordon House, Barrow Street, Dublin 4, Ireland.\n\nGoogle Analytics enables the website operator to analyse the behaviour of website visitors. The website operator receives various usage data, such as page views, length of stay, operating systems used and the origin of the user. This data is assigned to the user's device. It is not assigned to a user ID.\n\nGoogle Analytics uses technologies that make it possible to recognise the user for the purpose of analysing user behaviour (e.g. cookies or device fingerprinting). The information collected by Google about the use of this website is usually transferred to a Google server in the USA and stored there.\n\nThis service is used on the basis of your consent under Art. 6(1)(a) GDPR and § 25(1) TDDDG. Consent can be revoked at any time.\n\nThe transfer of data to the USA is based on the standard contractual clauses of the EU Commission. Details can be found here: https://privacy.google.com/businesses/controllerterms/mccs/.\n\nThe company is certified under the “EU-US Data Privacy Framework” (DPF). The DPF is an agreement between the European Union and the USA intended to ensure compliance with European data protection standards for data processing in the USA. Every company certified under the DPF undertakes to comply with these data protection standards. Further information is available from the provider at the following link: https://www.dataprivacyframework.gov/participant/5780.\n\nBrowser plugin\nYou can prevent Google from collecting and processing your data by downloading and installing the browser plugin available at the following link: https://tools.google.com/dlpage/gaoptout?hl=en.\n\nFor more information on how Google Analytics handles user data, please refer to Google's privacy policy: https://support.google.com/analytics/answer/6004245?hl=en.\n\nData processing\nWe have concluded a data processing agreement with Google and fully implement the strict requirements of the German data protection authorities when using Google Analytics.\n\nStorage period\nData stored by Google at user and event level that is linked to cookies, user identifiers (e.g. user ID) or advertising IDs (e.g. DoubleClick cookies, Android advertising ID) is anonymised or deleted after 14 months. Details can be found at the following link: https://support.google.com/analytics/answer/7667196?hl=en."
     },
-    "rights": {
-      "title": "Your rights",
-      "body": "You have the right to access, rectification, erasure, restriction of processing, data portability and objection. Contact us at the address above. You may also lodge a complaint with a data protection supervisory authority."
+    "sentry": {
+      "title": "Sentry",
+      "body": "We have integrated Sentry on this website. The provider is Functional Software Inc., 45 Fremont Street, 8th Floor, San Francisco, California 94105, USA (hereinafter Sentry).\n\nSentry is an open-source error tracking service that enables us to monitor and fix errors and crashes anywhere in web-based software in real time.\n\nSentry is used on the basis of Art. 6(1)(f) GDPR. The website operator has a legitimate interest in the error-free functioning of its own website.\n\nIf consent has been requested, processing is based exclusively on Art. 6(1)(a) GDPR and § 25(1) TDDDG, insofar as the consent covers the storage of cookies or access to information on the user's device (e.g. device fingerprinting) within the meaning of the TDDDG. Consent can be revoked at any time.\n\nFurther details can be found in the provider's privacy policy at https://sentry.io/privacy/.\n\nThe transfer of data to the USA is based on the standard contractual clauses of the EU Commission. Details can be found here: https://sentry.io/legal/dpa/5.0.0/#cross-border-transfer-mechanisms and https://sentry.io/legal/dpa/5.0.0/#third-party.\n\nThe company is certified under the “EU-US Data Privacy Framework” (DPF). The DPF is an agreement between the European Union and the USA intended to ensure compliance with European data protection standards for data processing in the USA. Every company certified under the DPF undertakes to comply with these data protection standards. Further information is available from the provider at the following link: https://www.dataprivacyframework.gov/participant/5869.\n\nData processing\nWe have concluded a data processing agreement (DPA) for the use of the above service. This is a contract required by data protection law, which ensures that the provider processes the personal data of our website visitors only in accordance with our instructions and in compliance with the GDPR."
     },
-    "description": "Privacy policy of Questaria: what data the campaign manager stores, what for, and which rights you have."
+    "changes": {
+      "body": "We reserve the right to amend this privacy policy if necessary to adapt it to changes in the legal situation or changes to our service. The current version is always available on this page."
+    },
+    "source": {
+      "body": "Source:\nhttps://www.e-recht24.de"
+    }
   }
 }

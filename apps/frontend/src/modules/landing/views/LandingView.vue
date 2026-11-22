@@ -192,6 +192,7 @@ const inventory: FeatureRowData = {
   text: "landing.features.inventory.text",
   points: ["landing.features.inventory.point1", "landing.features.inventory.point2", "landing.features.inventory.point3"],
   layout: "left",
+  scene: { src: riverTownScene, side: "right" },
 };
 
 const route = useRoute();
@@ -264,7 +265,7 @@ const reputationPoints: MessageKey[] = [
             </p>
             <h1
               id="landing-title"
-              class="mt-3 font-heading text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
             >
               {{ t("landing.hero.title") }}
             </h1>
@@ -498,7 +499,7 @@ const reputationPoints: MessageKey[] = [
         class="navy-shade relative z-10 overflow-x-clip"
         aria-labelledby="landing-marketplace"
       >
-        <LandscapeEdge />
+        <LandscapeEdge landscape="etchedHills" />
         <img
           :src="booksArt"
           alt=""

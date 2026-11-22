@@ -26,18 +26,36 @@ async function open(component: typeof ImprintView, url: string, locale = "de") {
 }
 
 describe("legal pages", () => {
-  it("shows the legal notice with its sections, marked as example content", async () => {
+  it("shows the legal notice with its sections", async () => {
     const { wrapper } = await open(ImprintView, "/impressum");
     expect(wrapper.find("h1").text()).toBe("Impressum");
     expect(wrapper.findAll("h2").map((heading) => heading.text())).toContain("Anbieter");
-    expect(wrapper.text()).toContain("kontakt@example.com");
-    expect(wrapper.text()).toContain("Beispielinhalt");
+    expect(wrapper.text()).toContain("info@questaria.de");
+    wrapper.unmount();
+  });
+
+  it("turns web addresses in the privacy policy into links that open in a new tab", async () => {
+    const { wrapper } = await open(PrivacyView, "/datenschutz");
+    const link = wrapper.find('main a[href="https://www.cloudflare.com/privacypolicy/"]');
+    expect(link.text()).toBe("https://www.cloudflare.com/privacypolicy/");
+    expect(link.attributes("target")).toBe("_blank");
+    expect(link.attributes("rel")).toBe("noopener noreferrer");
+    // The full stop after an address stays text.
+    expect(link.element.parentElement?.textContent).toContain("https://www.cloudflare.com/privacypolicy/.");
+    // The eRecht24 chapters are the second level, their sections the third.
+    expect(wrapper.findAll("main h2").map((heading) => heading.text())).toEqual(
+      expect.arrayContaining(["1. Datenschutz auf einen Blick", "2. Hosting und Content Delivery Networks (CDN)", "7. Plugins und Tools"]),
+    );
+    expect(wrapper.findAll("main h3").map((heading) => heading.text())).toEqual(
+      expect.arrayContaining(["Hetzner", "Cloudflare", "Google Analytics", "Sentry", "Einwilligung mit Cookiebot"]),
+    );
+    expect(wrapper.text()).toContain("Quelle:");
     wrapper.unmount();
   });
 
   it("shows the privacy policy in English and links both pages in the footer", async () => {
     const { wrapper } = await open(PrivacyView, "/datenschutz", "en");
-    expect(wrapper.find("h1").text()).toBe("Privacy");
+    expect(wrapper.find("h1").text()).toBe("Privacy policy");
     expect(wrapper.text()).toContain("Signing in with Google or Discord");
     // The footer of every public page: the start page's call to action, then privacy and imprint.
     const footer = wrapper.find("footer");
@@ -58,6 +76,33 @@ describe("legal pages", () => {
     ]);
     expect(wrapper.find("header").findAll("a").map((link) => link.attributes("href"))).not.toContain("/login");
     wrapper.unmount();
+  });
+
+  it("loads Cookiebot's cookie declaration into the consent section, in the page's language", async () => {
+    vi.stubEnv("VITE_COOKIEBOT_ID", "c03c6818-ca6f-4955-a00d-ff51e76300ef");
+    try {
+      const { wrapper } = await open(PrivacyView, "/datenschutz", "en");
+      const section = wrapper.find('section[aria-labelledby="legal-consent"]');
+      const script = section.find("script#CookieDeclaration");
+      expect(script.attributes("src")).toBe("https://consent.cookiebot.com/c03c6818-ca6f-4955-a00d-ff51e76300ef/cd.js");
+      expect(script.attributes("data-culture")).toBe("en");
+      expect(section.text()).toContain("Cybot A/S");
+      wrapper.unmount();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("says where the cookie declaration will appear while Cookiebot has no id", async () => {
+    vi.stubEnv("VITE_COOKIEBOT_ID", "");
+    try {
+      const { wrapper } = await open(PrivacyView, "/datenschutz");
+      expect(wrapper.find("script#CookieDeclaration").exists()).toBe(false);
+      expect(wrapper.text()).toContain("sobald Cookiebot eingebunden ist");
+      wrapper.unmount();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("goes back where the visitor came from", async () => {

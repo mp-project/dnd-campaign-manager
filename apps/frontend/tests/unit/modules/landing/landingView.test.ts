@@ -422,7 +422,7 @@ describe("landing page", () => {
     // The board's scene pictures are part of the board, which screen readers get as a whole.
     const lazy = wrapper.findAll("img[loading=lazy]").filter((img) => !img.element.closest("[role=img]"));
     expect(lazy.filter((img) => img.attributes("aria-hidden") !== "true")).toHaveLength(8);
-    expect(lazy).toHaveLength(8 + 7 + 16);
+    expect(lazy).toHaveLength(8 + 7 + 17);
     expect(wrapper.findAll("[role=img] img[loading=lazy]")).toHaveLength(9);
     // Without a demo the pictures lead nowhere.
     expect(hrefs(wrapper).filter((href) => href?.includes("#/"))).toEqual([]);

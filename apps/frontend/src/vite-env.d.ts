@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_DEMO_URL?: string;
   /** Public address of the site (`https://<domain>`) for canonical links, previews and the sitemap; empty = the current origin. */
   readonly VITE_SITE_URL?: string;
+  /** Cookiebot domain group id (public); empty = no consent banner and nothing optional starts. */
+  readonly VITE_COOKIEBOT_ID?: string;
   /** Clerk's publishable key (`pk_…`); without it nobody can sign in. */
   readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
 }

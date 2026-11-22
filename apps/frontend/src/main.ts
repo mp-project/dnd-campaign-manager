@@ -1,8 +1,6 @@
-import "@fontsource/libre-baskerville/400.css";
-import "@fontsource/libre-baskerville/400-italic.css";
-import "@fontsource/libre-baskerville/700.css";
-import "@fontsource-variable/lora/index.css";
-import "@fontsource-variable/lora/wght-italic.css";
+import "@fontsource-variable/cinzel/index.css";
+import "@fontsource-variable/literata/opsz.css";
+import "@fontsource-variable/literata/opsz-italic.css";
 import "./styles/main.css";
 
 import { VueQueryPlugin } from "@tanstack/vue-query";

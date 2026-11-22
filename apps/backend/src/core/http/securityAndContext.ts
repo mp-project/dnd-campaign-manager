@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AppContainer, CampaignAccessFacts } from "#core/app/container";
 import type { ResolvedActor } from "#core/auth/identity";
 import type { AppEnv } from "#core/env";
+import type { Redis } from "#core/redis/client";
 import { uuidDto } from "#core/http/dto";
 import { ROUTE_RATE_LIMIT, buildRateLimitKey } from "#core/http/rateLimit";
 import { SYSTEM_ROLE } from "#core/permissions/roles";
@@ -79,14 +80,22 @@ function extractCampaignId(request: FastifyRequest): string | null {
  *
  * @param app Fastify app instance.
  * @param env Validated application environment.
+ * @param redis Shared store for the rate limits; without it each process counts on its own.
  */
-export function registerSecurityPlugins(app: FastifyInstance, env: AppEnv): void {
+export function registerSecurityPlugins(
+  app: FastifyInstance,
+  env: AppEnv,
+  redis: Redis | undefined,
+): void {
   app.register(rateLimit, {
     global: true,
     ...ROUTE_RATE_LIMIT,
     keyGenerator: buildRateLimitKey,
-    // One entry per user and route; the default of 5000 would evict active counters.
-    cache: 50_000,
+    // With Redis the limits hold across all API instances; without it per process. One entry per
+    // user and route; the default of 5000 in memory would evict active counters.
+    ...(redis ? { redis, nameSpace: "rate-limit:" } : { cache: 50_000 }),
+    // An unreachable Redis lets requests through instead of stopping the API.
+    skipOnError: true,
   });
 
   app.register(cors, {

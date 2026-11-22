@@ -127,6 +127,9 @@ const envSchema = z
       (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
       z.string().min(16).optional(),
     ),
+    // Rate limits shared by all API instances and caches (`redis://[:password@]host:port/db`).
+    // Without it each process counts and caches on its own; required in stage and production.
+    REDIS_URL: optionalUrlString,
     CORS_ORIGIN: z.string().min(1),
     FRONTEND_ORIGIN: z.string().url().default("http://app.localhost:5173"),
     STORAGE_DRIVER: z.enum(["local", "s3"]).default("s3"),
@@ -172,7 +175,7 @@ const envSchema = z
     }
 
     if (isProductionLikeNodeEnv(env.NODE_ENV)) {
-      for (const key of ["CLERK_SECRET_KEY", "CLERK_AUTHORIZED_PARTIES"] as const) {
+      for (const key of ["CLERK_SECRET_KEY", "CLERK_AUTHORIZED_PARTIES", "REDIS_URL"] as const) {
         if (!env[key]) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

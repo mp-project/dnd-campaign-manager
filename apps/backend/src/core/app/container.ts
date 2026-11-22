@@ -24,6 +24,8 @@ import {
   type StoragePort,
 } from "#core/storage";
 import { createEmailPortFromEnv, type EmailPort } from "#core/email/index";
+import { createCacheStore, type CacheStore } from "#core/cache/index";
+import type { Redis } from "#core/redis/client";
 
 export type CampaignAccessFacts = {
   campaignId: string;
@@ -50,6 +52,8 @@ export type AppPublicPorts = {
   campaignFactPort?: CampaignFactPort;
   storagePort?: StoragePort;
   emailPort?: EmailPort;
+  /** Shared through Redis when the app has one, else per process. */
+  cacheStore?: CacheStore;
   /** Set by the history module during registration. */
   history?: HistoryPort;
   /** The identity provider; set by the auth module unless provided. Without it nobody is signed in. */
@@ -78,6 +82,8 @@ export type AppContainer = {
 type CreateAppContainerParams = {
   config: AppEnv;
   pool: Pool;
+  /** The app's Redis client; without it the ports that would use it work per process. */
+  redis?: Redis;
   publicPorts?: AppPublicPorts;
 };
 
@@ -123,6 +129,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
   const emailPort =
     params.publicPorts?.emailPort ?? createEmailPortFromEnv(params.config);
   const errorReporter = params.publicPorts?.errorReporter ?? getErrorReporter();
+  const cacheStore = params.publicPorts?.cacheStore ?? createCacheStore(params.redis);
 
   return {
     config: params.config,
@@ -137,6 +144,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
       storagePort,
       emailPort,
       errorReporter,
+      cacheStore,
     },
   };
 }

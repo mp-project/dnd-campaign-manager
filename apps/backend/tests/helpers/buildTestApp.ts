@@ -5,6 +5,7 @@ import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
 import type { AppEnv } from "#core/env";
 import type { AppLogger } from "#core/log/logger";
+import type { Redis } from "#core/redis/client";
 import type { SystemRole } from "#core/permissions/roles";
 import { createUnknownCampaignFactPort } from "#core/app/campaignFactPort";
 import { FakeIdentityPort, testIdentityToken } from "#test/helpers/fakeIdentity";
@@ -28,6 +29,8 @@ export type BuildTestAppOptions = {
   realAccounts?: boolean;
   /** A logger whose lines the test reads (`captureLogs`); silent otherwise. */
   logger?: AppLogger;
+  /** Redis for rate limits and caches (`#test/helpers/testRedis`); per process otherwise. */
+  redis?: Redis;
 };
 
 export type TestInjectRequest = InjectOptions;
@@ -81,7 +84,9 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
     readyProbe: () => Promise<{ database: boolean; migrations: boolean }>;
     publicPorts: AppPublicPorts;
     logger?: AppLogger;
+    redis: Redis | null;
   } = {
+    redis: options.redis ?? null,
     env,
     readyProbe:
       options.readyProbe ??

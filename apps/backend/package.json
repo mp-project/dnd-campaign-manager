@@ -40,6 +40,7 @@
     "media:worker:dev": "OTEL_SERVICE_NAME=questaria-media-worker NODE_OPTIONS=--conditions=development tsx watch --import ./src/instrumentation.ts src/workers/mediaWorker.ts",
     "storage:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-storage.ts",
     "mail:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-mail.ts",
+    "redis:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-redis.ts",
     "openapi:export": "NODE_OPTIONS=--conditions=development tsx scripts/export-openapi.ts"
   },
   "dependencies": {
@@ -65,6 +66,7 @@
     "fastify": "^5.6.1",
     "fastify-type-provider-zod": "^7.0.0",
     "import-in-the-middle": "^3.6.0",
+    "ioredis": "^5.11.1",
     "markdown-it": "^14.3.3",
     "nodemailer": "^10.0.10",
     "pg": "^8.16.3",

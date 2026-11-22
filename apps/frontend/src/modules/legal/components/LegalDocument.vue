@@ -76,6 +76,7 @@ function back(): void {
             >
               <a
                 v-if="part.href"
+                data-track="legal.externalLink"
                 :href="part.href"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -96,6 +97,7 @@ function back(): void {
 
     <template #footer>
       <BaseButton
+        data-track="legal.back"
         icon="ui-chevron-left"
         size="md"
         @click="back"

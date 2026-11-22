@@ -1,6 +1,8 @@
 import { logs, SeverityNumber, type Attributes, type Logger } from "@opentelemetry/api";
 import type { DestinationStream } from "pino";
 
+import { type PinoLine, withoutChangeValues } from "#core/log/exportLine";
+
 const SEVERITY_BY_PINO_LEVEL: Record<number, [SeverityNumber, string]> = {
   10: [SeverityNumber.TRACE, "TRACE"],
   20: [SeverityNumber.DEBUG, "DEBUG"],
@@ -28,32 +30,9 @@ const ATTRIBUTE_FIELDS = [
   "action",
 ] as const;
 
-type PinoLine = Record<string, unknown> & { level?: unknown; time?: unknown };
 
 function isAttributeValue(value: unknown): value is string | number | boolean {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
-}
-
-/**
- * `LOG_CHANGE_VALUES` puts the new values of a change (names, note text …) into the `change`
- * line to spot wrong data early. That stays on our own stdout; Grafana gets ids and field names.
- * Returns the line to export.
- */
-function withoutChangeValues(parsed: PinoLine, line: string): string {
-  if (!Array.isArray(parsed.entities)) {
-    return line.trimEnd();
-  }
-
-  let removed = false;
-
-  for (const entity of parsed.entities as unknown[]) {
-    if (entity && typeof entity === "object" && "values" in entity) {
-      delete (entity as Record<string, unknown>).values;
-      removed = true;
-    }
-  }
-
-  return removed ? JSON.stringify(parsed) : line.trimEnd();
 }
 
 /** The OpenTelemetry log record for one pino line; exported for tests. */

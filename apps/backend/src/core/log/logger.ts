@@ -3,8 +3,10 @@ import pino, { type DestinationStream, type Logger, type LoggerOptions } from "p
 
 import type { AppEnv } from "#core/env";
 import { logContextFields } from "#core/log/logContext";
+import { safeError } from "#core/log/safeError";
 import { createOtelLogStream } from "#core/log/otelLogStream";
-import { isTelemetryStarted } from "#core/telemetry/lifecycle";
+import { createSentryLogStream } from "#core/log/sentryLogStream";
+import { isSentryStarted, isTelemetryStarted } from "#core/telemetry/lifecycle";
 
 export type AppLogger = Logger;
 
@@ -18,6 +20,8 @@ export type LoggerSettings = {
   environment: string;
   /** Lowest level exported through OpenTelemetry (Grafana); null = no export. */
   exportLevel?: LogLevel | null;
+  /** Lowest level sent to Sentry Logs; null = none. */
+  sentryLevel?: LogLevel | null;
 };
 
 const LEVEL_ORDER: readonly (LogLevel | "silent")[] = [
@@ -72,6 +76,7 @@ export function loggerSettingsFromEnv(env: AppEnv, service: string): LoggerSetti
     environment: env.NODE_ENV,
     // Only once instrumentation.ts started the SDK; scripts and tests never export.
     exportLevel: isTelemetryStarted() ? env.LOG_EXPORT_LEVEL : null,
+    sentryLevel: isSentryStarted() ? env.SENTRY_LOG_LEVEL : null,
   };
 }
 
@@ -92,8 +97,9 @@ function loggerOptions(settings: LoggerSettings): LoggerOptions {
     base: { service: settings.service, env: settings.environment },
     redact: { paths: [...REDACTED_LOG_PATHS], censor: "[redacted]" },
     serializers: {
-      err: pino.stdSerializers.errWithCause,
-      error: pino.stdSerializers.errWithCause,
+      // Without the values library errors carry (query parameters, conflicting keys, recipients).
+      err: (error: unknown) => pino.stdSerializers.errWithCause(safeError(error) as Error),
+      error: (error: unknown) => pino.stdSerializers.errWithCause(safeError(error) as Error),
     },
     mixin,
   };
@@ -106,7 +112,11 @@ function loggerOptions(settings: LoggerSettings): LoggerOptions {
 export function createLogger(settings: LoggerSettings, destination?: DestinationStream): AppLogger {
   const options = loggerOptions(settings);
 
-  if (destination && !settings.exportLevel) {
+  const extra: pino.StreamEntry[] = [];
+  if (settings.exportLevel) extra.push({ level: settings.exportLevel, stream: createOtelLogStream() });
+  if (settings.sentryLevel) extra.push({ level: settings.sentryLevel, stream: createSentryLogStream() });
+
+  if (destination && extra.length === 0) {
     return pino(options, destination);
   }
 
@@ -129,19 +139,16 @@ export function createLogger(settings: LoggerSettings, destination?: Destination
       })
     : pino.destination(1);
 
-  if (!settings.exportLevel) {
+  if (extra.length === 0) {
     return pino(options, stdout);
   }
 
-  // stdout and the export have their own level; the logger lets through what either one wants.
-  const streams: pino.StreamEntry[] = [{ level: settings.exportLevel, stream: createOtelLogStream() }];
-
-  if (settings.level !== "silent") {
-    streams.push({ level: settings.level, stream: stdout });
-  }
-
-  return pino(
-    { ...options, level: lowerLevel(settings.level, settings.exportLevel) },
-    pino.multistream(streams),
+  // stdout, Grafana and Sentry each have their own level; the logger lets through what any wants.
+  const streams = settings.level === "silent" ? extra : [...extra, { level: settings.level, stream: stdout }];
+  const level = streams.reduce<LogLevel | "silent">(
+    (lowest, entry) => lowerLevel(lowest, entry.level as LogLevel),
+    settings.level,
   );
+
+  return pino({ ...options, level }, pino.multistream(streams));
 }

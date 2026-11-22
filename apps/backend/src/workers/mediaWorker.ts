@@ -4,6 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import { getEnv } from "#core/env";
 import { runWithLogContext } from "#core/log/logContext";
+import { getErrorReporter } from "#core/log/errorReporter";
 import { createLogger, loggerSettingsFromEnv } from "#core/log/logger";
 import { installProcessErrorHandlers } from "#core/log/processErrors";
 import { reportError } from "#core/log/reportError";
@@ -34,18 +35,32 @@ async function runWorker(): Promise<void> {
 
   logger.info("Media worker started");
 
+  // A database outage fails every poll; only the first failure of a series is reported, the
+  // rest is a warning until a poll succeeds again.
+  let failing = false;
+
   try {
     while (!stop.signal.aborted) {
       const worked = await runWithLogContext({ task: "media.variants" }, () =>
         variants.processNext(),
-      ).catch((error: unknown) => {
-        // Usually the database; the worker waits and asks again instead of ending.
-        reportError(logger, error, "Media worker could not get its next job", {
-          task: "media.variants",
-        });
+      )
+        .then((result) => {
+          failing = false;
+          return result;
+        })
+        .catch((error: unknown) => {
+          // Usually the database; the worker waits and asks again instead of ending.
+          if (failing) {
+            logger.warn({ err: error, task: "media.variants" }, "Media worker still cannot get its next job");
+          } else {
+            reportError(logger, error, "Media worker could not get its next job", {
+              task: "media.variants",
+            });
+          }
+          failing = true;
 
-        return false;
-      });
+          return false;
+        });
 
       if (!worked) {
         // Aborting the wait is how the worker stops; there is nothing to handle.
@@ -55,6 +70,7 @@ async function runWorker(): Promise<void> {
   } finally {
     await pool.end();
     logger.info("Media worker stopped");
+    await getErrorReporter().flush();
     await shutdownTelemetry();
   }
 }

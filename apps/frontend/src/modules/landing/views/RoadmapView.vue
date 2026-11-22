@@ -80,6 +80,7 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
             <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
               <li>
                 <RouterLink
+                  data-track="roadmap.breadcrumb.home"
                   :to="homePath"
                   class="inline-flex min-h-11 items-center hover:underline"
                 >
@@ -206,6 +207,7 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
               </p>
             </div>
             <BaseButton
+              data-track="roadmap.contact"
               :to="contact"
               variant="secondary"
               size="md"

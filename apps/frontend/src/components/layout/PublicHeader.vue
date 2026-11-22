@@ -25,7 +25,7 @@ withDefaults(defineProps<{ chapters?: readonly MenuChapter[]; condensed?: boolea
 
 const { t } = useAppI18n();
 const route = useRoute();
-const { links, demo, primary } = usePublicNavigation();
+const { links, demo, primary, signedIn } = usePublicNavigation();
 /** Only pages made with `localizedRoutes` exist in more than one language. */
 const multilingual = computed(() => !!route.meta.localizedName);
 </script>
@@ -40,6 +40,7 @@ const multilingual = computed(() => !!route.meta.localizedName);
       <PublicNavLink
         v-for="link in links"
         :key="link.id"
+        :data-track="`header.nav.${link.id}`"
         :to="link.to"
         :active="link.active"
       >
@@ -50,6 +51,7 @@ const multilingual = computed(() => !!route.meta.localizedName);
     <div class="hidden items-center gap-3 lg:flex">
       <BaseButton
         v-if="demo"
+        data-track="header.demo"
         as="a"
         :href="demo"
         target="_blank"
@@ -60,6 +62,8 @@ const multilingual = computed(() => !!route.meta.localizedName);
         {{ t("common.publicNav.demo") }}
       </BaseButton>
       <BaseButton
+        data-track="header.primary"
+        :data-track-detail="signedIn ? 'app' : 'waitlist'"
         :to="primary.to"
         variant="primary"
         size="md"

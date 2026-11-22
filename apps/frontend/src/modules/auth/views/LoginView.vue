@@ -70,6 +70,7 @@ async function useOtherAccount(): Promise<void> {
         {{ t("auth.login.noAccess") }}
       </InfoNote>
       <BaseButton
+        data-track="auth.login.useOtherAccount"
         variant="primary"
         :disabled="busy"
         @click="useOtherAccount"

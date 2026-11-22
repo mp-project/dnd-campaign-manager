@@ -557,6 +557,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
           :style="pieceStyle('dice')"
         >
           <button
+            data-track="landing.characterSheet.roll"
             type="button"
             class="piece-card dice-card"
             :aria-label="t('landing.characterSheet.roll')"

@@ -122,6 +122,11 @@ const envSchema = z
     // sampling are read by the SDK itself from the standard OTEL_* variables.
     OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrlString,
     OTEL_SDK_DISABLED: booleanFromEnv.default(false),
+    // Sentry (backend project); without a DSN nothing is reported. Errors always, log lines from
+    // SENTRY_LOG_LEVEL. SENTRY_RELEASE ties events to a deploy (git SHA).
+    SENTRY_DSN: optionalUrlString,
+    SENTRY_LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+    SENTRY_RELEASE: optionalNonEmptyString,
     // Key for the hashed client IP in request logs; without it a random key per process.
     LOG_IP_HASH_SECRET: z.preprocess(
       (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),

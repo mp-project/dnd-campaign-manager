@@ -2,7 +2,7 @@
 /**
  * Footer of the pages outside the app (start page, FAQ, roadmap, legal pages, sign-in): gothic
  * ruins under a golden circle whose mountain ridge rises into the section above, the wing seal and
- * the page's closing content on them and a bar with the links to privacy and imprint (FAQ, roadmap
+ * the page's closing content on them and a bar with the links to privacy and imprint and, with Cookiebot, the cookie settings (FAQ, roadmap
  * and contact are in the header). The content is the default slot; without one it is the call to action of the start
  * page (pre-registration or into the app, the demo). The section above must not clip vertically,
  * so the ridge can stand on it. `headingId` names the call's heading for `aria-labelledby`.
@@ -10,6 +10,7 @@
 import { useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
+import { hasConsentManager, openConsentSettings } from "@/core/consent/consent";
 import { useAppI18n } from "@/core/i18n";
 import { vReveal } from "@/core/motion/reveal";
 import { usePublicNavigation } from "@/core/navigation/publicNavigation";
@@ -28,6 +29,7 @@ const LEGAL = [
   { name: "legal-privacy", label: "common.legal.privacy" },
   { name: "legal-imprint", label: "common.legal.imprint" },
 ] as const;
+const consentManager = hasConsentManager();
 </script>
 
 <template>
@@ -65,6 +67,8 @@ const LEGAL = [
           </p>
           <div class="mt-8 flex flex-wrap justify-center gap-3">
             <BaseButton
+              data-track="footer.primary"
+              :data-track-detail="signedIn ? 'app' : 'waitlist'"
               :to="primary.to"
               variant="primary"
               :icon-right="signedIn ? 'aktion-weiter' : undefined"
@@ -73,6 +77,7 @@ const LEGAL = [
             </BaseButton>
             <BaseButton
               v-if="demo"
+              data-track="footer.demo"
               as="a"
               :href="demo"
               target="_blank"
@@ -101,10 +106,23 @@ const LEGAL = [
           aria-hidden="true"
         />
         <PublicNavLink
+          :data-track="`footer.${page.name}`"
           :to="{ name: page.name }"
           :active="route.name === page.name"
         >
           {{ t(page.label) }}
+        </PublicNavLink>
+      </template>
+      <template v-if="consentManager">
+        <span
+          class="h-4 w-px bg-navy-line"
+          aria-hidden="true"
+        />
+        <PublicNavLink
+          data-track="footer.cookieSettings"
+          @click="openConsentSettings"
+        >
+          {{ t("common.siteFooter.cookieSettings") }}
         </PublicNavLink>
       </template>
     </nav>

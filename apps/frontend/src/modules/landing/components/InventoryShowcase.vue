@@ -384,6 +384,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
           </p>
         </div>
         <BaseButton
+          data-track="landing.inventory.add"
           size="sm"
           variant="secondary"
           icon="aktion-hinzufuegen"
@@ -399,6 +400,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
       </header>
 
       <SegmentedControl
+        data-track="landing.inventory.sort"
         :model-value="sort"
         :options="sortOptions"
         :label="t('landing.inventory.sortLabel')"
@@ -472,6 +474,8 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
             <span class="action">
               <BaseButton
                 v-if="row.usable"
+                data-track="landing.inventory.use"
+                :data-track-detail="row.id"
                 size="xs"
                 variant="secondary"
                 :disabled="row.qty === 0 && pressed !== row.id"

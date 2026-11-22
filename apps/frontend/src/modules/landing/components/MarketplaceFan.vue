@@ -63,6 +63,7 @@ function toggle() {
     </div>
     <div class="hint-row">
       <button
+        data-track="landing.marketplace.fan"
         type="button"
         class="hint"
         :aria-expanded="spread"

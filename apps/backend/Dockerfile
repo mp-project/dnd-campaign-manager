@@ -43,5 +43,6 @@ COPY --from=build /workspace/apps/backend/package.json ./package.json
 USER nonroot:nonroot
 HEALTHCHECK --interval=30s --timeout=3s --retries=5 \
   CMD ["/nodejs/bin/node", "-e", "const p=process.env.PORT; if(!p){process.exit(1);} fetch('http://127.0.0.1:'+p+'/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-# instrumentation.js starts OpenTelemetry before the app when OTEL_EXPORTER_OTLP_ENDPOINT is set.
-CMD ["--import", "./dist/instrumentation.js", "dist/index.js"]
+# instrumentation.js starts OpenTelemetry and Sentry before the app when they are configured;
+# --enable-source-maps turns stack traces (logs, Sentry) back into the TypeScript sources.
+CMD ["--enable-source-maps", "--import", "./dist/instrumentation.js", "dist/index.js"]

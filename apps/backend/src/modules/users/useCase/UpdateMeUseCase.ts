@@ -41,12 +41,11 @@ export class UpdateMeUseCase {
       return result;
     });
 
-    // The own profile has no history (only changes by administrators do).
+    // The own profile has no history (only changes by administrators do). The display name is an
+    // `account` field of the tracked user, so like there only its name is logged, not its value.
     recordChange({
       action: "users.updateMe",
-      entities: [
-        { entityType: "user", entityId: actorId, fields: Object.keys(input), values: input },
-      ],
+      entities: [{ entityType: "user", entityId: actorId, fields: Object.keys(input) }],
       actorId,
     });
 

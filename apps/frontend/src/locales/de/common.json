@@ -172,6 +172,7 @@
     "campaignView": "Zur Spielleiteransicht",
     "signOut": "Abmelden",
     "signOutEverywhere": "Überall abmelden",
+    "cookieSettings": "Cookie-Einstellungen",
     "breadcrumb": "Brotkrumen"
   },
   "notFound": {
@@ -217,7 +218,8 @@
     "title": "Bereit für das nächste Abenteuer?",
     "text": "Sieh dir die Demo an oder registriere dich vorab – wir melden uns, sobald dein Zugang bereit ist.",
     "demo": "Demo ansehen",
-    "navLabel": "Rechtliches"
+    "navLabel": "Rechtliches",
+    "cookieSettings": "Cookie-Einstellungen"
   },
   "publicNav": {
     "label": "Hauptnavigation",

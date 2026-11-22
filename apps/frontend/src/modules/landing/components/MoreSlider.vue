@@ -221,6 +221,7 @@ onBeforeUnmount(() => {
       class="mt-5 flex items-center justify-center gap-3"
     >
       <IconButton
+        data-track="landing.more.previous"
         icon="ui-chevron-left"
         :label="t('landing.more.previous')"
         variant="outline-gold"
@@ -232,6 +233,8 @@ onBeforeUnmount(() => {
         <button
           v-for="n in maxIndex + 1"
           :key="n"
+          data-track="landing.more.position"
+          :data-track-detail="String(n)"
           type="button"
           class="dot"
           :aria-label="t('landing.more.position', { n, total: props.items.length })"
@@ -242,6 +245,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
       <IconButton
+        data-track="landing.more.next"
         icon="ui-chevron-right"
         :label="t('landing.more.next')"
         variant="outline-gold"

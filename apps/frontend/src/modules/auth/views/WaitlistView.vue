@@ -32,6 +32,7 @@ usePageMeta({ title: () => t("auth.waitlist.title"), description: () => t("auth.
     <p class="mt-5 text-sm text-ink-3">
       {{ t("auth.waitlist.privacyBefore") }}
       <RouterLink
+        data-track="auth.waitlist.privacy"
         :to="{ name: 'legal-privacy' }"
         class="underline underline-offset-4"
       >

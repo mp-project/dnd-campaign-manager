@@ -18,6 +18,17 @@ export function markTelemetryStarted(started: TelemetryHandle): void {
   inFlight = undefined;
 }
 
+let sentryStarted = false;
+
+/** Set by `instrumentation.ts` once Sentry runs; the logger then adds its Sentry stream. */
+export function markSentryStarted(): void {
+  sentryStarted = true;
+}
+
+export function isSentryStarted(): boolean {
+  return sentryStarted;
+}
+
 export function isTelemetryStarted(): boolean {
   return handle !== undefined;
 }

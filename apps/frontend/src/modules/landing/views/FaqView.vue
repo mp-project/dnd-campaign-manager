@@ -123,6 +123,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
             <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
               <li>
                 <RouterLink
+                  data-track="faq.breadcrumb.home"
                   :to="homePath"
                   class="inline-flex min-h-11 items-center hover:underline"
                 >
@@ -183,6 +184,8 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
               :key="group.id"
             >
               <a
+                data-track="faq.topicChip"
+                :data-track-detail="group.id"
                 :href="`#${faqTopicId(group.id)}`"
                 class="topic-chip inline-flex min-h-11 items-center gap-2 rounded-full border border-gold/50 px-4 text-[15px] text-parchment"
               >
@@ -226,6 +229,8 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                   :key="group.id"
                 >
                   <a
+                    data-track="faq.topicNav"
+                    :data-track-detail="group.id"
                     :href="`#${faqTopicId(group.id)}`"
                     class="topic-link flex items-center gap-3 rounded-card px-3 py-2.5"
                   >
@@ -268,6 +273,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
               </p>
               <BaseButton
                 v-if="matches.size > 0"
+                data-track="faq.toggleAll"
                 variant="ghost"
                 size="sm"
                 :icon="allOpen ? 'aktion-einklappen' : 'aktion-ausklappen'"
@@ -290,6 +296,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                 {{ t("landing.faq.search.empty", { query: query.trim() }) }}
               </p>
               <BaseButton
+                data-track="faq.search.reset"
                 variant="secondary"
                 size="md"
                 class="mt-6"
@@ -338,6 +345,8 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                   <h3>
                     <button
                       :id="`${faqQuestionId(item.id)}-question`"
+                      data-track="faq.question"
+                      :data-track-detail="item.id"
                       type="button"
                       class="faq-question flex w-full items-center gap-4 px-5 py-4 text-left md:px-6"
                       :aria-expanded="opened.has(item.id)"
@@ -377,6 +386,8 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                           >
                             <BaseButton
                               v-if="link === 'demo'"
+                              data-track="faq.answer.demo"
+                              :data-track-detail="item.id"
                               as="a"
                               :href="demo!"
                               target="_blank"
@@ -389,6 +400,8 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                             </BaseButton>
                             <BaseButton
                               v-else
+                              :data-track="`faq.answer.${link}`"
+                              :data-track-detail="item.id"
                               :to="link === 'privacy' ? privacy : register"
                               variant="secondary"
                               size="sm"
@@ -421,6 +434,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                 </p>
               </div>
               <BaseButton
+                data-track="faq.contact"
                 :to="contact"
                 variant="secondary"
                 size="md"

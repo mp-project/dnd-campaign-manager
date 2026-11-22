@@ -30,7 +30,7 @@ const props = withDefaults(defineProps<{ chapters?: readonly MenuChapter[] }>(),
 
 const { t } = useAppI18n();
 const route = useRoute();
-const { links, demo, primary } = usePublicNavigation();
+const { links, demo, primary, signedIn } = usePublicNavigation();
 
 const open = ref(false);
 const top = ref(0);
@@ -105,6 +105,7 @@ const after = computed(() => chapters.value.length);
   <div class="lg:hidden">
     <button
       ref="trigger"
+      data-track="publicMenu.open"
       type="button"
       class="compass inline-flex size-11 items-center justify-center rounded-full text-parchment"
       :class="{ 'is-open': open }"
@@ -184,6 +185,8 @@ const after = computed(() => chapters.value.length);
                   :style="{ '--i': index }"
                 >
                   <a
+                    data-track="publicMenu.chapter"
+                    :data-track-detail="chapter.section"
                     :href="`#${chapter.section}`"
                     class="chapter-link"
                     @click.prevent="goTo(chapter.section)"
@@ -230,6 +233,7 @@ const after = computed(() => chapters.value.length);
                 :key="link.id"
               >
                 <PublicNavLink
+                  :data-track="`publicMenu.nav.${link.id}`"
                   :to="link.to"
                   :active="link.active"
                   tone="light"
@@ -245,6 +249,8 @@ const after = computed(() => chapters.value.length);
               :style="{ '--i': after + 2 }"
             >
               <BaseButton
+                data-track="publicMenu.primary"
+                :data-track-detail="signedIn ? 'app' : 'waitlist'"
                 :to="primary.to"
                 variant="primary"
                 block
@@ -253,6 +259,7 @@ const after = computed(() => chapters.value.length);
               </BaseButton>
               <BaseButton
                 v-if="demo"
+                data-track="publicMenu.demo"
                 as="a"
                 :href="demo"
                 target="_blank"

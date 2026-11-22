@@ -172,6 +172,7 @@
     "campaignView": "To the game master view",
     "signOut": "Sign out",
     "signOutEverywhere": "Sign out everywhere",
+    "cookieSettings": "Cookie settings",
     "breadcrumb": "Breadcrumb"
   },
   "notFound": {
@@ -217,7 +218,8 @@
     "title": "Ready for the next adventure?",
     "text": "Try the demo or pre-register – we'll get in touch as soon as your access is ready.",
     "demo": "Try the demo",
-    "navLabel": "Legal"
+    "navLabel": "Legal",
+    "cookieSettings": "Cookie settings"
   },
   "publicNav": {
     "label": "Main navigation",

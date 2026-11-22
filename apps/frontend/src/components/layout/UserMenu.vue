@@ -1,5 +1,8 @@
 <script setup lang="ts">
-/** Account menu behind the avatar: the account's name, dashboard, switching views, signing out. */
+/**
+ * Account menu behind the avatar: the account's name, dashboard, switching views, the cookie
+ * settings (with Cookiebot, like the footer of the public pages) and signing out.
+ */
 import { useQueryClient } from "@tanstack/vue-query";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
@@ -8,6 +11,7 @@ import Avatar from "@/components/base/Avatar.vue";
 import DropdownMenu, { type DropdownItem } from "@/components/base/DropdownMenu.vue";
 import Icon from "@/components/base/Icon.vue";
 import { leave, useMe } from "@/core/auth/session";
+import { hasConsentManager, openConsentSettings } from "@/core/consent/consent";
 import { useAppI18n } from "@/core/i18n";
 
 const props = defineProps<{
@@ -20,6 +24,7 @@ const { t } = useAppI18n();
 const router = useRouter();
 const queryClient = useQueryClient();
 const me = useMe();
+const consentManager = hasConsentManager();
 
 const initials = computed(() =>
   (me.data.value?.displayName ?? "")
@@ -35,6 +40,9 @@ const items = computed<DropdownItem[]>(() => [
   { label: t("common.shell.dashboard"), icon: "nav-dashboard", to: "/dashboard" },
   { label: t("common.shell.account"), icon: "nav-benutzer", to: { name: "account-profile" } },
   ...(props.switchTo ? [{ label: props.switchTo.label, icon: "nav-spielbrett" as const, to: props.switchTo.to }] : []),
+  ...(consentManager
+    ? [{ label: t("common.shell.cookieSettings"), icon: "nav-einstellungen" as const, action: openConsentSettings }]
+    : []),
   { divider: true },
   { label: t("common.shell.signOut"), icon: "aktion-abmelden", action: () => void leave(queryClient, router) },
   { label: t("common.shell.signOutEverywhere"), icon: "aktion-abmelden", action: () => void leave(queryClient, router, "everywhere") },

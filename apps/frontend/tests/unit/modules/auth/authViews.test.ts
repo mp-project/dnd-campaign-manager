@@ -213,3 +213,38 @@ describe("signing out", () => {
     expect(instance.signOut).toHaveBeenCalled();
   });
 });
+
+describe("cookie settings in the account menu", () => {
+  async function menuLabels(): Promise<HTMLElement[]> {
+    const { wrapper } = await open(UserMenu, "/dashboard");
+    await wrapper.find("button").trigger("click");
+    return [...document.body.querySelectorAll<HTMLElement>("[role=menuitem]")];
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    delete window.Cookiebot;
+  });
+
+  it("reopens Cookiebot's dialog", async () => {
+    vi.stubEnv("VITE_COOKIEBOT_ID", "c03c6818-ca6f-4955-a00d-ff51e76300ef");
+    const renew = vi.fn();
+    window.Cookiebot = { renew };
+    signedIn();
+
+    const item = (await menuLabels()).find((element) => element.textContent?.trim() === "Cookie-Einstellungen");
+    item!.click();
+
+    expect(renew).toHaveBeenCalledOnce();
+  });
+
+  it("is missing without Cookiebot", async () => {
+    vi.stubEnv("VITE_COOKIEBOT_ID", "");
+    signedIn();
+
+    const labels = (await menuLabels()).map((element) => element.textContent?.trim());
+
+    expect(labels).not.toContain("Cookie-Einstellungen");
+    expect(labels).toContain("Überall abmelden");
+  });
+});

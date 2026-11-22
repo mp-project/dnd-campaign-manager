@@ -224,6 +224,8 @@ services:
         VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
         # Public address of the site: canonical links, link previews, sitemap.
         VITE_SITE_URL: ${COMPOSE_FRONTEND_PUBLIC_URL}
+        # Consent banner (public id) and Grafana Faro, which starts only after consent.
+        VITE_COOKIEBOT_ID: ${COOKIEBOT_ID:-}
     depends_on:
       backend:
         condition: service_started

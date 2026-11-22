@@ -39,6 +39,17 @@ export class MediaRepository {
     return row ?? null;
   }
 
+  async listFilesByIds(db: AppDatabase, mediaIds: string[]): Promise<MediaFileRow[]> {
+    if (mediaIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select()
+      .from(mediaFiles)
+      .where(and(inArray(mediaFiles.id, mediaIds), isNull(mediaFiles.deletedAt)));
+  }
+
   /** Blocks attaching until the deletion is done, so counting afterwards misses nothing. */
   async lockFileForDelete(db: AppDatabase, mediaId: string): Promise<MediaFileRow | null> {
     const [row] = await db
@@ -144,24 +155,34 @@ export class MediaRepository {
     return new Map(rows.map((row) => [row.mediaId, row.total]));
   }
 
-  /** Assets of the campaign where players may get this file. */
-  async listPlayerAssetIdsOfFile(
+  /** Per file the assets it is attached to for players. */
+  async listPlayerAssetIdsOfFiles(
     db: AppDatabase,
-    params: { campaignId: string; mediaId: string },
-  ): Promise<string[]> {
+    params: { campaignId: string; mediaIds: string[] },
+  ): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
+
+    if (params.mediaIds.length === 0) {
+      return result;
+    }
+
     const rows = await db
-      .select({ assetId: assetMedia.assetId })
+      .select({ mediaId: assetMedia.mediaId, assetId: assetMedia.assetId })
       .from(assetMedia)
       .where(
         and(
           eq(assetMedia.campaignId, params.campaignId),
-          eq(assetMedia.mediaId, params.mediaId),
+          inArray(assetMedia.mediaId, params.mediaIds),
           eq(assetMedia.visibility, WITH_ASSET),
           isNull(assetMedia.deletedAt),
         ),
       );
 
-    return rows.map((row) => row.assetId);
+    for (const row of rows) {
+      result.set(row.mediaId, [...(result.get(row.mediaId) ?? []), row.assetId]);
+    }
+
+    return result;
   }
 
   async findAssignmentById(db: AppDatabase, assignmentId: string): Promise<AssetMediaRow | null> {
@@ -321,24 +342,25 @@ export class MediaRepository {
     }
   }
 
-  async findReadyVariant(
+  async listReadyVariants(
     db: AppDatabase,
-    mediaId: string,
+    mediaIds: string[],
     kind: MediaVariantRow["kind"],
-  ): Promise<MediaVariantRow | null> {
-    const [row] = await db
+  ): Promise<MediaVariantRow[]> {
+    if (mediaIds.length === 0) {
+      return [];
+    }
+
+    return db
       .select()
       .from(mediaVariants)
       .where(
         and(
-          eq(mediaVariants.mediaId, mediaId),
+          inArray(mediaVariants.mediaId, mediaIds),
           eq(mediaVariants.kind, kind),
           eq(mediaVariants.status, "READY"),
         ),
-      )
-      .limit(1);
-
-    return row ?? null;
+      );
   }
 
   async listVariantsOfFile(db: AppDatabase, mediaId: string): Promise<MediaVariantRow[]> {

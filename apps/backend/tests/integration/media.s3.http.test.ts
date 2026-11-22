@@ -179,6 +179,23 @@ describe("media on S3 (RustFS)", () => {
     expect(part.headers.get("content-disposition")).toContain("attachment");
   });
 
+  it("hands out the signed storage link as data, for <img src>", async () => {
+    const bytes = pngOf(1024);
+    const { id } = (await upload(bytes)).json() as { id: string };
+    const response = await session.injectAs(GM, { method: "GET", url: `${mediaUrl}/${id}/link` });
+
+    expect(response.statusCode).toBe(200);
+
+    const body = response.json() as { url: string; expiresAt: string };
+
+    expect(Date.parse(body.expiresAt)).toBeGreaterThan(Date.now());
+
+    const file = await fetch(body.url);
+
+    expect(file.status).toBe(200);
+    expect(Buffer.from(await file.arrayBuffer()).equals(bytes)).toBe(true);
+  });
+
   it("gives the same link within a time window, so the browser can use its cache", async () => {
     const { id } = (await upload(pngOf(1024))).json() as { id: string };
     const now = Date.now();

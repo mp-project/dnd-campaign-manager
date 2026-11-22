@@ -20,9 +20,12 @@ import { DeleteMediaController } from "#src/modules/media/http/controller/Delete
 import { DetachMediaController } from "#src/modules/media/http/controller/DetachMediaController";
 import { GetMediaContentController } from "#src/modules/media/http/controller/GetMediaContentController";
 import { GetMediaController } from "#src/modules/media/http/controller/GetMediaController";
+import { GetMediaLinkContentController } from "#src/modules/media/http/controller/GetMediaLinkContentController";
+import { GetMediaLinkController } from "#src/modules/media/http/controller/GetMediaLinkController";
 import { GetMediaUploadController } from "#src/modules/media/http/controller/GetMediaUploadController";
 import { ListAssetMediaController } from "#src/modules/media/http/controller/ListAssetMediaController";
 import { ListMediaController } from "#src/modules/media/http/controller/ListMediaController";
+import { ListMediaLinksController } from "#src/modules/media/http/controller/ListMediaLinksController";
 import { UpdateAssetMediaController } from "#src/modules/media/http/controller/UpdateAssetMediaController";
 import { UploadMediaPartController } from "#src/modules/media/http/controller/UploadMediaPartController";
 import { registerMediaRoutes } from "#src/modules/media/http/routes/v1/MediaRoutes";
@@ -38,9 +41,12 @@ import { CreateMediaUploadUseCase } from "#src/modules/media/useCase/CreateMedia
 import { DeleteMediaUseCase } from "#src/modules/media/useCase/DeleteMediaUseCase";
 import { DetachMediaUseCase } from "#src/modules/media/useCase/DetachMediaUseCase";
 import { GetMediaContentUseCase } from "#src/modules/media/useCase/GetMediaContentUseCase";
+import { GetMediaLinkContentUseCase } from "#src/modules/media/useCase/GetMediaLinkContentUseCase";
+import { GetMediaLinkUseCase } from "#src/modules/media/useCase/GetMediaLinkUseCase";
 import { GetMediaUseCase } from "#src/modules/media/useCase/GetMediaUseCase";
 import { GetMediaUploadUseCase } from "#src/modules/media/useCase/GetMediaUploadUseCase";
 import { ListAssetMediaUseCase } from "#src/modules/media/useCase/ListAssetMediaUseCase";
+import { ListMediaLinksUseCase } from "#src/modules/media/useCase/ListMediaLinksUseCase";
 import { ListMediaUseCase } from "#src/modules/media/useCase/ListMediaUseCase";
 import { UpdateAssetMediaUseCase } from "#src/modules/media/useCase/UpdateAssetMediaUseCase";
 import { UploadMediaPartUseCase } from "#src/modules/media/useCase/UploadMediaPartUseCase";
@@ -149,6 +155,15 @@ async function registerMediaModule(
       getMediaController: new GetMediaController(new GetMediaUseCase(service, assetsService)),
       getMediaContentController: new GetMediaContentController(
         new GetMediaContentUseCase(service, assetsService),
+      ),
+      getMediaLinkController: new GetMediaLinkController(
+        new GetMediaLinkUseCase(service, assetsService),
+      ),
+      listMediaLinksController: new ListMediaLinksController(
+        new ListMediaLinksUseCase(service, assetsService),
+      ),
+      getMediaLinkContentController: new GetMediaLinkContentController(
+        new GetMediaLinkContentUseCase(service),
       ),
       deleteMediaController: new DeleteMediaController(
         new DeleteMediaUseCase(service, assetsService, quota),

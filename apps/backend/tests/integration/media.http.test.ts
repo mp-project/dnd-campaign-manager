@@ -1,4 +1,6 @@
-import { eq } from "drizzle-orm";
+import { Readable } from "node:stream";
+
+import { and, eq } from "drizzle-orm";
 
 import type { AppModule } from "#core/app/moduleSystem";
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
@@ -10,6 +12,7 @@ import {
   entityChangeEvents,
   mediaFiles,
   mediaUploads,
+  mediaVariants,
   rulesets,
   users,
 } from "#core/db/schema";
@@ -717,6 +720,19 @@ describe("media", () => {
       expect(await limitOf(mediaUrl())).toBe("300");
       expect(await limitOf(`${mediaUrl()}/${id}`)).toBe("300");
       expect(await limitOf(`${mediaUrl()}/${id}/content`)).toBe("300");
+      expect(await limitOf(`${mediaUrl()}/${id}/link`)).toBe("300");
+
+      const { url } = (await session.injectAs(GM, { method: "GET", url: `${mediaUrl()}/${id}/link` })).json();
+      const listed = await session.injectAs(GM, {
+        method: "POST",
+        url: `${mediaUrl()}/links`,
+        payload: { mediaIds: [id] },
+      });
+
+      expect(listed.headers["x-ratelimit-limit"]).toBe("300");
+      expect((await session.app.inject({ method: "GET", url })).headers["x-ratelimit-limit"]).toBe(
+        "300",
+      );
       expect(await limitOf(assetMediaUrl(ID.shared))).toBe("300");
       expect(await limitOf(`${uploadsUrl()}/${id}`)).toBe("60");
     });
@@ -782,6 +798,175 @@ describe("media", () => {
         (await session.injectAs(GM, { method: "GET", url: `${mediaUrl()}?cursor=nonsense` }))
           .statusCode,
       ).toBe(400);
+    });
+  });
+
+  describe("links", () => {
+    const link = (id: string, as: TestActor = GM, query = "") =>
+      session.injectAs(as, { method: "GET", url: `${mediaUrl()}/${id}/link${query}` });
+    const links = (payload: Record<string, unknown>, as: TestActor = GM) =>
+      session.injectAs(as, { method: "POST", url: `${mediaUrl()}/links`, payload });
+    // A browser loading `<img src>` sends no session token.
+    const anonymous = (url: string) => session.app.inject({ method: "GET", url });
+
+    it("hands out a link the browser loads without a session", async () => {
+      const image = await uploadOk(png());
+      const response = await link(image.id);
+
+      expect(response.statusCode).toBe(200);
+
+      const body = response.json() as { url: string; expiresAt: string; mimeType: string };
+
+      expect(body).toMatchObject({ mediaId: image.id, mimeType: "image/png" });
+      expect(body.url).toMatch(/^\/api\/v1\/media\/links\//);
+      // At least the configured time of 900 seconds from now.
+      expect(Date.parse(body.expiresAt)).toBeGreaterThanOrEqual(Date.now() + 900_000 - 1000);
+
+      const served = await anonymous(body.url);
+
+      expect(served.statusCode).toBe(200);
+      expect(served.rawPayload.equals(PNG)).toBe(true);
+      expect(served.headers).toMatchObject({
+        "content-type": "image/png",
+        "x-content-type-options": "nosniff",
+        "cache-control": "private, max-age=900",
+      });
+      expect(served.headers["content-disposition"]).toContain("inline");
+    });
+
+    it("delivers documents as downloads", async () => {
+      const document = await uploadOk(pdf("my notes.pdf"));
+      const served = await anonymous((await link(document.id)).json().url);
+
+      expect(served.headers["content-disposition"]).toBe('attachment; filename="my notes.pdf"');
+    });
+
+    it("falls back to the original while a variant isn't ready", async () => {
+      const image = await uploadOk(png());
+
+      expect((await link(image.id, GM, "?variant=thumbnail")).json().mimeType).toBe("image/png");
+    });
+
+    it("delivers a ready variant under its own type", async () => {
+      const image = await uploadOk(png());
+      const webp = Buffer.from("RIFF0000WEBP");
+      const storageKey = `variants/${image.id}/thumbnail.webp`;
+
+      await storage.put({ key: storageKey, stream: Readable.from(webp), contentType: "image/webp" });
+      await db
+        .update(mediaVariants)
+        .set({ status: "READY", sizeBytes: webp.length })
+        .where(and(eq(mediaVariants.mediaId, image.id), eq(mediaVariants.kind, "THUMBNAIL")));
+
+      const body = (await link(image.id, GM, "?variant=thumbnail")).json();
+      const served = await anonymous(body.url);
+
+      expect(body.mimeType).toBe("image/webp");
+      expect(served.statusCode).toBe(200);
+      expect(served.headers["content-type"]).toBe("image/webp");
+      expect(served.rawPayload.equals(webp)).toBe(true);
+    });
+
+    it("tells how long the link lasts, for clients whose clock is off", async () => {
+      const image = await uploadOk(png());
+      const body = (await link(image.id)).json() as { expiresAt: string; expiresInSeconds: number };
+      const fromNow = (Date.parse(body.expiresAt) - Date.now()) / 1000;
+
+      expect(body.expiresInSeconds).toBeGreaterThanOrEqual(900 - 1);
+      expect(Math.abs(body.expiresInSeconds - fromNow)).toBeLessThanOrEqual(2);
+    });
+
+    it("stops working when it expires", async () => {
+      const image = await uploadOk(png());
+      const { url, expiresAt } = (await link(image.id)).json() as { url: string; expiresAt: string };
+      const now = jest.spyOn(Date, "now").mockReturnValue(Date.parse(expiresAt));
+
+      try {
+        expect((await anonymous(url)).statusCode).toBe(404);
+      } finally {
+        now.mockRestore();
+      }
+    });
+
+    it("hands out links for global files too", async () => {
+      expect((await link(ID.systemFile)).json()).toMatchObject({
+        mediaId: ID.systemFile,
+        mimeType: "application/pdf",
+      });
+      expect((await links({ mediaIds: [ID.systemFile] })).json().data).toEqual([
+        expect.objectContaining({ mediaId: ID.systemFile }),
+      ]);
+    });
+
+    it("refuses damaged links", async () => {
+      const image = await uploadOk(png());
+      const { url } = (await link(image.id)).json() as { url: string };
+      const token = Buffer.from(url.slice(url.lastIndexOf("/") + 1), "base64url");
+
+      // Another file id under the same signature.
+      token[0] = token[0]! ^ 1;
+
+      expect((await anonymous(url)).statusCode).toBe(200);
+      expect(
+        (await anonymous(`/api/v1/media/links/${token.toString("base64url")}`)).statusCode,
+      ).toBe(404);
+      expect((await anonymous("/api/v1/media/links/nonsense")).statusCode).toBe(404);
+    });
+
+    it("stops working when the file is deleted", async () => {
+      const image = await uploadOk(png());
+      const { url } = (await link(image.id)).json() as { url: string };
+
+      expect((await removeFile(image.id)).statusCode).toBe(200);
+      expect((await anonymous(url)).statusCode).toBe(404);
+    });
+
+    it("checks the rights like the content route", async () => {
+      const forPlayers = await uploadOk(pdf("for-players.pdf"));
+      const gmOnly = await uploadOk(pdf("gm-only.pdf"));
+
+      await attachOk(ID.shared, { mediaId: forPlayers.id, visibility: "WITH_ASSET" });
+      await attachOk(ID.shared, { mediaId: gmOnly.id, visibility: "GM_ONLY" });
+
+      expect((await link(forPlayers.id, PLAYER)).statusCode).toBe(200);
+      expect((await link(gmOnly.id, PLAYER)).statusCode).toBe(404);
+      expect((await link(ID.foreignFile)).statusCode).toBe(404);
+      expect((await link(ID.pendingFile)).statusCode).toBe(404);
+      expect((await link(forPlayers.id, OUTSIDER)).statusCode).toBe(404);
+    });
+
+    it("lists the links of a gallery and leaves out what the viewer may not see", async () => {
+      const forPlayers = await uploadOk(png("for-players.png"));
+      const gmOnly = await uploadOk(png("gm-only.png"));
+
+      await attachOk(ID.shared, {
+        mediaId: forPlayers.id,
+        visibility: "WITH_ASSET",
+        altText: "A map",
+      });
+      await attachOk(ID.shared, { mediaId: gmOnly.id, visibility: "GM_ONLY" });
+
+      const ids = [forPlayers.id, gmOnly.id, ID.foreignFile, ID.pendingFile, ID.unknown];
+      const forGm = await links({ mediaIds: ids, variant: "display" });
+      const forPlayer = await links({ mediaIds: [...ids, forPlayers.id], variant: "thumbnail" }, PLAYER);
+
+      expect(forGm.statusCode).toBe(200);
+      expect(
+        (forGm.json().data as { mediaId: string }[]).map((entry) => entry.mediaId).sort(),
+      ).toEqual([forPlayers.id, gmOnly.id].sort());
+      expect(forPlayer.json().data).toEqual([
+        expect.objectContaining({ mediaId: forPlayers.id, mimeType: "image/png" }),
+      ]);
+      expect((await anonymous(forPlayer.json().data[0].url)).statusCode).toBe(200);
+    });
+
+    it("validates the list request", async () => {
+      expect((await links({ mediaIds: [] })).statusCode).toBe(400);
+      expect(
+        (await links({ mediaIds: Array.from({ length: 101 }, () => ID.unknown) })).statusCode,
+      ).toBe(400);
+      expect((await links({ mediaIds: ["nope"] })).statusCode).toBe(400);
+      expect((await links({ mediaIds: [ID.unknown] }, OUTSIDER)).statusCode).toBe(404);
     });
   });
 

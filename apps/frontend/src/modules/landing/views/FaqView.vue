@@ -146,7 +146,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
             </p>
             <h1
               id="faq-title"
-              class="mt-3 font-heading text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
             >
               {{ t("landing.faq.hero.title") }}
             </h1>

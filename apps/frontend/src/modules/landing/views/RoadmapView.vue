@@ -103,7 +103,7 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
             </p>
             <h1
               id="roadmap-title"
-              class="mt-3 font-heading text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
             >
               {{ t("landing.roadmap.hero.title") }}
             </h1>

@@ -87,10 +87,12 @@
   --color-tag-sand: #e9dcc8;
   --color-tag-sand-ink: #5a4630;
 
-  /* Typography (self-hosted through @fontsource, imported in main.ts) */
-  --font-heading: "Libre Baskerville", Georgia, serif;
-  --font-sans: "Lora Variable", "Lora", Georgia, serif;
-  --font-serif: "Lora Variable", "Lora", Georgia, serif;
+  /* Typography (self-hosted through @fontsource, imported in main.ts). Literata everywhere, headings
+     included (its Q matches the logo); Cinzel only as display font for special emphasis (hero titles). */
+  --font-display: "Cinzel Variable", "Cinzel", Georgia, serif;
+  --font-heading: "Literata Variable", "Literata", Georgia, serif;
+  --font-sans: "Literata Variable", "Literata", Georgia, serif;
+  --font-serif: "Literata Variable", "Literata", Georgia, serif;
 
   --radius-control: 4px;
   --radius-card: 8px;

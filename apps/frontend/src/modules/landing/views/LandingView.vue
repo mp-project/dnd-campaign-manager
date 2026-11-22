@@ -264,7 +264,7 @@ const reputationPoints: MessageKey[] = [
             </p>
             <h1
               id="landing-title"
-              class="mt-3 font-heading text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
             >
               {{ t("landing.hero.title") }}
             </h1>

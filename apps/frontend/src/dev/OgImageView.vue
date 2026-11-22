@@ -44,7 +44,7 @@ const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
       </p>
       <p
         v-if="start"
-        class="mt-4 max-w-[36rem] font-heading text-[46px] leading-[1.15] font-bold text-balance text-parchment"
+        class="mt-4 max-w-[36rem] font-display text-[46px] leading-[1.15] font-bold text-balance text-parchment"
       >
         {{ t("landing.hero.title") }}
       </p>

@@ -192,6 +192,7 @@ const inventory: FeatureRowData = {
   text: "landing.features.inventory.text",
   points: ["landing.features.inventory.point1", "landing.features.inventory.point2", "landing.features.inventory.point3"],
   layout: "left",
+  scene: { src: riverTownScene, side: "right" },
 };
 
 const route = useRoute();
@@ -498,7 +499,7 @@ const reputationPoints: MessageKey[] = [
         class="navy-shade relative z-10 overflow-x-clip"
         aria-labelledby="landing-marketplace"
       >
-        <LandscapeEdge />
+        <LandscapeEdge landscape="etchedHills" />
         <img
           :src="booksArt"
           alt=""

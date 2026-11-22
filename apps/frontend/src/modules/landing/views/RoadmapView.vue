@@ -10,7 +10,6 @@ import { useRoute } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import Icon from "@/components/base/Icon.vue";
 import StatusBadge from "@/components/base/StatusBadge.vue";
-import WingSeal from "@/components/layout/WingSeal.vue";
 import PublicHeader from "@/components/layout/PublicHeader.vue";
 import type { MenuChapter } from "@/components/layout/PublicMenu.vue";
 import SiteFooter from "@/components/layout/SiteFooter.vue";
@@ -21,6 +20,7 @@ import { usePageMeta } from "@/core/seo/pageMeta";
 import { absoluteUrl } from "@/core/seo/site";
 import { statusDefinition } from "@/core/ui/status";
 
+import signpostArt from "../assets/deco/signpost.webp";
 import { ROADMAP_PHASES, type RoadmapStatus, roadmapPhaseId } from "../roadmap";
 
 const { t } = useAppI18n();
@@ -68,11 +68,13 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
         aria-labelledby="roadmap-title"
       >
         <div class="roadmap-glow pointer-events-none absolute inset-0" />
-        <WingSeal
-          :size="220"
-          class="roadmap-seal pointer-events-none absolute hidden lg:block"
+        <img
+          :src="signpostArt"
+          alt=""
           aria-hidden="true"
-        />
+          decoding="async"
+          class="roadmap-art pointer-events-none absolute hidden lg:block"
+        >
         <div class="relative mx-auto max-w-400 px-4 pt-10 pb-20 md:px-10 md:pt-16 md:pb-28">
           <nav :aria-label="t('common.shell.breadcrumb')">
             <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
@@ -226,11 +228,22 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
     radial-gradient(ellipse at 85% 30%, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 55%),
     radial-gradient(ellipse at 10% 100%, color-mix(in srgb, var(--color-brand) 16%, transparent), transparent 50%);
 }
-.roadmap-seal {
+/* The watercolour on the right of the head, beside the text from lg on. */
+.roadmap-art {
   top: 50%;
-  right: 8%;
-  opacity: 0.22;
+  right: 2%;
+  width: 28vw;
+  max-width: 32rem;
+  height: auto;
   transform: translateY(-50%);
+}
+/* From xl on there is room beside the text: larger and further in. */
+@media (min-width: 80rem) {
+  .roadmap-art {
+    right: 8%;
+    width: 36vw;
+    max-width: 42rem;
+  }
 }
 .navy-shade {
   box-shadow: 0 22px 36px -18px color-mix(in srgb, var(--color-navy-950) 55%, transparent);

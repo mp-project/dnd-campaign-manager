@@ -23,7 +23,7 @@ Disallow: /
   tls internal
   encode zstd gzip
   import robots-{$APP_ENV:production}
-  reverse_proxy frontend:80
+  reverse_proxy frontend:8080
 }
 
 # The API is no page: never indexed, in any environment.

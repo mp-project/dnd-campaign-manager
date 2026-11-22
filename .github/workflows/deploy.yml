@@ -1,0 +1,199 @@
+name: Build and deploy
+
+# Runs after CI passed on main (or by hand): builds both images, seals the secrets for the cluster
+# and writes the new image tag into deploy/values.yaml. Argo CD rolls out that commit.
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  KUBESEAL_VERSION: 0.40.0
+  IMAGE_BACKEND: ghcr.io/mp-project/dnd-campaign-manager-backend
+  IMAGE_FRONTEND: ghcr.io/mp-project/dnd-campaign-manager-frontend
+
+jobs:
+  deploy:
+    # Only a green CI run of a push to main, or a manual run on main; the workflow's own commit
+    # starts no CI run.
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    env:
+      RELEASE: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE }}
+          # Full history: the release must be on main and newer than what runs now.
+          fetch-depth: 0
+
+      # A rerun of an older CI run (or a commit that left main) must not roll back: migrations of
+      # the newer release may already be applied.
+      - name: Check release is newer than the deployed one
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$RELEASE" origin/main; then
+            echo "::error::$RELEASE is not on main"
+            exit 1
+          fi
+          current="$(git show origin/main:deploy/values.yaml | yq '.images.tag')"
+          if [ "$current" != "pending" ] && [ "$current" != "$RELEASE" ] \
+            && ! git merge-base --is-ancestor "$current" "$RELEASE"; then
+            echo "::error::$RELEASE is older than the deployed $current; nothing to do"
+            exit 1
+          fi
+
+      # Host names come from deploy/values.yaml, the one place they are set.
+      - name: Read host names
+        id: hosts
+        run: |
+          frontend="$(yq '.hosts.frontend' deploy/values.yaml)"
+          api="$(yq '.hosts.api' deploy/values.yaml)"
+          if [ -z "$frontend" ] || [ -z "$api" ]; then
+            echo "::error::Set hosts.frontend and hosts.api in deploy/values.yaml"
+            exit 1
+          fi
+          if [ ! -s deploy/sealed-secrets.crt ]; then
+            echo "::error::deploy/sealed-secrets.crt is missing (the cluster's public key)"
+            exit 1
+          fi
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "api=$api" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: production
+          push: true
+          tags: ${{ env.IMAGE_BACKEND }}:${{ env.RELEASE }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          target: production
+          push: true
+          tags: ${{ env.IMAGE_FRONTEND }}:${{ env.RELEASE }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+          # Public values only (they end up in the JavaScript); repository variables.
+          build-args: |
+            VITE_API_BASE_URL=https://${{ steps.hosts.outputs.api }}/api/v1
+            VITE_SITE_URL=https://${{ steps.hosts.outputs.frontend }}
+            VITE_APP_ENV=production
+            VITE_APP_RELEASE=${{ env.RELEASE }}
+            VITE_CLERK_PUBLISHABLE_KEY=${{ vars.CLERK_PUBLISHABLE_KEY }}
+            VITE_COOKIEBOT_ID=${{ vars.COOKIEBOT_ID }}
+            VITE_GTM_ID=${{ vars.GTM_ID }}
+            VITE_FARO_URL=${{ vars.FARO_URL }}
+            VITE_LOG_REMOTE_LEVEL=${{ vars.LOG_REMOTE_LEVEL || 'info' }}
+            VITE_SENTRY_DSN=${{ vars.SENTRY_FRONTEND_DSN }}
+            VITE_DEMO_URL=${{ vars.DEMO_URL }}
+            VITE_PUSHER_BEAMS_INSTANCE_ID=${{ vars.PUSHER_BEAMS_INSTANCE_ID }}
+          # Uploads the source maps to Sentry; a build secret, never an argument.
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      # Every secret of the backend in one SealedSecret "app-secrets"; only the cluster can open it,
+      # and only in mp-dnd. Empty optional secrets are left out, so the app's defaults apply.
+      - name: Seal secrets
+        env:
+          REQUIRED: CLERK_SECRET_KEY CLERK_WEBHOOK_SIGNING_SECRET REDIS_PASSWORD STORAGE_S3_ACCESS_KEY_ID STORAGE_S3_SECRET_ACCESS_KEY CONTACT_CHALLENGE_SECRET LOG_IP_HASH_SECRET MAIL_SMTP_USER MAIL_SMTP_PASS
+          OPTIONAL: CLERK_JWT_KEY BOOTSTRAP_MAINTAINER_EMAIL OTEL_EXPORTER_OTLP_HEADERS SENTRY_DSN
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_WEBHOOK_SIGNING_SECRET: ${{ secrets.CLERK_WEBHOOK_SIGNING_SECRET }}
+          CLERK_JWT_KEY: ${{ secrets.CLERK_JWT_KEY }}
+          BOOTSTRAP_MAINTAINER_EMAIL: ${{ secrets.BOOTSTRAP_MAINTAINER_EMAIL }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          MAIL_SMTP_USER: ${{ secrets.MAIL_SMTP_USER }}
+          MAIL_SMTP_PASS: ${{ secrets.MAIL_SMTP_PASS }}
+          STORAGE_S3_ACCESS_KEY_ID: ${{ secrets.STORAGE_S3_ACCESS_KEY_ID }}
+          STORAGE_S3_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_S3_SECRET_ACCESS_KEY }}
+          CONTACT_CHALLENGE_SECRET: ${{ secrets.CONTACT_CHALLENGE_SECRET }}
+          LOG_IP_HASH_SECRET: ${{ secrets.LOG_IP_HASH_SECRET }}
+          OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          set -euo pipefail
+          args=()
+          for name in $REQUIRED; do
+            if [ -z "${!name}" ]; then
+              echo "::error::GitHub secret $name is missing"
+              exit 1
+            fi
+            args+=("--from-literal=$name=${!name}")
+          done
+          # The app refuses to start otherwise; better to fail here than in a crash loop.
+          if [[ ! $REDIS_PASSWORD =~ ^[A-Za-z0-9]{16,}$ ]]; then
+            echo "::error::REDIS_PASSWORD: at least 16 letters and digits only (it is part of REDIS_URL)"
+            exit 1
+          fi
+          if [ "${#CONTACT_CHALLENGE_SECRET}" -lt 32 ]; then
+            echo "::error::CONTACT_CHALLENGE_SECRET needs at least 32 characters"
+            exit 1
+          fi
+          if [ "${#LOG_IP_HASH_SECRET}" -lt 16 ]; then
+            echo "::error::LOG_IP_HASH_SECRET needs at least 16 characters"
+            exit 1
+          fi
+          for name in $OPTIONAL; do
+            if [ -n "${!name}" ]; then
+              args+=("--from-literal=$name=${!name}")
+            fi
+          done
+          curl -sSfL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz" | tar -xz kubeseal
+          kubectl create secret generic app-secrets --namespace mp-dnd --dry-run=client -o yaml "${args[@]}" \
+            | ./kubeseal --cert deploy/sealed-secrets.crt --namespace mp-dnd --format yaml \
+            > "$RUNNER_TEMP/sealed-secret.yaml"
+          # Changes exactly when a value changes (the sealed file differs on every run). Keyed with a
+          # secret, so the committed value reveals nothing about short secrets.
+          printf '%s\0' "${args[@]}" | openssl dgst -sha256 -hmac "$LOG_IP_HASH_SECRET" -r | cut -c1-16 \
+            > "$RUNNER_TEMP/secrets-checksum"
+
+      - name: Write image tag and commit
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # CI ran on this commit; main may have moved on since, so the tag goes on top of main.
+          # A push that loses the race against another push tries again on the new main.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git checkout -B main origin/main
+            cp "$RUNNER_TEMP/sealed-secret.yaml" deploy/templates/sealed-secret.yaml
+            # Restarts the pods that read the secrets (Redis included) when they changed.
+            checksum="$(cat "$RUNNER_TEMP/secrets-checksum")"
+            yq -i '.images.tag = strenv(RELEASE)' deploy/values.yaml
+            CHECKSUM="$checksum" yq -i '.secretsChecksum = strenv(CHECKSUM)' deploy/values.yaml
+            git add deploy/values.yaml deploy/templates/sealed-secret.yaml
+            git commit -m "deploy: ${RELEASE::7} [skip ci]"
+            if git push origin main; then
+              exit 0
+            fi
+            echo "Push rejected, trying again ($attempt)"
+            sleep 5
+          done
+          exit 1

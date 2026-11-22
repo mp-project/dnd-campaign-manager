@@ -1,0 +1,182 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  # Stop the old pod first: the namespace budget has no room for two copies
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: backend }
+  template:
+    metadata:
+      labels: { app: backend }
+      {{- include "app.secretsAnnotation" . | nindent 6 }}
+    spec:
+      {{- include "app.pod" . | nindent 6 }}
+      # Migrations first; the job waits for the database and fails the pod if they fail.
+      initContainers:
+        - name: migrate
+          image: {{ include "app.image" . | quote }}
+          args: ["--enable-source-maps", "dist/jobs/migrate.js"]
+          env:
+            {{- include "app.backendEnv" . | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+          {{- include "app.container" . | nindent 10 }}
+          {{- include "app.tmpMount" . | nindent 10 }}
+      containers:
+        - name: backend
+          image: {{ include "app.image" . | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          env:
+            {{- include "app.backendEnv" . | nindent 12 }}
+            - name: OTEL_SERVICE_NAME
+              value: questaria-api
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+          # Start-up work before listening (reference index rebuild, default rulesets, S3 bootstrap)
+          # may take minutes; liveness only counts once the server answers.
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          {{- include "app.container" . | nindent 10 }}
+          {{- include "app.tmpMount" . | nindent 10 }}
+      {{- include "app.tmpVolume" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector: { app: backend }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: worker }
+  template:
+    metadata:
+      labels: { app: worker }
+      {{- include "app.secretsAnnotation" . | nindent 6 }}
+    spec:
+      {{- include "app.pod" . | nindent 6 }}
+      containers:
+        - name: worker
+          image: {{ include "app.image" . | quote }}
+          # Same image as the backend, other start file
+          args: ["--enable-source-maps", "--import", "./dist/instrumentation.js", "dist/workers/mediaWorker.js"]
+          env:
+            {{- include "app.backendEnv" . | nindent 12 }}
+            - name: OTEL_SERVICE_NAME
+              value: questaria-media-worker
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          {{- include "app.container" . | nindent 10 }}
+          {{- include "app.tmpMount" . | nindent 10 }}
+      {{- include "app.tmpVolume" . | nindent 6 }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: media-cleanup
+spec:
+  schedule: {{ .Values.mediaCleanup.schedule | quote }}
+  timeZone: Europe/Berlin
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # A hanging run would block every later one (concurrencyPolicy: Forbid).
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels: { app: media-cleanup }
+        spec:
+          {{- include "app.pod" . | nindent 10 }}
+          restartPolicy: Never
+          containers:
+            - name: media-cleanup
+              image: {{ include "app.image" . | quote }}
+              args: ["--enable-source-maps", "dist/jobs/cleanupMedia.js"]
+              env:
+                {{- include "app.backendEnv" . | nindent 16 }}
+              envFrom:
+                - secretRef:
+                    name: app-secrets
+              resources:
+                {{- toYaml .Values.mediaCleanup.resources | nindent 16 }}
+              {{- include "app.container" . | nindent 14 }}
+              {{- include "app.tmpMount" . | nindent 14 }}
+          {{- include "app.tmpVolume" . | nindent 10 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      {{- include "app.pod" . | nindent 6 }}
+      containers:
+        - name: frontend
+          image: "{{ .Values.images.frontend }}:{{ .Values.images.tag }}"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /, port: http }
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          {{- include "app.container" . | nindent 10 }}
+          # nginx keeps its pid and temp files in /tmp
+          {{- include "app.tmpMount" . | nindent 10 }}
+      {{- include "app.tmpVolume" . | nindent 6 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector: { app: frontend }
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

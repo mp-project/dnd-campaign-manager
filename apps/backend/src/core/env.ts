@@ -75,7 +75,8 @@ const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65_535),
     BACKEND_PUBLIC_BASE_URL: z.string().url(),
     DATABASE_URL: z.string().url(),
-    TEST_DATABASE_URL: z.string().url(),
+    // Only the integration tests use it; servers and jobs run without it.
+    TEST_DATABASE_URL: optionalUrlString,
     // Clerk (sign-in, registration, waitlist). Without the secret key no request is signed in.
     CLERK_SECRET_KEY: optionalNonEmptyString,
     // PEM public key of the instance; verifies session tokens without fetching the JWKS.

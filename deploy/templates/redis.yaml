@@ -1,0 +1,77 @@
+# Redis for rate limits and caches (REDIS_URL, required in production). It holds no truth, so it
+# keeps nothing on disk; the password comes from app-secrets.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+      # A new password must reach Redis too, not only the app.
+      {{- include "app.secretsAnnotation" . | nindent 6 }}
+    spec:
+      {{- include "app.pod" . | nindent 6 }}
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          # The image's user "redis"; numeric, so runAsNonRoot can be checked.
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: REDIS_PASSWORD
+            # redis-cli in the container (debugging) authenticates with it
+            - name: REDISCLI_AUTH
+              value: "$(REDIS_PASSWORD)"
+          args:
+            - redis-server
+            - --requirepass
+            - "$(REDIS_PASSWORD)"
+            - --save
+            - ""
+            - --appendonly
+            - "no"
+            - --maxmemory
+            - {{ .Values.redis.maxmemory | quote }}
+            - --maxmemory-policy
+            - allkeys-lru
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            tcpSocket: { port: redis }
+          livenessProbe:
+            tcpSocket: { port: redis }
+            initialDelaySeconds: 10
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector: { app: redis }
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

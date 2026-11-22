@@ -1,0 +1,4 @@
+apiVersion: v2
+name: dnd-campaign-manager
+description: Questaria in the shared cluster (namespace mp-dnd), rolled out by Argo CD from this folder
+version: 1.0.0

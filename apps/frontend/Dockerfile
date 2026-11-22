@@ -56,8 +56,11 @@ RUN --mount=type=secret,id=sentry_auth_token,required=false \
   SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
   npm run build --workspace @dnd/frontend
 
-FROM nginx:1.27-alpine AS production
+# Runs without root (user nginx, port 8080): the cluster refuses root containers. The image keeps
+# its pid and temp files in /tmp, so the root file system can stay read-only.
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
 COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/apps/frontend/dist /usr/share/nginx/html
+EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --retries=5 \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1

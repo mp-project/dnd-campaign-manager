@@ -1,0 +1,16 @@
+# PostgreSQL, run by the cluster's database operator (CloudNativePG). It creates the secret "db-app"
+# (database and owner "app"), whose "uri" the backend gets as DATABASE_URL.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: db
+spec:
+  instances: 1
+  # Required for a single copy: otherwise server maintenance would be blocked
+  enablePDB: false
+  imageName: {{ .Values.database.image }}
+  priorityClassName: low-priority
+  storage:
+    size: {{ .Values.database.size }}
+  resources:
+    {{- toYaml .Values.database.resources | nindent 4 }}

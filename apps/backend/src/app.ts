@@ -17,6 +17,7 @@ import {
   type ReadyState,
 } from "#core/db/pool";
 import { getEnv, type AppEnv } from "#core/env";
+import { closeRedisClient, createRedisClient, type Redis } from "#core/redis/client";
 import { API_BASE_PATH } from "#core/config/constants";
 import { registerErrorHandler } from "#core/error/registerErrorHandler";
 import { getErrorReporter } from "#core/log/errorReporter";
@@ -48,6 +49,11 @@ type BuildAppOptions = {
   modules?: readonly AppModule[];
   publicPorts?: AppPublicPorts;
   closePoolOnShutdown?: boolean;
+  /**
+   * Redis for rate limits and caches; `null` runs without one. By default a client for
+   * `REDIS_URL`, closed with the app.
+   */
+  redis?: Redis | null;
 };
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
@@ -80,21 +86,20 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     options.closePoolOnShutdown ?? options.pool === undefined;
   const readyProbe = options.readyProbe ?? (() => checkDatabaseReadiness(pool));
   const modules = options.modules ?? defaultAppModules;
-  const container = createAppContainer(
-    options.publicPorts
-      ? {
-          config: env,
-          pool,
-          publicPorts: options.publicPorts,
-        }
-      : {
-          config: env,
-          pool,
-        },
-  );
+  const ownRedis =
+    options.redis === undefined && env.REDIS_URL
+      ? createRedisClient(env.REDIS_URL, logger, "api")
+      : undefined;
+  const redis = options.redis ?? ownRedis;
+  const container = createAppContainer({
+    config: env,
+    pool,
+    ...(redis ? { redis } : {}),
+    ...(options.publicPorts ? { publicPorts: options.publicPorts } : {}),
+  });
 
   registerRequestLogging(app, env);
-  registerSecurityPlugins(app, env);
+  registerSecurityPlugins(app, env, redis);
   registerAuthPlugin(app, container);
   registerRequestContextPlugin(app);
   registerCampaignContextPlugin(app, container);
@@ -108,6 +113,12 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   app.setNotFoundHandler(async (request, reply) => {
     return notFound(request, reply);
   });
+
+  if (ownRedis) {
+    app.addHook("onClose", async () => {
+      await closeRedisClient(ownRedis);
+    });
+  }
 
   if (closePoolOnShutdown) {
     app.addHook("onClose", async () => {

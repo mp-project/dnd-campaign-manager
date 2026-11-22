@@ -53,6 +53,7 @@ describe("consent", () => {
     expect(script.src).toBe("https://consent.cookiebot.com/uc.js");
     expect(script.dataset.cbid).toBe("c03c6818-ca6f-4955-a00d-ff51e76300ef");
     expect(script.dataset.culture).toBe("en");
+    expect(script.dataset.consentmode).toBe("disabled");
     expect(script.dataset.blockingmode).toBeUndefined();
     expect(consent.hasConsentManager()).toBe(true);
 

@@ -16,6 +16,7 @@ const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
 
 <template>
   <RouterLink
+    data-track="brand.home"
     :to="home"
     class="flex flex-col items-start text-parchment"
     :aria-label="t('common.shell.toHome')"

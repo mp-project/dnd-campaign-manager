@@ -29,6 +29,7 @@ const items = computed<DropdownItem[]>(() => {
     label: nameOf(language),
     to: { name: localizedRouteName(name, language), query: route.query, hash: route.hash },
     active: route.meta.locale === language,
+    track: `publicNav.language.${language}`,
   }));
 });
 </script>
@@ -40,6 +41,7 @@ const items = computed<DropdownItem[]>(() => {
   >
     <template #trigger="{ toggle, open }">
       <button
+        data-track="publicNav.language"
         type="button"
         class="inline-flex size-11 items-center justify-center rounded-full text-gold-bright transition-colors hover:bg-navy-800"
         :aria-label="t('common.publicNav.language')"

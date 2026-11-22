@@ -17,6 +17,8 @@ const href = demoScreenUrl(props.screen.demoPath);
 <template>
   <component
     :is="href ? 'a' : 'div'"
+    :data-track="href ? 'landing.screen' : undefined"
+    :data-track-detail="href ? screen.demoPath : undefined"
     :href="href ?? undefined"
     :target="href ? '_blank' : undefined"
     :rel="href ? 'noopener' : undefined"

@@ -2,7 +2,9 @@
  * Consent for what is not technically necessary (today: Grafana Faro). Cookiebot asks and stores
  * the answer; the app only reads the category "statistics" and starts or stops what depends on it.
  * Cookiebot runs in manual mode (no `data-blockingmode="auto"`): automatic blocking would hold back
- * the app's own scripts, and nothing in the app loads a tracker by itself.
+ * the app's own scripts, and nothing in the app loads a tracker by itself. Its Google Consent Mode
+ * is off (`data-consentmode="disabled"`): Google Analytics sets its own consent (`analytics`), and
+ * Cookiebot's would grant advertising storage to whoever accepts "marketing".
  *
  * Without `VITE_COOKIEBOT_ID` there is no banner and no consent. Cookiebot's free plan only
  * answers on the registered domain, so locally `VITE_DEV_CONSENT=statistics` grants the category
@@ -106,6 +108,7 @@ export function startConsent(locale: string): void {
   script.async = true;
   script.dataset.cbid = id;
   script.dataset.culture = locale;
+  script.dataset.consentmode = "disabled";
   script.addEventListener("error", () => {
     // Blocked or offline: without Cookiebot there is no consent, so nothing optional starts.
     logger.warn("Cookiebot could not be loaded", { task: "consent" });

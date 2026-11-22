@@ -67,6 +67,8 @@ const consentManager = hasConsentManager();
           </p>
           <div class="mt-8 flex flex-wrap justify-center gap-3">
             <BaseButton
+              data-track="footer.primary"
+              :data-track-detail="signedIn ? 'app' : 'waitlist'"
               :to="primary.to"
               variant="primary"
               :icon-right="signedIn ? 'aktion-weiter' : undefined"
@@ -75,6 +77,7 @@ const consentManager = hasConsentManager();
             </BaseButton>
             <BaseButton
               v-if="demo"
+              data-track="footer.demo"
               as="a"
               :href="demo"
               target="_blank"
@@ -103,6 +106,7 @@ const consentManager = hasConsentManager();
           aria-hidden="true"
         />
         <PublicNavLink
+          :data-track="`footer.${page.name}`"
           :to="{ name: page.name }"
           :active="route.name === page.name"
         >
@@ -114,7 +118,10 @@ const consentManager = hasConsentManager();
           class="h-4 w-px bg-navy-line"
           aria-hidden="true"
         />
-        <PublicNavLink @click="openConsentSettings">
+        <PublicNavLink
+          data-track="footer.cookieSettings"
+          @click="openConsentSettings"
+        >
           {{ t("common.siteFooter.cookieSettings") }}
         </PublicNavLink>
       </template>

@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
   /** Development only, without Cookiebot: `statistics` grants that consent (Faro) locally. */
   readonly VITE_DEV_CONSENT?: string;
+  /** Google Tag Manager container (`GTM-…`) for Google Analytics; loads only with the consent for statistics. */
+  readonly VITE_GTM_ID?: string;
   /** Grafana Faro collector address; empty = no frontend observability. */
   readonly VITE_FARO_URL?: string;
   /** Lowest level of the app's log lines sent to Faro: debug, info, warn, error. */

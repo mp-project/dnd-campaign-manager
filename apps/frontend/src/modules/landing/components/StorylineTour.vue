@@ -381,6 +381,7 @@ onBeforeUnmount(() => resize?.disconnect());
     <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
       <SegmentedControl
         v-model="selectedRoute"
+        data-track="landing.storyline.route"
         :options="routeOptions"
         :label="t('landing.storylineTour.routesLabel')"
         class="w-full shrink-0 sm:w-auto"
@@ -401,6 +402,8 @@ onBeforeUnmount(() => resize?.disconnect());
             aria-hidden="true"
           />
           <button
+            data-track="landing.storyline.step"
+            :data-track-detail="String(position + 1)"
             type="button"
             class="step"
             :class="{ 'step-current': !overview && index === position, 'step-done': !overview && index > position }"
@@ -414,6 +417,7 @@ onBeforeUnmount(() => resize?.disconnect());
       </ol>
       <div class="ml-auto flex shrink-0 items-center gap-2">
         <IconButton
+          data-track="landing.storyline.play"
           :icon="playing ? 'ui-pause' : 'ui-play'"
           :label="t(playing ? 'landing.storylineTour.pause' : 'landing.storylineTour.play')"
           variant="outline-gold"
@@ -421,6 +425,7 @@ onBeforeUnmount(() => resize?.disconnect());
           @click="togglePlay"
         />
         <IconButton
+          data-track="landing.storyline.zoom"
           :icon="overview ? 'aktion-zoom-plus' : 'aktion-zoom-minus'"
           :label="t(overview ? 'landing.storylineTour.closer' : 'landing.storylineTour.overview')"
           variant="outline-gold"
@@ -429,6 +434,7 @@ onBeforeUnmount(() => resize?.disconnect());
         />
         <BaseButton
           v-if="demo"
+          data-track="landing.storyline.demo"
           as="a"
           :href="demo"
           target="_blank"

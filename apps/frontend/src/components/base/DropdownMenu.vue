@@ -24,6 +24,8 @@ export type DropdownItem =
       action?: (anchor: HTMLElement) => void;
       danger?: boolean;
       active?: boolean;
+      /** `data-track` id for analytics (`@/core/telemetry/analytics`). */
+      track?: string;
     };
 
 const props = withDefaults(defineProps<{ items: DropdownItem[]; align?: "left" | "right"; label?: string; dark?: boolean }>(), {
@@ -155,6 +157,7 @@ onBeforeUnmount(() => {
               <button
                 type="button"
                 role="menuitem"
+                :data-track="item.track"
                 class="flex min-h-11 w-full items-center gap-3 px-4 text-left"
                 :class="[item.danger && 'text-danger', dark ? 'hover:bg-navy-800' : 'hover:bg-parchment-sunk']"
                 @click="pick(item)"

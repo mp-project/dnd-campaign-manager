@@ -275,6 +275,7 @@ const reputationPoints: MessageKey[] = [
             <div class="mt-8 flex flex-wrap gap-3">
               <BaseButton
                 v-if="signedIn"
+                data-track="landing.hero.toApp"
                 to="/dashboard"
                 variant="primary"
                 icon-right="aktion-weiter"
@@ -283,6 +284,7 @@ const reputationPoints: MessageKey[] = [
               </BaseButton>
               <BaseButton
                 v-else
+                data-track="landing.hero.waitlist"
                 :to="waitlist"
                 variant="primary"
               >
@@ -290,6 +292,7 @@ const reputationPoints: MessageKey[] = [
               </BaseButton>
               <BaseButton
                 v-if="demo"
+                data-track="landing.hero.demo"
                 as="a"
                 :href="demo"
                 target="_blank"
@@ -528,6 +531,7 @@ const reputationPoints: MessageKey[] = [
             </p>
             <BaseButton
               v-if="marketplaceDemo"
+              data-track="landing.marketplace.demo"
               as="a"
               :href="marketplaceDemo"
               target="_blank"

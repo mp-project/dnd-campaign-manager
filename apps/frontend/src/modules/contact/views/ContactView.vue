@@ -25,6 +25,7 @@ import type { MessageKey } from "@/core/i18n/keys";
 import { localizedPath, useLocalizedPage } from "@/core/i18n/localizedRoutes";
 import { usePageMeta } from "@/core/seo/pageMeta";
 import { absoluteUrl } from "@/core/seo/site";
+import { trackFormResult } from "@/core/telemetry/analytics";
 import BrandLayout from "@/layouts/BrandLayout.vue";
 
 import { CONTACT_TOPICS, type ContactTopic, sendContactMessage } from "../api";
@@ -109,9 +110,18 @@ function errorText(error: unknown): string {
   return t(errorMessageKey(error));
 }
 
+/** The failure as a code for analytics, never its text. */
+function errorCodeOf(error: unknown): string {
+  if (error instanceof ContactChallengeError || challengeRefused(error)) return "CHALLENGE_FAILED";
+  return isApiError(error) ? error.code : "CLIENT_ERROR";
+}
+
 async function submit(): Promise<void> {
   failure.value = "";
-  if (!validate() || !form.topic) return;
+  if (!validate() || !form.topic) {
+    trackFormResult("contact", "invalid");
+    return;
+  }
 
   busy.value = true;
   const email = form.email.trim();
@@ -137,12 +147,14 @@ async function submit(): Promise<void> {
       if (!challengeRefused(error)) throw error;
       await send();
     }
+    trackFormResult("contact", "success");
     sentTo.value = email;
     Object.assign(form, empty());
     await nextTick();
     success.value?.focus();
   } catch (error) {
     failure.value = errorText(error);
+    trackFormResult("contact", "error", errorCodeOf(error));
   } finally {
     busy.value = false;
   }
@@ -179,6 +191,7 @@ function writeAgain(): void {
         {{ t("contact.success.text", { email: sentTo }) }}
       </p>
       <BaseButton
+        data-track="contact.writeAgain"
         variant="secondary"
         size="md"
         class="mt-6"
@@ -192,6 +205,7 @@ function writeAgain(): void {
       <InfoNote icon="orig-info">
         {{ t("contact.faqHint") }}
         <RouterLink
+          data-track="contact.faq"
           :to="faq"
           class="ml-1 font-medium text-info underline underline-offset-4"
         >
@@ -200,6 +214,7 @@ function writeAgain(): void {
       </InfoNote>
 
       <form
+        data-track="contact"
         class="mt-6 grid gap-4 md:grid-cols-2"
         novalidate
         @focusin="prepareChallenge"
@@ -313,6 +328,7 @@ function writeAgain(): void {
           />
           <!-- New tab, so the filled-in form stays. -->
           <RouterLink
+            data-track="contact.privacy"
             :to="{ name: 'legal-privacy' }"
             target="_blank"
             class="ml-8 inline-flex min-h-11 items-center text-info underline underline-offset-4"
@@ -341,6 +357,7 @@ function writeAgain(): void {
 
         <div class="md:col-span-2 md:flex md:justify-end">
           <BaseButton
+            data-track="contact.send"
             variant="primary"
             type="submit"
             icon="ui-mail"

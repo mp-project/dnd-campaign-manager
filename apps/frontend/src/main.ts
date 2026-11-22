@@ -24,6 +24,7 @@ import { installErrorHandlers } from "./core/log/errorHandlers";
 import { installReducedMotion } from "./core/motion/reducedMotion";
 import { installAppHead } from "./core/seo/appHead";
 import { NAV_ITEMS } from "./core/navigation/navigation";
+import { installAnalytics } from "./core/telemetry/analytics";
 import { installFaro } from "./core/telemetry/faro";
 import { installSentry } from "./core/telemetry/sentry";
 import { startPushNotifications } from "./services/pushNotifications";
@@ -44,6 +45,7 @@ installGuards(router, queryClient);
 installAppHead(router);
 watchCampaignAccess(router, queryClient);
 installFaro(router, queryClient);
+installAnalytics(router);
 
 app.use(createPinia());
 app.use(router);
@@ -58,7 +60,8 @@ applyProfileSettings(queryClient, i18n, { keepLocale: override !== null, after: 
 installLocaleRoutes(router, i18n, { keepLocale: override !== null, after: startLocale });
 void startLocale.finally(() => {
   app.mount("#app");
-  // After the first paint, in the page's language; Faro starts once statistics are allowed.
+  // After the first paint, in the page's language; Faro and Google Analytics start once statistics
+  // are allowed.
   startConsent(i18n.global.locale.value);
 });
 

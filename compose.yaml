@@ -229,6 +229,7 @@ services:
         VITE_SITE_URL: ${COMPOSE_FRONTEND_PUBLIC_URL}
         # Consent banner (public id) and Grafana Faro, which starts only after consent.
         VITE_COOKIEBOT_ID: ${COOKIEBOT_ID:-}
+        VITE_GTM_ID: ${GTM_ID:-}
         VITE_FARO_URL: ${FARO_URL:-}
         VITE_LOG_REMOTE_LEVEL: ${LOG_REMOTE_LEVEL:-info}
         VITE_APP_ENV: ${APP_ENV:-production}

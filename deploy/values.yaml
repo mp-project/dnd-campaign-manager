@@ -45,7 +45,7 @@ backend:
     # adjusted by hand.
     STORAGE_S3_AUTO_BOOTSTRAP: "true"
     # Grafana Cloud (OTLP); empty endpoint = no telemetry. The headers are a secret.
-    OTEL_EXPORTER_OTLP_ENDPOINT: ""
+    OTEL_EXPORTER_OTLP_ENDPOINT: https://otlp-gateway-prod-eu-west-4.grafana.net/otlp
     OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     OTEL_TRACES_SAMPLER: parentbased_traceidratio
     OTEL_TRACES_SAMPLER_ARG: "1.0"

@@ -30,8 +30,12 @@ export type SentryClientSettings = {
   replayOnErrorSampleRate: number;
 };
 
-/** Sentry's own handlers of window errors and rejections would report everything twice. */
-const LEFT_OUT = new Set(["GlobalHandlers", "Console"]);
+/**
+ * Sentry's own handlers of window errors and rejections would report everything twice. `Vue` would
+ * install a second Vue error handler: Vue errors already reach Sentry through `installErrorHandlers`
+ * and `reportError`, and the SDK loads after the app is mounted, so the integration could only warn.
+ */
+const LEFT_OUT = new Set(["GlobalHandlers", "Console", "Vue"]);
 
 const TAGS = ["source", "status", "code", "requestId"];
 

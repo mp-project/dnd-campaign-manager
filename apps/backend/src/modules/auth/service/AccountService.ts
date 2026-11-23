@@ -248,6 +248,12 @@ export class AccountService implements AccountPort {
     const holder = await this.repository.findByEmail(tx, email);
     let retiredUserId: string | undefined;
 
+    if (holder?.clerkUserId === user.externalUserId) {
+      // A parallel first request committed this identity's account between the two lookups; it is
+      // this account, not one of another identity.
+      return { account: holder, change: null };
+    }
+
     if (holder && this.isUnprovenLegacy(holder, user)) {
       // Nobody ever proved the mailbox of this account (a registration from before the provider
       // that was never confirmed), so the owner who proved it now must not inherit it: it is

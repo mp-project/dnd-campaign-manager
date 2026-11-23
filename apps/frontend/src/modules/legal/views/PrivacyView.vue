@@ -9,6 +9,7 @@ import LegalDocument, { type LegalSection } from "../components/LegalDocument.vu
 const sections: LegalSection[] = [
   { id: "general", title: "legal.privacy.general.title", body: "legal.privacy.general.body", chapter: "legal.privacy.chapters.overview" },
   { id: "collection", title: "legal.privacy.collection.title", body: "legal.privacy.collection.body" },
+  { id: "thirdParty", title: "legal.privacy.thirdParty.title", body: "legal.privacy.thirdParty.body" },
   { id: "hetzner", title: "legal.privacy.hetzner.title", body: "legal.privacy.hetzner.body", chapter: "legal.privacy.chapters.hosting" },
   { id: "cloudflare", title: "legal.privacy.cloudflare.title", body: "legal.privacy.cloudflare.body" },
   { id: "privacy", title: "legal.privacy.privacy.title", body: "legal.privacy.privacy.body", chapter: "legal.privacy.chapters.duties" },
@@ -30,8 +31,11 @@ const sections: LegalSection[] = [
   { id: "account", title: "legal.privacy.account.title", body: "legal.privacy.account.body" },
   { id: "oauth", title: "legal.privacy.oauth.title", body: "legal.privacy.oauth.body" },
   { id: "push", title: "legal.privacy.push.title", body: "legal.privacy.push.body" },
-  { id: "googleAnalytics", title: "legal.privacy.googleAnalytics.title", body: "legal.privacy.googleAnalytics.body", chapter: "legal.privacy.chapters.analytics" },
+  { id: "googleTagManager", title: "legal.privacy.googleTagManager.title", body: "legal.privacy.googleTagManager.body", chapter: "legal.privacy.chapters.analytics" },
+  { id: "googleAnalytics", title: "legal.privacy.googleAnalytics.title", body: "legal.privacy.googleAnalytics.body" },
+  { id: "faro", title: "legal.privacy.faro.title", body: "legal.privacy.faro.body" },
   { id: "sentry", title: "legal.privacy.sentry.title", body: "legal.privacy.sentry.body", chapter: "legal.privacy.chapters.tools" },
+  { id: "monitoring", title: "legal.privacy.monitoring.title", body: "legal.privacy.monitoring.body" },
   { id: "changes", body: "legal.privacy.changes.body", chapter: "legal.privacy.chapters.changes" },
   { id: "source", body: "legal.privacy.source.body" },
 ];

@@ -86,7 +86,7 @@ describe("legal pages", () => {
       const script = section.find("script#CookieDeclaration");
       expect(script.attributes("src")).toBe("https://consent.cookiebot.com/c03c6818-ca6f-4955-a00d-ff51e76300ef/cd.js");
       expect(script.attributes("data-culture")).toBe("en");
-      expect(section.text()).toContain("Cybot A/S");
+      expect(section.text()).toContain("Usercentrics A/S");
       wrapper.unmount();
     } finally {
       vi.unstubAllEnvs();

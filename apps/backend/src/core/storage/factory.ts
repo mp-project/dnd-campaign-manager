@@ -2,7 +2,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { AppEnv } from "#core/env";
-import { StorageError } from "#core/storage/errors";
 import { LocalStorage } from "#core/storage/localStorage";
 import {
   defaultAllowedMimeTypes,
@@ -10,6 +9,7 @@ import {
 } from "#core/storage/mime";
 import type { StoragePort } from "#core/storage/port";
 import { S3CompatibleStorage } from "#core/storage/s3Storage";
+import { UnavailableStorage } from "#core/storage/unavailableStorage";
 
 const backendRootDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -17,24 +17,21 @@ const backendRootDirectory = path.resolve(
 );
 
 /**
- * Ensures required S3 settings are present in environment configuration.
+ * Names the S3 settings that are missing; empty when S3 can be used.
  *
- * @param value Candidate value.
- * @param key Environment key name for error reporting.
- * @returns Non-empty string value.
+ * @param env Validated backend environment values.
+ * @returns Names of the missing settings (no values).
  */
-function required(value: string | undefined, key: string): string {
-  if (!value) {
-    throw new StorageError(
-      "S3_CONFIGURATION_ERROR",
-      `Missing required storage setting ${key}`,
-      {
-        statusCode: 500,
-      },
-    );
-  }
+export function missingS3Settings(env: AppEnv): string[] {
+  const settings = {
+    STORAGE_S3_BUCKET: env.STORAGE_S3_BUCKET,
+    STORAGE_S3_ACCESS_KEY_ID: env.STORAGE_S3_ACCESS_KEY_ID,
+    STORAGE_S3_SECRET_ACCESS_KEY: env.STORAGE_S3_SECRET_ACCESS_KEY,
+  };
 
-  return value;
+  return Object.entries(settings)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
 }
 
 /**
@@ -45,6 +42,13 @@ function required(value: string | undefined, key: string): string {
  */
 export function createStoragePortFromEnv(env: AppEnv): StoragePort {
   if (env.STORAGE_DRIVER === "s3") {
+    const missing = missingS3Settings(env);
+
+    // Files are one part of the app; without S3 the rest keeps working and uploads answer 503.
+    if (missing.length > 0) {
+      return new UnavailableStorage(missing);
+    }
+
     const options: {
       bucket: string;
       region: string;
@@ -54,13 +58,10 @@ export function createStoragePortFromEnv(env: AppEnv): StoragePort {
       publicEndpoint?: string;
       forcePathStyle?: boolean;
     } = {
-      bucket: required(env.STORAGE_S3_BUCKET, "STORAGE_S3_BUCKET"),
-      region: required(env.STORAGE_S3_REGION, "STORAGE_S3_REGION"),
-      accessKeyId: required(env.STORAGE_S3_ACCESS_KEY_ID, "STORAGE_S3_ACCESS_KEY_ID"),
-      secretAccessKey: required(
-        env.STORAGE_S3_SECRET_ACCESS_KEY,
-        "STORAGE_S3_SECRET_ACCESS_KEY",
-      ),
+      bucket: env.STORAGE_S3_BUCKET!,
+      region: env.STORAGE_S3_REGION,
+      accessKeyId: env.STORAGE_S3_ACCESS_KEY_ID!,
+      secretAccessKey: env.STORAGE_S3_SECRET_ACCESS_KEY!,
     };
 
     if (env.STORAGE_S3_ENDPOINT) {

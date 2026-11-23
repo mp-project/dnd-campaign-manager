@@ -62,7 +62,7 @@ const optionalUrlString = z.preprocess((value) => {
   return normalized.length === 0 ? undefined : normalized;
 }, z.string().url().optional());
 
-function isProductionLikeNodeEnv(nodeEnv: string): boolean {
+export function isProductionLikeNodeEnv(nodeEnv: string): boolean {
   return nodeEnv === "production" || nodeEnv === "stage";
 }
 
@@ -134,7 +134,7 @@ const envSchema = z
       z.string().min(16).optional(),
     ),
     // Rate limits shared by all API instances and caches (`redis://[:password@]host:port/db`).
-    // Without it each process counts and caches on its own; required in stage and production.
+    // Without it each process counts and caches on its own (named at start in stage and production).
     REDIS_URL: optionalUrlString,
     CORS_ORIGIN: z.string().min(1),
     FRONTEND_ORIGIN: z.string().url().default("http://app.localhost:5173"),
@@ -159,57 +159,15 @@ const envSchema = z
     STORAGE_S3_BOOTSTRAP_CORS_ORIGINS: z.string().optional(),
   })
   .superRefine((env, ctx) => {
-    if (env.MAIL_DRIVER === "smtp") {
-      const hasSmtpUser = Boolean(env.MAIL_SMTP_USER);
-      const hasSmtpPass = Boolean(env.MAIL_SMTP_PASS);
-
-      if (hasSmtpUser !== hasSmtpPass) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["MAIL_SMTP_USER"],
-          message: "MAIL_SMTP_USER and MAIL_SMTP_PASS must both be set or both be omitted",
-        });
-      }
-    }
-
+    // Missing settings of a single integration (Clerk, S3, mail, Redis, telemetry) never stop the
+    // app: that part is switched off and named at start (`missingIntegrations`). Only a value that
+    // is set but wrong is refused here.
     if (isProductionLikeNodeEnv(env.NODE_ENV) && env.STORAGE_DRIVER !== "s3") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["STORAGE_DRIVER"],
         message: "STORAGE_DRIVER must be \"s3\" when NODE_ENV=production or stage",
       });
-    }
-
-    if (isProductionLikeNodeEnv(env.NODE_ENV)) {
-      for (const key of ["CLERK_SECRET_KEY", "CLERK_AUTHORIZED_PARTIES", "REDIS_URL"] as const) {
-        if (!env[key]) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [key],
-            message: `${key} is required when NODE_ENV=production or stage`,
-          });
-        }
-      }
-    }
-
-    if (env.STORAGE_DRIVER !== "s3") {
-      return;
-    }
-
-    const requiredS3Keys = [
-      "STORAGE_S3_BUCKET",
-      "STORAGE_S3_ACCESS_KEY_ID",
-      "STORAGE_S3_SECRET_ACCESS_KEY",
-    ] as const;
-
-    for (const key of requiredS3Keys) {
-      if (!env[key]) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [key],
-          message: `${key} is required when STORAGE_DRIVER=s3`,
-        });
-      }
     }
   });
 

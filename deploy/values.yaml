@@ -11,8 +11,8 @@ secretsChecksum: ""
 # frontend build (API address, site address) are all derived from these two; the workflow reads
 # them from here too. Both are required.
 hosts:
-  frontend: ""
-  api: ""
+  frontend: www.questaria.de
+  api: api.questaria.de
 
 backend:
   port: 3000
@@ -24,19 +24,21 @@ backend:
     LOG_CHANGE_VALUES: "true"
     DEFAULT_RULESETS_ON_START: "true"
 
-    # Mail (mailbox.org)
+    # Mail (Plesk mailbox no-reply@questaria.de). The host is the server's own name: mail.questaria.de
+    # points to the same server, but its certificate only covers *.webhosting.systems.
     MAIL_DRIVER: smtp
-    MAIL_SMTP_HOST: smtp.mailbox.org
+    MAIL_SMTP_HOST: rw0b31.webhosting.systems
     MAIL_SMTP_PORT: "465"
     MAIL_SMTP_SECURE: "true"
     MAIL_FROM_NAME: Questaria
-    MAIL_FROM_ADDRESS: ""
-    MAIL_REPLY_TO: ""
+    MAIL_FROM_ADDRESS: no-reply@questaria.de
+    MAIL_REPLY_TO: info@questaria.de
     # Recipient of the contact form; empty = the form answers 503.
-    CONTACT_EMAIL_TO: ""
+    CONTACT_EMAIL_TO: info@questaria.de
 
     # Object storage (external S3, e.g. Hetzner Object Storage: https://fsn1.your-objectstorage.com,
     # region fsn1). Signed links contain the public endpoint; it must not be the app's origin.
+    # Without bucket and keys (GitHub secrets) the app runs and only file operations answer 503.
     STORAGE_DRIVER: s3
     STORAGE_S3_ENDPOINT: ""
     STORAGE_S3_PUBLIC_ENDPOINT: ""

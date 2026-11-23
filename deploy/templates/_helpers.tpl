@@ -35,15 +35,8 @@ https://{{ required "hosts.api is required" .Values.hosts.api }}
 
 {{- /* Environment of every process from the backend image (API, worker, jobs) */ -}}
 {{- define "app.backendEnv" -}}
-{{- $env := .Values.backend.env }}
-{{- if eq (toString $env.STORAGE_DRIVER) "s3" }}
-{{- range $key := list "STORAGE_S3_ENDPOINT" "STORAGE_S3_REGION" "STORAGE_S3_BUCKET" }}
-{{- $_ := required (printf "backend.env.%s is required with STORAGE_DRIVER=s3" $key) (get $env $key) }}
-{{- end }}
-{{- end }}
-{{- if eq (toString $env.MAIL_DRIVER) "smtp" }}
-{{- $_ := required "backend.env.MAIL_FROM_ADDRESS is required with MAIL_DRIVER=smtp" $env.MAIL_FROM_ADDRESS }}
-{{- end }}
+{{- /* Missing S3, mail or Clerk settings don't block the rollout: the app switches that part
+  off and names it at start (warning "Integration not configured"). */ -}}
 - name: NODE_ENV
   value: production
 - name: LOG_PRETTY

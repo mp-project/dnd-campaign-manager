@@ -6,6 +6,7 @@ import { getErrorReporter } from "#core/log/errorReporter";
 import { createLogger, loggerSettingsFromEnv, type AppLogger } from "#core/log/logger";
 import { installProcessErrorHandlers } from "#core/log/processErrors";
 import { reportError } from "#core/log/reportError";
+import { warnMissingIntegrations } from "#core/runtime/integrations";
 import { bootstrapS3Storage } from "#core/runtime/storageBootstrap";
 import { shutdownTelemetry } from "#core/telemetry/lifecycle";
 import {
@@ -36,7 +37,14 @@ export class BackendRuntime {
    */
   async start(): Promise<void> {
     try {
-      await bootstrapS3Storage(this.env);
+      warnMissingIntegrations(this.logger, this.env);
+
+      // An unreachable or refusing S3 affects files only; the API starts anyway.
+      await bootstrapS3Storage(this.env).catch((error: unknown) => {
+        reportError(this.logger, error, "S3 bucket bootstrap failed; files may not work", {
+          task: "startup",
+        });
+      });
 
       const previousLogLevel = this.app.log.level;
 

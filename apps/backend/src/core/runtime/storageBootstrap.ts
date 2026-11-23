@@ -1,4 +1,5 @@
 import type { AppEnv } from "#core/env";
+import { missingS3Settings } from "#core/storage/factory";
 import { ensureS3BucketAndCors } from "#core/storage/s3Storage";
 
 /**
@@ -22,7 +23,12 @@ function resolveStorageCorsOrigins(env: AppEnv): string[] {
  * @param env Validated runtime environment.
  */
 export async function bootstrapS3Storage(env: AppEnv): Promise<void> {
-  if (env.STORAGE_DRIVER !== "s3" || !env.STORAGE_S3_AUTO_BOOTSTRAP) {
+  // Missing settings are named at start (`missingIntegrations`); files then answer 503.
+  if (
+    env.STORAGE_DRIVER !== "s3" ||
+    !env.STORAGE_S3_AUTO_BOOTSTRAP ||
+    missingS3Settings(env).length > 0
+  ) {
     return;
   }
 

@@ -36,7 +36,8 @@ export type StoragePart = {
   etag: string;
 };
 
-export type StorageDriver = "s3" | "local" | "memory";
+/** `unavailable`: S3 settings are missing; every operation answers 503 (`UnavailableStorage`). */
+export type StorageDriver = "s3" | "local" | "memory" | "unavailable";
 
 export type StoragePort = {
   readonly driver: StorageDriver;

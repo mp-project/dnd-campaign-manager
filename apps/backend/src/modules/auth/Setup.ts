@@ -27,17 +27,14 @@ async function registerAuthModule(app: FastifyInstance, container: AppContainer)
 
   const config = container.config;
 
-  // Tests provide their own port; without a secret key nobody is signed in.
+  // Tests provide their own port; without a secret key nobody is signed in (named at start by
+  // `warnMissingIntegrations`).
   if (!container.ports.identityPort && config.CLERK_SECRET_KEY) {
     container.ports.identityPort = new ClerkIdentityPort({
       secretKey: config.CLERK_SECRET_KEY,
       jwtKey: config.CLERK_JWT_KEY,
       authorizedParties: splitList(config.CLERK_AUTHORIZED_PARTIES ?? config.FRONTEND_ORIGIN),
     });
-  }
-
-  if (!container.ports.identityPort) {
-    app.log.warn("CLERK_SECRET_KEY is not set; no request is signed in");
   }
 
   const accountService = new AccountService(

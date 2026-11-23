@@ -8,6 +8,7 @@ import { getErrorReporter } from "#core/log/errorReporter";
 import { createLogger, loggerSettingsFromEnv } from "#core/log/logger";
 import { installProcessErrorHandlers } from "#core/log/processErrors";
 import { reportError } from "#core/log/reportError";
+import { warnMissingIntegrations } from "#core/runtime/integrations";
 import { createStoragePortFromEnv } from "#core/storage/index";
 import { shutdownTelemetry } from "#core/telemetry/lifecycle";
 import { MediaRepository } from "#src/modules/media/domain/repository/MediaRepository";
@@ -33,6 +34,8 @@ async function runWorker(): Promise<void> {
     logger,
   );
 
+  // Without S3 no upload completes, so there is nothing to process; the worker keeps polling.
+  warnMissingIntegrations(logger, env, ["storage"]);
   logger.info("Media worker started");
 
   // A database outage fails every poll; only the first failure of a series is reported, the

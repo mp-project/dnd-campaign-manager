@@ -118,11 +118,13 @@ jobs:
             sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
 
       # Every secret of the backend in one SealedSecret "app-secrets"; only the cluster can open it,
-      # and only in mp-dnd. Empty optional secrets are left out, so the app's defaults apply.
+      # and only in mp-dnd. Missing optional secrets are left out: the app switches that part off
+      # (sign-in, files, mail …) and names it at start. Only REDIS_PASSWORD is required, because the
+      # Redis pod and the API's REDIS_URL read it.
       - name: Seal secrets
         env:
-          REQUIRED: CLERK_SECRET_KEY CLERK_WEBHOOK_SIGNING_SECRET REDIS_PASSWORD STORAGE_S3_ACCESS_KEY_ID STORAGE_S3_SECRET_ACCESS_KEY CONTACT_CHALLENGE_SECRET LOG_IP_HASH_SECRET MAIL_SMTP_USER MAIL_SMTP_PASS
-          OPTIONAL: CLERK_JWT_KEY BOOTSTRAP_MAINTAINER_EMAIL OTEL_EXPORTER_OTLP_HEADERS SENTRY_DSN
+          REQUIRED: REDIS_PASSWORD
+          OPTIONAL: CLERK_SECRET_KEY CLERK_WEBHOOK_SIGNING_SECRET CLERK_JWT_KEY BOOTSTRAP_MAINTAINER_EMAIL STORAGE_S3_ACCESS_KEY_ID STORAGE_S3_SECRET_ACCESS_KEY MAIL_SMTP_USER MAIL_SMTP_PASS CONTACT_CHALLENGE_SECRET LOG_IP_HASH_SECRET OTEL_EXPORTER_OTLP_HEADERS SENTRY_DSN
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           CLERK_WEBHOOK_SIGNING_SECRET: ${{ secrets.CLERK_WEBHOOK_SIGNING_SECRET }}
           CLERK_JWT_KEY: ${{ secrets.CLERK_JWT_KEY }}
@@ -146,22 +148,25 @@ jobs:
             fi
             args+=("--from-literal=$name=${!name}")
           done
-          # The app refuses to start otherwise; better to fail here than in a crash loop.
+          # Values that are set but malformed would stop the app; better to fail here than in a
+          # crash loop. Missing ones are only a warning.
           if [[ ! $REDIS_PASSWORD =~ ^[A-Za-z0-9]{16,}$ ]]; then
             echo "::error::REDIS_PASSWORD: at least 16 letters and digits only (it is part of REDIS_URL)"
             exit 1
           fi
-          if [ "${#CONTACT_CHALLENGE_SECRET}" -lt 32 ]; then
+          if [ -n "$CONTACT_CHALLENGE_SECRET" ] && [ "${#CONTACT_CHALLENGE_SECRET}" -lt 32 ]; then
             echo "::error::CONTACT_CHALLENGE_SECRET needs at least 32 characters"
             exit 1
           fi
-          if [ "${#LOG_IP_HASH_SECRET}" -lt 16 ]; then
+          if [ -n "$LOG_IP_HASH_SECRET" ] && [ "${#LOG_IP_HASH_SECRET}" -lt 16 ]; then
             echo "::error::LOG_IP_HASH_SECRET needs at least 16 characters"
             exit 1
           fi
           for name in $OPTIONAL; do
             if [ -n "${!name}" ]; then
               args+=("--from-literal=$name=${!name}")
+            else
+              echo "::warning::GitHub secret $name is not set (see the app's start-up warnings for what stays off)"
             fi
           done
           curl -sSfL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz" | tar -xz kubeseal
@@ -170,7 +175,7 @@ jobs:
             > "$RUNNER_TEMP/sealed-secret.yaml"
           # Changes exactly when a value changes (the sealed file differs on every run). Keyed with a
           # secret, so the committed value reveals nothing about short secrets.
-          printf '%s\0' "${args[@]}" | openssl dgst -sha256 -hmac "$LOG_IP_HASH_SECRET" -r | cut -c1-16 \
+          printf '%s\0' "${args[@]}" | openssl dgst -sha256 -hmac "$REDIS_PASSWORD" -r | cut -c1-16 \
             > "$RUNNER_TEMP/secrets-checksum"
 
       - name: Write image tag and commit

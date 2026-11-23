@@ -10,4 +10,5 @@ export * from "#core/storage/localStorage";
 export * from "#core/storage/mime";
 export * from "#core/storage/port";
 export * from "#core/storage/s3Storage";
+export * from "#core/storage/unavailableStorage";
 export * from "#core/storage/uploadInspector";

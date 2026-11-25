@@ -13,6 +13,7 @@ import {
   AccountRepository,
   type AccountRow,
 } from "#src/modules/auth/domain/repository/AccountRepository";
+import type { AccountCache } from "#src/modules/auth/service/AccountCache";
 import { generateUniqueUserTag, usernameFromDisplayName } from "#src/modules/auth/service/UserTag";
 import {
   UserBaseSchema,
@@ -58,6 +59,7 @@ export class AccountService implements AccountPort {
     private readonly transactionManager: TransactionManager,
     private readonly repository: AccountRepository,
     private readonly identityPort: IdentityPort | undefined,
+    private readonly cache: AccountCache,
     private readonly options: { bootstrapMaintainerEmail: string | undefined },
   ) {}
 
@@ -65,19 +67,32 @@ export class AccountService implements AccountPort {
   private readonly refusedUntil = new Map<string, number>();
 
   /**
-   * One query for a known account. On the first request of a new identity the account is created
-   * (or a local account with the same verified address and no identity yet is linked), because the
-   * webhook arrives late or, locally, not at all.
+   * A known account comes from the cache, else with one query. On the first request of a new
+   * identity the account is created (or a local account with the same verified address and no
+   * identity yet is linked), because the webhook arrives late or, locally, not at all. Identities
+   * without an account are not cached, so the next request can still create it.
    */
   async resolveActor(identity: ExternalIdentity): Promise<ResolvedActor | null> {
+    const cached = await this.cache.get(identity.externalUserId);
+
+    if (cached) {
+      return cached.status === "ACTIVE"
+        ? { actorId: cached.userId, systemRole: cached.systemRole }
+        : null;
+    }
+
     const known = await this.repository.findByClerkUserId(this.db, identity.externalUserId);
     const account = known ?? (await this.provisionUnlessRefused(identity.externalUserId));
 
-    if (!account || account.status !== "ACTIVE") {
+    if (!account) {
       return null;
     }
 
-    return { actorId: account.id, systemRole: account.systemRole };
+    await this.cache.set(identity.externalUserId, account);
+
+    return account.status === "ACTIVE"
+      ? { actorId: account.id, systemRole: account.systemRole }
+      : null;
   }
 
   /**
@@ -148,6 +163,7 @@ export class AccountService implements AccountPort {
     }
 
     await this.repository.update(this.db, known.id, { status: "DISABLED", clerkUserId: null });
+    await this.cache.invalidate(known.id);
     recordChange({
       action: "auth.deleteAccount",
       entities: [{ entityType: "user", entityId: known.id, fields: ["status", "clerkUserId"] }],

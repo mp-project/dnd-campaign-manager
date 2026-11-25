@@ -3,6 +3,7 @@ import type { InjectOptions, Response as InjectResponse } from "light-my-request
 import { buildApp } from "#src/app";
 import type { AppModule } from "#core/app/moduleSystem";
 import type { AppPublicPorts } from "#core/app/container";
+import { MemoryCacheStore } from "#core/cache/memoryCacheStore";
 import type { AppEnv } from "#core/env";
 import type { AppLogger } from "#core/log/logger";
 import type { Redis } from "#core/redis/client";
@@ -34,6 +35,20 @@ export type BuildTestAppOptions = {
 };
 
 export type TestInjectRequest = InjectOptions;
+
+/** The caches of the apps built in this test file; emptied with the database before every test. */
+const testCacheStores = new Set<MemoryCacheStore>();
+
+/**
+ * Empties every per-process cache of an app built with `buildTestApp`, so no entry of a row from
+ * an earlier test survives the database reset (`tests/setup/integration.ts`). A test with Redis
+ * empties it with `createTestRedis`.
+ */
+export function clearTestCaches(): void {
+  for (const store of testCacheStores) {
+    store.clear();
+  }
+}
 
 function createDefaultTestPorts(
   identity: FakeIdentityPort,
@@ -72,6 +87,13 @@ export function buildTestApp(options: BuildTestAppOptions = {}) {
     ...createDefaultTestPorts(identity, actorRoles),
     ...(options.publicPorts ?? {}),
   };
+
+  if (!publicPorts.cacheStore && !options.redis) {
+    const cacheStore = new MemoryCacheStore();
+
+    testCacheStores.add(cacheStore);
+    publicPorts.cacheStore = cacheStore;
+  }
 
   if (options.realAccounts) {
     // The auth module then installs the production account service.

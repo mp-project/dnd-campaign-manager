@@ -20,6 +20,18 @@ async function rebuildTestDatabaseSchema(): Promise<void> {
 
   await runDatabaseMigrations(db);
   await resetTestDatabase(pool, databaseUrl);
+  await useCollisionFreeUserTagDefault();
+}
+
+// The column default draws a random six-digit tag, which the app never relies on
+// (`generateUniqueUserTag` checks for duplicates). Tests insert users without a tag
+// thousands of times per run, so random tags occasionally collide on the unique index
+// and fail a test at random. A sequence keeps the format and never repeats.
+async function useCollisionFreeUserTagDefault(): Promise<void> {
+  await pool.query("CREATE SEQUENCE test_user_tag_seq START 900000 MAXVALUE 999999");
+  await pool.query(
+    `ALTER TABLE users ALTER COLUMN user_tag SET DEFAULT ('player#' || nextval('test_user_tag_seq')::text)`,
+  );
 }
 
 // Rerunning all migrations can take longer than Jest's default 5 s on a freshly started database.

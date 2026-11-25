@@ -4,11 +4,9 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "drizzle-kit";
 
 const backendRootDir = path.dirname(fileURLToPath(import.meta.url));
-const workspaceRootDir = path.resolve(backendRootDir, "../..");
 
 loadEnv({ path: path.join(backendRootDir, ".env"), quiet: true });
 loadEnv({ path: path.join(backendRootDir, ".env.local"), quiet: true });
-loadEnv({ path: path.join(workspaceRootDir, ".env"), quiet: true });
 
 export default defineConfig({
   dialect: "postgresql",

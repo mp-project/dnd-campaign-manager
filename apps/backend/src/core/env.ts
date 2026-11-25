@@ -7,11 +7,9 @@ const backendRootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const workspaceRootDir = path.resolve(backendRootDir, "../..");
 
 loadEnv({ path: path.join(backendRootDir, ".env"), quiet: true });
 loadEnv({ path: path.join(backendRootDir, ".env.local"), quiet: true });
-loadEnv({ path: path.join(workspaceRootDir, ".env"), quiet: true });
 
 const positiveInt = z.coerce.number().int().positive();
 const booleanFromEnv = z.preprocess((value) => {

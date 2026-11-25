@@ -10,10 +10,10 @@
 .gitignore
 .DS_Store
 
-# Environment and secrets
-.env
-.env.*
-!.env.example
+# Environment and secrets (the apps' own files too: `COPY . .` would put them into the build stages)
+**/.env
+**/.env.*
+!**/.env.example
 
 # Caches and misc
 **/.turbo

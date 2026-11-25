@@ -7,13 +7,13 @@ Campaign manager for D&D 5E (Node web app, repository `dnd-campaign-manager`).
 - apps/backend: Fastify API, own env and Dockerfile
 - apps/frontend: Vue app, own env and Dockerfile
 - packages/test-utils: shared test helpers
-- root: workspace orchestration, shared compose settings
+- root: workspace orchestration, compose stack
 
 ## Environment Files
 
-- Root shared compose values: .env (from .env.example)
-- Backend app values: apps/backend/.env (from apps/backend/.env.example)
-- Frontend app values: apps/frontend/.env (from apps/frontend/.env.example)
+- Backend app values: apps/backend/.env (from apps/backend/.env.example), including the section "Docker Compose" (passwords, APP_ENV, ports)
+- Frontend app values: apps/frontend/.env (from apps/frontend/.env.example), also the build values of the compose frontend
+- There is no root .env: run compose through `npm run compose -- …`, which reads both files
 
 ### Environment Overlay (Compose)
 
@@ -25,7 +25,9 @@ Campaign manager for D&D 5E (Node web app, repository `dnd-campaign-manager`).
 
 ## Local Development
 
-- Start backend + frontend together from root:
+- Start everything (compose services if not running yet, migrations, backend + worker + frontend + demo):
+	- npm run dev:all
+- Start backend + frontend together from root (services already running):
 	- npm run dev
 - Backend local URL output appears as:
 	- REST-API: http://api.localhost:3000/api/v1 (OK)
@@ -35,9 +37,9 @@ Campaign manager for D&D 5E (Node web app, repository `dnd-campaign-manager`).
 ## Docker Orchestration
 
 - Start full stack from root:
-	- docker compose up --build
+	- npm run compose -- up --build
 - Start local development helpers (RustFS, Mailpit, Adminer):
-	- docker compose --profile development up --build
+	- npm run compose -- --profile development up --build
 - Services in compose:
 	- backend API container (intern, Port BACKEND_PORT)
 	- frontend static container (intern, Port 80)
@@ -52,7 +54,7 @@ Campaign manager for D&D 5E (Node web app, repository `dnd-campaign-manager`).
 - URL:
 	- http://127.0.0.1:${DB_DASHBOARD_PORT}
 - Start (if stack is not already running):
-	- docker compose --profile development up -d db adminer
+	- npm run compose -- --profile development up -d db adminer
 - Login values in Adminer:
 	- System: PostgreSQL
 	- Server: db
@@ -75,4 +77,4 @@ Campaign manager for D&D 5E (Node web app, repository `dnd-campaign-manager`).
 - Mailpit inbox UI:
 	- http://localhost:${MAILPIT_UI_PORT}
 - Start only local mail tooling:
-	- docker compose --profile development up -d mailpit
+	- npm run compose -- --profile development up -d mailpit

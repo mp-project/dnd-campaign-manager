@@ -6,6 +6,7 @@ import {
   createTransactionManager,
 } from "#core/db/pool";
 import { entityChangeEvents, rulesets } from "#core/db/schema";
+import { InProcessEventBus } from "#core/events/EventBus";
 import { HistoryRepository } from "#src/modules/history/domain/repository/HistoryRepository";
 import { HistoryService } from "#src/modules/history/service/HistoryService";
 import { trackedRuleset } from "#src/modules/ruleset/history/TrackedRuleset";
@@ -36,6 +37,7 @@ describe("ruleset service transactions", () => {
     transactionManager,
     new HistoryRepository(),
     silentLogger(),
+    new InProcessEventBus(),
   );
 
   history.register(trackedRuleset);

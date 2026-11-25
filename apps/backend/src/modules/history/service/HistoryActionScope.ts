@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
+
 import { getTableColumns } from "drizzle-orm";
 
 import { toAuditActorId } from "#core/db/auditActor";
 import type { AppDatabase } from "#core/db/pool";
+import { assertEventName, type DomainEvent, type EmittedEvent } from "#core/events/DomainEvent";
 import { NotFoundError, ValidationError, VersionConflictError } from "#core/error/http/index";
 import {
   ACCOUNT_HISTORY_LIMIT,
@@ -86,6 +89,8 @@ export class HistoryActionScope implements ActionScope {
   readonly values = new Map<string, Record<string, unknown>>();
   /** Every row the action created or changed, for the verifiers at its end. */
   readonly touched: TouchedEntity[] = [];
+  /** Events of `emit`, published after the commit. */
+  readonly domainEvents: DomainEvent[] = [];
 
   constructor(
     readonly tx: AppDatabase,
@@ -212,6 +217,19 @@ export class HistoryActionScope implements ActionScope {
     build: (current: T["$inferSelect"]) => EntityChangeInput | Promise<EntityChangeInput>,
   ): Promise<ChangeResult<T["$inferSelect"]>> {
     return this.changeInternal(entity, id, build, {});
+  }
+
+  emit(event: EmittedEvent): void {
+    assertEventName(event.name);
+
+    this.domainEvents.push({
+      id: randomUUID(),
+      name: event.name,
+      occurredAt: new Date(),
+      campaignId: event.campaignId,
+      actorId: this.actorId,
+      payload: event.payload,
+    });
   }
 
   async softDelete<T extends TrackedTable>(

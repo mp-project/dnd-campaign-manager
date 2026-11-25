@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
+import { InvalidateFeatureResolutionsHandler } from "#src/modules/features/events/InvalidateFeatureResolutionsHandler";
 import {
   ASSET_LINKS_MODULE_DEPENDENCIES,
   type AssetLinksModuleDependencies,
@@ -108,8 +109,7 @@ async function registerFeaturesModule(
   );
 
   history.register(service.trackedFeature);
-  // Cached resolutions of a changed feature are no longer needed.
-  history.subscribe("*", (event) => service.onHistoryEvent(event));
+  container.ports.eventBus.register(new InvalidateFeatureResolutionsHandler(service.cache));
   // Custom features reach players through a release, not through content shares.
   assetsService.registerContentType({
     assetType: "FEATURE",

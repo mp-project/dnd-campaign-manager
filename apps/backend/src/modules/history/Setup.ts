@@ -31,6 +31,7 @@ async function registerHistoryModule(
     container.transactionManager,
     new HistoryRepository(),
     app.log,
+    container.ports.eventBus,
   );
 
   container.ports.history = service;

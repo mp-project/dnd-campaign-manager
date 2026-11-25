@@ -1,6 +1,7 @@
 import type { AnyPgColumn, AnyPgTable } from "drizzle-orm/pg-core";
 
 import type { AppDatabase } from "#core/db/pool";
+import type { DomainEvent, EmittedEvent } from "#core/events/DomainEvent";
 import type { Authorization } from "#core/history/authorization";
 import type { RequestContext } from "#core/http/requestContext";
 
@@ -203,6 +204,11 @@ export type ActionScope = {
     entity: TrackedEntity<T>,
     id: string,
   ): Promise<T["$inferSelect"]>;
+  /**
+   * A domain event of this action, published after the commit together with the history events
+   * (`history.<entityType>.changed`). A rolled back action publishes nothing.
+   */
+  emit(event: EmittedEvent): void;
 };
 
 export type ActionMeta<R> = {
@@ -237,13 +243,19 @@ export type HistoryEvent = {
   publicReason?: string;
 };
 
-export type HistoryEventHandler = (event: HistoryEvent) => void | Promise<void>;
-
 /**
  * The new values of each event (by `eventId`), only for the `change` log line: kept apart from the
  * events, which go to handlers and must not carry values. Account and secret fields are left out.
  */
 export type HistoryEventValues = ReadonlyMap<string, Readonly<Record<string, unknown>>>;
+
+/** What a committed action hands to `publish`. */
+export type ActionOutcome = {
+  events: readonly HistoryEvent[];
+  values?: HistoryEventValues;
+  /** Emitted through `scope.emit`. */
+  domainEvents?: readonly DomainEvent[];
+};
 
 export type FieldChangeItem = {
   seq: number;
@@ -325,15 +337,18 @@ export type HistoryPort = {
   registerVerifier(verifier: ActionVerifier): void;
   /** Everything registered so far, so tests can check that nothing is forgotten. */
   listEntities(): readonly TrackedEntity[];
-  subscribe(pattern: string, handler: HistoryEventHandler): void;
   runAction<R>(meta: ActionMeta<R>, work: (scope: ActionScope) => Promise<R>): Promise<R>;
   /** For modules that already hold a transaction; call `publish` after their commit. */
   runActionInTransaction<R>(
     tx: AppDatabase,
     meta: ActionMeta<R>,
     work: (scope: ActionScope) => Promise<R>,
-  ): Promise<{ result: R; events: HistoryEvent[]; values?: HistoryEventValues }>;
-  publish(events: readonly HistoryEvent[], values?: HistoryEventValues): Promise<void>;
+  ): Promise<{ result: R } & ActionOutcome>;
+  /**
+   * After the commit: writes the `change` lines and hands the history events (as
+   * `history.<entityType>.changed`) and the emitted events to the event bus.
+   */
+  publish(outcome: ActionOutcome): Promise<void>;
   listFieldChanges(
     context: RequestContext,
     params: ListFieldChangesParams,

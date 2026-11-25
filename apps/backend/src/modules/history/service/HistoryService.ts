@@ -3,6 +3,9 @@ import { randomUUID } from "node:crypto";
 import type { FastifyBaseLogger } from "fastify";
 
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { DomainEvent } from "#core/events/DomainEvent";
+import type { EventBus } from "#core/events/EventBus";
+import { toHistoryChangedEvent } from "#core/history/events";
 import { authorized, isAuthorization } from "#core/history/authorization";
 import { uuidDto } from "#core/http/dto";
 import {
@@ -14,10 +17,10 @@ import {
 } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { auditHistoryEvents } from "#core/log/auditLog";
-import { reportError } from "#core/log/reportError";
 import {
   VALUE_KINDS,
   type ActionMeta,
+  type ActionOutcome,
   type ActionScope,
   type ActionVerifier,
   type EntityVersionView,
@@ -25,7 +28,6 @@ import {
   type FieldChangePage,
   type GetEntityVersionParams,
   type HistoryEvent,
-  type HistoryEventHandler,
   type HistoryEventValues,
   type HistoryPort,
   type ListFieldChangesParams,
@@ -52,7 +54,6 @@ const NOT_FOUND_MESSAGE = "Resource not found";
 
 export class HistoryService implements HistoryPort {
   private readonly entities = new Map<string, TrackedEntity>();
-  private readonly subscribers: { pattern: string; handler: HistoryEventHandler }[] = [];
   private readonly verifiers: ActionVerifier[] = [];
 
   constructor(
@@ -60,6 +61,7 @@ export class HistoryService implements HistoryPort {
     public readonly transactionManager: TransactionManager,
     public readonly repository: HistoryRepository,
     private readonly logger: FastifyBaseLogger,
+    private readonly eventBus: EventBus,
   ) {}
 
   register<T extends TrackedTable>(entity: TrackedEntity<T>): void {
@@ -105,19 +107,15 @@ export class HistoryService implements HistoryPort {
     this.verifiers.push(verifier);
   }
 
-  subscribe(pattern: string, handler: HistoryEventHandler): void {
-    this.subscribers.push({ pattern, handler });
-  }
-
   async runAction<R>(
     meta: ActionMeta<R>,
     work: (scope: ActionScope) => Promise<R>,
   ): Promise<R> {
-    const { result, events, values } = await this.transactionManager.inTransaction((tx) =>
+    const { result, ...outcome } = await this.transactionManager.inTransaction((tx) =>
       this.runActionInTransaction(tx, meta, work),
     );
 
-    await this.publish(events, values);
+    await this.publish(outcome);
 
     return result;
   }
@@ -126,7 +124,7 @@ export class HistoryService implements HistoryPort {
     tx: AppDatabase,
     meta: ActionMeta<R>,
     work: (scope: ActionScope) => Promise<R>,
-  ): Promise<{ result: R; events: HistoryEvent[]; values?: HistoryEventValues }> {
+  ): Promise<{ result: R } & ActionOutcome> {
     return this.runInScope(tx, meta, (scope) => work(scope));
   }
 
@@ -134,7 +132,12 @@ export class HistoryService implements HistoryPort {
     tx: AppDatabase,
     meta: ActionMeta<R>,
     work: (scope: HistoryActionScope) => Promise<R>,
-  ): Promise<{ result: R; events: HistoryEvent[]; values: HistoryEventValues }> {
+  ): Promise<{
+    result: R;
+    events: HistoryEvent[];
+    values: HistoryEventValues;
+    domainEvents: DomainEvent[];
+  }> {
     const { actorId } = meta.context;
 
     if (actorId !== null && !uuidDto.safeParse(actorId).success) {
@@ -157,7 +160,12 @@ export class HistoryService implements HistoryPort {
       });
 
       if (earlier) {
-        return { result: await meta.idempotency.onReplay(earlier), events: [], values: new Map() };
+        return {
+          result: await meta.idempotency.onReplay(earlier),
+          events: [],
+          values: new Map(),
+          domainEvents: [],
+        };
       }
     }
 
@@ -176,36 +184,23 @@ export class HistoryService implements HistoryPort {
     return {
       result,
       values: scope.values,
+      domainEvents: scope.domainEvents,
       events: publicReason
         ? scope.events.map((event) => ({ ...event, publicReason }))
         : scope.events,
     };
   }
 
-  /**
-   * After the commit: writes the `change` lines and runs the handlers. A failing handler is
-   * reported and cannot undo the change.
-   */
-  async publish(events: readonly HistoryEvent[], values?: HistoryEventValues): Promise<void> {
+  /** See `HistoryPort.publish`; handlers can't undo the change. */
+  async publish({ events, values, domainEvents = [] }: ActionOutcome): Promise<void> {
     auditHistoryEvents(this.logger, events, values);
 
-    for (const event of events) {
-      for (const { pattern, handler } of this.subscribers) {
-        if (pattern !== "*" && pattern !== event.action) {
-          continue;
-        }
+    const occurredAt = new Date();
 
-        try {
-          await handler(event);
-        } catch (error) {
-          // A handler only follows up on a committed change; the others still run.
-          reportError(this.logger, error, "History event handler failed", {
-            task: "history.handler",
-            action: event.action,
-          });
-        }
-      }
-    }
+    await this.eventBus.publish([
+      ...events.map((event) => toHistoryChangedEvent(event, occurredAt)),
+      ...domainEvents,
+    ]);
   }
 
   /** Unknown types, deleted rows and rows the actor may not see give the same answer. */
@@ -408,7 +403,7 @@ export class HistoryService implements HistoryPort {
     reason: string | null,
     work: (scope: HistoryActionScope) => Promise<void>,
   ): Promise<{ actionId: string }> {
-    const { result, events } = await withOldValueConflicts(() =>
+    const { result, ...outcome } = await withOldValueConflicts(() =>
       this.transactionManager.inTransaction((tx) =>
         this.runInScope(
           tx,
@@ -422,7 +417,7 @@ export class HistoryService implements HistoryPort {
       ),
     );
 
-    await this.publish(events);
+    await this.publish(outcome);
 
     return result;
   }
@@ -553,7 +548,7 @@ export class HistoryService implements HistoryPort {
   ): Promise<{ actionId: string }> {
     const { entity } = await this.loadReadable(context, params.entityType, params.entityId);
 
-    const { result, events } = await withOldValueConflicts(() =>
+    const { result, ...outcome } = await withOldValueConflicts(() =>
       this.transactionManager.inTransaction((tx) =>
         this.runInScope(
           tx,
@@ -596,7 +591,7 @@ export class HistoryService implements HistoryPort {
       ),
     );
 
-    await this.publish(events);
+    await this.publish(outcome);
 
     return result;
   }

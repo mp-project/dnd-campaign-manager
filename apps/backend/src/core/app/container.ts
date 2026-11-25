@@ -26,6 +26,8 @@ import {
 import { createEmailPortFromEnv, type EmailPort } from "#core/email/index";
 import { createCacheStore, type CacheStore } from "#core/cache/index";
 import type { Redis } from "#core/redis/client";
+import { InProcessEventBus, type EventBus } from "#core/events/EventBus";
+import type { FastifyBaseLogger } from "fastify";
 
 export type CampaignAccessFacts = {
   campaignId: string;
@@ -62,6 +64,8 @@ export type AppPublicPorts = {
   accountPort?: AccountPort;
   /** Unexpected errors besides the log; the one installed for the process unless provided. */
   errorReporter?: ErrorReporter;
+  /** Domain events after the commit, in this process; see `#core/events`. */
+  eventBus?: EventBus;
 };
 
 export type DependencyRegistry = {
@@ -75,7 +79,8 @@ export type AppContainer = {
   pool: Pool;
   db: AppDatabase;
   transactionManager: TransactionManager;
-  ports: AppPublicPorts;
+  /** `eventBus` is always set: overrides replace it, but can't leave it out. */
+  ports: AppPublicPorts & { eventBus: EventBus };
   dependencies: DependencyRegistry;
 };
 
@@ -84,6 +89,8 @@ type CreateAppContainerParams = {
   pool: Pool;
   /** The app's Redis client; without it the ports that would use it work per process. */
   redis?: Redis;
+  /** For errors of event handlers; without it they go to the log of the current request. */
+  logger?: FastifyBaseLogger;
   publicPorts?: AppPublicPorts;
 };
 
@@ -130,6 +137,8 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
     params.publicPorts?.emailPort ?? createEmailPortFromEnv(params.config);
   const errorReporter = params.publicPorts?.errorReporter ?? getErrorReporter();
   const cacheStore = params.publicPorts?.cacheStore ?? createCacheStore(params.redis);
+  const eventBus =
+    params.publicPorts?.eventBus ?? new InProcessEventBus(params.logger, errorReporter);
 
   return {
     config: params.config,
@@ -145,6 +154,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
       emailPort,
       errorReporter,
       cacheStore,
+      eventBus,
     },
   };
 }

@@ -99,6 +99,40 @@ describe("audit log of committed changes", () => {
     });
   });
 
+  it("writes the restored values when a change is undone", async () => {
+    const created = (await createCampaign("schatten-undo")).json() as { id: string; version: number };
+    const renamed = await session.injectAs(OWNER, {
+      method: "PATCH",
+      url: `/api/v1/campaigns/${created.id}`,
+      payload: { expectedVersion: created.version, name: "Neuer Name" },
+    });
+
+    expect(renamed.statusCode).toBe(200);
+
+    const history = await session.injectAs(OWNER, {
+      method: "GET",
+      url: `/api/v1/history/campaign/${created.id}?field=name`,
+    });
+    const [latest] = history.json().data as { eventId: string; value: unknown }[];
+
+    expect(latest?.value).toBe("Neuer Name");
+
+    const undone = await session.injectAs(OWNER, {
+      method: "POST",
+      url: `/api/v1/history/events/${latest?.eventId}/revert`,
+      payload: {},
+    });
+
+    expect(undone.statusCode).toBeLessThan(300);
+
+    const undoLine = logs.find("change").find((line) => line.action === "history.revert");
+    const entities = undoLine?.entities as { entityType: string; values?: Record<string, unknown> }[];
+
+    expect(entities.find((entity) => entity.entityType === "campaign")?.values).toMatchObject({
+      name: "Die Schatten von Elaria",
+    });
+  });
+
   it("leaves the values out when LOG_CHANGE_VALUES is off", async () => {
     await useApp(false);
 

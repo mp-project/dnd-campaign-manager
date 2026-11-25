@@ -10,6 +10,11 @@ const transform = {
         target: "es2022",
         parser: {
           syntax: "typescript",
+          decorators: true,
+        },
+        // TypeScript standard decorators (TC39), like tsc and tsx, not the legacy experimental ones.
+        transform: {
+          decoratorVersion: "2022-03",
         },
       },
     },

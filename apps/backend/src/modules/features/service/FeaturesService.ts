@@ -3,7 +3,7 @@ import { campaignRoleOf } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError, ValidationError } from "#core/error/http/index";
-import type { ActionScope, HistoryEvent } from "#core/history/types";
+import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { UUID_PATTERN } from "#core/uuid";
 import { warnFallback } from "#core/log/warnFallback";
@@ -43,7 +43,6 @@ import type {
 } from "#src/modules/features/domain/repository/FeaturesRepository";
 import {
   createTrackedFeature,
-  FEATURE_ENTITY_TYPE,
   parseFeatureGraph,
   type TrackedFeature,
 } from "#src/modules/features/history/TrackedFeature";
@@ -848,12 +847,6 @@ export class FeaturesService {
     );
   }
 
-  /** Drops cached results after a change of a feature or its asset. */
-  onHistoryEvent(event: HistoryEvent): void {
-    if (event.entityType === FEATURE_ENTITY_TYPE || event.entityType === "asset") {
-      this.cache.invalidate(event.entityId);
-    }
-  }
 
   private async checkAssetSelections(
     graph: FeatureGraph,

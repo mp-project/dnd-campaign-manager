@@ -7,12 +7,16 @@ import { campaignMemberships, campaigns, entityChangeEvents, entityChangeFields,
 import { createDrizzleDb, createPgPool, type AppDatabase } from "#core/db/pool";
 import { baseColumns } from "#core/db/schemaHelpers";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError, VersionConflictError } from "#core/error/http/index";
+import { AbstractEventHandler } from "#core/events/AbstractEventHandler";
+import type { DomainEvent } from "#core/events/DomainEvent";
+import { EventHandler } from "#core/events/EventHandler";
 import { authorized } from "#core/history/authorization";
 import { campaignHistoryAccess } from "#core/history/campaignHistoryAccess";
 import type { CampaignRole } from "#core/http/requestContext";
 import { MutationUseCase } from "#core/history/MutationUseCase";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
-import type { ActionScope, HistoryEvent, HistoryPort } from "#core/history/types";
+import type { HistoryChangedEvent } from "#core/history/events";
+import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { defaultAppModules } from "#src/modules/index";
 import { buildTestApp, type TestActor } from "#test/helpers/buildTestApp";
@@ -179,6 +183,15 @@ const trackedReadOnly = defineTrackedEntity({
 });
 
 let history: HistoryPort;
+/** Set by a test right before the action it watches. */
+let probeListener: ((event: DomainEvent) => void | Promise<void>) | null = null;
+
+@EventHandler("history.probe.changed", "probe.item.named")
+class ProbeEventHandler extends AbstractEventHandler {
+  async handle(event: DomainEvent): Promise<void> {
+    await probeListener?.(event);
+  }
+}
 
 const allow = async () => authorized();
 
@@ -190,6 +203,7 @@ const testEntitiesModule: AppModule = {
     history.register(trackedItem);
     history.register(trackedChild);
     history.register(trackedReadOnly);
+    container.ports.eventBus.register(new ProbeEventHandler());
   },
 };
 
@@ -249,6 +263,7 @@ describe("history module", () => {
   });
 
   beforeEach(async () => {
+    probeListener = null;
     await pool.query(CREATE_TEST_TABLES);
 
     await db.insert(rulesets).values({
@@ -923,44 +938,85 @@ describe("history module", () => {
     });
 
     describe("events", () => {
-      it("publishes after the commit, without values", async () => {
-        const seen: HistoryEvent[] = [];
+      it("publishes each change as history.<type>.changed after the commit, without values", async () => {
+        const seen: HistoryChangedEvent[] = [];
         let committed = false;
+        const item = await createItem();
 
-        history.subscribe("probe.named", async (event) => {
-          const [row] = await db.select().from(items).where(eq(items.id, event.entityId));
+        probeListener = async (event) => {
+          const changed = event as HistoryChangedEvent;
+          const [row] = await db.select().from(items).where(eq(items.id, changed.payload.entityId));
 
           committed = row?.name === "Secret name";
-          seen.push(event);
-        });
-
-        const item = await createItem();
+          seen.push(changed);
+        };
 
         await updateItem(item.id, { set: { name: "Secret name" } }, GM, "probe.named");
 
         expect(committed).toBe(true);
         expect(seen).toHaveLength(1);
-        expect(seen[0]).toMatchObject({ entityId: item.id, fields: ["name"], actorId: ID.gm });
+        expect(seen[0]).toMatchObject({
+          name: "history.probe.changed",
+          campaignId: ID.campaignA,
+          actorId: ID.gm,
+          payload: { action: "probe.named", entityId: item.id, fields: ["name"], actorId: ID.gm },
+        });
+        expect(seen[0]?.id).toBe(seen[0]?.payload.eventId);
         expect(JSON.stringify(seen[0])).not.toContain("Secret name");
       });
 
-      it("publishes nothing after a rollback", async () => {
-        const seen: HistoryEvent[] = [];
+      it("publishes emitted events after the history events of the action", async () => {
+        const seen: DomainEvent[] = [];
+        const item = await createItem();
 
-        history.subscribe("probe.rollback", (event) => {
+        probeListener = (event) => {
           seen.push(event);
+        };
+
+        await history.runAction({ action: "probe.rename", context: GM, authorize: allow }, async (scope) => {
+          await scope.change(trackedItem, item.id, () => ({ set: { name: "Boss" } }));
+          scope.emit({ name: "probe.item.named", campaignId: ID.campaignA, payload: { itemId: item.id } });
         });
 
+        expect(seen.map((event) => event.name)).toEqual(["history.probe.changed", "probe.item.named"]);
+        expect(seen[1]).toMatchObject({
+          campaignId: ID.campaignA,
+          actorId: ID.gm,
+          payload: { itemId: item.id },
+        });
+        expect(seen[1]?.occurredAt).toBeInstanceOf(Date);
+      });
+
+      it("publishes nothing after a rollback", async () => {
+        const seen: DomainEvent[] = [];
         const item = await createItem();
+
+        probeListener = (event) => {
+          seen.push(event);
+        };
 
         await expect(
           history.runAction({ action: "probe.rollback", context: GM, authorize: allow }, async (scope) => {
             await scope.change(trackedItem, item.id, () => ({ set: { name: "Boss" } }));
+            scope.emit({ name: "probe.item.named", campaignId: ID.campaignA, payload: { itemId: item.id } });
             throw new ConflictError("failed");
           }),
         ).rejects.toBeInstanceOf(ConflictError);
 
         expect(seen).toEqual([]);
+        expect((await currentItem(item.id)).name).toBe("Goblin");
+      });
+
+      it("refuses an emitted event with an invalid name and rolls the action back", async () => {
+        const item = await createItem();
+
+        await expect(
+          history.runAction({ action: "probe.badname", context: GM, authorize: allow }, async (scope) => {
+            await scope.change(trackedItem, item.id, () => ({ set: { name: "Boss" } }));
+            scope.emit({ name: "renamed", campaignId: ID.campaignA, payload: {} });
+          }),
+        ).rejects.toThrow(/Invalid event name 'renamed'/);
+
         expect((await currentItem(item.id)).name).toBe("Goblin");
       });
     });

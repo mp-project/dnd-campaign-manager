@@ -94,6 +94,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   const container = createAppContainer({
     config: env,
     pool,
+    logger: logger as FastifyBaseLogger,
     ...(redis ? { redis } : {}),
     ...(options.publicPorts ? { publicPorts: options.publicPorts } : {}),
   });

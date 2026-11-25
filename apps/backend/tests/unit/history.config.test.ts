@@ -2,7 +2,11 @@ import { integer, pgTable, text } from "drizzle-orm/pg-core";
 
 import { baseColumns } from "#core/db/schemaHelpers";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import { AbstractEventHandler } from "#core/events/AbstractEventHandler";
+import { EventHandler } from "#core/events/EventHandler";
+import { InProcessEventBus } from "#core/events/EventBus";
 import { defineTrackedEntity, field } from "#core/history/defineTrackedEntity";
+import type { HistoryChangedEvent } from "#core/history/events";
 import { DEFAULT_HISTORY_LIMIT, HISTORY_LIMITS, type TrackedEntity } from "#core/history/types";
 import { HistoryRepository } from "#src/modules/history/domain/repository/HistoryRepository";
 import { HistoryService } from "#src/modules/history/service/HistoryService";
@@ -27,14 +31,17 @@ function buildEntity(type = "item") {
 
 function buildService() {
   const logs = captureLogs();
+  const bus = new InProcessEventBus(logs.logger);
 
   return {
     logs,
+    bus,
     service: new HistoryService(
       {} as AppDatabase,
       {} as TransactionManager,
       new HistoryRepository(),
       logs.logger,
+      bus,
     ),
   };
 }
@@ -90,30 +97,42 @@ describe("history configuration", () => {
     expect(() => buildService().service.register(unknown)).toThrow(/unknown fields \[ghost\]/);
   });
 
-  it("does not let a failing event handler undo a change", async () => {
-    const { service, logs } = buildService();
-    const after = jest.fn();
+  it("hands each history event to the bus as history.<type>.changed", async () => {
+    const { service, bus } = buildService();
+    const seen: HistoryChangedEvent[] = [];
 
-    service.subscribe("*", () => {
-      throw new Error("handler failed");
-    });
-    service.subscribe("item.update", after);
+    @EventHandler("history.item.changed")
+    class Probe extends AbstractEventHandler<HistoryChangedEvent> {
+      async handle(event: HistoryChangedEvent) {
+        seen.push(event);
+      }
+    }
 
-    await service.publish([
+    bus.register(new Probe());
+
+    const event = {
+      eventId: "e",
+      actionId: "a",
+      action: "item.update",
+      entityType: "item",
+      entityId: "i",
+      entityVersion: 2,
+      campaignId: "c",
+      actorId: "u",
+      fields: ["name"],
+    };
+
+    await service.publish({ events: [event] });
+
+    expect(seen).toEqual([
       {
-        eventId: "e",
-        actionId: "a",
-        action: "item.update",
-        entityType: "item",
-        entityId: "i",
-        entityVersion: 2,
-        campaignId: null,
-        actorId: null,
-        fields: ["name"],
+        id: "e",
+        name: "history.item.changed",
+        occurredAt: expect.any(Date),
+        campaignId: "c",
+        actorId: "u",
+        payload: event,
       },
     ]);
-
-    expect(logs.find("History event handler failed")).toHaveLength(1);
-    expect(after).toHaveBeenCalledTimes(1);
   });
 });

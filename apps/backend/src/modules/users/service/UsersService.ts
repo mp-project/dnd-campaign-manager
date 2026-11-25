@@ -46,7 +46,8 @@ export class UsersService {
 
   /**
    * Applies a managed change to a user, guarded against role escalation and losing the last admin.
-   * Role and status are read from the database on every request, so a change applies at once.
+   * Role and status apply to the account's next request: the commit publishes
+   * `history.user.changed`, which drops the cached account (`AccountCache`).
    * The identity provider is told after the commit (locking ends the account's sessions there
    * too): it is a network call, which must not run while this transaction holds the row lock.
    */

@@ -7,6 +7,8 @@
 -- - Deletes dependent rows first (restrict FKs): user_settings.
 -- - Only the local account: delete the account at Clerk too (dashboard or Backend API),
 --   otherwise the next sign-in creates a new local account.
+-- - The API caches the account for up to 30 s (`AccountCache`), so a running session can keep
+--   making requests for that long after the delete.
 --
 -- Note:
 -- - `created_by` / `updated_by` in current schema are not enforced with FK constraints.

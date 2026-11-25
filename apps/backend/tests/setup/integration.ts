@@ -5,6 +5,7 @@ import {
   resetTestDatabase,
   runDatabaseMigrations,
 } from "#core/db/pool";
+import { clearTestCaches } from "#test/helpers/buildTestApp";
 
 const databaseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? "";
 const pool = createPgPool(databaseUrl);
@@ -43,6 +44,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await rebuildTestDatabaseSchema();
+  clearTestCaches();
 }, REBUILD_TIMEOUT_MS);
 
 afterAll(async () => {

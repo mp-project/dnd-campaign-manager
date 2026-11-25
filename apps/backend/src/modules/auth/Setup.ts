@@ -3,9 +3,11 @@ import type { FastifyInstance } from "fastify";
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
 import { AccountRepository } from "#src/modules/auth/domain/repository/AccountRepository";
+import { InvalidateAccountCacheHandler } from "#src/modules/auth/events/InvalidateAccountCacheHandler";
 import { HandleClerkWebhookController } from "#src/modules/auth/http/controller/HandleClerkWebhookController";
 import { registerAuthRoutes } from "#src/modules/auth/http/routes/v1/AuthRoutes";
 import { ROLE_PERMISSIONS } from "#src/modules/auth/permissions/roles";
+import { AccountCache } from "#src/modules/auth/service/AccountCache";
 import { AccountService } from "#src/modules/auth/service/AccountService";
 import { ClerkIdentityPort } from "#src/modules/auth/service/ClerkIdentityPort";
 import { HandleClerkWebhookUseCase } from "#src/modules/auth/useCase/HandleClerkWebhookUseCase";
@@ -37,13 +39,17 @@ async function registerAuthModule(app: FastifyInstance, container: AppContainer)
     });
   }
 
+  const accountCache = new AccountCache(container.ports.cacheStore);
   const accountService = new AccountService(
     container.db,
     container.transactionManager,
     new AccountRepository(),
     container.ports.identityPort,
+    accountCache,
     { bootstrapMaintainerEmail: config.BOOTSTRAP_MAINTAINER_EMAIL },
   );
+
+  container.ports.eventBus.register(new InvalidateAccountCacheHandler(accountCache));
 
   container.ports.accountPort ??= accountService;
 

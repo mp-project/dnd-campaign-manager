@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { createDrizzleDb, createPgPool } from "#core/db/pool";
 import { userSettings, users } from "#core/db/schema";
-import { buildTestApp } from "#test/helpers/buildTestApp";
+import { buildTestApp, clearTestCaches } from "#test/helpers/buildTestApp";
 
 const TEST_DB_URL =
   process.env.TEST_DATABASE_URL ??
@@ -76,6 +76,21 @@ describe("accounts behind Clerk identities", () => {
     const [row] = await db.select().from(users).where(eq(users.clerkUserId, clerkUserId));
 
     return row;
+  }
+
+  /**
+   * Sets role or status in the database, past the app: nothing drops the cached account then, so
+   * the cache is emptied like after its 30 seconds.
+   */
+  async function setDirectly(clerkUserId: string, set: Partial<typeof users.$inferInsert>) {
+    await db.update(users).set(set).where(eq(users.clerkUserId, clerkUserId));
+    clearTestCaches();
+  }
+
+  async function makeAdmin(clerkUserId: string) {
+    identity.addUser({ externalUserId: clerkUserId, email: `${clerkUserId}@example.test` });
+    await me(clerkUserId);
+    await setDirectly(clerkUserId, { systemRole: "ADMIN" });
   }
 
   beforeEach(() => {
@@ -166,7 +181,7 @@ describe("accounts behind Clerk identities", () => {
     identity.addUser({ externalUserId: "user_locked", email: "locked@example.test" });
     expect((await me("user_locked")).statusCode).toBe(200);
 
-    await db.update(users).set({ status: "LOCKED" }).where(eq(users.clerkUserId, "user_locked"));
+    await setDirectly("user_locked", { status: "LOCKED" });
 
     expect((await me("user_locked")).statusCode).toBe(401);
   });
@@ -244,12 +259,10 @@ describe("accounts behind Clerk identities", () => {
 
   it("locks the provider account when an administrator locks the user, and unlocks it again", async () => {
     identity.addUser({ externalUserId: "user_target", email: "target@example.test" });
-    identity.addUser({ externalUserId: "user_admin", email: "admin@example.test" });
 
     const target = (await me("user_target")).json() as { id: string };
 
-    await me("user_admin");
-    await db.update(users).set({ systemRole: "ADMIN" }).where(eq(users.clerkUserId, "user_admin"));
+    await makeAdmin("user_admin");
 
     const lock = await injectAsIdentity("user_admin", {
       method: "PATCH",
@@ -270,6 +283,34 @@ describe("accounts behind Clerk identities", () => {
       { action: "lock", externalUserId: "user_target" },
       { action: "unlock", externalUserId: "user_target" },
     ]);
+  });
+
+  it("refuses the next request at once after an administrator's change, and lets it in again after unlocking", async () => {
+    identity.addUser({ externalUserId: "user_target", email: "target@example.test" });
+
+    const target = (await me("user_target")).json() as { id: string };
+
+    await makeAdmin("user_admin");
+
+    const lock = await injectAsIdentity("user_admin", {
+      method: "PATCH",
+      url: `/api/v1/users/${target.id}`,
+      payload: { expectedVersion: 1, status: "LOCKED" },
+    });
+
+    expect(lock.statusCode).toBe(200);
+    // The account was cached as active by the first request; the change dropped it.
+    expect((await me("user_target")).statusCode).toBe(401);
+
+    const unlock = await injectAsIdentity("user_admin", {
+      method: "PATCH",
+      url: `/api/v1/users/${target.id}`,
+      payload: { expectedVersion: 2, status: "ACTIVE" },
+    });
+
+    expect(unlock.statusCode).toBe(200);
+    // The refusal was cached too; unlocking dropped it.
+    expect((await me("user_target")).statusCode).toBe(200);
   });
 
   it("asks the provider only once in a while about an identity that got no account", async () => {
@@ -299,12 +340,10 @@ describe("accounts behind Clerk identities", () => {
 
   it("keeps the lock when banning at Clerk fails, and bans again when the status is saved again", async () => {
     identity.addUser({ externalUserId: "user_target", email: "target@example.test" });
-    identity.addUser({ externalUserId: "user_admin", email: "admin@example.test" });
 
     const target = (await me("user_target")).json() as { id: string };
 
-    await me("user_admin");
-    await db.update(users).set({ systemRole: "ADMIN" }).where(eq(users.clerkUserId, "user_admin"));
+    await makeAdmin("user_admin");
 
     const lockUser = jest.spyOn(identity, "lockUser").mockRejectedValueOnce(new Error("Clerk down"));
     const lock = await injectAsIdentity("user_admin", {

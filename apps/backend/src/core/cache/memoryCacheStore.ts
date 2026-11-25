@@ -77,6 +77,12 @@ export class MemoryCacheStore implements CacheStore {
     }
   }
 
+  /** Empties the cache; for tests, whose database starts empty again. */
+  clear(): void {
+    this.entries.clear();
+    this.keysByTag.clear();
+  }
+
   private remove(key: string): void {
     const entry = this.entries.get(key);
 

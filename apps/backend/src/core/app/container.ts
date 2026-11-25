@@ -79,8 +79,8 @@ export type AppContainer = {
   pool: Pool;
   db: AppDatabase;
   transactionManager: TransactionManager;
-  /** `eventBus` is always set: overrides replace it, but can't leave it out. */
-  ports: AppPublicPorts & { eventBus: EventBus };
+  /** `eventBus` and `cacheStore` are always set: overrides replace them, but can't leave them out. */
+  ports: AppPublicPorts & { eventBus: EventBus; cacheStore: CacheStore };
   dependencies: DependencyRegistry;
 };
 

@@ -220,7 +220,12 @@ export class AccountService implements AccountPort {
       return null;
     }
 
+    // Neither row had an identity before, so no entry can name it; dropped anyway, so every direct
+    // write of this service drops what it changed.
+    await this.cache.invalidate(result.account.id);
+
     if (result.retiredUserId) {
+      await this.cache.invalidate(result.retiredUserId);
       recordChange({
         action: "auth.retireUnverifiedAccount",
         entities: [{ entityType: "user", entityId: result.retiredUserId, fields: ["status", "deletedAt"] }],

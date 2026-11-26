@@ -86,7 +86,7 @@ describe("identity check of requests", () => {
     expect(
       await probeRequestContext({ identityPort: identity, accountPort: { resolveActor } }, bearer("alice")),
     ).toEqual({ actorId: null, systemRole: "USER" });
-    expect(resolveActor).toHaveBeenCalledWith({ externalUserId: "alice", sessionId: "sess_1" });
+    expect(resolveActor).toHaveBeenCalledWith({ externalUserId: "alice", sessionId: "sess_1", expiresAt: null });
   });
 
   it("uses the local account and its role", async () => {

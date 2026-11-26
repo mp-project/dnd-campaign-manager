@@ -1,3 +1,4 @@
+import { campaignKey } from "@/core/api/queryClient";
 import { defineFrontendModule } from "@/core/modules";
 
 /**
@@ -27,6 +28,14 @@ export const campaignMembershipsModule = defineFrontendModule({
       route: "campaign-sharing",
       order: 10,
       permission: "campaignMembers.updateRole",
+    },
+  ],
+  realtime: [
+    {
+      // Sent to game master and editors when a member joins, changes role or leaves.
+      resource: "campaign-memberships",
+      invalidate: (message, queryClient) =>
+        message.campaignId ? queryClient.invalidateQueries({ queryKey: campaignKey(message.campaignId, "members") }) : undefined,
     },
   ],
 });

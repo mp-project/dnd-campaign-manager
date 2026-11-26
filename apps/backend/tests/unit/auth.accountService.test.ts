@@ -51,14 +51,14 @@ describe("AccountService", () => {
     );
 
     await expect(
-      service.resolveActor({ externalUserId: EXTERNAL_ID, sessionId: "sess_1" }),
+      service.resolveActor({ externalUserId: EXTERNAL_ID, sessionId: "sess_1", expiresAt: null }),
     ).resolves.toEqual({ actorId: winner.id, systemRole: "USER" });
     expect(repository.create).not.toHaveBeenCalled();
     expect(repository.update).not.toHaveBeenCalled();
   });
 
   describe("account cache", () => {
-    const identity = { externalUserId: EXTERNAL_ID, sessionId: "sess_1" };
+    const identity = { externalUserId: EXTERNAL_ID, sessionId: "sess_1", expiresAt: null };
     const transactionManager = {
       inTransaction: (work: (tx: AppDatabase) => Promise<unknown>) => work({} as AppDatabase),
     } as unknown as TransactionManager;

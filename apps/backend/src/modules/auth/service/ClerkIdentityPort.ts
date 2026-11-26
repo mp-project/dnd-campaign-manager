@@ -1,8 +1,8 @@
 import { createClerkClient, verifyToken, type ClerkClient } from "@clerk/backend";
 import { isClerkAPIResponseError } from "@clerk/backend/errors";
-import type { FastifyRequest } from "fastify";
 
 import type { ExternalIdentity, ExternalUser, IdentityPort } from "#core/auth/identity";
+import type { AppEnv } from "#core/env";
 import { ServiceUnavailableError } from "#core/error/http/index";
 import { warnFallback } from "#core/log/warnFallback";
 
@@ -71,10 +71,7 @@ export class ClerkIdentityPort implements IdentityPort {
     this.client = createClerkClient({ secretKey: options.secretKey });
   }
 
-  async authenticate(request: FastifyRequest): Promise<ExternalIdentity | null> {
-    const header = request.headers.authorization;
-    const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
-
+  async verifyToken(token: string): Promise<ExternalIdentity | null> {
     if (!token) {
       return null;
     }
@@ -91,7 +88,11 @@ export class ClerkIdentityPort implements IdentityPort {
         return null;
       }
 
-      return { externalUserId: payload.sub, sessionId: payload.sid };
+      return {
+        externalUserId: payload.sub,
+        sessionId: payload.sid,
+        expiresAt: typeof payload.exp === "number" ? new Date(payload.exp * 1000) : null,
+      };
     } catch {
       // An invalid, expired or foreign token is no identity; routes that need one answer 401.
       return null;
@@ -138,4 +139,27 @@ export class ClerkIdentityPort implements IdentityPort {
       });
     }
   }
+}
+
+function splitList(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Clerk from the environment, for the API and the realtime gateway; undefined without a secret
+ * key (then nobody is signed in, named at start by `warnMissingIntegrations`).
+ */
+export function createClerkIdentityPort(env: AppEnv): ClerkIdentityPort | undefined {
+  if (!env.CLERK_SECRET_KEY) {
+    return undefined;
+  }
+
+  return new ClerkIdentityPort({
+    secretKey: env.CLERK_SECRET_KEY,
+    jwtKey: env.CLERK_JWT_KEY,
+    authorizedParties: splitList(env.CLERK_AUTHORIZED_PARTIES ?? env.FRONTEND_ORIGIN),
+  });
 }

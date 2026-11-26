@@ -10,7 +10,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { watchCampaignAccess } from "./app/campaignAccess";
 import { handleSessionExpired, installGuards } from "./app/guards";
-import { frontendModules, navItemsOf } from "./app/modules";
+import { frontendModules, navItemsOf, realtimeHandlersOf } from "./app/modules";
 import { installLocaleRoutes } from "./app/localeRoutes";
 import { applyProfileSettings } from "./app/profileSettings";
 import { router } from "./app/router";
@@ -22,6 +22,7 @@ import { createAppI18n, devLocaleOverride, initialLocale, setLocale } from "./co
 import { createAppQueryClient } from "./core/api/queryClient";
 import { installErrorHandlers } from "./core/log/errorHandlers";
 import { installReducedMotion } from "./core/motion/reducedMotion";
+import { startRealtime } from "./core/realtime/connection";
 import { installAppHead } from "./core/seo/appHead";
 import { NAV_ITEMS } from "./core/navigation/navigation";
 import { installAnalytics } from "./core/telemetry/analytics";
@@ -44,6 +45,8 @@ onClerkSessionChange(() => clearSessionCache(queryClient));
 installGuards(router, queryClient);
 installAppHead(router);
 watchCampaignAccess(router, queryClient);
+// Live updates once a page of the app is open; Socket.IO loads only then.
+startRealtime({ router, queryClient, handlers: realtimeHandlersOf(frontendModules) });
 installFaro(router, queryClient);
 installAnalytics(router);
 

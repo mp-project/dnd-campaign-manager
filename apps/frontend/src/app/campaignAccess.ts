@@ -13,10 +13,11 @@ import { campaignIdOfParam, type CampaignRole, lastCampaignId, rememberCampaign 
  *   somebody who left gets the not-found page;
  * - the account's campaign list is loaded again.
  *
- * What makes it notice: the campaign is reloaded on navigation when stale, every minute while open
- * (`CAMPAIGN_ACCESS_CHECK_MS`), and right away when the API refuses something in the campaign
- * (403/404 are the clearest hint that the rights changed). The realtime channel will report role
- * changes directly; then the minute check can go.
+ * What makes it notice: the realtime channel reports a changed membership (`invalidate` of the
+ * resource `campaign`, which reloads the campaign); the campaign is also reloaded on navigation
+ * when stale, every minute while open and the channel is not connected (`CAMPAIGN_ACCESS_CHECK_MS`),
+ * and right away when the API refuses something in the campaign (403/404 are the clearest hint
+ * that the rights changed).
  */
 export function watchCampaignAccess(router: Router, queryClient: QueryClient): () => void {
   const knownRoles = new Map<string, CampaignRole | null>();

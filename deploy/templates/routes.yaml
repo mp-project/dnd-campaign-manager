@@ -12,6 +12,14 @@ spec:
   hostnames:
     - {{ $host }}
   rules:
+    {{- if eq $name "api" }}
+    # The realtime gateway under the API's host (WebSocket, long polling as fallback).
+    - matches:
+        - path: { type: PathPrefix, value: /realtime }
+      backendRefs:
+        - name: realtime
+          port: 80
+    {{- end }}
     - backendRefs:
         - name: {{ eq $name "api" | ternary "backend" "frontend" }}
           port: 80

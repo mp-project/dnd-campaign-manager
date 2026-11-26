@@ -7,6 +7,7 @@ import { cachePolicy } from "@/core/api/cachePolicy";
 import { api, type ApiData, unwrap } from "@/core/api/client";
 import { isApiError } from "@/core/api/errors";
 import { campaignKey, globalKey, meKey } from "@/core/api/queryClient";
+import { realtimeCampaign } from "@/core/realtime/status";
 
 /**
  * The campaign a page works in. It comes from the URL (`/k/<short id>-<slug>/...`); pages outside
@@ -17,8 +18,8 @@ export type Campaign = ApiData<"getCampaignById">;
 export type CampaignRole = NonNullable<Campaign["role"]>;
 
 /**
- * How often the open campaign is checked for a changed role or a lost membership, until the
- * realtime channel reports those changes.
+ * How often the open campaign is checked for a changed role or a lost membership while the realtime
+ * channel has not joined it (once joined, it reports those changes itself).
  */
 export const CAMPAIGN_ACCESS_CHECK_MS = 60_000;
 
@@ -94,7 +95,9 @@ export function useCurrentCampaign() {
       ...campaignQuery(campaignId.value ?? ""),
       enabled: campaignId.value !== null,
       // Only the campaign a page works in; the remembered one of account pages needs no check.
-      refetchInterval: fromUrl.value ? CAMPAIGN_ACCESS_CHECK_MS : (false as const),
+      // While the realtime channel has joined this campaign, it reports changes instead.
+      refetchInterval:
+        fromUrl.value && realtimeCampaign.value !== fromUrl.value ? CAMPAIGN_ACCESS_CHECK_MS : (false as const),
     })),
   );
   const campaign = computed(() => (campaignId.value && !query.isError.value ? (query.data.value ?? null) : null));

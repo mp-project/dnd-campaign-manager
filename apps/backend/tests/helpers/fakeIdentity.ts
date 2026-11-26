@@ -1,12 +1,16 @@
-import type { FastifyRequest } from "fastify";
-
 import type { ExternalIdentity, ExternalUser, IdentityPort } from "#core/auth/identity";
 
 const TOKEN_PREFIX = "test-identity:";
 
 /** The bearer token the fake accepts for an identity (a provider user id). */
-export function testIdentityToken(externalUserId: string, sessionId = "sess_test"): string {
-  return `${TOKEN_PREFIX}${externalUserId}:${sessionId}`;
+export function testIdentityToken(
+  externalUserId: string,
+  sessionId = "sess_test",
+  expiresAt?: Date,
+): string {
+  const expiry = expiresAt ? `:${expiresAt.getTime()}` : "";
+
+  return `${TOKEN_PREFIX}${externalUserId}:${sessionId}${expiry}`;
 }
 
 /**
@@ -18,17 +22,20 @@ export class FakeIdentityPort implements IdentityPort {
   readonly calls: Array<{ action: "lock" | "unlock"; externalUserId: string }> = [];
   loadCount = 0;
 
-  async authenticate(request: FastifyRequest): Promise<ExternalIdentity | null> {
-    const header = request.headers.authorization ?? "";
-    const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
-
+  /** Tokens may carry an expiry as a fourth part (`test-identity:<user>:<session>:<epoch ms>`). */
+  async verifyToken(token: string): Promise<ExternalIdentity | null> {
     if (!token.startsWith(TOKEN_PREFIX)) {
       return null;
     }
 
-    const [externalUserId, sessionId] = token.slice(TOKEN_PREFIX.length).split(":");
+    const [externalUserId, sessionId, expiresAtMs] = token.slice(TOKEN_PREFIX.length).split(":");
+    const expiresAt = expiresAtMs ? new Date(Number(expiresAtMs)) : null;
 
-    return externalUserId && sessionId ? { externalUserId, sessionId } : null;
+    if (expiresAt && expiresAt.getTime() <= Date.now()) {
+      return null;
+    }
+
+    return externalUserId && sessionId ? { externalUserId, sessionId, expiresAt } : null;
   }
 
   async loadUser(externalUserId: string): Promise<ExternalUser | null> {

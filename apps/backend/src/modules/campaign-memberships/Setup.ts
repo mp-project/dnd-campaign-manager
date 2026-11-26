@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
+import { PublishMembershipChangesHandler } from "#src/modules/campaign-memberships/events/PublishMembershipChangesHandler";
 import { CampaignMembershipsRepository } from "#src/modules/campaign-memberships/domain/repository/CampaignMembershipsRepository";
 import { registerCampaignMembershipsRoutes } from "#src/modules/campaign-memberships/http/routes/v1/CampaignMembershipsRoutes";
 import { ListCampaignMembersController } from "#src/modules/campaign-memberships/http/controller/ListCampaignMembersController";
@@ -77,6 +78,10 @@ async function registerCampaignMembershipsModule(
   container.dependencies.set<CampaignMembershipsModuleDependencies>(
     CAMPAIGN_MEMBERSHIPS_MODULE_DEPENDENCIES,
     { repository, service },
+  );
+
+  container.ports.eventBus.register(
+    new PublishMembershipChangesHandler(container.db, repository, container.ports.realtime),
   );
 
   app.register(async (campaignMembershipsApp) => {

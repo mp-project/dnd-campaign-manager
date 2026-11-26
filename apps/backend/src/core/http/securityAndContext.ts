@@ -125,11 +125,13 @@ export async function authenticate(
 
   const { identityPort, accountPort } = container.ports;
 
-  if (!identityPort || !accountPort || !extractBearerToken(request)) {
+  const token = extractBearerToken(request);
+
+  if (!identityPort || !accountPort || !token) {
     return;
   }
 
-  const identity = await identityPort.authenticate(request);
+  const identity = await identityPort.verifyToken(token);
 
   if (!identity) {
     return;

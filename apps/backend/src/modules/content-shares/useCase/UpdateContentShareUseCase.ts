@@ -25,7 +25,7 @@ export class UpdateContentShareUseCase {
     );
     await this.sharesService.deleteExpired(input.campaignId);
 
-    return this.sharesService.transactionManager.inTransaction(async (tx) => {
+    const { response, shareId } = await this.sharesService.transactionManager.inTransaction(async (tx) => {
       await this.assetsService.assertCanWrite(context, "SHARE", input.campaignId, tx);
 
       const share = await this.sharesService.updateShare(tx, { ...input, actorId });
@@ -36,7 +36,14 @@ export class UpdateContentShareUseCase {
       );
       const asset = await this.assetsService.requireAsset(tx, share.assetId);
 
-      return toContentShareFullResponse(share, recipients.get(share.id) ?? [], asset);
+      return {
+        response: toContentShareFullResponse(share, recipients.get(share.id) ?? [], asset),
+        shareId: share.id,
+      };
     });
+
+    await this.sharesService.publishChange("updated", { campaignId: input.campaignId, actorId, shareId });
+
+    return response;
   }
 }

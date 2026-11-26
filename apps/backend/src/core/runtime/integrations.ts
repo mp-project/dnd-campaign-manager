@@ -67,7 +67,7 @@ export function missingIntegrations(env: AppEnv): MissingIntegration[] {
     result.push({
       integration: "redis",
       missing: ["REDIS_URL"],
-      effect: "rate limits and caches count per process",
+      effect: "rate limits and caches count per process, and there are no live updates",
     });
   }
 

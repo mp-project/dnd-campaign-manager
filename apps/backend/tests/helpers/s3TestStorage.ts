@@ -9,7 +9,7 @@ import {
 
 import { S3CompatibleStorage, type S3BootstrapOptions } from "#core/storage/s3Storage";
 
-/** Matches the `rustfs-test` service in compose.yaml. */
+/** Matches the `rustfs-test` service in compose.stack.yaml. */
 export function testS3Options(bucket = `dnd-test-${randomUUID()}`): S3BootstrapOptions {
   const endpoint = process.env.TEST_S3_ENDPOINT ?? "http://127.0.0.1:59000";
   const { hostname } = new URL(endpoint);

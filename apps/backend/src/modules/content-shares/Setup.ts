@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
+import { PublishShareChangesHandler } from "#src/modules/content-shares/events/PublishShareChangesHandler";
 import {
   ASSET_LINKS_MODULE_DEPENDENCIES,
   type AssetLinksModuleDependencies,
@@ -89,7 +90,10 @@ async function registerContentSharesModule(
       listActiveByCampaign: (db, campaignId) =>
         membershipsRepository.listActiveByCampaign(db, campaignId),
     },
+    container.ports.eventBus,
   );
+
+  container.ports.eventBus.register(new PublishShareChangesHandler(container.ports.realtime));
 
   assetsService.registerVisibilityProvider({
     name: "content-shares",

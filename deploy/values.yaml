@@ -64,6 +64,13 @@ worker:
   resources:
     requests: {cpu: 25m, memory: 128Mi}
     limits: {memory: 384Mi}
+# Realtime gateway (dist/realtime/server.js): small, it only holds connections and passes on
+# references. Limits leave room for the media-cleanup run within the namespace's 2 GiB.
+realtime:
+  port: 3001
+  resources:
+    requests: {cpu: 10m, memory: 64Mi}
+    limits: {memory: 160Mi}
 # Repairs interrupted uploads and deletions (npm run media:cleanup); after the nightly backup,
 # before the maintenance window.
 mediaCleanup:

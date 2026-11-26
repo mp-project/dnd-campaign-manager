@@ -26,6 +26,7 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     OTEL_SDK_DISABLED: false,
     SENTRY_LOG_LEVEL: "info",
     DEFAULT_RULESETS_ON_START: false,
+    REALTIME_PORT: 3001,
     CORS_ORIGIN: "http://app.localhost:5173",
     FRONTEND_ORIGIN: "http://app.localhost:5173",
     STORAGE_DRIVER: "local",

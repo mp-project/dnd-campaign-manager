@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
+import { PublishCampaignChangesHandler } from "#src/modules/campaigns/events/PublishCampaignChangesHandler";
 import {
   RULESET_MODULE_DEPENDENCIES,
   type RulesetModuleDependencies,
@@ -63,6 +64,7 @@ async function registerCampaignsModule(
 
   history.register(service.trackedCampaign);
   history.register(service.trackedMembership);
+  container.ports.eventBus.register(new PublishCampaignChangesHandler(container.ports.realtime));
 
   const currentCampaignFactPort = container.ports.campaignFactPort;
 

@@ -38,6 +38,8 @@
     "content:reindex": "NODE_OPTIONS=--conditions=development tsx scripts/reindex-content.ts",
     "media:worker": "OTEL_SERVICE_NAME=questaria-media-worker NODE_OPTIONS=--conditions=development tsx --import ./src/instrumentation.ts src/workers/mediaWorker.ts",
     "media:worker:dev": "OTEL_SERVICE_NAME=questaria-media-worker NODE_OPTIONS=--conditions=development tsx watch --import ./src/instrumentation.ts src/workers/mediaWorker.ts",
+    "realtime": "OTEL_SERVICE_NAME=questaria-realtime NODE_OPTIONS=--conditions=development tsx --import ./src/instrumentation.ts src/realtime/server.ts",
+    "realtime:dev": "OTEL_SERVICE_NAME=questaria-realtime NODE_OPTIONS=--conditions=development tsx watch --import ./src/instrumentation.ts src/realtime/server.ts",
     "storage:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-storage.ts",
     "mail:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-mail.ts",
     "redis:check": "NODE_OPTIONS=--conditions=development tsx scripts/check-redis.ts",
@@ -62,6 +64,8 @@
     "@opentelemetry/sdk-node": "^0.301.2",
     "@sentry/core": "^11.16.0",
     "@sentry/node": "^11.16.0",
+    "@socket.io/redis-streams-adapter": "^0.3.1",
+    "@socket.io/redis-streams-emitter": "^0.1.1",
     "altcha-lib": "2.8.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
@@ -74,9 +78,11 @@
     "pg": "^8.16.3",
     "pino": "^10.4.0",
     "sharp": "^0.35.5",
+    "socket.io": "^4.8.4",
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@dnd/contracts": "0.1.0",
     "@swc/core": "^1.13.5",
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
@@ -87,6 +93,7 @@
     "jest": "^30.2.0",
     "pino-pretty": "^13.2.0",
     "rimraf": "^6.0.1",
+    "socket.io-client": "^4.8.4",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }

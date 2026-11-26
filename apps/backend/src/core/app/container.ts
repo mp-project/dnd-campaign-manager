@@ -27,6 +27,7 @@ import { createEmailPortFromEnv, type EmailPort } from "#core/email/index";
 import { createCacheStore, type CacheStore } from "#core/cache/index";
 import type { Redis } from "#core/redis/client";
 import { InProcessEventBus, type EventBus } from "#core/events/EventBus";
+import { createRealtimeBroker, type RealtimeBroker } from "#core/realtime/index";
 import type { FastifyBaseLogger } from "fastify";
 
 export type CampaignAccessFacts = {
@@ -66,6 +67,8 @@ export type AppPublicPorts = {
   errorReporter?: ErrorReporter;
   /** Domain events after the commit, in this process; see `#core/events`. */
   eventBus?: EventBus;
+  /** Live updates to the realtime gateway (through Redis; without it nothing is sent). */
+  realtime?: RealtimeBroker;
 };
 
 export type DependencyRegistry = {
@@ -79,8 +82,8 @@ export type AppContainer = {
   pool: Pool;
   db: AppDatabase;
   transactionManager: TransactionManager;
-  /** `eventBus` and `cacheStore` are always set: overrides replace them, but can't leave them out. */
-  ports: AppPublicPorts & { eventBus: EventBus; cacheStore: CacheStore };
+  /** `eventBus`, `cacheStore` and `realtime` are always set: overrides replace them, but can't leave them out. */
+  ports: AppPublicPorts & { eventBus: EventBus; cacheStore: CacheStore; realtime: RealtimeBroker };
   dependencies: DependencyRegistry;
 };
 
@@ -139,6 +142,9 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
   const cacheStore = params.publicPorts?.cacheStore ?? createCacheStore(params.redis);
   const eventBus =
     params.publicPorts?.eventBus ?? new InProcessEventBus(params.logger, errorReporter);
+  const realtime =
+    params.publicPorts?.realtime ??
+    createRealtimeBroker(params.redis, params.logger ?? { warn: () => undefined });
 
   return {
     config: params.config,
@@ -155,6 +161,7 @@ export function createAppContainer(params: CreateAppContainerParams): AppContain
       errorReporter,
       cacheStore,
       eventBus,
+      realtime,
     },
   };
 }

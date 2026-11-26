@@ -19,11 +19,32 @@ const CLIENT_OPTIONS = {
 } as const;
 
 /**
+ * For the realtime gateway's adapter, which reads its stream with blocking `XREAD` (seconds) on
+ * duplicates of this client and retries at once after an error: no command timeout, and commands
+ * wait for the reconnect instead of failing in a tight loop. Nothing answers a request with it.
+ */
+const BLOCKING_CLIENT_OPTIONS = {
+  enableOfflineQueue: true,
+  maxRetriesPerRequest: null,
+  connectTimeout: 2_000,
+  retryStrategy: CLIENT_OPTIONS.retryStrategy,
+} as const;
+
+/**
  * A client for `url` (`redis://[:password@]host:port/db`). It connects in the background and logs
  * when Redis becomes unreachable and when it is back, once each, not on every failed reconnect.
+ * `blocking` is only for the realtime gateway's adapter (see `BLOCKING_CLIENT_OPTIONS`).
  */
-export function createRedisClient(url: string, logger: AppLogger, name: string): Redis {
-  const client = new Redis(url, { ...CLIENT_OPTIONS, connectionName: name });
+export function createRedisClient(
+  url: string,
+  logger: AppLogger,
+  name: string,
+  options: { blocking?: boolean } = {},
+): Redis {
+  const client = new Redis(url, {
+    ...(options.blocking ? BLOCKING_CLIENT_OPTIONS : CLIENT_OPTIONS),
+    connectionName: name,
+  });
   let reachable = true;
 
   client.on("error", (error: unknown) => {

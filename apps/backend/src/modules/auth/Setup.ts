@@ -4,20 +4,14 @@ import type { AppContainer } from "#core/app/container";
 import type { AppModule } from "#core/app/moduleSystem";
 import { AccountRepository } from "#src/modules/auth/domain/repository/AccountRepository";
 import { InvalidateAccountCacheHandler } from "#src/modules/auth/events/InvalidateAccountCacheHandler";
+import { PublishAccountChangesHandler } from "#src/modules/auth/events/PublishAccountChangesHandler";
 import { HandleClerkWebhookController } from "#src/modules/auth/http/controller/HandleClerkWebhookController";
 import { registerAuthRoutes } from "#src/modules/auth/http/routes/v1/AuthRoutes";
 import { ROLE_PERMISSIONS } from "#src/modules/auth/permissions/roles";
 import { AccountCache } from "#src/modules/auth/service/AccountCache";
 import { AccountService } from "#src/modules/auth/service/AccountService";
-import { ClerkIdentityPort } from "#src/modules/auth/service/ClerkIdentityPort";
+import { createClerkIdentityPort } from "#src/modules/auth/service/ClerkIdentityPort";
 import { HandleClerkWebhookUseCase } from "#src/modules/auth/useCase/HandleClerkWebhookUseCase";
-
-function splitList(value: string | undefined): string[] {
-  return (value ?? "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
 
 /**
  * Connects the app to the identity provider (Clerk): the identity port confirms sessions, the
@@ -31,12 +25,10 @@ async function registerAuthModule(app: FastifyInstance, container: AppContainer)
 
   // Tests provide their own port; without a secret key nobody is signed in (named at start by
   // `warnMissingIntegrations`).
-  if (!container.ports.identityPort && config.CLERK_SECRET_KEY) {
-    container.ports.identityPort = new ClerkIdentityPort({
-      secretKey: config.CLERK_SECRET_KEY,
-      jwtKey: config.CLERK_JWT_KEY,
-      authorizedParties: splitList(config.CLERK_AUTHORIZED_PARTIES ?? config.FRONTEND_ORIGIN),
-    });
+  if (!container.ports.identityPort) {
+    const identityPort = createClerkIdentityPort(config);
+
+    if (identityPort) container.ports.identityPort = identityPort;
   }
 
   const accountCache = new AccountCache(container.ports.cacheStore);
@@ -49,7 +41,9 @@ async function registerAuthModule(app: FastifyInstance, container: AppContainer)
     { bootstrapMaintainerEmail: config.BOOTSTRAP_MAINTAINER_EMAIL },
   );
 
+  // Cache first: a client disconnected by the next handler connects again with the fresh account.
   container.ports.eventBus.register(new InvalidateAccountCacheHandler(accountCache));
+  container.ports.eventBus.register(new PublishAccountChangesHandler(container.ports.realtime));
 
   container.ports.accountPort ??= accountService;
 

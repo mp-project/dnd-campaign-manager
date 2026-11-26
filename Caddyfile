@@ -36,6 +36,11 @@ Disallow: /
 Disallow: /
 " 200
   }
+  # The realtime gateway, a process of its own: a deploy of the API keeps the connections. With
+  # more than one gateway, long polling needs sticky sessions (lb_policy cookie).
+  handle /realtime/* {
+    reverse_proxy realtime:{$REALTIME_PORT:3001}
+  }
   reverse_proxy backend:{$BACKEND_PORT}
 }
 

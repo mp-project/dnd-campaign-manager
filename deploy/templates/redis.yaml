@@ -47,8 +47,10 @@ spec:
             - "no"
             - --maxmemory
             - {{ .Values.redis.maxmemory | quote }}
+            # Only keys with an expiry are evicted (caches, rate limits, recovery sessions): the
+            # realtime stream has none and is bounded by its own length instead.
             - --maxmemory-policy
-            - allkeys-lru
+            - volatile-lru
           ports:
             - name: redis
               containerPort: 6379

@@ -121,6 +121,12 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     });
   }
 
+  // Fastify runs `onClose` hooks last-registered-first, so this one runs before Redis closes:
+  // messages still waiting in the coalescing window go out.
+  app.addHook("onClose", async () => {
+    await container.ports.realtime.close();
+  });
+
   if (closePoolOnShutdown) {
     app.addHook("onClose", async () => {
       await pool.end();

@@ -9,6 +9,17 @@ export type CampaignMembershipRow = typeof campaignMemberships.$inferSelect;
  * Reads memberships. Writes go through the history, see `trackedMembership` in `CampaignsService`.
  */
 export class CampaignMembershipsRepository {
+  /** The account of a membership, also of a removed one (live updates after removing). */
+  async findMemberUserId(db: AppDatabase, membershipId: string): Promise<string | null> {
+    const [membership] = await db
+      .select({ userId: campaignMemberships.userId })
+      .from(campaignMemberships)
+      .where(eq(campaignMemberships.id, membershipId))
+      .limit(1);
+
+    return membership?.userId ?? null;
+  }
+
   async findById(
     db: AppDatabase,
     campaignId: string,

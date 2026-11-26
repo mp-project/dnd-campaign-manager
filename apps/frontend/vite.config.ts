@@ -75,6 +75,12 @@ export default defineConfig(({ mode }) => {
       // different sites, so the session cookies (SameSite=Lax) would not be sent across.
       proxy: {
         "/api": { target: env.API_PROXY_TARGET ?? "http://api.localhost:3000", changeOrigin: true },
+        // The realtime gateway, a process of its own (`npm run realtime`).
+        "/realtime": {
+          target: env.REALTIME_PROXY_TARGET ?? "http://api.localhost:3001",
+          changeOrigin: true,
+          ws: true,
+        },
       },
     },
     build: {

@@ -1,13 +1,13 @@
-import type { FastifyRequest } from "fastify";
-
 import type { SystemRole } from "#core/permissions/roles";
 
-/** A request whose session the identity provider confirmed. */
+/** A session the identity provider confirmed. */
 export type ExternalIdentity = {
   /** The provider's user id (Clerk: `user_…`). */
   externalUserId: string;
   /** The provider's session id (Clerk: `sess_…`). */
   sessionId: string;
+  /** When the session token runs out; null for tokens without expiry (tests). */
+  expiresAt: Date | null;
 };
 
 /** What the app copies from the identity provider into its own `users` row. */
@@ -27,8 +27,11 @@ export type ExternalUser = {
  * the provider's side of a lock in step with the app; it decides no rights.
  */
 export type IdentityPort = {
-  /** Checks the request's session token; null when there is none or it is not valid. */
-  authenticate(request: FastifyRequest): Promise<ExternalIdentity | null>;
+  /**
+   * Checks a session token (API requests: the bearer token; realtime: the handshake's token);
+   * null when it is not valid.
+   */
+  verifyToken(token: string): Promise<ExternalIdentity | null>;
   /** Loads the provider's account; null when it doesn't exist (any more). */
   loadUser(externalUserId: string): Promise<ExternalUser | null>;
   /** Locks the account at the provider and ends its sessions. */

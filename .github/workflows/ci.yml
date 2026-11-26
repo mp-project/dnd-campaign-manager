@@ -35,6 +35,8 @@ jobs:
               - .github/workflows/ci.yml
             backend:
               - apps/backend/**
+              # The backend mirrors the realtime messages; its typecheck compares them.
+              - packages/contracts/src/realtime.ts
             frontend:
               - apps/frontend/**
               - packages/**

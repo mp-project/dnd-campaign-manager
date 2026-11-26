@@ -3,6 +3,7 @@ import type { RouteRecordRaw } from "vue-router";
 
 import type { IconName } from "@/components/base/iconNames";
 import type { MessageKey } from "@/core/i18n/keys";
+import type { RealtimeHandler } from "@/core/realtime/handlers";
 
 /**
  * Where a route lives, which decides its shell and URL prefix:
@@ -46,6 +47,8 @@ export type FrontendModule = {
   name: string;
   routes?: Partial<Record<RouteArea, RouteRecordRaw[]>>;
   nav?: NavItem[];
+  /** What the module loads again when the realtime channel says one of its resources changed. */
+  realtime?: RealtimeHandler[];
 };
 
 export function defineFrontendModule(module: FrontendModule): FrontendModule {

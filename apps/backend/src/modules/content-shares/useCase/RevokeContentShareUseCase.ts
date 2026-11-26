@@ -12,7 +12,7 @@ export class RevokeContentShareUseCase {
   ) {}
 
   async execute(context: RequestContext, input: RevokeContentShareInput): Promise<void> {
-    this.assetsService.assertAuthenticated(context);
+    const actorId = this.assetsService.assertAuthenticated(context);
 
     // Checked first, so nobody outside the campaign triggers the cleanup.
     await this.assetsService.assertCanWrite(context, "SHARE", input.campaignId,
@@ -20,10 +20,16 @@ export class RevokeContentShareUseCase {
     );
     await this.sharesService.deleteExpired(input.campaignId);
 
-    return this.sharesService.transactionManager.inTransaction(async (tx) => {
+    await this.sharesService.transactionManager.inTransaction(async (tx) => {
       await this.assetsService.assertCanWrite(context, "SHARE", input.campaignId, tx);
 
       await this.sharesService.revokeShare(tx, input);
+    });
+
+    await this.sharesService.publishChange("revoked", {
+      campaignId: input.campaignId,
+      actorId,
+      shareId: input.shareId,
     });
   }
 }

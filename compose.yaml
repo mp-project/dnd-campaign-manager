@@ -205,6 +205,36 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # Realtime gateway (Socket.IO): holds the browsers' live connections, reachable through Caddy under
+  # the API's host at /realtime. Same image as the backend, other start file.
+  realtime:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: production
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      NODE_ENV: ${APP_ENV:-production}
+      HOST: 0.0.0.0
+      PORT: 3100
+      REALTIME_PORT: 3001
+      BACKEND_PUBLIC_BASE_URL: ${COMPOSE_BACKEND_PUBLIC_BASE_URL:-https://api.localhost:8443}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in apps/backend/.env (run compose through npm run compose)}@db:5432/dnd_campaign_manager
+      CORS_ORIGIN: ${COMPOSE_FRONTEND_PUBLIC_URL:-https://app.localhost:8443}
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD in apps/backend/.env (run compose through npm run compose)}@redis:6379/0
+      LOG_PRETTY: "false"
+      OTEL_SERVICE_NAME: questaria-realtime
+      SENTRY_RELEASE: ${APP_RELEASE:-}
+    command: ["--enable-source-maps", "--import", "./dist/instrumentation.js", "dist/realtime/server.js"]
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: .
@@ -241,6 +271,8 @@ services:
     image: caddy:2.8-alpine
     depends_on:
       backend:
+        condition: service_started
+      realtime:
         condition: service_started
       frontend:
         condition: service_started

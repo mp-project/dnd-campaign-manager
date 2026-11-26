@@ -11,7 +11,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -k --raw \"npm run -s dev --workspace @dnd/backend\" \"npm run -s media:worker:dev --workspace @dnd/backend\" \"npm run -s dev --workspace @dnd/frontend\" \"node scripts/dev-demo.mjs\"",
+    "dev": "concurrently -k --raw \"npm run -s dev --workspace @dnd/backend\" \"npm run -s media:worker:dev --workspace @dnd/backend\" \"npm run -s realtime:dev --workspace @dnd/backend\" \"npm run -s dev --workspace @dnd/frontend\" \"node scripts/dev-demo.mjs\"",
     "start:dev": "npm run dev",
     "dev:services": "npm run compose -- up -d --wait db redis rustfs mailpit adminer",
     "dev:all": "npm run dev:services && npm run db:migrate && npm run dev",

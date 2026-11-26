@@ -275,7 +275,7 @@ describe("users use cases", () => {
       buildHistory(repository, tx),
       undefined,
       {
-        authenticate: async () => null,
+        verifyToken: async () => null,
         loadUser: async () => null,
         lockUser: async (externalUserId) => {
           steps.push(`lock:${externalUserId}`);

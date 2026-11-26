@@ -134,6 +134,8 @@ const envSchema = z
     // Rate limits shared by all API instances and caches (`redis://[:password@]host:port/db`).
     // Without it each process counts and caches on its own (named at start in stage and production).
     REDIS_URL: optionalUrlString,
+    // Port of the realtime gateway (`npm run realtime`), a process of its own next to the API.
+    REALTIME_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
     CORS_ORIGIN: z.string().min(1),
     FRONTEND_ORIGIN: z.string().url().default("http://app.localhost:5173"),
     STORAGE_DRIVER: z.enum(["local", "s3"]).default("s3"),

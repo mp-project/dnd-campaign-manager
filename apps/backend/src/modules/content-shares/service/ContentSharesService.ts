@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 
 import type { ContentViewer } from "#core/content/viewer";
 import { findPgErrorCode } from "#core/db/findPgErrorCode";
 import type { AppDatabase, TransactionManager } from "#core/db/pool";
+import type { EventBus } from "#core/events/EventBus";
 import {
   ConflictError,
   NotFoundError,
@@ -22,6 +24,10 @@ import type {
   ContentSharesRepository,
   ReceivedShareRow,
 } from "#src/modules/content-shares/domain/repository/ContentSharesRepository";
+import type {
+  ContentShareChange,
+  ContentShareChangedEvent,
+} from "#src/modules/content-shares/events/ContentShareChangedEvent";
 
 /** Memberships of a campaign; provided by the campaign-memberships module. */
 export type ShareMembershipPort = {
@@ -54,7 +60,25 @@ export class ContentSharesService {
     public readonly repository: ContentSharesRepository,
     private readonly assets: AssetsService,
     private readonly memberships: ShareMembershipPort,
+    private readonly eventBus: EventBus,
   ) {}
+
+  /** After the commit: shares have no history, so nothing else reports their changes. */
+  async publishChange(
+    change: ContentShareChange,
+    params: { campaignId: string; actorId: string; shareId: string },
+  ): Promise<void> {
+    const event: ContentShareChangedEvent = {
+      id: randomUUID(),
+      name: `content-shares.share.${change}`,
+      occurredAt: new Date(),
+      campaignId: params.campaignId,
+      actorId: params.actorId,
+      payload: { shareId: params.shareId },
+    };
+
+    await this.eventBus.publish([event]);
+  }
 
   /**
    * Story content can be shared (`kind: "STORY"` in its content type, with its player view);

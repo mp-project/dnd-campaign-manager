@@ -1,3 +1,4 @@
+import { campaignKey } from "@/core/api/queryClient";
 import { defineFrontendModule } from "@/core/modules";
 
 /**
@@ -32,4 +33,12 @@ export const campaignInvitationsModule = defineFrontendModule({
       },
     ],
   },
+  realtime: [
+    {
+      // Somebody joined: the invitation they accepted (and their others) left the pending list.
+      resource: "campaign-memberships",
+      invalidate: (message, queryClient) =>
+        message.campaignId ? queryClient.invalidateQueries({ queryKey: campaignKey(message.campaignId, "invitations") }) : undefined,
+    },
+  ],
 });

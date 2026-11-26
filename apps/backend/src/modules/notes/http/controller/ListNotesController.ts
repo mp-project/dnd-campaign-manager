@@ -20,6 +20,6 @@ export class ListNotesController extends AbstractController {
       const params = RequestNotesParamsSchema.parse(request.params);
       const query = RequestNotesQuerySchema.parse(request.query);
 
-      return this.useCase.execute(request.requestContext, { ...params, query });
+      return this.ok(await this.useCase.execute(request.requestContext, { ...params, query }));
     });
 }

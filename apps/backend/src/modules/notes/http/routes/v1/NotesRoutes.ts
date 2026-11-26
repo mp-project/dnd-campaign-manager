@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateNoteSchema } from "#src/modules/notes/domain/dto/CreateNoteDto";
 import {
@@ -73,7 +74,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    controllers.listNotesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listNotesController.handle(request)),
   );
 
   app.post(
@@ -94,11 +95,8 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    async (request, reply) => {
-      const created = await controllers.createNoteController.handle(request);
-
-      return reply.code(201).send(created);
-    },
+    async (request, reply) =>
+      sendHttpResponse(reply, await controllers.createNoteController.handle(request)),
   );
 
   app.get(
@@ -119,7 +117,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    controllers.getNoteController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getNoteController.handle(request)),
   );
 
   app.patch(
@@ -140,7 +138,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    controllers.updateNoteController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateNoteController.handle(request)),
   );
 
   app.delete(
@@ -161,7 +159,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    controllers.deleteNoteController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteNoteController.handle(request)),
   );
 
   app.post(
@@ -182,7 +180,7 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    controllers.restoreNoteController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreNoteController.handle(request)),
   );
 
   app.get(
@@ -203,6 +201,6 @@ export function registerNotesRoutes(app: FastifyInstance, controllers: NotesRout
         },
       },
     },
-    controllers.getNoteUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getNoteUsagesController.handle(request)),
   );
 }

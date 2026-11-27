@@ -1,7 +1,7 @@
 import { AbstractController } from "#core/http/controller/AbstractController";
 import type { RequestContext } from "#core/http/requestContext";
 import { RequestSpeciesVariantParamsSchema } from "#src/modules/species/domain/dto/RequestSpeciesDto";
-import type { ValidateSpeciesVariantUseCase } from "#src/modules/species/useCase/ValidateSpeciesUseCase";
+import type { ValidateSpeciesVariantUseCase } from "#src/modules/species/useCase/ValidateSpeciesVariantUseCase";
 
 export class ValidateSpeciesVariantController extends AbstractController {
   constructor(private readonly useCase: ValidateSpeciesVariantUseCase) {
@@ -12,6 +12,6 @@ export class ValidateSpeciesVariantController extends AbstractController {
     this.execute(async () => {
       const { campaignId, ...path } = RequestSpeciesVariantParamsSchema.parse(request.params);
 
-      return this.useCase.execute(request.requestContext, { campaignId: campaignId ?? null, ...path });
+      return this.ok(await this.useCase.execute(request.requestContext, { campaignId: campaignId ?? null, ...path }));
     });
 }

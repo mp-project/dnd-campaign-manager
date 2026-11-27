@@ -1,7 +1,7 @@
 import { AbstractController } from "#core/http/controller/AbstractController";
 import type { RequestContext } from "#core/http/requestContext";
 import { RequestCampaignSpeciesParamsSchema, SpeciesSelectionSchema } from "#src/modules/species/domain/dto/RequestSpeciesDto";
-import type { ResolveSpeciesSelectionUseCase } from "#src/modules/species/useCase/SpeciesCatalogUseCases";
+import type { ResolveSpeciesSelectionUseCase } from "#src/modules/species/useCase/ResolveSpeciesSelectionUseCase";
 
 export class ResolveSpeciesSelectionController extends AbstractController {
   constructor(private readonly useCase: ResolveSpeciesSelectionUseCase) {
@@ -13,6 +13,6 @@ export class ResolveSpeciesSelectionController extends AbstractController {
       const params = RequestCampaignSpeciesParamsSchema.parse(request.params);
       const command = SpeciesSelectionSchema.parse(request.body ?? {});
 
-      return this.useCase.execute(request.requestContext, { ...params, command });
+      return this.ok(await this.useCase.execute(request.requestContext, { ...params, command }));
     });
 }

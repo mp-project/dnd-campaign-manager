@@ -1,25 +1,18 @@
-import type { ContentView } from "#core/content/viewer";
-import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService, ContentAccess } from "#src/modules/assets/index";
+import {
+  type AssetsService,
+  type ContentReadMode,
+  type ReadableContent,
+  readContent,
+} from "#src/modules/assets/index";
 import type { FeatDefinition } from "#src/modules/feats/domain/dto/FeatDefinitionDto";
 import type { FeatWithAsset } from "#src/modules/feats/domain/repository/FeatsRepository";
 import { readFeatDefinition } from "#src/modules/feats/history/TrackedFeat";
 import type { FeatsService } from "#src/modules/feats/service/FeatsService";
 
-/**
- * Where a feat is read: `campaign` only finds custom feats of the campaign, `catalog` also global
- * ones for the campaign ruleset, `system` only global ones.
- */
-export type FeatReadMode = "campaign" | "catalog" | "system";
+export type FeatReadMode = ContentReadMode;
 
-export type ReadableFeat = {
-  found: FeatWithAsset;
-  view: ContentView;
-  /** Null outside a campaign. */
-  access: ContentAccess | null;
-};
+export type ReadableFeat = ReadableContent<FeatWithAsset>;
 
 /** A feat in the catalog of a campaign; the input of the catalog sections. */
 export type FeatCatalogInput = { campaignId: string; featId: string };
@@ -50,30 +43,11 @@ export class FeatReader {
   ): Promise<ReadableFeat> {
     const { db } = this.featsService;
 
-    if (mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await this.featsService.requireSystemFeat(db, input.featId);
-
-      if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "FULL", access: null };
-      }
-
-      if (found.asset.status !== "ACTIVE") {
-        throw new NotFoundError("Feat not found");
-      }
-
-      return { found, view: "PLAYER", access: null };
-    }
-
-    const access = await this.assetsService.access(context, input.campaignId as string);
-    const found = await this.featsService.requireReadableFeat(
-      access,
-      input.featId,
-      mode === "campaign" ? "MANAGE" : "CATALOG",
-    );
-
-    return { found, view: access.isFullView ? "FULL" : "PLAYER", access };
+    return readContent(this.assetsService, context, mode, input.campaignId, {
+      global: () => this.featsService.requireSystemFeat(db, input.featId),
+      readable: (access, purpose) => this.featsService.requireReadableFeat(access, input.featId, purpose),
+      notFound: "Feat not found",
+    });
   }
 
   /** The stored definition (409 if it no longer parses) and what of it the reader may see. */

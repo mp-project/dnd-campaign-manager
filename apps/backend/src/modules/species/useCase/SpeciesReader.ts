@@ -1,9 +1,14 @@
-import type { ContentReadPurpose } from "#core/content/access";
 import type { ContentView } from "#core/content/viewer";
 import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService, ContentAccess } from "#src/modules/assets/index";
+import {
+  type AssetsService,
+  type ContentAccess,
+  type ContentReadMode,
+  contentReadPurposeOf,
+  readContent,
+} from "#src/modules/assets/index";
 import type { SpeciesFeatureGrant } from "#src/modules/species/domain/dto/SpeciesDefinitionDto";
 import type {
   SpeciesVariantWithAsset,
@@ -16,17 +21,9 @@ import {
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
 import type { SpeciesVariantsService } from "#src/modules/species/service/SpeciesVariantsService";
 
-/**
- * Where a species is read: `campaign` only finds custom species of the campaign, `catalog` also
- * global ones for the campaign ruleset, `system` only global ones.
- */
-export type SpeciesReadMode = "campaign" | "catalog" | "system";
+export type SpeciesReadMode = ContentReadMode;
 
 /** Campaign routes manage the campaign's own species; the catalog offers what it may choose. */
-function readPurposeOf(mode: SpeciesReadMode): ContentReadPurpose {
-  return mode === "campaign" ? "MANAGE" : "CATALOG";
-}
-
 /** A variant as a read returns it, with its grants parsed once for the whole request. */
 export type ReadableVariant = SpeciesVariantWithAsset & { featureGrants: SpeciesFeatureGrant[] };
 
@@ -69,28 +66,13 @@ export class SpeciesReader {
     input: { campaignId?: string | undefined; speciesId: string },
   ): Promise<ReadableSpecies> {
     const { db } = this.speciesService;
-    const isAdmin = isSysAdminRole(context.systemRole);
+    const readable = await readContent(this.assetsService, context, mode, input.campaignId, {
+      global: () => this.speciesService.requireSystemSpecies(db, input.speciesId),
+      readable: (access, purpose) => this.speciesService.requireReadableSpecies(access, input.speciesId, purpose),
+      notFound: "Species not found",
+    });
 
-    if (mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await this.speciesService.requireSystemSpecies(db, input.speciesId);
-
-      if (!isAdmin && found.asset.status !== "ACTIVE") {
-        throw new NotFoundError("Species not found");
-      }
-
-      return { found, mode, view: isAdmin ? "FULL" : "PLAYER", isAdmin, access: null };
-    }
-
-    const access = await this.assetsService.access(context, input.campaignId as string);
-    const found = await this.speciesService.requireReadableSpecies(
-      access,
-      input.speciesId,
-      readPurposeOf(mode),
-    );
-
-    return { found, mode, view: access.viewer.view, isAdmin, access };
+    return { ...readable, mode, isAdmin: isSysAdminRole(context.systemRole) };
   }
 
   /**
@@ -106,7 +88,7 @@ export class SpeciesReader {
         : await this.variantsService.listReadable(
             readable.access,
             speciesId,
-            readPurposeOf(readable.mode),
+            contentReadPurposeOf(readable.mode),
           );
 
     return variants.flatMap((item) => {

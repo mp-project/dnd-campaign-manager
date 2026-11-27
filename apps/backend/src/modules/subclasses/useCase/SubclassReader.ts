@@ -1,18 +1,12 @@
 import type { ContentView } from "#core/content/viewer";
-import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import { type AssetsService, type ContentReadMode, readContent } from "#src/modules/assets/index";
 import type { SubclassDefinition } from "#src/modules/subclasses/domain/dto/SubclassDefinitionDto";
 import type { SubclassWithAsset } from "#src/modules/subclasses/domain/repository/SubclassesRepository";
 import { parseSubclassDefinition } from "#src/modules/subclasses/history/TrackedSubclass";
 import type { SubclassesService } from "#src/modules/subclasses/service/SubclassesService";
 
-/**
- * Where a subclass is read: `campaign` only finds custom subclasses of the campaign, `catalog` also
- * global ones for the campaign ruleset, `system` only global ones.
- */
-export type SubclassReadMode = "campaign" | "catalog" | "system";
+export type SubclassReadMode = ContentReadMode;
 
 export type ReadableSubclass = {
   found: SubclassWithAsset;
@@ -39,38 +33,21 @@ export class SubclassReader {
     input: { campaignId?: string | undefined; subclassId: string },
   ): Promise<ReadableSubclass> {
     const { db } = this.subclassesService;
-
-    if (mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await this.subclassesService.requireSystemSubclass(db, input.subclassId);
-
-      if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "FULL", definition: parseSubclassDefinition(found.subclass) };
-      }
-
-      if (found.asset.status !== "ACTIVE") {
-        throw new NotFoundError("Subclass not found");
-      }
-
-      return {
-        found,
-        view: "PLAYER",
-        definition: await this.subclassesService.definitionFor(found, null, db),
-      };
-    }
-
-    const access = await this.assetsService.access(context, input.campaignId as string);
-    const found = await this.subclassesService.requireReadableSubclass(
-      access,
-      input.subclassId,
-      mode === "campaign" ? "MANAGE" : "CATALOG",
-    );
+    const { found, view, access } = await readContent(this.assetsService, context, mode, input.campaignId, {
+      global: () => this.subclassesService.requireSystemSubclass(db, input.subclassId),
+      readable: (access, purpose) =>
+        this.subclassesService.requireReadableSubclass(access, input.subclassId, purpose),
+      notFound: "Subclass not found",
+    });
 
     return {
       found,
-      view: access.isFullView ? "FULL" : "PLAYER",
-      definition: await this.subclassesService.definitionFor(found, access, db),
+      view,
+      // Administrators reading global content get the stored definition as it is.
+      definition:
+        access === null && view === "FULL"
+          ? parseSubclassDefinition(found.subclass)
+          : await this.subclassesService.definitionFor(found, access, db),
     };
   }
 }

@@ -1,7 +1,6 @@
-import type { ContentReadPurpose } from "#core/content/access";
-import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import type { SQL } from "drizzle-orm";
+
+import { type AssetsService, ContentListing } from "#src/modules/assets/index";
 import type {
   RequestCampaignFeaturesQueryDto,
   RequestFeatureCatalogQueryDto,
@@ -13,69 +12,34 @@ import {
   toFeatureListItemPlayerResponse,
   toFeatureListResponse,
 } from "#src/modules/features/domain/dto/ResponseFeatureDto";
-import type { FeaturePage } from "#src/modules/features/domain/repository/FeaturesRepository";
+import type {
+  FeatureListFilter,
+  FeaturePage,
+} from "#src/modules/features/domain/repository/FeaturesRepository";
 import { FeaturesService } from "#src/modules/features/service/FeaturesService";
+
+/** The types of the feature lists for `ContentListing`. */
+type FeatureListTypes = {
+  campaignQuery: RequestCampaignFeaturesQueryDto;
+  catalogQuery: RequestFeatureCatalogQueryDto;
+  systemQuery: RequestSystemFeaturesQueryDto;
+  filter: Omit<FeatureListFilter, "where">;
+  page: FeaturePage;
+  response: ResponseFeatureListDto;
+};
 
 /**
  * Shared by the list use cases. Lists carry no definitions; those come with the detail view.
  */
-export class FeatureListing {
+export class FeatureListing extends ContentListing<FeatureListTypes> {
   constructor(
     private readonly featuresService: FeaturesService,
-    private readonly assetsService: AssetsService,
-  ) {}
-
-  async listCampaign(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignFeaturesQueryDto },
-  ): Promise<ResponseFeatureListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "MANAGE");
+    assetsService: AssetsService,
+  ) {
+    super(assetsService);
   }
 
-  async listCatalog(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestFeatureCatalogQueryDto },
-  ): Promise<ResponseFeatureListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "CATALOG");
-  }
-
-  async listSystem(
-    context: RequestContext,
-    query: RequestSystemFeaturesQueryDto,
-  ): Promise<ResponseFeatureListDto> {
-    this.assetsService.assertAuthenticated(context);
-
-    const isAdmin = isSysAdminRole(context.systemRole);
-    const { db, repository } = this.featuresService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: this.assetsService.globalListWhere(context, query),
-    });
-
-    return this.toResponse(page, isAdmin, query.limit);
-  }
-
-  /** The campaign's own features (`MANAGE`) or what the campaign may use (`CATALOG`). */
-  private async listInCampaign(
-    context: RequestContext,
-    campaignId: string,
-    query: RequestCampaignFeaturesQueryDto | RequestFeatureCatalogQueryDto,
-    purpose: ContentReadPurpose,
-  ): Promise<ResponseFeatureListDto> {
-    const access = await this.assetsService.access(context, campaignId);
-    const { db, repository } = this.featuresService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: access.listWhere(purpose, {
-        scope: "scope" in query ? query.scope : undefined,
-        status: query.status,
-      }),
-    });
-
-    return this.toResponse(page, access.isFullView, query.limit);
-  }
-
-  private baseFilter(query: RequestCampaignFeaturesQueryDto) {
+  protected filterOf(query: RequestCampaignFeaturesQueryDto) {
     return {
       limit: query.limit,
       cursor: query.cursor,
@@ -84,7 +48,11 @@ export class FeatureListing {
     };
   }
 
-  private async toResponse(
+  protected listPage(filter: FeatureListTypes["filter"] & { where: SQL }): Promise<FeaturePage> {
+    return this.featuresService.repository.listPage(this.featuresService.db, filter);
+  }
+
+  protected async toResponse(
     page: FeaturePage,
     fullView: boolean,
     limit: number,

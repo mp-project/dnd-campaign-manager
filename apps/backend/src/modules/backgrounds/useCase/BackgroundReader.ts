@@ -1,18 +1,17 @@
 import type { ContentView } from "#core/content/viewer";
-import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService, ContentAccess } from "#src/modules/assets/index";
+import {
+  type AssetsService,
+  type ContentAccess,
+  type ContentReadMode,
+  readContent,
+} from "#src/modules/assets/index";
 import type { BackgroundDefinition } from "#src/modules/backgrounds/domain/dto/BackgroundDefinitionDto";
 import type { BackgroundWithAsset } from "#src/modules/backgrounds/domain/repository/BackgroundsRepository";
 import { readBackgroundDefinition } from "#src/modules/backgrounds/history/TrackedBackground";
 import type { BackgroundsService } from "#src/modules/backgrounds/service/BackgroundsService";
 
-/**
- * Where a background is read: `campaign` only finds custom backgrounds of the campaign, `catalog`
- * also global ones for the campaign ruleset, `system` only global ones.
- */
-export type BackgroundReadMode = "campaign" | "catalog" | "system";
+export type BackgroundReadMode = ContentReadMode;
 
 export type ReadableBackground = {
   found: BackgroundWithAsset;
@@ -42,46 +41,21 @@ export class BackgroundReader {
     input: { campaignId?: string | undefined; backgroundId: string },
   ): Promise<ReadableBackground> {
     const { db } = this.backgroundsService;
+    const readable = await readContent(this.assetsService, context, mode, input.campaignId, {
+      global: () => this.backgroundsService.requireSystemBackground(db, input.backgroundId),
+      readable: (access, purpose) =>
+        this.backgroundsService.requireReadableBackground(access, input.backgroundId, purpose),
+      notFound: "Background not found",
+    });
+    const definition = readBackgroundDefinition(readable.found.background);
 
-    if (mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await this.backgroundsService.requireSystemBackground(db, input.backgroundId);
-      const definition = readBackgroundDefinition(found.background);
-
-      if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "FULL", access: null, definition };
-      }
-
-      if (found.asset.status !== "ACTIVE") {
-        throw new NotFoundError("Background not found");
-      }
-
-      return {
-        found,
-        view: "PLAYER",
-        access: null,
-        definition: (await this.backgroundsService.playerDefinition(db, definition, null)).definition,
-      };
-    }
-
-    const access = await this.assetsService.access(context, input.campaignId as string);
-    const found = await this.backgroundsService.requireReadableBackground(
-      access,
-      input.backgroundId,
-      mode === "campaign" ? "MANAGE" : "CATALOG",
-    );
-    const definition = readBackgroundDefinition(found.background);
-
-    if (access.isFullView) {
-      return { found, view: "FULL", access, definition };
+    if (readable.view === "FULL") {
+      return { ...readable, definition };
     }
 
     return {
-      found,
-      view: "PLAYER",
-      access,
-      definition: (await this.backgroundsService.playerDefinition(db, definition, access)).definition,
+      ...readable,
+      definition: (await this.backgroundsService.playerDefinition(db, definition, readable.access)).definition,
     };
   }
 }

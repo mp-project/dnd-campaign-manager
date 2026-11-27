@@ -2,8 +2,7 @@ import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
 import type { ResponseAssetUsagesDto } from "#src/modules/asset-links/index";
 import type { ItemsService } from "#src/modules/items/service/ItemsService";
-import type { ItemReader } from "#src/modules/items/useCase/ItemReader";
-import type { ItemCatalogInput } from "#src/modules/items/useCase/ItemReader";
+import type { ItemCatalogInput, ItemReader } from "#src/modules/items/useCase/ItemReader";
 
 /** Where an item is used in the campaign, as far as the reader may see it. */
 export class GetItemUsagesUseCase {

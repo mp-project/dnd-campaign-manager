@@ -1,7 +1,10 @@
 import type { RequestContext } from "#core/http/requestContext";
-import { NotFoundError } from "#core/error/http/index";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService, ContentAccess } from "#src/modules/assets/index";
+import {
+  type AssetsService,
+  type ContentAccess,
+  type ContentReadMode,
+  readContent,
+} from "#src/modules/assets/index";
 import {
   type ResponseFeatureDto,
   toFeatureFullResponse,
@@ -10,11 +13,7 @@ import {
 import type { FeatureWithAsset } from "#src/modules/features/domain/repository/FeaturesRepository";
 import { FeaturesService } from "#src/modules/features/service/FeaturesService";
 
-/**
- * Where the feature is read: `campaign` only finds custom features of the campaign, `catalog` also
- * global ones for the campaign ruleset, `system` only global ones.
- */
-export type FeatureReadMode = "campaign" | "catalog" | "system";
+export type FeatureReadMode = ContentReadMode;
 
 /**
  * GMs and editors get the full view of what the campaign may use, players the player view of active
@@ -33,35 +32,17 @@ export class GetFeatureUseCase {
     input: { campaignId?: string | undefined; featureId: string },
   ): Promise<ResponseFeatureDto> {
     const { db } = this.featuresService;
+    const { found, view, access } = await readContent(this.assetsService, context, this.mode, input.campaignId, {
+      global: () => this.featuresService.requireSystemFeature(db, input.featureId),
+      readable: (access, purpose) => this.featuresService.requireReadableFeature(access, input.featureId, purpose),
+      notFound: "Feature not found",
+    });
 
-    if (this.mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await this.featuresService.requireSystemFeature(db, input.featureId);
-
-      if (isSysAdminRole(context.systemRole)) {
-        return toFeatureFullResponse(await this.featuresService.loadRecord(db, found));
-      }
-
-      if (found.asset.status !== "ACTIVE") {
-        throw new NotFoundError("Feature not found");
-      }
-
-      return this.toPlayer(found, null);
+    if (view === "FULL") {
+      return toFeatureFullResponse(await this.featuresService.loadRecord(db, found));
     }
 
-    const access = await this.assetsService.access(context, input.campaignId as string);
-    const found = await this.featuresService.requireReadableFeature(
-      access,
-      input.featureId,
-      this.mode === "campaign" ? "MANAGE" : "CATALOG",
-    );
-
-    if (!access.isFullView) {
-      return this.toPlayer(found, access);
-    }
-
-    return toFeatureFullResponse(await this.featuresService.loadRecord(db, found));
+    return this.toPlayer(found, access);
   }
 
   private async toPlayer(found: FeatureWithAsset, access: ContentAccess | null) {

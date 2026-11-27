@@ -1,8 +1,10 @@
-import type { ContentView } from "#core/content/viewer";
-import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetRow, AssetsService, ContentAccess } from "#src/modules/assets/index";
+import {
+  type AssetsService,
+  type ContentReadMode,
+  readContent,
+  type ReadableContent,
+} from "#src/modules/assets/index";
 import type { SpellDefinition } from "#src/modules/spells/domain/dto/SpellDefinitionDto";
 import type {
   SpellListWithAsset,
@@ -11,21 +13,10 @@ import type {
 import { readSpellDefinition } from "#src/modules/spells/history/TrackedSpell";
 import type { SpellsService } from "#src/modules/spells/service/SpellsService";
 
-/**
- * Where content is read: `campaign` only finds custom content of the campaign, `catalog` also
- * global content for the campaign ruleset, `system` only global content.
- */
-export type SpellReadMode = "campaign" | "catalog" | "system";
+export type SpellReadMode = ContentReadMode;
 
-export type Readable<T> = {
-  found: T;
-  view: ContentView;
-  /** Null outside a campaign. */
-  access: ContentAccess | null;
-};
-
-export type ReadableSpell = Readable<SpellWithAsset>;
-export type ReadableSpellList = Readable<SpellListWithAsset>;
+export type ReadableSpell = ReadableContent<SpellWithAsset>;
+export type ReadableSpellList = ReadableContent<SpellListWithAsset>;
 
 /** A spell in the catalog of a campaign; the input of the catalog sections. */
 export type SpellCatalogInput = { campaignId: string; spellId: string };
@@ -57,10 +48,10 @@ export class SpellReader {
   ): Promise<ReadableSpell> {
     const { db } = this.spellsService;
 
-    return this.readWith(context, mode, input.campaignId, {
+    return readContent(this.assetsService, context, mode, input.campaignId, {
       global: () => this.spellsService.requireScopedSpell(db, { campaignId: null, spellId: input.spellId }),
       readable: (access, purpose) => this.spellsService.requireReadableSpell(access, input.spellId, purpose),
-      message: "Spell not found",
+      notFound: "Spell not found",
     });
   }
 
@@ -71,12 +62,12 @@ export class SpellReader {
   ): Promise<ReadableSpellList> {
     const { db } = this.spellsService;
 
-    return this.readWith(context, mode, input.campaignId, {
+    return readContent(this.assetsService, context, mode, input.campaignId, {
       global: () =>
         this.spellsService.requireScopedSpellList(db, { campaignId: null, spellListId: input.spellListId }),
       readable: (access, purpose) =>
         this.spellsService.requireReadableSpellList(access, input.spellListId, purpose),
-      message: "Spell list not found",
+      notFound: "Spell list not found",
     });
   }
 
@@ -99,37 +90,5 @@ export class SpellReader {
         readable.access,
       ),
     };
-  }
-
-  private async readWith<T extends { asset: AssetRow }>(
-    context: RequestContext,
-    mode: SpellReadMode,
-    campaignId: string | undefined,
-    lookups: {
-      global(): Promise<T>;
-      readable(access: ContentAccess, purpose: "MANAGE" | "CATALOG"): Promise<T>;
-      message: string;
-    },
-  ): Promise<Readable<T>> {
-    if (mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await lookups.global();
-
-      if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "FULL", access: null };
-      }
-
-      if (found.asset.status !== "ACTIVE") {
-        throw new NotFoundError(lookups.message);
-      }
-
-      return { found, view: "PLAYER", access: null };
-    }
-
-    const access = await this.assetsService.access(context, campaignId as string);
-    const found = await lookups.readable(access, mode === "campaign" ? "MANAGE" : "CATALOG");
-
-    return { found, view: access.isFullView ? "FULL" : "PLAYER", access };
   }
 }

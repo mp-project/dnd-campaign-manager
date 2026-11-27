@@ -1,3 +1,5 @@
+import type { SQL } from "drizzle-orm";
+
 import type { AppDatabase } from "#core/db/pool";
 import type { ActionMeta, ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
@@ -5,8 +7,11 @@ import {
   ArchiveContentUseCase,
   assetContentWriter,
   type AssetsService,
+  type ContentAccess,
+  ContentListing,
   type ContentWriter,
   CreateContentUseCase,
+  readContent,
   RestoreContentUseCase,
   UpdateContentUseCase,
 } from "#src/modules/assets/index";
@@ -229,5 +234,167 @@ describe("assetContentWriter", () => {
       ["reload", TX, FOUND],
     ]);
     expect(archived.status).toBe("RELOADED");
+  });
+});
+
+describe("readContent", () => {
+  const ADMIN: RequestContext = { actorId: "admin-1", systemRole: "ADMIN" };
+
+  function buildAssets(isFullView: boolean) {
+    const calls: unknown[][] = [];
+    const access = { isFullView } as unknown as ContentAccess;
+    const assets = {
+      assertAuthenticated: (context: RequestContext) => {
+        calls.push(["assertAuthenticated", context]);
+
+        return context.actorId;
+      },
+      access: async (context: RequestContext, campaignId: string) => {
+        calls.push(["access", context, campaignId]);
+
+        return access;
+      },
+    } as unknown as AssetsService;
+
+    return { assets, access, calls };
+  }
+
+  const lookups = (status: string, calls: unknown[][]) => ({
+    global: async () => ({ asset: { status } }),
+    readable: async (access: ContentAccess, purpose: string) => {
+      calls.push(["readable", access, purpose]);
+
+      return { asset: { status } };
+    },
+    notFound: "Sample not found",
+  });
+
+  it("gives administrators the full view of global content, also of drafts", async () => {
+    const { assets } = buildAssets(false);
+
+    const readable = await readContent(assets, ADMIN, "system", undefined, lookups("DRAFT", []));
+
+    expect(readable).toEqual({ found: { asset: { status: "DRAFT" } }, view: "FULL", access: null });
+  });
+
+  it("gives everybody else the player view of active global content and 404 otherwise", async () => {
+    const { assets } = buildAssets(false);
+
+    await expect(readContent(assets, CONTEXT, "system", undefined, lookups("ACTIVE", []))).resolves.toEqual({
+      found: { asset: { status: "ACTIVE" } },
+      view: "PLAYER",
+      access: null,
+    });
+    await expect(readContent(assets, CONTEXT, "system", undefined, lookups("DRAFT", []))).rejects.toThrow(
+      "Sample not found",
+    );
+  });
+
+  it("reads in a campaign through the access session, with the purpose of the mode", async () => {
+    const { assets, access, calls } = buildAssets(true);
+
+    const managed = await readContent(assets, CONTEXT, "campaign", "campaign-1", lookups("ARCHIVED", calls));
+    await readContent(assets, CONTEXT, "catalog", "campaign-1", lookups("ACTIVE", calls));
+
+    expect(calls).toEqual([
+      ["access", CONTEXT, "campaign-1"],
+      ["readable", access, "MANAGE"],
+      ["access", CONTEXT, "campaign-1"],
+      ["readable", access, "CATALOG"],
+    ]);
+    expect(managed.view).toBe("FULL");
+    expect(managed.access).toBe(access);
+  });
+
+  it("gives players the player view in a campaign", async () => {
+    const { assets } = buildAssets(false);
+
+    const readable = await readContent(assets, CONTEXT, "catalog", "campaign-1", lookups("ACTIVE", []));
+
+    expect(readable.view).toBe("PLAYER");
+  });
+});
+
+describe("ContentListing", () => {
+  type Query = { limit: number; status?: "ACTIVE" | undefined; scope?: "SYSTEM" | undefined; search?: string };
+  type Types = {
+    campaignQuery: Query;
+    catalogQuery: Query;
+    systemQuery: Query;
+    filter: { limit: number; search: string | undefined };
+    page: { items: string[] };
+    response: { fullView: boolean; items: string[]; limit: number };
+  };
+
+  class SampleListing extends ContentListing<Types> {
+    readonly pages: unknown[] = [];
+
+    protected filterOf(query: Query) {
+      return { limit: query.limit, search: query.search };
+    }
+
+    protected async listPage(filter: Types["filter"] & { where: SQL }) {
+      this.pages.push(filter);
+
+      return { items: ["a", "b"] };
+    }
+
+    protected async toResponse(page: Types["page"], fullView: boolean, limit: number) {
+      return { fullView, items: page.items, limit };
+    }
+  }
+
+  function buildAssets(isFullView: boolean) {
+    const calls: unknown[][] = [];
+    const assets = {
+      assertAuthenticated: (context: RequestContext) => context.actorId,
+      access: async () => ({
+        isFullView,
+        listWhere: (purpose: string, filter: unknown) => {
+          calls.push(["listWhere", purpose, filter]);
+
+          return `where:${purpose}`;
+        },
+      }),
+      globalListWhere: (context: RequestContext, query: unknown) => {
+        calls.push(["globalListWhere", context, query]);
+
+        return "where:global";
+      },
+    } as unknown as AssetsService;
+
+    return { assets, calls };
+  }
+
+  it("lists the campaign's own content and the catalog with the purpose, scope and status", async () => {
+    const { assets, calls } = buildAssets(true);
+    const listing = new SampleListing(assets);
+
+    const own = await listing.listCampaign(CONTEXT, { campaignId: "c-1", query: { limit: 10, search: "x" } });
+    await listing.listCatalog(CONTEXT, {
+      campaignId: "c-1",
+      query: { limit: 5, status: "ACTIVE", scope: "SYSTEM" },
+    });
+
+    expect(calls).toEqual([
+      ["listWhere", "MANAGE", { scope: undefined, status: undefined }],
+      ["listWhere", "CATALOG", { scope: "SYSTEM", status: "ACTIVE" }],
+    ]);
+    expect(listing.pages[0]).toEqual({ limit: 10, search: "x", where: "where:MANAGE" });
+    expect(own).toEqual({ fullView: true, items: ["a", "b"], limit: 10 });
+  });
+
+  it("lists global content with the global rule; only administrators get the full view", async () => {
+    const { assets, calls } = buildAssets(false);
+    const listing = new SampleListing(assets);
+    const query = { limit: 20 };
+
+    const forUser = await listing.listSystem(CONTEXT, query);
+    const forAdmin = await listing.listSystem({ actorId: "admin-1", systemRole: "ADMIN" }, query);
+
+    expect(calls[0]).toEqual(["globalListWhere", CONTEXT, query]);
+    expect(listing.pages[0]).toEqual({ limit: 20, search: undefined, where: "where:global" });
+    expect(forUser.fullView).toBe(false);
+    expect(forAdmin.fullView).toBe(true);
   });
 });

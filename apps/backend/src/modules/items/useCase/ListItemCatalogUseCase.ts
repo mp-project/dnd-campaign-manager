@@ -7,6 +7,6 @@ export class ListItemCatalogUseCase {
   constructor(private readonly listing: ItemListing) {}
 
   execute(context: RequestContext, input: { campaignId: string; query: RequestItemCatalogQueryDto }) {
-    return this.listing.listInCampaign(context, input, "CATALOG");
+    return this.listing.listCatalog(context, input);
   }
 }

@@ -1,16 +1,10 @@
 import type { ContentView } from "#core/content/viewer";
-import { NotFoundError } from "#core/error/http/index";
 import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import { type AssetsService, type ContentReadMode, readContent } from "#src/modules/assets/index";
 import type { ClassWithAsset } from "#src/modules/classes/domain/repository/ClassesRepository";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
 
-/**
- * Where a class is read: `campaign` only finds custom classes of the campaign, `catalog` also
- * global ones for the campaign ruleset, `system` only global ones.
- */
-export type ClassReadMode = "campaign" | "catalog" | "system";
+export type ClassReadMode = ContentReadMode;
 
 export type ReadableClass = {
   found: ClassWithAsset;
@@ -37,42 +31,17 @@ export class ClassReader {
     input: { campaignId?: string | undefined; classId: string },
   ): Promise<ReadableClass> {
     const { db } = this.classesService;
-
-    if (mode === "system") {
-      this.assetsService.assertAuthenticated(context);
-
-      const found = await this.classesService.requireSystemClass(db, input.classId);
-
-      if (isSysAdminRole(context.systemRole)) {
-        return { found, view: "FULL", isVisible: () => true };
-      }
-
-      if (found.asset.status !== "ACTIVE") {
-        throw new NotFoundError("Class not found");
-      }
-
-      return {
-        found,
-        view: "PLAYER",
-        isVisible: await this.classesService.playerReferenceVisibility(db, [found], null),
-      };
-    }
-
-    const access = await this.assetsService.access(context, input.campaignId as string);
-    const found = await this.classesService.requireReadableClass(
-      access,
-      input.classId,
-      mode === "campaign" ? "MANAGE" : "CATALOG",
-    );
-
-    if (access.isFullView) {
-      return { found, view: "FULL", isVisible: () => true };
-    }
+    const { found, view, access } = await readContent(this.assetsService, context, mode, input.campaignId, {
+      global: () => this.classesService.requireSystemClass(db, input.classId),
+      readable: (access, purpose) => this.classesService.requireReadableClass(access, input.classId, purpose),
+      notFound: "Class not found",
+    });
 
     return {
       found,
-      view: "PLAYER",
-      isVisible: await this.classesService.playerReferenceVisibility(db, [found], access),
+      view,
+      isVisible:
+        view === "FULL" ? () => true : await this.classesService.playerReferenceVisibility(db, [found], access),
     };
   }
 }

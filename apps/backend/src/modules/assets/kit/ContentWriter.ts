@@ -17,8 +17,14 @@ export type ContentTypes = {
   update: unknown;
 };
 
-/** Who creates content and where: `campaignId` null creates global content. */
-export type ContentOwner = { actorId: string; campaignId: string | null };
+/**
+ * Who creates content and where: `campaignId` null creates global content. Content that only exists
+ * in a campaign (notes) names `string` as the campaign of its path, so null never reaches it.
+ */
+export type ContentOwner<CampaignId extends string | null = string | null> = {
+  actorId: string;
+  campaignId: CampaignId;
+};
 
 export type ContentLifecycleChange<T extends ContentTypes> = {
   found: T["found"];
@@ -46,7 +52,11 @@ export interface ContentWriter<T extends ContentTypes> {
   actorIdOf(context: RequestContext): string;
   /** The content to change, in the scope the path names (404 otherwise). */
   requireForWrite(db: AppDatabase, path: T["path"]): Promise<T["found"]>;
-  create(scope: ActionScope, owner: ContentOwner, command: T["create"]): Promise<T["record"]>;
+  create(
+    scope: ActionScope,
+    owner: ContentOwner<T["path"]["campaignId"]>,
+    command: T["create"],
+  ): Promise<T["record"]>;
   update(scope: ActionScope, change: ContentUpdate<T>): Promise<ContentUpdateResult<T>>;
   archive(scope: ActionScope, change: ContentLifecycleChange<T>): Promise<T["record"]>;
   restore(scope: ActionScope, change: ContentLifecycleChange<T>): Promise<T["record"]>;

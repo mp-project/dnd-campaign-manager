@@ -23,46 +23,62 @@ import {
   SpellsRepository,
 } from "#src/modules/spells/domain/repository/SpellsRepository";
 import { SPELL_ASSET_ACTIONS } from "#src/modules/spells/history/TrackedSpell";
-import {
-  SpellController,
-  type SpellRequest,
-  SpellRequests,
-} from "#src/modules/spells/http/controller/SpellControllers";
+import { CreateSpellController } from "#src/modules/spells/http/controller/CreateSpellController";
+import { CreateSpellListController } from "#src/modules/spells/http/controller/CreateSpellListController";
+import { DeleteSpellController } from "#src/modules/spells/http/controller/DeleteSpellController";
+import { DeleteSpellListController } from "#src/modules/spells/http/controller/DeleteSpellListController";
+import { GetSpellController } from "#src/modules/spells/http/controller/GetSpellController";
+import { GetSpellEffectsController } from "#src/modules/spells/http/controller/GetSpellEffectsController";
+import { GetSpellListController } from "#src/modules/spells/http/controller/GetSpellListController";
+import { GetSpellListUsagesController } from "#src/modules/spells/http/controller/GetSpellListUsagesController";
+import { GetSpellListsOfSpellController } from "#src/modules/spells/http/controller/GetSpellListsOfSpellController";
+import { GetSpellUsagesController } from "#src/modules/spells/http/controller/GetSpellUsagesController";
+import { ListCampaignSpellListsController } from "#src/modules/spells/http/controller/ListCampaignSpellListsController";
+import { ListCampaignSpellsController } from "#src/modules/spells/http/controller/ListCampaignSpellsController";
+import { ListSpellCatalogController } from "#src/modules/spells/http/controller/ListSpellCatalogController";
+import { ListSpellListCatalogController } from "#src/modules/spells/http/controller/ListSpellListCatalogController";
+import { ListSpellListSpellsController } from "#src/modules/spells/http/controller/ListSpellListSpellsController";
+import { ListSystemSpellListsController } from "#src/modules/spells/http/controller/ListSystemSpellListsController";
+import { ListSystemSpellsController } from "#src/modules/spells/http/controller/ListSystemSpellsController";
+import { ResolveSpellController } from "#src/modules/spells/http/controller/ResolveSpellController";
+import { RestoreSpellController } from "#src/modules/spells/http/controller/RestoreSpellController";
+import { RestoreSpellListController } from "#src/modules/spells/http/controller/RestoreSpellListController";
+import { UpdateSpellController } from "#src/modules/spells/http/controller/UpdateSpellController";
+import { UpdateSpellListController } from "#src/modules/spells/http/controller/UpdateSpellListController";
+import { ValidateSpellController } from "#src/modules/spells/http/controller/ValidateSpellController";
+import { ValidateSpellListController } from "#src/modules/spells/http/controller/ValidateSpellListController";
 import {
   registerSpellsRoutes,
   type SpellsRouteControllers,
 } from "#src/modules/spells/http/routes/v1/SpellsRoutes";
 import { spellsPermissionDefinitions } from "#src/modules/spells/permissions/SpellsPermissions";
 import { SpellsService } from "#src/modules/spells/service/SpellsService";
-import {
-  ListCampaignSpellListsUseCase,
-  ListCampaignSpellsUseCase,
-  ListSpellCatalogUseCase,
-  ListSpellListCatalogUseCase,
-  ListSpellListSpellsUseCase,
-  ListSystemSpellListsUseCase,
-  ListSystemSpellsUseCase,
-  SpellListing,
-} from "#src/modules/spells/useCase/ListSpellsUseCase";
-import {
-  GetSpellEffectsUseCase,
-  GetSpellListsOfSpellUseCase,
-  GetSpellListUsagesUseCase,
-  GetSpellListUseCase,
-  GetSpellUsagesUseCase,
-  GetSpellUseCase,
-  ResolveSpellUseCase,
-} from "#src/modules/spells/useCase/SpellReadUseCases";
+import { CreateSpellListUseCase } from "#src/modules/spells/useCase/CreateSpellListUseCase";
+import { CreateSpellUseCase } from "#src/modules/spells/useCase/CreateSpellUseCase";
+import { DeleteSpellListUseCase } from "#src/modules/spells/useCase/DeleteSpellListUseCase";
+import { DeleteSpellUseCase } from "#src/modules/spells/useCase/DeleteSpellUseCase";
+import { GetSpellEffectsUseCase } from "#src/modules/spells/useCase/GetSpellEffectsUseCase";
+import { GetSpellListUsagesUseCase } from "#src/modules/spells/useCase/GetSpellListUsagesUseCase";
+import { GetSpellListUseCase } from "#src/modules/spells/useCase/GetSpellListUseCase";
+import { GetSpellListsOfSpellUseCase } from "#src/modules/spells/useCase/GetSpellListsOfSpellUseCase";
+import { GetSpellUsagesUseCase } from "#src/modules/spells/useCase/GetSpellUsagesUseCase";
+import { GetSpellUseCase } from "#src/modules/spells/useCase/GetSpellUseCase";
+import { ListCampaignSpellListsUseCase } from "#src/modules/spells/useCase/ListCampaignSpellListsUseCase";
+import { ListCampaignSpellsUseCase } from "#src/modules/spells/useCase/ListCampaignSpellsUseCase";
+import { ListSpellCatalogUseCase } from "#src/modules/spells/useCase/ListSpellCatalogUseCase";
+import { ListSpellListCatalogUseCase } from "#src/modules/spells/useCase/ListSpellListCatalogUseCase";
+import { ListSpellListSpellsUseCase } from "#src/modules/spells/useCase/ListSpellListSpellsUseCase";
+import { ListSystemSpellListsUseCase } from "#src/modules/spells/useCase/ListSystemSpellListsUseCase";
+import { ListSystemSpellsUseCase } from "#src/modules/spells/useCase/ListSystemSpellsUseCase";
+import { ResolveSpellUseCase } from "#src/modules/spells/useCase/ResolveSpellUseCase";
+import { RestoreSpellListUseCase } from "#src/modules/spells/useCase/RestoreSpellListUseCase";
+import { RestoreSpellUseCase } from "#src/modules/spells/useCase/RestoreSpellUseCase";
+import { SpellListing } from "#src/modules/spells/useCase/SpellListing";
 import { SpellReader } from "#src/modules/spells/useCase/SpellReader";
-import {
-  ChangeSpellListLifecycleUseCase,
-  ChangeSpellLifecycleUseCase,
-  CreateSpellListUseCase,
-  CreateSpellUseCase,
-  UpdateSpellListUseCase,
-  UpdateSpellUseCase,
-  ValidateSpellContentUseCase,
-} from "#src/modules/spells/useCase/SpellWriteUseCases";
+import { UpdateSpellListUseCase } from "#src/modules/spells/useCase/UpdateSpellListUseCase";
+import { UpdateSpellUseCase } from "#src/modules/spells/useCase/UpdateSpellUseCase";
+import { ValidateSpellListUseCase } from "#src/modules/spells/useCase/ValidateSpellListUseCase";
+import { ValidateSpellUseCase } from "#src/modules/spells/useCase/ValidateSpellUseCase";
 
 export const SPELLS_MODULE_DEPENDENCIES = "spells.module.dependencies";
 
@@ -140,66 +156,52 @@ async function registerSpellsModule(app: FastifyInstance, container: AppContaine
     return typeof spellcasting?.spellListAssetId === "string" ? spellcasting.spellListAssetId : null;
   });
   const reader = new SpellReader(service, assetsService);
-  const R = SpellRequests;
-  const controller = <Input, Output>(
-    parse: (request: SpellRequest) => Input,
-    useCase: { execute(context: SpellRequest["requestContext"], input: Input): Promise<Output> },
-  ) => new SpellController(parse, useCase);
-
   const controllers: SpellsRouteControllers = {
-    listCampaignSpells: controller(R.listCampaign, new ListCampaignSpellsUseCase(listing)),
-    createCampaignSpell: controller(R.create, new CreateSpellUseCase(history, service)),
-    getCampaignSpell: controller(R.spell, new GetSpellUseCase(service, reader, "campaign")),
-    updateCampaignSpell: controller(R.update, new UpdateSpellUseCase(history, service)),
-    deleteCampaignSpell: controller(R.lifecycle("query"), new ChangeSpellLifecycleUseCase(history, service, true)),
-    restoreCampaignSpell: controller(R.lifecycle("body"), new ChangeSpellLifecycleUseCase(history, service, false)),
-    validateCampaignSpell: controller(R.validate, new ValidateSpellContentUseCase(service, "spell")),
-    getCampaignSpellUsages: controller(R.catalogSpell, new GetSpellUsagesUseCase(reader, service, true)),
-    listSpellCatalog: controller(R.listCatalog, new ListSpellCatalogUseCase(listing)),
-    getCatalogSpell: controller(R.spell, new GetSpellUseCase(service, reader, "catalog")),
-    getCatalogSpellEffects: controller(R.catalogSpell, new GetSpellEffectsUseCase(reader)),
-    getCatalogSpellLists: controller(R.catalogSpell, new GetSpellListsOfSpellUseCase(reader, service)),
-    getCatalogSpellUsages: controller(R.catalogSpell, new GetSpellUsagesUseCase(reader, service, false)),
-    resolveSpell: controller(R.resolve, new ResolveSpellUseCase(reader)),
-    listSystemSpells: controller(R.listSystem, new ListSystemSpellsUseCase(listing)),
-    createSystemSpell: controller(R.create, new CreateSpellUseCase(history, service)),
-    getSystemSpell: controller(R.spell, new GetSpellUseCase(service, reader, "system")),
-    updateSystemSpell: controller(R.update, new UpdateSpellUseCase(history, service)),
-    deleteSystemSpell: controller(R.lifecycle("query"), new ChangeSpellLifecycleUseCase(history, service, true)),
-    restoreSystemSpell: controller(R.lifecycle("body"), new ChangeSpellLifecycleUseCase(history, service, false)),
-    validateSystemSpell: controller(R.validate, new ValidateSpellContentUseCase(service, "spell")),
+    listCampaignSpells: new ListCampaignSpellsController(new ListCampaignSpellsUseCase(listing)),
+    createCampaignSpell: new CreateSpellController(new CreateSpellUseCase(history, service)),
+    getCampaignSpell: new GetSpellController(new GetSpellUseCase(service, reader, "campaign")),
+    updateCampaignSpell: new UpdateSpellController(new UpdateSpellUseCase(history, service)),
+    deleteCampaignSpell: new DeleteSpellController(new DeleteSpellUseCase(history, service)),
+    restoreCampaignSpell: new RestoreSpellController(new RestoreSpellUseCase(history, service)),
+    validateCampaignSpell: new ValidateSpellController(new ValidateSpellUseCase(service)),
+    getCampaignSpellUsages: new GetSpellUsagesController(new GetSpellUsagesUseCase(reader, service, true)),
+    listSpellCatalog: new ListSpellCatalogController(new ListSpellCatalogUseCase(listing)),
+    getCatalogSpell: new GetSpellController(new GetSpellUseCase(service, reader, "catalog")),
+    getCatalogSpellEffects: new GetSpellEffectsController(new GetSpellEffectsUseCase(reader)),
+    getCatalogSpellLists: new GetSpellListsOfSpellController(new GetSpellListsOfSpellUseCase(reader, service)),
+    getCatalogSpellUsages: new GetSpellUsagesController(new GetSpellUsagesUseCase(reader, service, false)),
+    resolveSpell: new ResolveSpellController(new ResolveSpellUseCase(reader)),
+    listSystemSpells: new ListSystemSpellsController(new ListSystemSpellsUseCase(listing)),
+    createSystemSpell: new CreateSpellController(new CreateSpellUseCase(history, service)),
+    getSystemSpell: new GetSpellController(new GetSpellUseCase(service, reader, "system")),
+    updateSystemSpell: new UpdateSpellController(new UpdateSpellUseCase(history, service)),
+    deleteSystemSpell: new DeleteSpellController(new DeleteSpellUseCase(history, service)),
+    restoreSystemSpell: new RestoreSpellController(new RestoreSpellUseCase(history, service)),
+    validateSystemSpell: new ValidateSpellController(new ValidateSpellUseCase(service)),
 
-    listCampaignSpellLists: controller(R.listCampaignLists, new ListCampaignSpellListsUseCase(listing)),
-    createCampaignSpellList: controller(R.createList, new CreateSpellListUseCase(history, service)),
-    getCampaignSpellList: controller(R.spellList, new GetSpellListUseCase(service, reader, "campaign")),
-    updateCampaignSpellList: controller(R.updateList, new UpdateSpellListUseCase(history, service)),
-    deleteCampaignSpellList: controller(
-      R.listLifecycle("query"),
-      new ChangeSpellListLifecycleUseCase(history, service, true),
+    listCampaignSpellLists: new ListCampaignSpellListsController(new ListCampaignSpellListsUseCase(listing)),
+    createCampaignSpellList: new CreateSpellListController(new CreateSpellListUseCase(history, service)),
+    getCampaignSpellList: new GetSpellListController(new GetSpellListUseCase(service, reader, "campaign")),
+    updateCampaignSpellList: new UpdateSpellListController(new UpdateSpellListUseCase(history, service)),
+    deleteCampaignSpellList: new DeleteSpellListController(new DeleteSpellListUseCase(history, service)),
+    restoreCampaignSpellList: new RestoreSpellListController(new RestoreSpellListUseCase(history, service)),
+    validateCampaignSpellList: new ValidateSpellListController(new ValidateSpellListUseCase(service)),
+    getCampaignSpellListUsages: new GetSpellListUsagesController(
+      new GetSpellListUsagesUseCase(reader, service, true),
     ),
-    restoreCampaignSpellList: controller(
-      R.listLifecycle("body"),
-      new ChangeSpellListLifecycleUseCase(history, service, false),
+    listSpellListCatalog: new ListSpellListCatalogController(new ListSpellListCatalogUseCase(listing)),
+    getCatalogSpellList: new GetSpellListController(new GetSpellListUseCase(service, reader, "catalog")),
+    listCatalogSpellListSpells: new ListSpellListSpellsController(new ListSpellListSpellsUseCase(listing)),
+    getCatalogSpellListUsages: new GetSpellListUsagesController(
+      new GetSpellListUsagesUseCase(reader, service, false),
     ),
-    validateCampaignSpellList: controller(R.validateList, new ValidateSpellContentUseCase(service, "spell list")),
-    getCampaignSpellListUsages: controller(R.catalogSpellList, new GetSpellListUsagesUseCase(reader, service, true)),
-    listSpellListCatalog: controller(R.listListCatalog, new ListSpellListCatalogUseCase(listing)),
-    getCatalogSpellList: controller(R.spellList, new GetSpellListUseCase(service, reader, "catalog")),
-    listCatalogSpellListSpells: controller(R.listSpellsOfList, new ListSpellListSpellsUseCase(listing)),
-    getCatalogSpellListUsages: controller(R.catalogSpellList, new GetSpellListUsagesUseCase(reader, service, false)),
-    listSystemSpellLists: controller(R.listSystemLists, new ListSystemSpellListsUseCase(listing)),
-    createSystemSpellList: controller(R.createList, new CreateSpellListUseCase(history, service)),
-    getSystemSpellList: controller(R.spellList, new GetSpellListUseCase(service, reader, "system")),
-    updateSystemSpellList: controller(R.updateList, new UpdateSpellListUseCase(history, service)),
-    deleteSystemSpellList: controller(
-      R.listLifecycle("query"),
-      new ChangeSpellListLifecycleUseCase(history, service, true),
-    ),
-    restoreSystemSpellList: controller(
-      R.listLifecycle("body"),
-      new ChangeSpellListLifecycleUseCase(history, service, false),
-    ),
-    validateSystemSpellList: controller(R.validateList, new ValidateSpellContentUseCase(service, "spell list")),
+    listSystemSpellLists: new ListSystemSpellListsController(new ListSystemSpellListsUseCase(listing)),
+    createSystemSpellList: new CreateSpellListController(new CreateSpellListUseCase(history, service)),
+    getSystemSpellList: new GetSpellListController(new GetSpellListUseCase(service, reader, "system")),
+    updateSystemSpellList: new UpdateSpellListController(new UpdateSpellListUseCase(history, service)),
+    deleteSystemSpellList: new DeleteSpellListController(new DeleteSpellListUseCase(history, service)),
+    restoreSystemSpellList: new RestoreSpellListController(new RestoreSpellListUseCase(history, service)),
+    validateSystemSpellList: new ValidateSpellListController(new ValidateSpellListUseCase(service)),
   };
 
   app.register(async (spellsApp) => {

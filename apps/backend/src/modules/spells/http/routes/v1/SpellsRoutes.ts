@@ -1,7 +1,8 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ZodType } from "zod";
 
 import { errorResponseDto } from "#core/http/dto";
+import { type IHttpResponse, sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateSpellListSchema, CreateSpellSchema } from "#src/modules/spells/domain/dto/CreateSpellDto";
 import {
@@ -37,10 +38,9 @@ import {
   UpdateSpellListSchema,
   UpdateSpellSchema,
 } from "#src/modules/spells/domain/dto/UpdateSpellDto";
-import type { SpellRequest } from "#src/modules/spells/http/controller/SpellControllers";
 import { SPELLS_PERMISSIONS } from "#src/modules/spells/permissions/SpellsPermissions";
 
-type Handler = { handle(request: SpellRequest): Promise<unknown> };
+type Handler = { handle(request: FastifyRequest): Promise<IHttpResponse<unknown>> };
 
 /** The controllers of all spell and spell list routes, keyed like the routes below. */
 export type SpellsRouteControllers = Record<
@@ -119,6 +119,7 @@ type RouteSpec = {
   params?: ZodType;
   querystring?: ZodType;
   body?: ZodType;
+  /** The success status of the response schema; the controller answers with the same one. */
   status?: 200 | 201;
   response: ZodType;
   errors: Record<number, ZodType>;
@@ -420,8 +421,7 @@ export function registerSpellsRoutes(app: FastifyInstance, controllers: SpellsRo
         ...(route.body ? { body: route.body } : {}),
         response: { [status]: route.response, ...route.errors },
       },
-      handler: async (request: FastifyRequest, reply: FastifyReply) =>
-        reply.code(status).send(await controller.handle(request as unknown as SpellRequest)),
+      handler: async (request, reply) => sendHttpResponse(reply, await controller.handle(request)),
     });
   }
 }

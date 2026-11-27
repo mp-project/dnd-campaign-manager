@@ -27,6 +27,16 @@ export type Readable<T> = {
 export type ReadableSpell = Readable<SpellWithAsset>;
 export type ReadableSpellList = Readable<SpellListWithAsset>;
 
+/** A spell in the catalog of a campaign; the input of the catalog sections. */
+export type SpellCatalogInput = { campaignId: string; spellId: string };
+
+/** The ids and the view every catalog section of a spell starts with. */
+export const readableSpellHeader = (readable: ReadableSpell) => ({
+  spellId: readable.found.spell.id,
+  assetId: readable.found.asset.id,
+  view: readable.view,
+});
+
 /**
  * Finds a spell or a spell list for a read route and decides the view. Owners, editors and
  * administrators get the full view, players the player view of active content they may see;

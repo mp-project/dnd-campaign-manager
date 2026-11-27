@@ -14,6 +14,6 @@ export class CreateBackgroundController extends AbstractController {
       const { campaignId } = RequestBackgroundScopeParamsSchema.parse(request.params ?? {});
       const command = CreateBackgroundSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, { campaignId: campaignId ?? null, command });
+      return this.created(await this.useCase.execute(request.requestContext, { campaignId: campaignId ?? null, command }));
     });
 }

@@ -14,9 +14,9 @@ export class CreateFeatureController extends AbstractController {
       const { campaignId } = RequestFeatureScopeParamsSchema.parse(request.params ?? {});
       const command = CreateFeatureSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.created(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         command,
-      });
+      }));
     });
 }

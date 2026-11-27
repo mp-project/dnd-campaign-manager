@@ -1,6 +1,7 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateBackgroundSchema } from "#src/modules/backgrounds/domain/dto/CreateBackgroundDto";
 import {
@@ -35,11 +36,9 @@ import type { GetBackgroundController } from "#src/modules/backgrounds/http/cont
 import type { GetBackgroundFeatOptionsController } from "#src/modules/backgrounds/http/controller/GetBackgroundFeatOptionsController";
 import type { GetBackgroundSectionController } from "#src/modules/backgrounds/http/controller/GetBackgroundSectionController";
 import type { GetBackgroundUsagesController } from "#src/modules/backgrounds/http/controller/GetBackgroundUsagesController";
-import type {
-  ListBackgroundCatalogController,
-  ListCampaignBackgroundsController,
-  ListSystemBackgroundsController,
-} from "#src/modules/backgrounds/http/controller/ListBackgroundsControllers";
+import type { ListBackgroundCatalogController } from "#src/modules/backgrounds/http/controller/ListBackgroundCatalogController";
+import type { ListCampaignBackgroundsController } from "#src/modules/backgrounds/http/controller/ListCampaignBackgroundsController";
+import type { ListSystemBackgroundsController } from "#src/modules/backgrounds/http/controller/ListSystemBackgroundsController";
 import type { ResolveBackgroundController } from "#src/modules/backgrounds/http/controller/ResolveBackgroundController";
 import type { RestoreBackgroundController } from "#src/modules/backgrounds/http/controller/RestoreBackgroundController";
 import type { UpdateBackgroundController } from "#src/modules/backgrounds/http/controller/UpdateBackgroundController";
@@ -88,13 +87,6 @@ const campaignRead = { key: BACKGROUNDS_PERMISSIONS.read, hideAsNotFoundForPlaye
 const campaignUsages = { key: BACKGROUNDS_PERMISSIONS.readUsages, hideAsNotFoundForPlayers: true };
 const campaignResolve = { key: BACKGROUNDS_PERMISSIONS.resolve, hideAsNotFoundForPlayers: true };
 
-type Handler = (request: never) => Promise<unknown>;
-
-const created =
-  (handle: Handler) =>
-  async (request: FastifyRequest, reply: FastifyReply): Promise<unknown> =>
-    reply.code(201).send(await handle(request as never));
-
 const sectionOperation = (section: BackgroundSection) =>
   `getCatalogBackground${section.charAt(0).toUpperCase()}${section.slice(1)}`;
 
@@ -124,7 +116,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundListSchema, ...readErrorResponses },
       },
     },
-    controllers.listCampaignBackgroundsController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listCampaignBackgroundsController.handle(request)),
   );
 
   app.post(
@@ -140,7 +132,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 201: ResponseBackgroundFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createBackgroundController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createBackgroundController.handle(request)),
   );
 
   app.get(
@@ -155,7 +147,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getCampaignBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignBackgroundController.handle(request)),
   );
 
   app.patch(
@@ -171,7 +163,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseUpdateBackgroundSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateBackgroundController.handle(request)),
   );
 
   app.delete(
@@ -187,7 +179,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteBackgroundController.handle(request)),
   );
 
   app.post(
@@ -203,7 +195,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreBackgroundController.handle(request)),
   );
 
   app.post(
@@ -218,7 +210,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateBackgroundController.handle(request)),
   );
 
   app.get(
@@ -233,7 +225,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignBackgroundUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignBackgroundUsagesController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -253,7 +245,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundListSchema, ...readErrorResponses },
       },
     },
-    controllers.listBackgroundCatalogController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listBackgroundCatalogController.handle(request)),
   );
 
   app.get(
@@ -268,7 +260,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getCatalogBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogBackgroundController.handle(request)),
   );
 
   for (const section of BACKGROUND_SECTIONS) {
@@ -284,7 +276,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
           response: { 200: ResponseBackgroundSectionSchemas[section], ...definitionReadErrorResponses },
         },
       },
-      controllers.catalogSectionControllers[section].handle,
+      async (request, reply) => sendHttpResponse(reply, await controllers.catalogSectionControllers[section].handle(request)),
     );
   }
 
@@ -300,7 +292,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogBackgroundUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogBackgroundUsagesController.handle(request)),
   );
 
   app.post(
@@ -316,7 +308,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundResolutionSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.resolveBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.resolveBackgroundController.handle(request)),
   );
 
   app.post(
@@ -332,7 +324,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundFeatOptionsSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getBackgroundFeatOptionsController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getBackgroundFeatOptionsController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -351,7 +343,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundListSchema, ...readErrorResponses },
       },
     },
-    controllers.listSystemBackgroundsController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listSystemBackgroundsController.handle(request)),
   );
 
   app.post(
@@ -366,7 +358,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 201: ResponseBackgroundFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createBackgroundController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createBackgroundController.handle(request)),
   );
 
   app.get(
@@ -381,7 +373,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getSystemBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getSystemBackgroundController.handle(request)),
   );
 
   app.patch(
@@ -397,7 +389,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseUpdateBackgroundSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateBackgroundController.handle(request)),
   );
 
   app.delete(
@@ -413,7 +405,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteBackgroundController.handle(request)),
   );
 
   app.post(
@@ -429,7 +421,7 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreBackgroundController.handle(request)),
   );
 
   app.post(
@@ -444,6 +436,6 @@ export function registerBackgroundsRoutes(app: FastifyInstance, controllers: Bac
         response: { 200: ResponseBackgroundValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateBackgroundController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateBackgroundController.handle(request)),
   );
 }

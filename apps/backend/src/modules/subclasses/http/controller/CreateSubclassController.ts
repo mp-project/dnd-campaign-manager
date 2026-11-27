@@ -14,9 +14,9 @@ export class CreateSubclassController extends AbstractController {
       const { campaignId } = RequestSubclassScopeParamsSchema.parse(request.params ?? {});
       const command = CreateSubclassSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.created(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         command,
-      });
+      }));
     });
 }

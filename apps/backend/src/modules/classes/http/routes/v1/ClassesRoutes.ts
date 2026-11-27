@@ -1,6 +1,7 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateClassSchema } from "#src/modules/classes/domain/dto/CreateClassDto";
 import {
@@ -30,11 +31,9 @@ import type { DeleteClassController } from "#src/modules/classes/http/controller
 import type { GetClassController } from "#src/modules/classes/http/controller/GetClassController";
 import type { GetClassSectionController } from "#src/modules/classes/http/controller/GetClassSectionController";
 import type { GetClassUsagesController } from "#src/modules/classes/http/controller/GetClassUsagesController";
-import type {
-  ListCampaignClassesController,
-  ListClassCatalogController,
-  ListSystemClassesController,
-} from "#src/modules/classes/http/controller/ListClassesControllers";
+import type { ListCampaignClassesController } from "#src/modules/classes/http/controller/ListCampaignClassesController";
+import type { ListClassCatalogController } from "#src/modules/classes/http/controller/ListClassCatalogController";
+import type { ListSystemClassesController } from "#src/modules/classes/http/controller/ListSystemClassesController";
 import type { RestoreClassController } from "#src/modules/classes/http/controller/RestoreClassController";
 import type { UpdateClassController } from "#src/modules/classes/http/controller/UpdateClassController";
 import type { ValidateClassController } from "#src/modules/classes/http/controller/ValidateClassController";
@@ -76,13 +75,6 @@ const writeErrorResponses = {
 const campaignRead = { key: CLASSES_PERMISSIONS.read, hideAsNotFoundForPlayers: true };
 const campaignUsages = { key: CLASSES_PERMISSIONS.readUsages, hideAsNotFoundForPlayers: true };
 
-type Handler = (request: never) => Promise<unknown>;
-
-const created =
-  (handle: Handler) =>
-  async (request: FastifyRequest, reply: FastifyReply): Promise<unknown> =>
-    reply.code(201).send(await handle(request as never));
-
 /** `starting-equipment` → `StartingEquipment`, for operation ids. */
 const pascal = (section: string) =>
   section
@@ -117,7 +109,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassListSchema, ...readErrorResponses },
       },
     },
-    controllers.listCampaignClassesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listCampaignClassesController.handle(request)),
   );
 
   app.post(
@@ -133,7 +125,7 @@ export function registerClassesRoutes(
         response: { 201: ResponseClassFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createClassController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createClassController.handle(request)),
   );
 
   app.get(
@@ -148,7 +140,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignClassController.handle(request)),
   );
 
   app.patch(
@@ -164,7 +156,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseUpdateClassSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateClassController.handle(request)),
   );
 
   app.delete(
@@ -180,7 +172,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteClassController.handle(request)),
   );
 
   app.post(
@@ -196,7 +188,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreClassController.handle(request)),
   );
 
   app.post(
@@ -211,7 +203,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateClassController.handle(request)),
   );
 
   app.get(
@@ -226,7 +218,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignClassUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignClassUsagesController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -246,7 +238,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassListSchema, ...readErrorResponses },
       },
     },
-    controllers.listClassCatalogController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listClassCatalogController.handle(request)),
   );
 
   app.get(
@@ -261,7 +253,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogClassController.handle(request)),
   );
 
   for (const section of CLASS_SECTIONS) {
@@ -277,7 +269,7 @@ export function registerClassesRoutes(
           response: { 200: ResponseClassSectionSchemas[section], ...readErrorResponses },
         },
       },
-      controllers.catalogSectionControllers[section].handle,
+      async (request, reply) => sendHttpResponse(reply, await controllers.catalogSectionControllers[section].handle(request)),
     );
   }
 
@@ -293,7 +285,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogClassUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogClassUsagesController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -312,7 +304,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassListSchema, ...readErrorResponses },
       },
     },
-    controllers.listSystemClassesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listSystemClassesController.handle(request)),
   );
 
   app.post(
@@ -327,7 +319,7 @@ export function registerClassesRoutes(
         response: { 201: ResponseClassFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createClassController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createClassController.handle(request)),
   );
 
   app.get(
@@ -342,7 +334,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassSchema, ...readErrorResponses },
       },
     },
-    controllers.getSystemClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getSystemClassController.handle(request)),
   );
 
   app.patch(
@@ -358,7 +350,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseUpdateClassSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateClassController.handle(request)),
   );
 
   app.delete(
@@ -374,7 +366,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteClassController.handle(request)),
   );
 
   app.post(
@@ -390,7 +382,7 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreClassController.handle(request)),
   );
 
   app.post(
@@ -405,6 +397,6 @@ export function registerClassesRoutes(
         response: { 200: ResponseClassValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateClassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateClassController.handle(request)),
   );
 }

@@ -1,6 +1,7 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateSubclassSchema } from "#src/modules/subclasses/domain/dto/CreateSubclassDto";
 import {
@@ -34,11 +35,9 @@ import type { DeleteSubclassController } from "#src/modules/subclasses/http/cont
 import type { GetSubclassController } from "#src/modules/subclasses/http/controller/GetSubclassController";
 import type { GetSubclassSectionController } from "#src/modules/subclasses/http/controller/GetSubclassSectionController";
 import type { GetSubclassUsagesController } from "#src/modules/subclasses/http/controller/GetSubclassUsagesController";
-import type {
-  ListCampaignSubclassesController,
-  ListClassSubclassesController,
-  ListSystemSubclassesController,
-} from "#src/modules/subclasses/http/controller/ListSubclassesControllers";
+import type { ListCampaignSubclassesController } from "#src/modules/subclasses/http/controller/ListCampaignSubclassesController";
+import type { ListClassSubclassesController } from "#src/modules/subclasses/http/controller/ListClassSubclassesController";
+import type { ListSystemSubclassesController } from "#src/modules/subclasses/http/controller/ListSystemSubclassesController";
 import type { RestoreSubclassController } from "#src/modules/subclasses/http/controller/RestoreSubclassController";
 import type { UpdateSubclassController } from "#src/modules/subclasses/http/controller/UpdateSubclassController";
 import type { ValidateSubclassController } from "#src/modules/subclasses/http/controller/ValidateSubclassController";
@@ -81,13 +80,6 @@ const writeErrorResponses = {
 const campaignRead = { key: SUBCLASSES_PERMISSIONS.read, hideAsNotFoundForPlayers: true };
 const campaignUsages = { key: SUBCLASSES_PERMISSIONS.readUsages, hideAsNotFoundForPlayers: true };
 
-type Handler = (request: never) => Promise<unknown>;
-
-const created =
-  (handle: Handler) =>
-  async (request: FastifyRequest, reply: FastifyReply): Promise<unknown> =>
-    reply.code(201).send(await handle(request as never));
-
 const pascal = (section: string) => section.charAt(0).toUpperCase() + section.slice(1);
 
 /**
@@ -118,7 +110,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassListSchema, ...readErrorResponses },
       },
     },
-    controllers.listCampaignSubclassesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listCampaignSubclassesController.handle(request)),
   );
 
   app.post(
@@ -134,7 +126,7 @@ export function registerSubclassesRoutes(
         response: { 201: ResponseSubclassFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createSubclassController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createSubclassController.handle(request)),
   );
 
   app.get(
@@ -149,7 +141,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignSubclassController.handle(request)),
   );
 
   app.patch(
@@ -165,7 +157,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseUpdateSubclassSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateSubclassController.handle(request)),
   );
 
   app.delete(
@@ -181,7 +173,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteSubclassController.handle(request)),
   );
 
   app.post(
@@ -197,7 +189,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreSubclassController.handle(request)),
   );
 
   app.post(
@@ -212,7 +204,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateSubclassController.handle(request)),
   );
 
   app.get(
@@ -227,7 +219,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignSubclassUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignSubclassUsagesController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -246,7 +238,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseClassSubclassesSchema, ...readErrorResponses },
       },
     },
-    controllers.listClassSubclassesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listClassSubclassesController.handle(request)),
   );
 
   app.get(
@@ -261,7 +253,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogSubclassController.handle(request)),
   );
 
   for (const section of SUBCLASS_SECTIONS) {
@@ -277,7 +269,7 @@ export function registerSubclassesRoutes(
           response: { 200: ResponseSubclassSectionSchemas[section], ...readErrorResponses },
         },
       },
-      controllers.catalogSectionControllers[section].handle,
+      async (request, reply) => sendHttpResponse(reply, await controllers.catalogSectionControllers[section].handle(request)),
     );
   }
 
@@ -293,7 +285,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogSubclassUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogSubclassUsagesController.handle(request)),
   );
 
   app.post(
@@ -309,7 +301,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassSelectionCheckSchema, ...readErrorResponses },
       },
     },
-    controllers.checkSubclassSelectionController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.checkSubclassSelectionController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -328,7 +320,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassListSchema, ...readErrorResponses },
       },
     },
-    controllers.listSystemSubclassesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listSystemSubclassesController.handle(request)),
   );
 
   app.post(
@@ -343,7 +335,7 @@ export function registerSubclassesRoutes(
         response: { 201: ResponseSubclassFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createSubclassController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createSubclassController.handle(request)),
   );
 
   app.get(
@@ -358,7 +350,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassSchema, ...readErrorResponses },
       },
     },
-    controllers.getSystemSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getSystemSubclassController.handle(request)),
   );
 
   app.patch(
@@ -374,7 +366,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseUpdateSubclassSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateSubclassController.handle(request)),
   );
 
   app.delete(
@@ -390,7 +382,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteSubclassController.handle(request)),
   );
 
   app.post(
@@ -406,7 +398,7 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreSubclassController.handle(request)),
   );
 
   app.post(
@@ -421,6 +413,6 @@ export function registerSubclassesRoutes(
         response: { 200: ResponseSubclassValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateSubclassController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateSubclassController.handle(request)),
   );
 }

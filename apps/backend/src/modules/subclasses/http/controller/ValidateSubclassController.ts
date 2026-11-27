@@ -12,9 +12,9 @@ export class ValidateSubclassController extends AbstractController {
     this.execute(async () => {
       const { campaignId, subclassId } = RequestSubclassParamsSchema.parse(request.params);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.ok(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         subclassId,
-      });
+      }));
     });
 }

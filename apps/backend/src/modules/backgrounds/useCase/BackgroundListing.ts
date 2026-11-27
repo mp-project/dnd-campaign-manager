@@ -105,36 +105,3 @@ export class BackgroundListing {
     return toBackgroundListResponse({ page, data: records.map(toBackgroundListItemFullResponse), limit });
   }
 }
-
-/** Custom backgrounds of a campaign. */
-export class ListCampaignBackgroundsUseCase {
-  constructor(private readonly listing: BackgroundListing) {}
-
-  execute(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignBackgroundsQueryDto },
-  ) {
-    return this.listing.listCampaign(context, input);
-  }
-}
-
-/** What a campaign may use: active global backgrounds for its ruleset and its own backgrounds. */
-export class ListBackgroundCatalogUseCase {
-  constructor(private readonly listing: BackgroundListing) {}
-
-  execute(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestBackgroundCatalogQueryDto },
-  ) {
-    return this.listing.listCatalog(context, input);
-  }
-}
-
-/** Global backgrounds; drafts and archived ones for administrators only. */
-export class ListSystemBackgroundsUseCase {
-  constructor(private readonly listing: BackgroundListing) {}
-
-  execute(context: RequestContext, input: { query: RequestSystemBackgroundsQueryDto }) {
-    return this.listing.listSystem(context, input.query);
-  }
-}

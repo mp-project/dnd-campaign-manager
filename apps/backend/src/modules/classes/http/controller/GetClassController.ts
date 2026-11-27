@@ -10,6 +10,6 @@ export class GetClassController extends AbstractController {
 
   handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () =>
-      this.useCase.execute(request.requestContext, RequestClassParamsSchema.parse(request.params)),
+      this.ok(await this.useCase.execute(request.requestContext, RequestClassParamsSchema.parse(request.params))),
     );
 }

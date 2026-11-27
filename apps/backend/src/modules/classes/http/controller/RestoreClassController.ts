@@ -14,10 +14,10 @@ export class RestoreClassController extends AbstractController {
       const { campaignId, classId } = RequestClassParamsSchema.parse(request.params);
       const command = ClassLifecycleCommandSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.ok(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         classId,
         command,
-      });
+      }));
     });
 }

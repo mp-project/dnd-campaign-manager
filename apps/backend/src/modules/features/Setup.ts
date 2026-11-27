@@ -21,11 +21,9 @@ import { CreateFeatureController } from "#src/modules/features/http/controller/C
 import { DeleteFeatureController } from "#src/modules/features/http/controller/DeleteFeatureController";
 import { GetFeatureController } from "#src/modules/features/http/controller/GetFeatureController";
 import { GetFeatureUsagesController } from "#src/modules/features/http/controller/GetFeatureUsagesController";
-import {
-  ListCampaignFeaturesController,
-  ListFeatureCatalogController,
-  ListSystemFeaturesController,
-} from "#src/modules/features/http/controller/ListFeaturesControllers";
+import { ListCampaignFeaturesController } from "#src/modules/features/http/controller/ListCampaignFeaturesController";
+import { ListFeatureCatalogController } from "#src/modules/features/http/controller/ListFeatureCatalogController";
+import { ListSystemFeaturesController } from "#src/modules/features/http/controller/ListSystemFeaturesController";
 import { ResolveFeatureController } from "#src/modules/features/http/controller/ResolveFeatureController";
 import { RestoreFeatureController } from "#src/modules/features/http/controller/RestoreFeatureController";
 import { UpdateFeatureController } from "#src/modules/features/http/controller/UpdateFeatureController";
@@ -37,12 +35,10 @@ import { CreateFeatureUseCase } from "#src/modules/features/useCase/CreateFeatur
 import { DeleteFeatureUseCase } from "#src/modules/features/useCase/DeleteFeatureUseCase";
 import { GetFeatureUseCase } from "#src/modules/features/useCase/GetFeatureUseCase";
 import { GetFeatureUsagesUseCase } from "#src/modules/features/useCase/GetFeatureUsagesUseCase";
-import {
-  FeatureListing,
-  ListCampaignFeaturesUseCase,
-  ListFeatureCatalogUseCase,
-  ListSystemFeaturesUseCase,
-} from "#src/modules/features/useCase/ListFeaturesUseCase";
+import { FeatureListing } from "#src/modules/features/useCase/FeatureListing";
+import { ListCampaignFeaturesUseCase } from "#src/modules/features/useCase/ListCampaignFeaturesUseCase";
+import { ListFeatureCatalogUseCase } from "#src/modules/features/useCase/ListFeatureCatalogUseCase";
+import { ListSystemFeaturesUseCase } from "#src/modules/features/useCase/ListSystemFeaturesUseCase";
 import { ResolveFeatureUseCase } from "#src/modules/features/useCase/ResolveFeatureUseCase";
 import { RestoreFeatureUseCase } from "#src/modules/features/useCase/RestoreFeatureUseCase";
 import { UpdateFeatureUseCase } from "#src/modules/features/useCase/UpdateFeatureUseCase";

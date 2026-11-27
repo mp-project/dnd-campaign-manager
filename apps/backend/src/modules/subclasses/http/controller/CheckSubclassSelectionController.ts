@@ -16,6 +16,6 @@ export class CheckSubclassSelectionController extends AbstractController {
       const params = RequestCampaignSubclassParamsSchema.parse(request.params);
       const command = RequestSubclassSelectionCheckSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, { ...params, command });
+      return this.ok(await this.useCase.execute(request.requestContext, { ...params, command }));
     });
 }

@@ -22,11 +22,9 @@ import { DeleteClassController } from "#src/modules/classes/http/controller/Dele
 import { GetClassController } from "#src/modules/classes/http/controller/GetClassController";
 import { GetClassSectionController } from "#src/modules/classes/http/controller/GetClassSectionController";
 import { GetClassUsagesController } from "#src/modules/classes/http/controller/GetClassUsagesController";
-import {
-  ListCampaignClassesController,
-  ListClassCatalogController,
-  ListSystemClassesController,
-} from "#src/modules/classes/http/controller/ListClassesControllers";
+import { ListCampaignClassesController } from "#src/modules/classes/http/controller/ListCampaignClassesController";
+import { ListClassCatalogController } from "#src/modules/classes/http/controller/ListClassCatalogController";
+import { ListSystemClassesController } from "#src/modules/classes/http/controller/ListSystemClassesController";
 import { RestoreClassController } from "#src/modules/classes/http/controller/RestoreClassController";
 import { UpdateClassController } from "#src/modules/classes/http/controller/UpdateClassController";
 import { ValidateClassController } from "#src/modules/classes/http/controller/ValidateClassController";
@@ -39,12 +37,10 @@ import { DeleteClassUseCase } from "#src/modules/classes/useCase/DeleteClassUseC
 import { GetClassSectionUseCase } from "#src/modules/classes/useCase/GetClassSectionUseCase";
 import { GetClassUsagesUseCase } from "#src/modules/classes/useCase/GetClassUsagesUseCase";
 import { GetClassUseCase } from "#src/modules/classes/useCase/GetClassUseCase";
-import {
-  ClassListing,
-  ListCampaignClassesUseCase,
-  ListClassCatalogUseCase,
-  ListSystemClassesUseCase,
-} from "#src/modules/classes/useCase/ListClassesUseCase";
+import { ClassListing } from "#src/modules/classes/useCase/ClassListing";
+import { ListCampaignClassesUseCase } from "#src/modules/classes/useCase/ListCampaignClassesUseCase";
+import { ListClassCatalogUseCase } from "#src/modules/classes/useCase/ListClassCatalogUseCase";
+import { ListSystemClassesUseCase } from "#src/modules/classes/useCase/ListSystemClassesUseCase";
 import { RestoreClassUseCase } from "#src/modules/classes/useCase/RestoreClassUseCase";
 import { UpdateClassUseCase } from "#src/modules/classes/useCase/UpdateClassUseCase";
 import { ValidateClassUseCase } from "#src/modules/classes/useCase/ValidateClassUseCase";

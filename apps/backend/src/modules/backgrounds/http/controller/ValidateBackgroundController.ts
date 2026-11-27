@@ -12,6 +12,6 @@ export class ValidateBackgroundController extends AbstractController {
     this.execute(async () => {
       const { campaignId, backgroundId } = RequestBackgroundParamsSchema.parse(request.params);
 
-      return this.useCase.execute(request.requestContext, { campaignId: campaignId ?? null, backgroundId });
+      return this.ok(await this.useCase.execute(request.requestContext, { campaignId: campaignId ?? null, backgroundId }));
     });
 }

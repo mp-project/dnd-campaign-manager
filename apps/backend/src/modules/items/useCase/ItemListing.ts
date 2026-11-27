@@ -1,7 +1,6 @@
-import type { ContentReadPurpose } from "#core/content/access";
-import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import type { SQL } from "drizzle-orm";
+
+import { type AssetsService, ContentListing } from "#src/modules/assets/index";
 import type {
   RequestCampaignItemsQueryDto,
   RequestItemCatalogQueryDto,
@@ -13,42 +12,29 @@ import {
   toItemListItemPlayerResponse,
   toItemPageResponse,
 } from "#src/modules/items/domain/dto/ResponseItemDto";
-import type { ItemPage } from "#src/modules/items/domain/repository/ItemsRepository";
+import type { ItemListFilter, ItemPage } from "#src/modules/items/domain/repository/ItemsRepository";
 import type { ItemsService } from "#src/modules/items/service/ItemsService";
 
+/** The types of the item lists for `ContentListing`. */
+type ItemListTypes = {
+  campaignQuery: RequestCampaignItemsQueryDto;
+  catalogQuery: RequestItemCatalogQueryDto;
+  systemQuery: RequestSystemItemsQueryDto;
+  filter: Omit<ItemListFilter, "where">;
+  page: ItemPage;
+  response: ResponseItemListDto;
+};
+
 /** Shared by the list use cases. Lists carry no details; those come with the detail view. */
-export class ItemListing {
+export class ItemListing extends ContentListing<ItemListTypes> {
   constructor(
     private readonly itemsService: ItemsService,
-    private readonly assetsService: AssetsService,
-  ) {}
-
-  async listInCampaign(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignItemsQueryDto & Partial<Pick<RequestItemCatalogQueryDto, "scope">> },
-    purpose: ContentReadPurpose,
-  ): Promise<ResponseItemListDto> {
-    const access = await this.assetsService.access(context, input.campaignId);
-    const page = await this.itemsService.repository.listPage(this.itemsService.db, {
-      ...this.baseFilter(input.query),
-      where: access.listWhere(purpose, { scope: input.query.scope, status: input.query.status }),
-    });
-
-    return this.toResponse(page, access.isFullView, input.query.limit);
+    assetsService: AssetsService,
+  ) {
+    super(assetsService);
   }
 
-  async listSystem(context: RequestContext, query: RequestSystemItemsQueryDto): Promise<ResponseItemListDto> {
-    this.assetsService.assertAuthenticated(context);
-
-    const page = await this.itemsService.repository.listPage(this.itemsService.db, {
-      ...this.baseFilter(query),
-      where: this.assetsService.globalListWhere(context, query),
-    });
-
-    return this.toResponse(page, isSysAdminRole(context.systemRole), query.limit);
-  }
-
-  private baseFilter(query: RequestCampaignItemsQueryDto) {
+  protected filterOf(query: RequestCampaignItemsQueryDto) {
     return {
       limit: query.limit,
       cursor: query.cursor,
@@ -63,7 +49,11 @@ export class ItemListing {
     };
   }
 
-  private async toResponse(page: ItemPage, fullView: boolean, limit: number): Promise<ResponseItemListDto> {
+  protected listPage(filter: ItemListTypes["filter"] & { where: SQL }): Promise<ItemPage> {
+    return this.itemsService.repository.listPage(this.itemsService.db, filter);
+  }
+
+  protected async toResponse(page: ItemPage, fullView: boolean, limit: number): Promise<ResponseItemListDto> {
     if (!fullView) {
       return toItemPageResponse({ page, data: page.items.map(toItemListItemPlayerResponse), limit });
     }

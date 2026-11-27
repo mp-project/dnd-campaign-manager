@@ -1,7 +1,6 @@
-import type { ContentReadPurpose } from "#core/content/access";
-import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import type { SQL } from "drizzle-orm";
+
+import { type AssetsService, ContentListing } from "#src/modules/assets/index";
 import type {
   RequestCampaignFeatsQueryDto,
   RequestFeatCatalogQueryDto,
@@ -13,66 +12,29 @@ import {
   toFeatListItemPlayerResponse,
   toFeatListResponse,
 } from "#src/modules/feats/domain/dto/ResponseFeatDto";
-import type { FeatPage } from "#src/modules/feats/domain/repository/FeatsRepository";
+import type { FeatListFilter, FeatPage } from "#src/modules/feats/domain/repository/FeatsRepository";
 import type { FeatsService } from "#src/modules/feats/service/FeatsService";
 
+/** The types of the feat lists for `ContentListing`. */
+type FeatListTypes = {
+  campaignQuery: RequestCampaignFeatsQueryDto;
+  catalogQuery: RequestFeatCatalogQueryDto;
+  systemQuery: RequestSystemFeatsQueryDto;
+  filter: Omit<FeatListFilter, "where">;
+  page: FeatPage;
+  response: ResponseFeatListDto;
+};
+
 /** Shared by the list use cases. Lists carry no definitions; those come with the detail view. */
-export class FeatListing {
+export class FeatListing extends ContentListing<FeatListTypes> {
   constructor(
     private readonly featsService: FeatsService,
-    private readonly assetsService: AssetsService,
-  ) {}
-
-  async listCampaign(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignFeatsQueryDto },
-  ): Promise<ResponseFeatListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "MANAGE");
+    assetsService: AssetsService,
+  ) {
+    super(assetsService);
   }
 
-  /**
-   * What the campaign may use: active global feats for its ruleset and its own feats (for players
-   * only released ones), plus archived feats the campaign still uses, marked `selectable: false`.
-   */
-  async listCatalog(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestFeatCatalogQueryDto },
-  ): Promise<ResponseFeatListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "CATALOG");
-  }
-
-  async listSystem(context: RequestContext, query: RequestSystemFeatsQueryDto): Promise<ResponseFeatListDto> {
-    this.assetsService.assertAuthenticated(context);
-
-    const { db, repository } = this.featsService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: this.assetsService.globalListWhere(context, query),
-    });
-
-    return this.toResponse(page, isSysAdminRole(context.systemRole), query.limit);
-  }
-
-  private async listInCampaign(
-    context: RequestContext,
-    campaignId: string,
-    query: RequestCampaignFeatsQueryDto | RequestFeatCatalogQueryDto,
-    purpose: ContentReadPurpose,
-  ): Promise<ResponseFeatListDto> {
-    const access = await this.assetsService.access(context, campaignId);
-    const { db, repository } = this.featsService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: access.listWhere(purpose, {
-        scope: "scope" in query ? query.scope : undefined,
-        status: query.status,
-      }),
-    });
-
-    return this.toResponse(page, access.isFullView, query.limit);
-  }
-
-  private baseFilter(query: RequestCampaignFeatsQueryDto) {
+  protected filterOf(query: RequestCampaignFeatsQueryDto) {
     return {
       limit: query.limit,
       cursor: query.cursor,
@@ -83,7 +45,11 @@ export class FeatListing {
     };
   }
 
-  private async toResponse(page: FeatPage, fullView: boolean, limit: number): Promise<ResponseFeatListDto> {
+  protected listPage(filter: FeatListTypes["filter"] & { where: SQL }): Promise<FeatPage> {
+    return this.featsService.repository.listPage(this.featsService.db, filter);
+  }
+
+  protected async toResponse(page: FeatPage, fullView: boolean, limit: number): Promise<ResponseFeatListDto> {
     if (!fullView) {
       return toFeatListResponse({ page, data: page.items.map(toFeatListItemPlayerResponse), limit });
     }

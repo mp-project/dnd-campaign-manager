@@ -1,7 +1,6 @@
-import type { ContentReadPurpose } from "#core/content/access";
-import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import type { SQL } from "drizzle-orm";
+
+import { type AssetsService, ContentListing } from "#src/modules/assets/index";
 import type {
   RequestCampaignClassesQueryDto,
   RequestClassCatalogQueryDto,
@@ -13,72 +12,29 @@ import {
   toClassListItemPlayerResponse,
   toClassListResponse,
 } from "#src/modules/classes/domain/dto/ResponseClassDto";
-import type { ClassPage } from "#src/modules/classes/domain/repository/ClassesRepository";
+import type { ClassListFilter, ClassPage } from "#src/modules/classes/domain/repository/ClassesRepository";
 import { ClassesService } from "#src/modules/classes/service/ClassesService";
 
+/** The types of the class lists for `ContentListing`. */
+type ClassListTypes = {
+  campaignQuery: RequestCampaignClassesQueryDto;
+  catalogQuery: RequestClassCatalogQueryDto;
+  systemQuery: RequestSystemClassesQueryDto;
+  filter: Omit<ClassListFilter, "where">;
+  page: ClassPage;
+  response: ResponseClassListDto;
+};
+
 /** Shared by the list use cases. Lists carry no definitions; those come with the detail view. */
-export class ClassListing {
+export class ClassListing extends ContentListing<ClassListTypes> {
   constructor(
     private readonly classesService: ClassesService,
-    private readonly assetsService: AssetsService,
-  ) {}
-
-  async listCampaign(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignClassesQueryDto },
-  ): Promise<ResponseClassListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "MANAGE");
+    assetsService: AssetsService,
+  ) {
+    super(assetsService);
   }
 
-  /**
-   * What the campaign may use: active global classes for its ruleset and its own classes (for
-   * players only released ones), plus archived classes the campaign still uses. Those are marked
-   * `selectable: false`; they cannot be chosen anew.
-   */
-  async listCatalog(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestClassCatalogQueryDto },
-  ): Promise<ResponseClassListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "CATALOG");
-  }
-
-  async listSystem(
-    context: RequestContext,
-    query: RequestSystemClassesQueryDto,
-  ): Promise<ResponseClassListDto> {
-    this.assetsService.assertAuthenticated(context);
-
-    const isAdmin = isSysAdminRole(context.systemRole);
-    const { db, repository } = this.classesService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: this.assetsService.globalListWhere(context, query),
-    });
-
-    return this.toResponse(page, isAdmin, query.limit);
-  }
-
-  /** The campaign's own entries (`MANAGE`) or what the campaign may use (`CATALOG`). */
-  private async listInCampaign(
-    context: RequestContext,
-    campaignId: string,
-    query: RequestCampaignClassesQueryDto | RequestClassCatalogQueryDto,
-    purpose: ContentReadPurpose,
-  ): Promise<ResponseClassListDto> {
-    const access = await this.assetsService.access(context, campaignId);
-    const { db, repository } = this.classesService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: access.listWhere(purpose, {
-        scope: "scope" in query ? query.scope : undefined,
-        status: query.status,
-      }),
-    });
-
-    return this.toResponse(page, access.isFullView, query.limit);
-  }
-
-  private baseFilter(query: RequestCampaignClassesQueryDto) {
+  protected filterOf(query: RequestCampaignClassesQueryDto) {
     return {
       limit: query.limit,
       cursor: query.cursor,
@@ -88,7 +44,11 @@ export class ClassListing {
     };
   }
 
-  private async toResponse(
+  protected listPage(filter: ClassListTypes["filter"] & { where: SQL }): Promise<ClassPage> {
+    return this.classesService.repository.listPage(this.classesService.db, filter);
+  }
+
+  protected async toResponse(
     page: ClassPage,
     fullView: boolean,
     limit: number,

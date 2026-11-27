@@ -1,7 +1,6 @@
-import type { ContentReadPurpose } from "#core/content/access";
-import type { RequestContext } from "#core/http/requestContext";
-import { isSysAdminRole } from "#core/permissions/roles";
-import type { AssetsService } from "#src/modules/assets/index";
+import type { SQL } from "drizzle-orm";
+
+import { type AssetsService, ContentListing } from "#src/modules/assets/index";
 import type {
   RequestCampaignSpeciesQueryDto,
   RequestSpeciesCatalogQueryDto,
@@ -13,72 +12,32 @@ import {
   toSpeciesListItemPlayerResponse,
   toSpeciesListResponse,
 } from "#src/modules/species/domain/dto/ResponseSpeciesDto";
-import type { SpeciesPage } from "#src/modules/species/domain/repository/SpeciesRepository";
+import type {
+  SpeciesListFilter,
+  SpeciesPage,
+} from "#src/modules/species/domain/repository/SpeciesRepository";
 import type { SpeciesService } from "#src/modules/species/service/SpeciesService";
 
+/** The types of the species lists for `ContentListing`. */
+type SpeciesListTypes = {
+  campaignQuery: RequestCampaignSpeciesQueryDto;
+  catalogQuery: RequestSpeciesCatalogQueryDto;
+  systemQuery: RequestSystemSpeciesQueryDto;
+  filter: Omit<SpeciesListFilter, "where">;
+  page: SpeciesPage;
+  response: ResponseSpeciesListDto;
+};
+
 /** Shared by the list use cases. Lists carry no definitions; those come with the detail view. */
-export class SpeciesListing {
+export class SpeciesListing extends ContentListing<SpeciesListTypes> {
   constructor(
     private readonly speciesService: SpeciesService,
-    private readonly assetsService: AssetsService,
-  ) {}
-
-  async listCampaign(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignSpeciesQueryDto },
-  ): Promise<ResponseSpeciesListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "MANAGE");
+    assetsService: AssetsService,
+  ) {
+    super(assetsService);
   }
 
-  /**
-   * What the campaign may use: active global species for its ruleset and its own species (for
-   * players only released ones), plus archived species the campaign still uses. Those are marked
-   * `selectable: false`; they cannot be chosen anew.
-   */
-  async listCatalog(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestSpeciesCatalogQueryDto },
-  ): Promise<ResponseSpeciesListDto> {
-    return this.listInCampaign(context, input.campaignId, input.query, "CATALOG");
-  }
-
-  async listSystem(
-    context: RequestContext,
-    query: RequestSystemSpeciesQueryDto,
-  ): Promise<ResponseSpeciesListDto> {
-    this.assetsService.assertAuthenticated(context);
-
-    const isAdmin = isSysAdminRole(context.systemRole);
-    const { db, repository } = this.speciesService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: this.assetsService.globalListWhere(context, query),
-    });
-
-    return this.toResponse(page, isAdmin, query.limit);
-  }
-
-  /** The campaign's own entries (`MANAGE`) or what the campaign may use (`CATALOG`). */
-  private async listInCampaign(
-    context: RequestContext,
-    campaignId: string,
-    query: RequestCampaignSpeciesQueryDto | RequestSpeciesCatalogQueryDto,
-    purpose: ContentReadPurpose,
-  ): Promise<ResponseSpeciesListDto> {
-    const access = await this.assetsService.access(context, campaignId);
-    const { db, repository } = this.speciesService;
-    const page = await repository.listPage(db, {
-      ...this.baseFilter(query),
-      where: access.listWhere(purpose, {
-        scope: "scope" in query ? query.scope : undefined,
-        status: query.status,
-      }),
-    });
-
-    return this.toResponse(page, access.isFullView, query.limit);
-  }
-
-  private baseFilter(query: RequestCampaignSpeciesQueryDto) {
+  protected filterOf(query: RequestCampaignSpeciesQueryDto) {
     return {
       limit: query.limit,
       cursor: query.cursor,
@@ -88,7 +47,11 @@ export class SpeciesListing {
     };
   }
 
-  private async toResponse(
+  protected listPage(filter: SpeciesListTypes["filter"] & { where: SQL }): Promise<SpeciesPage> {
+    return this.speciesService.repository.listPage(this.speciesService.db, filter);
+  }
+
+  protected async toResponse(
     page: SpeciesPage,
     fullView: boolean,
     limit: number,

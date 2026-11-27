@@ -18,6 +18,6 @@ export class RestoreNoteController extends AbstractController {
       const params = RequestNoteItemParamsSchema.parse(request.params);
       const command = NoteLifecycleCommandSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, { ...params, command });
+      return this.ok(await this.useCase.execute(request.requestContext, { ...params, command }));
     });
 }

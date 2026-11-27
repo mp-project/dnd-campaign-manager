@@ -15,6 +15,6 @@ export class GetNoteUsagesController extends AbstractController {
     this.execute(async () => {
       const params = RequestNoteItemParamsSchema.parse(request.params);
 
-      return this.useCase.execute(request.requestContext, params);
+      return this.ok(await this.useCase.execute(request.requestContext, params));
     });
 }

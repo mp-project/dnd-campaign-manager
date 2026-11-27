@@ -18,6 +18,6 @@ export class CreateNoteController extends AbstractController {
       const params = RequestNotesParamsSchema.parse(request.params);
       const command = CreateNoteSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, { ...params, command });
+      return this.created(await this.useCase.execute(request.requestContext, { ...params, command }));
     });
 }

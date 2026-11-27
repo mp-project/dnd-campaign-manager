@@ -7,11 +7,30 @@ import {
   ServiceUnavailableError,
   ValidationError,
 } from "#core/error/http/index";
+import { type HttpHeaders, HttpResponse } from "#core/http/httpResponse";
 
 /**
- * Base controller with centralized error normalization for route handlers.
+ * Base controller with centralized error normalization for route handlers and the answers they give
+ * (`ok`, `created`, `accepted`, `noContent`), which routes send with `sendHttpResponse`.
  */
 export abstract class AbstractController {
+  protected ok<T>(data: T, headers?: HttpHeaders): HttpResponse<T> {
+    return new HttpResponse(200, data, headers);
+  }
+
+  /** `location`, when given, becomes the `Location` header of the new resource. */
+  protected created<T>(data: T, location?: string): HttpResponse<T> {
+    return new HttpResponse(201, data, location === undefined ? {} : { location });
+  }
+
+  protected accepted<T>(data: T): HttpResponse<T> {
+    return new HttpResponse(202, data);
+  }
+
+  protected noContent(): HttpResponse<undefined> {
+    return new HttpResponse(204, undefined);
+  }
+
   /**
    * Executes controller logic and normalizes unexpected errors.
    */

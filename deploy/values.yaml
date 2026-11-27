@@ -2,7 +2,7 @@
 images:
   backend: ghcr.io/mp-project/dnd-campaign-manager-backend
   frontend: ghcr.io/mp-project/dnd-campaign-manager-frontend
-  tag: 0bb8fdc1a45a8a030b71079b0460b426ddc0658e
+  tag: 186f8bf65e5ac0b28b33bee315c24b5dcc256bfd
 # Written by the workflow: changes when a secret changes, so the pods reading them restart.
 secretsChecksum: "d301a38739a9e440"
 # Public host names (without https://). Routes, origins, CORS, Clerk's authorized party and the

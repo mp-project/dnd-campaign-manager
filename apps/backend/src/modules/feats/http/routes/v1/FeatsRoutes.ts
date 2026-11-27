@@ -1,6 +1,7 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateFeatSchema } from "#src/modules/feats/domain/dto/CreateFeatDto";
 import {
@@ -30,21 +31,19 @@ import {
   FeatLifecycleCommandSchema,
   UpdateFeatSchema,
 } from "#src/modules/feats/domain/dto/UpdateFeatDto";
-import type {
-  CheckFeatEligibilityController,
-  CreateFeatController,
-  DeleteFeatController,
-  GetFeatCategoriesController,
-  GetFeatController,
-  GetFeatSectionController,
-  ListCampaignFeatsController,
-  ListFeatCatalogController,
-  ListSystemFeatsController,
-  ResolveFeatController,
-  RestoreFeatController,
-  UpdateFeatController,
-  ValidateFeatController,
-} from "#src/modules/feats/http/controller/FeatControllers";
+import type { CheckFeatEligibilityController } from "#src/modules/feats/http/controller/CheckFeatEligibilityController";
+import type { CreateFeatController } from "#src/modules/feats/http/controller/CreateFeatController";
+import type { DeleteFeatController } from "#src/modules/feats/http/controller/DeleteFeatController";
+import type { GetFeatCategoriesController } from "#src/modules/feats/http/controller/GetFeatCategoriesController";
+import type { GetFeatController } from "#src/modules/feats/http/controller/GetFeatController";
+import type { GetFeatSectionController } from "#src/modules/feats/http/controller/GetFeatSectionController";
+import type { ListCampaignFeatsController } from "#src/modules/feats/http/controller/ListCampaignFeatsController";
+import type { ListFeatCatalogController } from "#src/modules/feats/http/controller/ListFeatCatalogController";
+import type { ListSystemFeatsController } from "#src/modules/feats/http/controller/ListSystemFeatsController";
+import type { ResolveFeatController } from "#src/modules/feats/http/controller/ResolveFeatController";
+import type { RestoreFeatController } from "#src/modules/feats/http/controller/RestoreFeatController";
+import type { UpdateFeatController } from "#src/modules/feats/http/controller/UpdateFeatController";
+import type { ValidateFeatController } from "#src/modules/feats/http/controller/ValidateFeatController";
 import { FEATS_PERMISSIONS } from "#src/modules/feats/permissions/FeatsPermissions";
 
 export type FeatsRouteControllers = {
@@ -95,13 +94,6 @@ const campaignEligibility = {
   hideAsNotFoundForPlayers: true,
 };
 
-type Handler = (request: never) => Promise<unknown>;
-
-const created =
-  (handle: Handler) =>
-  async (request: FastifyRequest, reply: FastifyReply): Promise<unknown> =>
-    reply.code(201).send(await handle(request as never));
-
 /**
  * Custom feats under `/campaigns/:campaignId/feats`, the catalog of everything a campaign may
  * choose under `/campaigns/:campaignId/catalog/feats` (with sections, the eligibility check and
@@ -127,7 +119,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatListSchema, ...readErrorResponses },
       },
     },
-    controllers.listCampaignFeatsController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listCampaignFeatsController.handle(request)),
   );
 
   app.post(
@@ -143,7 +135,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 201: ResponseFeatFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createFeatController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createFeatController.handle(request)),
   );
 
   app.get(
@@ -158,7 +150,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getCampaignFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignFeatController.handle(request)),
   );
 
   app.patch(
@@ -174,7 +166,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseUpdateFeatSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateFeatController.handle(request)),
   );
 
   app.delete(
@@ -190,7 +182,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteFeatController.handle(request)),
   );
 
   app.post(
@@ -206,7 +198,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreFeatController.handle(request)),
   );
 
   app.post(
@@ -221,7 +213,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateFeatController.handle(request)),
   );
 
   app.get(
@@ -236,7 +228,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignFeatUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignFeatUsagesController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -256,7 +248,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatListSchema, ...readErrorResponses },
       },
     },
-    controllers.listFeatCatalogController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listFeatCatalogController.handle(request)),
   );
 
   app.get(
@@ -271,7 +263,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatCategoriesSchema, ...readErrorResponses },
       },
     },
-    controllers.getFeatCategoriesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getFeatCategoriesController.handle(request)),
   );
 
   app.get(
@@ -286,7 +278,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getCatalogFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogFeatController.handle(request)),
   );
 
   const sections = [
@@ -308,7 +300,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
           response: { 200: response, ...definitionReadErrorResponses },
         },
       },
-      controller.handle,
+      async (request, reply) => sendHttpResponse(reply, await controller.handle(request)),
     );
   }
 
@@ -324,7 +316,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogFeatUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogFeatUsagesController.handle(request)),
   );
 
   app.post(
@@ -340,7 +332,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatEligibilitySchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.checkFeatEligibilityController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.checkFeatEligibilityController.handle(request)),
   );
 
   app.post(
@@ -356,7 +348,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatResolutionSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.resolveFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.resolveFeatController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -375,7 +367,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatListSchema, ...readErrorResponses },
       },
     },
-    controllers.listSystemFeatsController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listSystemFeatsController.handle(request)),
   );
 
   app.post(
@@ -390,7 +382,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 201: ResponseFeatFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createFeatController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createFeatController.handle(request)),
   );
 
   app.get(
@@ -405,7 +397,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatSchema, ...definitionReadErrorResponses },
       },
     },
-    controllers.getSystemFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getSystemFeatController.handle(request)),
   );
 
   app.patch(
@@ -421,7 +413,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseUpdateFeatSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateFeatController.handle(request)),
   );
 
   app.delete(
@@ -437,7 +429,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteFeatController.handle(request)),
   );
 
   app.post(
@@ -453,7 +445,7 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreFeatController.handle(request)),
   );
 
   app.post(
@@ -468,6 +460,6 @@ export function registerFeatsRoutes(app: FastifyInstance, controllers: FeatsRout
         response: { 200: ResponseFeatValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateFeatController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateFeatController.handle(request)),
   );
 }

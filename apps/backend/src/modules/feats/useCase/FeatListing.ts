@@ -93,30 +93,3 @@ export class FeatListing {
     return toFeatListResponse({ page, data: records.map(toFeatListItemFullResponse), limit });
   }
 }
-
-/** Custom feats of a campaign. */
-export class ListCampaignFeatsUseCase {
-  constructor(private readonly listing: FeatListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestCampaignFeatsQueryDto }) {
-    return this.listing.listCampaign(context, input);
-  }
-}
-
-/** What a campaign may use: active global feats for its ruleset and its own feats. */
-export class ListFeatCatalogUseCase {
-  constructor(private readonly listing: FeatListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestFeatCatalogQueryDto }) {
-    return this.listing.listCatalog(context, input);
-  }
-}
-
-/** Global feats; drafts and archived ones for administrators only. */
-export class ListSystemFeatsUseCase {
-  constructor(private readonly listing: FeatListing) {}
-
-  execute(context: RequestContext, input: { query: RequestSystemFeatsQueryDto }) {
-    return this.listing.listSystem(context, input.query);
-  }
-}

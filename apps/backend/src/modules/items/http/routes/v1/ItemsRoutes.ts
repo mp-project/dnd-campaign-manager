@@ -1,7 +1,8 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z, type ZodType } from "zod";
 
 import { errorResponseDto } from "#core/http/dto";
+import { type IHttpResponse, sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateItemSchema, ForkItemSchema } from "#src/modules/items/domain/dto/CreateItemDto";
 import {
@@ -46,10 +47,9 @@ import {
   UpdateItemInstanceSchema,
   UpdateItemSchema,
 } from "#src/modules/items/domain/dto/UpdateItemDto";
-import type { ItemRequest } from "#src/modules/items/http/controller/ItemControllers";
 import { ITEM_INSTANCES_PERMISSIONS, ITEMS_PERMISSIONS } from "#src/modules/items/permissions/ItemsPermissions";
 
-type Handler = { handle(request: ItemRequest): Promise<unknown> };
+type Handler = { handle(request: FastifyRequest): Promise<IHttpResponse<unknown>> };
 
 export const ITEM_ROUTE_IDS = [
   "listCampaignItems",
@@ -119,6 +119,7 @@ type RouteSpec = {
   params?: ZodType;
   querystring?: ZodType;
   body?: ZodType;
+  /** The success status of the response schema; the controller answers with the same one. */
   status?: 200 | 201 | 204;
   response: ZodType;
   errors: Record<number, ZodType>;
@@ -434,11 +435,7 @@ export function registerItemsRoutes(app: FastifyInstance, controllers: ItemsRout
         ...(route.body ? { body: route.body } : {}),
         response: { [status]: route.response, ...route.errors },
       },
-      handler: async (request: FastifyRequest, reply: FastifyReply) => {
-        const result = await controller.handle(request as unknown as ItemRequest);
-
-        return status === 204 ? reply.code(204).send() : reply.code(status).send(result);
-      },
+      handler: async (request, reply) => sendHttpResponse(reply, await controller.handle(request)),
     });
   }
 }

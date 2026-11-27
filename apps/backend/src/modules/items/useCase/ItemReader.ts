@@ -21,6 +21,16 @@ export type ReadableItem = {
   access: ContentAccess | null;
 };
 
+/** An item in the catalog of a campaign; the input of the catalog sections. */
+export type ItemCatalogInput = { campaignId: string; itemId: string };
+
+/** The ids and the view every catalog section of an item starts with. */
+export const readableItemHeader = (readable: ReadableItem) => ({
+  itemId: readable.found.item.id,
+  assetId: readable.found.asset.id,
+  view: readable.view,
+});
+
 /**
  * Finds an item for a read route and decides the view. Owners, editors and administrators get the
  * full view, players the player view of active items they may see; outside a campaign,

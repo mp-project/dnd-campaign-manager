@@ -122,16 +122,16 @@ async function registerNotesModule(app: FastifyInstance, container: AppContainer
         new GetNoteUsagesUseCase(service, assetsService, assetLinks.service),
       ),
       createNoteController: new CreateNoteController(
-        new CreateNoteUseCase(history, service, assetsService),
+        new CreateNoteUseCase(history, service.writer),
       ),
       updateNoteController: new UpdateNoteController(
-        new UpdateNoteUseCase(history, service, assetsService),
+        new UpdateNoteUseCase(history, service.writer),
       ),
       deleteNoteController: new DeleteNoteController(
-        new DeleteNoteUseCase(history, service, assetsService),
+        new DeleteNoteUseCase(history, service.writer),
       ),
       restoreNoteController: new RestoreNoteController(
-        new RestoreNoteUseCase(history, service, assetsService),
+        new RestoreNoteUseCase(history, service.writer),
       ),
     });
   });

@@ -4,7 +4,13 @@ import type { AppDatabase, TransactionManager } from "#core/db/pool";
 import { ConflictError, NotFoundError } from "#core/error/http/index";
 import type { ActionScope } from "#core/history/types";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
-import { type AssetsService, type ContentAccess, slugify } from "#src/modules/assets/index";
+import {
+  assetContentWriter,
+  type AssetsService,
+  type ContentAccess,
+  type ContentWriter,
+  slugify,
+} from "#src/modules/assets/index";
 import type { TagsService } from "#src/modules/tags/index";
 import type { CreateNoteDto } from "#src/modules/notes/domain/dto/CreateNoteDto";
 import type { UpdateNoteDto } from "#src/modules/notes/domain/dto/UpdateNoteDto";
@@ -26,6 +32,18 @@ export type NoteCampaignAccessPort = {
 
 type NotePath = { campaignId: string; noteId: string };
 
+/** The types of notes for the shared write use cases; notes only exist in a campaign. */
+export type NoteContent = {
+  path: NotePath;
+  found: NoteWithAsset;
+  record: NoteRecord;
+  create: CreateNoteDto;
+  update: UpdateNoteDto;
+};
+
+/** The path of a loaded note, to load it again. */
+const pathOf = (found: NoteWithAsset): NotePath => ({ campaignId: found.note.campaignId, noteId: found.note.id });
+
 const ASSET_FIELD_NAMES: Record<string, string> = { title: "name" };
 
 /**
@@ -35,6 +53,8 @@ const ASSET_FIELD_NAMES: Record<string, string> = { title: "name" };
  */
 export class NotesService {
   public readonly trackedNote: TrackedNote;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<NoteContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -55,6 +75,12 @@ export class NotesService {
           throw new ConflictError("Archived notes cannot be modified", { assetId });
         }
       },
+    });
+    this.writer = assetContentWriter<NoteContent>(assets, {
+      requireForWrite: (db, path) => this.requireNote(db, path),
+      create: (scope, owner, command) => this.createNote(scope, owner, command),
+      update: (scope, change) => this.updateNote(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireNote(db, pathOf(found))),
     });
   }
 
@@ -191,7 +217,7 @@ export class NotesService {
    */
   async updateNote(
     scope: ActionScope,
-    params: NotePath & { actorId: string; command: UpdateNoteDto },
+    params: { found: NoteWithAsset; actorId: string; command: UpdateNoteDto },
   ): Promise<{ record: NoteRecord; merged: string[] }> {
     const {
       expectedVersion,
@@ -202,7 +228,7 @@ export class NotesService {
       tagIds,
       ...noteFields
     } = params.command;
-    const { note, asset } = await this.requireNote(scope.tx, params);
+    const { note, asset } = params.found;
     const merged: string[] = [];
 
     if (asset.status === "ARCHIVED") {
@@ -211,7 +237,7 @@ export class NotesService {
 
     if (tagIds !== undefined) {
       const result = await this.tags.replaceAssignments(scope, {
-        campaignId: params.campaignId,
+        campaignId: note.campaignId,
         assetId: asset.id,
         tagIds,
         expectedVersion: expectedAssetVersion,
@@ -248,39 +274,10 @@ export class NotesService {
       merged.push(...result.merged);
     }
 
-    const record = await this.loadRecord(scope.tx, await this.requireNote(scope.tx, params));
+    const reloaded = await this.requireNote(scope.tx, pathOf(params.found));
+    const record = await this.loadRecord(scope.tx, reloaded);
 
     return { record, merged };
-  }
-
-  /** Archives the asset; the deactivate hook ends the shares of the note. */
-  async archiveNote(
-    scope: ActionScope,
-    params: NotePath & { expectedAssetVersion: number },
-  ): Promise<NoteRecord> {
-    const { asset } = await this.requireNote(scope.tx, params);
-
-    await this.assets.archiveBase(scope, {
-      assetId: asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireNote(scope.tx, params));
-  }
-
-  /** Shares ended by archiving stay ended; the GM shares the note again if wanted. */
-  async restoreNote(
-    scope: ActionScope,
-    params: NotePath & { expectedAssetVersion: number },
-  ): Promise<NoteRecord> {
-    const { asset } = await this.requireNote(scope.tx, params);
-
-    await this.assets.restoreBase(scope, {
-      assetId: asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireNote(scope.tx, params));
   }
 
   private async withConstraintErrors<T>(work: () => Promise<T>): Promise<T> {

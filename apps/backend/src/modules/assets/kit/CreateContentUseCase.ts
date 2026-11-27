@@ -5,7 +5,7 @@ import type { ContentTypes } from "#src/modules/assets/kit/ContentWriter";
 
 /** `campaignId` null creates global content, which only administrators may do. */
 export type CreateContentInput<T extends ContentTypes> = {
-  campaignId: string | null;
+  campaignId: T["path"]["campaignId"];
   command: T["create"];
 };
 

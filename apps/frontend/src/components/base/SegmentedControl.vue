@@ -20,7 +20,7 @@ defineProps<{ options: Array<{ value: T; label: string; icon?: IconName }>; labe
       role="radio"
       :data-track-detail="String(option.value)"
       :aria-checked="model === option.value"
-      class="min-h-11 px-4 text-[16px] whitespace-nowrap transition-colors"
+      class="min-h-11 px-4 text-[1rem] whitespace-nowrap transition-colors"
       :class="model === option.value ? 'bg-primary text-parchment-card' : 'text-ink-2 hover:bg-parchment-sunk'"
       @click="model = option.value"
     >

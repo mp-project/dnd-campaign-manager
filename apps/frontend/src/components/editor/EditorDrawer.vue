@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
             />
             <!-- Title and status below each other on mobile, so the title breaks between words. -->
             <div class="flex min-w-0 flex-1 flex-col items-start gap-1 md:flex-row md:flex-wrap md:items-center md:gap-x-4">
-              <h2 class="page-title min-w-0 text-[22px]! md:text-[clamp(26px,2.6vw,38px)]!">
+              <h2 class="page-title min-w-0 text-[1.375rem]! md:text-[clamp(1.625rem,2.6vw,2.375rem)]!">
                 {{ title }}
               </h2>
               <StatusBadge
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
                 >
                   <button
                     type="button"
-                    class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2.5 py-1 text-left text-[15.5px] leading-tight"
+                    class="flex min-h-11 w-full items-center gap-2.5 rounded-control px-2.5 py-1 text-left text-[0.96875rem] leading-tight"
                     :class="active === section.id ? 'bg-primary text-parchment-card shadow-primary' : 'text-ink hover:bg-parchment-sunk'"
                     :aria-current="active === section.id ? 'step' : undefined"
                     @click="active = section.id"
@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
                 v-if="quote"
                 class="mt-auto hidden flex-col items-center px-3 pt-6 text-center [@media(min-height:880px)]:flex"
               >
-                <p class="font-serif text-[15px] leading-snug text-ink italic">
+                <p class="font-serif text-[0.9375rem] leading-snug text-ink italic">
                   {{ quote }}
                 </p>
                 <span class="mt-3 h-px w-10 bg-gold" />
@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
                 v-if="current && sections.length > 1"
                 class="mb-4 hidden md:block"
               >
-                <h3 class="section-title text-[26px]!">
+                <h3 class="section-title text-[1.625rem]!">
                   {{ current.label }}
                 </h3>
                 <p

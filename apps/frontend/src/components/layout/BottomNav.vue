@@ -29,7 +29,7 @@ const emit = defineEmits<{ panel: [panel: "content" | "more"] }>();
         <button
           v-if="'panel' in target"
           type="button"
-          class="relative flex h-17 w-full flex-col items-center justify-center gap-1 text-[14px]"
+          class="relative flex h-17 w-full flex-col items-center justify-center gap-1 text-[0.875rem]"
           :class="active === target.id && 'bottom-nav-active text-gold-light'"
           @click="emit('panel', target.panel)"
         >
@@ -42,7 +42,7 @@ const emit = defineEmits<{ panel: [panel: "content" | "more"] }>();
         <RouterLink
           v-else
           :to="target.to"
-          class="relative flex h-17 w-full flex-col items-center justify-center gap-1 text-[14px]"
+          class="relative flex h-17 w-full flex-col items-center justify-center gap-1 text-[0.875rem]"
           :class="active === target.id && 'bottom-nav-active text-gold-light'"
           :aria-current="active === target.id ? 'page' : undefined"
         >

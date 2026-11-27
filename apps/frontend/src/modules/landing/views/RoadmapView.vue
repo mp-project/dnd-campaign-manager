@@ -77,7 +77,7 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
         >
         <div class="relative mx-auto max-w-400 px-4 pt-10 pb-20 md:px-10 md:pt-16 md:pb-28">
           <nav :aria-label="t('common.shell.breadcrumb')">
-            <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
+            <ol class="flex flex-wrap items-center gap-1 text-[0.875rem] text-parchment/70">
               <li>
                 <RouterLink
                   data-track="roadmap.breadcrumb.home"
@@ -106,15 +106,15 @@ const chapters: MenuChapter[] = ROADMAP_PHASES.map((phase) => ({
             </p>
             <h1
               id="roadmap-title"
-              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[2.125rem] leading-tight font-bold text-parchment md:text-[3rem]"
             >
               {{ t("landing.roadmap.hero.title") }}
             </h1>
-            <p class="mt-5 text-[18px] text-parchment/85">
+            <p class="mt-5 text-[1.125rem] text-parchment/85">
               {{ t("landing.roadmap.hero.lead") }}
             </p>
             <div class="mt-8">
-              <p class="text-[15px] text-parchment/85">
+              <p class="text-[0.9375rem] text-parchment/85">
                 {{ t("landing.roadmap.legend") }}
               </p>
               <ul class="mt-3 flex flex-wrap gap-2">

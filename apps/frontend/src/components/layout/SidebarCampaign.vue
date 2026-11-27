@@ -79,8 +79,8 @@ function picked(): void {
         class="shrink-0 text-gold-light"
       />
       <span class="min-w-0 flex-1 leading-tight">
-        <span class="block truncate text-[15.5px]">{{ campaign?.name ?? t("common.shell.chooseCampaign") }}</span>
-        <span class="block truncate text-[12.5px] text-parchment/65">{{ subline }}</span>
+        <span class="block truncate text-[0.96875rem]">{{ campaign?.name ?? t("common.shell.chooseCampaign") }}</span>
+        <span class="block truncate text-[0.78125rem] text-parchment/65">{{ subline }}</span>
       </span>
       <Icon
         :name="choosing ? 'ui-chevron-up' : 'ui-chevron-down'"
@@ -97,7 +97,7 @@ function picked(): void {
       >
         <RouterLink
           :to="campaignHomePath(entry)"
-          class="flex w-full items-center gap-2.5 rounded-control px-3 py-1.5 text-[15px] text-parchment hover:bg-navy-800"
+          class="flex w-full items-center gap-2.5 rounded-control px-3 py-1.5 text-[0.9375rem] text-parchment hover:bg-navy-800"
           :class="entry.id === campaign?.id && 'text-gold-light'"
           :aria-current="entry.id === campaign?.id ? 'true' : undefined"
           @click="picked"
@@ -110,14 +110,14 @@ function picked(): void {
           <span class="min-w-0 flex-1 truncate">{{ entry.name }}</span>
           <span
             v-if="entry.role"
-            class="text-[12px] text-parchment/60"
+            class="text-[0.75rem] text-parchment/60"
           >{{ t(roleMessageKey(entry.role)) }}</span>
         </RouterLink>
       </li>
       <li>
         <RouterLink
           to="/dashboard"
-          class="flex w-full items-center gap-2.5 rounded-control px-3 py-1.5 text-[15px] text-parchment/80 hover:bg-navy-800"
+          class="flex w-full items-center gap-2.5 rounded-control px-3 py-1.5 text-[0.9375rem] text-parchment/80 hover:bg-navy-800"
           @click="picked"
         >
           <Icon

@@ -28,19 +28,19 @@ defineSlots<{ default?(): unknown; badges?(): unknown; actions?(): unknown }>();
         <RouterLink
           v-if="to"
           :to="to"
-          class="name-link text-[18px] leading-tight hover:underline"
+          class="name-link text-[1.125rem] leading-tight hover:underline"
         >
           {{ title }}
         </RouterLink>
         <p
           v-else
-          class="name-link text-[18px] leading-tight"
+          class="name-link text-[1.125rem] leading-tight"
         >
           {{ title }}
         </p>
         <p
           v-if="description"
-          class="mt-0.5 text-[14px] leading-snug text-ink-2"
+          class="mt-0.5 text-[0.875rem] leading-snug text-ink-2"
         >
           {{ description }}
         </p>
@@ -55,7 +55,7 @@ defineSlots<{ default?(): unknown; badges?(): unknown; actions?(): unknown }>();
     </div>
     <div
       v-if="$slots.default"
-      class="mt-auto border-t border-line pt-3 text-[14px]"
+      class="mt-auto border-t border-line pt-3 text-[0.875rem]"
     >
       <slot />
     </div>

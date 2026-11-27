@@ -143,9 +143,7 @@ export class UsersRepository {
         userId,
         locale: "de",
         timezone: "UTC",
-        theme: "SYSTEM",
         reducedMotion: false,
-        uiPreferences: {},
         createdBy: auditActorId,
         updatedBy: auditActorId,
       })
@@ -217,16 +215,16 @@ export class UsersRepository {
       updateInput.timezone = params.patch.timezone;
     }
 
-    if (params.patch.theme !== undefined) {
-      updateInput.theme = params.patch.theme;
-    }
-
     if (params.patch.reducedMotion !== undefined) {
       updateInput.reducedMotion = params.patch.reducedMotion;
     }
 
-    if (params.patch.uiPreferences !== undefined) {
-      updateInput.uiPreferences = params.patch.uiPreferences;
+    if (params.patch.fontScale !== undefined) {
+      updateInput.fontScale = params.patch.fontScale;
+    }
+
+    if (params.patch.sidebarCollapsed !== undefined) {
+      updateInput.sidebarCollapsed = params.patch.sidebarCollapsed;
     }
 
     const [updated] = await db

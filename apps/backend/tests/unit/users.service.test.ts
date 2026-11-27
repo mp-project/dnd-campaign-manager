@@ -210,9 +210,9 @@ describe("users use cases", () => {
           userId: "22222222-2222-4222-8222-222222222222",
           locale: "de",
           timezone: "UTC",
-          theme: "SYSTEM",
           reducedMotion: false,
-          uiPreferences: {},
+          fontScale: 100,
+          sidebarCollapsed: false,
         },
       }),
     };

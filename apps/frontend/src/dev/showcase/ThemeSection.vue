@@ -54,7 +54,7 @@ const shadows = ["shadow-soft", "shadow-drawer", "shadow-popover", "shadow-prima
               :style="{ background: `var(--color-${color.name})` }"
             />
             <span class="min-w-0">
-              <code class="block truncate text-[13px]">{{ color.name }}</code>
+              <code class="block truncate text-[0.8125rem]">{{ color.name }}</code>
               <span class="meta">{{ color.value }}</span>
             </span>
           </div>
@@ -79,7 +79,7 @@ const shadows = ["shadow-soft", "shadow-drawer", "shadow-popover", "shadow-prima
         label="font-display (Hero-Titel)"
         wide
       >
-        <span class="font-display text-[34px] leading-tight font-bold text-heading">Die Schatten von Elaria</span>
+        <span class="font-display text-[2.125rem] leading-tight font-bold text-heading">Die Schatten von Elaria</span>
       </ShowcaseVariant>
       <ShowcaseVariant label=".name-link">
         <span class="name-link">Hauptmann Rovan</span>
@@ -118,7 +118,7 @@ const shadows = ["shadow-soft", "shadow-drawer", "shadow-popover", "shadow-prima
           class="card p-4"
           :class="shadow"
         >
-          <code class="text-[13px]">{{ shadow }}</code>
+          <code class="text-[0.8125rem]">{{ shadow }}</code>
         </div>
       </ShowcaseVariant>
       <ShowcaseVariant label="Radien">

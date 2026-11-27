@@ -276,7 +276,7 @@ const box = (b: { x: number; y: number; w: number; h: number }) => ({ left: `${b
       aria-hidden="true"
     >
       <span
-        class="text-[15px] font-semibold"
+        class="text-[0.9375rem] font-semibold"
         :class="edge.color === 'secret' ? 'text-navy-700' : 'text-brand'"
       >{{ t("landing.storylineBoard.choice", { choice: t(edgeText(edge.key, "choice")) }) }}</span>
       <span class="meta line-clamp-2">{{ t("landing.storylineBoard.condition", { condition: t(edgeText(edge.key, "condition")) }) }}</span>
@@ -297,10 +297,10 @@ const box = (b: { x: number; y: number; w: number; h: number }) => ({ left: `${b
         <p class="eyebrow text-gold-light">
           {{ t("landing.storylineBoard.startHead", { id: s.id }) }}
         </p>
-        <p class="mt-1 font-heading text-[18px] font-bold">
+        <p class="mt-1 font-heading text-[1.125rem] font-bold">
           {{ t(sectionText(s.id, "title")) }}
         </p>
-        <p class="mt-1 text-[13px] text-parchment/85">
+        <p class="mt-1 text-[0.8125rem] text-parchment/85">
           {{ t(sectionText(s.id, "description")) }}
         </p>
       </div>
@@ -328,10 +328,10 @@ const box = (b: { x: number; y: number; w: number; h: number }) => ({ left: `${b
           <span class="truncate">{{ headText(s) }}</span>
         </p>
         <div class="flex min-h-0 flex-1 flex-col px-4 pt-2 pb-2">
-          <h3 class="truncate font-heading text-[21px] leading-tight font-bold text-heading">
+          <h3 class="truncate font-heading text-[1.3125rem] leading-tight font-bold text-heading">
             {{ t(sectionText(s.id, "title")) }}
           </h3>
-          <p class="mt-1.5 line-clamp-2 text-[15px] leading-snug text-ink-2">
+          <p class="mt-1.5 line-clamp-2 text-[0.9375rem] leading-snug text-ink-2">
             {{ t(sectionText(s.id, "description")) }}
           </p>
           <p class="meta mt-2 flex items-center gap-1.5">
@@ -341,7 +341,7 @@ const box = (b: { x: number; y: number; w: number; h: number }) => ({ left: `${b
             />{{ t(sectionText(s.id, "location")) }}
           </p>
           <div class="mt-auto flex items-center gap-2 border-t border-line pt-2">
-            <span class="card-accent min-w-0 flex-1 truncate text-[13.5px]">{{ footerText(s) }}</span>
+            <span class="card-accent min-w-0 flex-1 truncate text-[0.84375rem]">{{ footerText(s) }}</span>
             <Icon
               name="aktion-ansehen"
               :size="20"

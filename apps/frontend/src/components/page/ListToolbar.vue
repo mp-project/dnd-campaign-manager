@@ -101,7 +101,7 @@ function reset(): void {
           />{{ t("common.list.filter") }}
           <span
             v-if="activeCount > 0"
-            class="badge badge-burgundy px-2! py-0! text-[12px]"
+            class="badge badge-burgundy px-2! py-0! text-[0.75rem]"
           >{{ activeCount }}</span>
         </BaseButton>
         <label

@@ -79,10 +79,10 @@ function activate(ref: MentionRef, gone: boolean): void {
     </span>
     <span class="min-w-0">
       <span class="meta block">{{ part.target.typeLabel }}<template v-if="part.target.gmOnly"> · {{ t("common.visibility.gm.short") }}</template></span>
-      <b class="block font-heading text-[14px] text-brand">{{ part.target.name }}</b>
+      <b class="block font-heading text-[0.875rem] text-brand">{{ part.target.name }}</b>
       <span
         v-if="part.target.summary"
-        class="block text-[12.5px] text-ink-2"
+        class="block text-[0.78125rem] text-ink-2"
       >{{ part.target.summary }}</span>
     </span>
   </span></span></template></span>

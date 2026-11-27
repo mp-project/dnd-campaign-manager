@@ -142,7 +142,7 @@ async function save(): Promise<void> {
           />
         </div>
         <div class="md:border-t md:border-line md:pt-4">
-          <h3 class="section-title mb-2 text-[17px]! text-brand">
+          <h3 class="section-title mb-2 text-[1.0625rem]! text-brand">
             {{ t("users.profile.previewTitle") }}
           </h3>
           <div class="flex items-center gap-3 rounded-card border border-line bg-parchment-card p-3">
@@ -151,7 +151,7 @@ async function save(): Promise<void> {
               :size="48"
             />
             <span class="flex min-w-0 flex-col">
-              <strong class="name-link truncate text-[18px] text-heading!">{{ form.displayName || "—" }}</strong>
+              <strong class="name-link truncate text-[1.125rem] text-heading!">{{ form.displayName || "—" }}</strong>
               <span class="meta truncate">{{ me.data.value.userTag }}</span>
             </span>
           </div>

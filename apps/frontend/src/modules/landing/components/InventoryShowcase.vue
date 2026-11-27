@@ -376,10 +376,10 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
           class="chest shrink-0 text-gold"
         />
         <div class="min-w-0 flex-1">
-          <p class="font-heading text-[18px] font-bold text-heading md:text-[20px]">
+          <p class="font-heading text-[1.125rem] font-bold text-heading md:text-[1.25rem]">
             {{ t("landing.inventory.title") }}
           </p>
-          <p class="truncate text-[13px] text-ink-2 md:text-[14px]">
+          <p class="truncate text-[0.8125rem] text-ink-2 md:text-[0.875rem]">
             {{ t("landing.inventory.owner") }}
           </p>
         </div>
@@ -440,10 +440,10 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
               />
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate font-heading text-[14px] leading-tight font-bold text-heading md:text-[16px]">
+              <span class="block truncate font-heading text-[0.875rem] leading-tight font-bold text-heading md:text-[1rem]">
                 {{ itemName(row.id) }}
               </span>
-              <span class="flex flex-wrap items-center gap-x-2 text-[12px] leading-tight text-ink-2 md:text-[13px]">
+              <span class="flex flex-wrap items-center gap-x-2 text-[0.75rem] leading-tight text-ink-2 md:text-[0.8125rem]">
                 {{ categoryName(row.category) }}
                 <span
                   v-if="row.worn"
@@ -494,7 +494,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
 
       <!-- Carrying load follows the quantities -->
       <div class="mt-2 border-t border-gold/60 pt-2 md:mt-4 md:pt-3">
-        <p class="flex items-center justify-between text-[14px] text-ink-2">
+        <p class="flex items-center justify-between text-[0.875rem] text-ink-2">
           <span class="inline-flex items-center gap-1.5">
             <Icon
               name="ui-scale"
@@ -539,7 +539,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   padding: 6px 14px;
   border: 1px solid;
   border-radius: 999px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 .event-add {
@@ -590,7 +590,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
 /* The sort control fills the panel on phones, three equal buttons. */
 .sort :deep(button) {
   padding-inline: 8px;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .row {
@@ -633,13 +633,13 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   border-radius: 999px;
   background: var(--color-tag-gold);
   color: var(--color-tag-gold-ink);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .qty {
   position: relative;
   min-width: 2.5rem;
   font-family: var(--font-heading);
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--color-heading);
   text-align: right;
@@ -681,7 +681,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   box-shadow: var(--shadow-soft);
   white-space: nowrap;
   font-family: var(--font-heading);
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 700;
   pointer-events: none;
 }
@@ -722,7 +722,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   }
   .sort :deep(button) {
     min-height: 36px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .row {
     gap: 8px;
@@ -735,7 +735,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   }
   .qty {
     min-width: 2rem;
-    font-size: 15px;
+    font-size: 0.9375rem;
   }
   .event-row {
     min-height: 32px;
@@ -743,7 +743,7 @@ const hasSpellbook = computed(() => rows.value.some((row) => row.id === "spellbo
   }
   .event-chip {
     padding: 4px 12px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 }
 :root[data-reduced-motion] .row-lit {

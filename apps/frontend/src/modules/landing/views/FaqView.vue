@@ -120,7 +120,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
         >
         <div class="relative mx-auto max-w-400 px-4 pt-10 pb-20 md:px-10 md:pt-16 md:pb-28">
           <nav :aria-label="t('common.shell.breadcrumb')">
-            <ol class="flex flex-wrap items-center gap-1 text-[14px] text-parchment/70">
+            <ol class="flex flex-wrap items-center gap-1 text-[0.875rem] text-parchment/70">
               <li>
                 <RouterLink
                   data-track="faq.breadcrumb.home"
@@ -149,11 +149,11 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
             </p>
             <h1
               id="faq-title"
-              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[2.125rem] leading-tight font-bold text-parchment md:text-[3rem]"
             >
               {{ t("landing.faq.hero.title") }}
             </h1>
-            <p class="mt-5 text-[18px] text-parchment/85">
+            <p class="mt-5 text-[1.125rem] text-parchment/85">
               {{ t("landing.faq.hero.lead") }}
             </p>
             <div
@@ -162,7 +162,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
             >
               <label
                 for="faq-search"
-                class="mb-2 block text-[15px] text-parchment/85"
+                class="mb-2 block text-[0.9375rem] text-parchment/85"
               >
                 {{ t("landing.faq.search.label") }}
               </label>
@@ -187,7 +187,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                 data-track="faq.topicChip"
                 :data-track-detail="group.id"
                 :href="`#${faqTopicId(group.id)}`"
-                class="topic-chip inline-flex min-h-11 items-center gap-2 rounded-full border border-gold/50 px-4 text-[15px] text-parchment"
+                class="topic-chip inline-flex min-h-11 items-center gap-2 rounded-full border border-gold/50 px-4 text-[0.9375rem] text-parchment"
               >
                 <Icon
                   :name="group.icon"
@@ -241,8 +241,8 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                       />
                     </span>
                     <span class="min-w-0">
-                      <span class="block font-heading text-[16px] leading-snug text-heading">{{ t(group.title) }}</span>
-                      <span class="block text-[13px] text-ink-3">{{ t("landing.faq.questionCount", { count: group.questions.length }) }}</span>
+                      <span class="block font-heading text-[1rem] leading-snug text-heading">{{ t(group.title) }}</span>
+                      <span class="block text-[0.8125rem] text-ink-3">{{ t("landing.faq.questionCount", { count: group.questions.length }) }}</span>
                     </span>
                   </a>
                 </li>
@@ -261,7 +261,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
           <div class="min-w-0">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gold/40 pb-3">
               <p
-                class="text-[15px] text-ink-2"
+                class="text-[0.9375rem] text-ink-2"
                 aria-live="polite"
               >
                 <template v-if="searching">
@@ -328,7 +328,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                   >
                     {{ t(group.title) }}
                   </h2>
-                  <p class="text-[15px] text-ink-3">
+                  <p class="text-[0.9375rem] text-ink-3">
                     {{ t(group.hint) }}
                   </p>
                 </div>
@@ -353,7 +353,7 @@ function linksOf(links: readonly FaqLink[] | undefined): FaqLink[] {
                       :aria-controls="`${faqQuestionId(item.id)}-answer`"
                       @click="toggle(item.id)"
                     >
-                      <span class="min-w-0 flex-1 font-heading text-[17px] leading-snug text-heading md:text-[18px]">
+                      <span class="min-w-0 flex-1 font-heading text-[1.0625rem] leading-snug text-heading md:text-[1.125rem]">
                         {{ t(item.question) }}
                       </span>
                       <span class="faq-chevron flex size-8 shrink-0 items-center justify-center rounded-full border border-gold/60 text-brand">

@@ -25,7 +25,7 @@ export const clerkAppearance = {
     colorRing: "var(--color-primary)",
     fontFamily: "var(--font-sans)",
     fontFamilyButtons: "var(--font-sans)",
-    fontSize: "16px",
+    fontSize: "1rem",
     borderRadius: "var(--radius-control)",
   },
   elements: {
@@ -33,7 +33,7 @@ export const clerkAppearance = {
     cardBox: "w-full max-w-none overflow-visible rounded-none border-0 bg-transparent shadow-none",
     card: "gap-6 overflow-visible border-0 bg-transparent p-1 shadow-none",
     headerTitle: "section-title",
-    headerSubtitle: "text-[15px] text-ink-2",
+    headerSubtitle: "text-[0.9375rem] text-ink-2",
 
     socialButtonsBlockButton: "btn btn-secondary w-full shadow-none",
     socialButtonsBlockButtonText: "font-medium text-ink",
@@ -47,7 +47,7 @@ export const clerkAppearance = {
     formFieldHintText: "text-sm text-ink-3",
     formFieldErrorText: "text-sm text-danger",
     formFieldAction: "text-sm font-medium text-primary hover:text-primary-hover",
-    formFieldCheckboxLabel: "text-[15px] text-ink-2",
+    formFieldCheckboxLabel: "text-[0.9375rem] text-ink-2",
     otpCodeFieldInput: "rounded-control border border-line-strong bg-parchment-card text-ink shadow-none",
     formButtonPrimary: "btn btn-primary w-full normal-case",
     formButtonReset: "btn btn-ghost shadow-none",
@@ -61,7 +61,7 @@ export const clerkAppearance = {
     alertText: "text-ink",
 
     footer: "bg-transparent bg-none",
-    footerActionText: "text-[15px] text-ink-2",
+    footerActionText: "text-[0.9375rem] text-ink-2",
     footerActionLink: "font-medium text-primary underline underline-offset-4 hover:text-primary-hover",
     footerPagesLink: "text-ink-3 hover:text-ink",
 

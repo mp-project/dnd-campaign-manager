@@ -5,6 +5,12 @@ export function updateProfile(body: { displayName: string }) {
   return unwrap(api.PATCH("/api/v1/me", { body }));
 }
 
-export function updateSettings(body: { locale?: string; timezone?: string; reducedMotion?: boolean }) {
+export function updateSettings(body: {
+  locale?: string;
+  timezone?: string;
+  reducedMotion?: boolean;
+  fontScale?: number;
+  sidebarCollapsed?: boolean;
+}) {
   return unwrap(api.PATCH("/api/v1/me/settings", { body }));
 }

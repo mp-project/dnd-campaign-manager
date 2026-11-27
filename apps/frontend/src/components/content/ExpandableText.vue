@@ -34,7 +34,7 @@ watch(() => props.text, measure);
     <p
       ref="body"
       class="whitespace-pre-line"
-      :class="compact ? 'text-[14px] leading-snug text-ink-2' : 'text-ink'"
+      :class="compact ? 'text-[0.875rem] leading-snug text-ink-2' : 'text-ink'"
       :style="!open ? { display: '-webkit-box', WebkitLineClamp: lineCount, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined"
     >
       <slot><MentionText :text="text" /></slot>
@@ -43,7 +43,7 @@ watch(() => props.text, measure);
       v-if="overflowing || open"
       type="button"
       class="inline-flex items-center font-medium text-brand hover:underline"
-      :class="compact ? 'min-h-7 gap-1 text-[13.5px]' : 'mt-1 min-h-11 gap-1.5'"
+      :class="compact ? 'min-h-7 gap-1 text-[0.84375rem]' : 'mt-1 min-h-11 gap-1.5'"
       :aria-expanded="open"
       @click.stop="open = !open"
     >

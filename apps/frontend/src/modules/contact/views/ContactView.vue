@@ -337,7 +337,7 @@ function writeAgain(): void {
           </RouterLink>
           <p
             v-if="errors.privacy"
-            class="flex items-center gap-1.5 text-[14px] text-danger"
+            class="flex items-center gap-1.5 text-[0.875rem] text-danger"
           >
             <Icon
               name="ui-alert"

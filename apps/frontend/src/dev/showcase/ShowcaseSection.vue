@@ -9,7 +9,7 @@ defineProps<{ id: string; title: string; description?: string }>();
     class="flex scroll-mt-6 flex-col gap-5 border-t border-line pt-8"
   >
     <header>
-      <h2 class="section-title text-[26px]!">{{ title }}</h2>
+      <h2 class="section-title text-[1.625rem]!">{{ title }}</h2>
       <p
         v-if="description"
         class="text-ink-2"

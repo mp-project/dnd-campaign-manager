@@ -1,9 +1,10 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
-  jsonb,
+  check,
   pgEnum,
   pgTable,
+  smallint,
   timestamp,
   uniqueIndex,
   uuid,
@@ -15,7 +16,6 @@ import { baseColumns, uniqueActiveIndex } from "../../../../core/db/schemaHelper
 
 export const userSystemRoleEnum = pgEnum("user_system_role", SYSTEM_ROLES);
 export const userStatusEnum = pgEnum("user_status", ["ACTIVE", "LOCKED", "DISABLED"]);
-export const userThemeEnum = pgEnum("user_theme", ["SYSTEM", "LIGHT", "DARK"]);
 
 export const users = pgTable(
   "users",
@@ -61,15 +61,21 @@ export const userSettings = pgTable(
       .references(() => users.id, { onDelete: "restrict" }),
     locale: varchar("locale", { length: 12 }).notNull().default("de"),
     timezone: varchar("timezone", { length: 80 }).notNull().default("UTC"),
-    theme: userThemeEnum("theme").notNull().default("SYSTEM"),
     reducedMotion: boolean("reduced_motion").notNull().default(false),
-    uiPreferences: jsonb("ui_preferences").notNull().default(sql`'{}'::jsonb`),
+    /** Text size of the app in percent, 90 to 125 in steps of 5. */
+    fontScale: smallint("font_scale").notNull().default(100),
+    /** Whether the sidebar starts collapsed, on every device of the account. */
+    sidebarCollapsed: boolean("sidebar_collapsed").notNull().default(false),
   },
   (table) => [
     uniqueActiveIndex(
       "user_settings_user_id_active_unique_idx",
       [table.userId],
       table.deletedAt,
+    ),
+    check(
+      "user_settings_font_scale_check",
+      sql`${table.fontScale} between 90 and 125 and ${table.fontScale} % 5 = 0`,
     ),
   ],
 );

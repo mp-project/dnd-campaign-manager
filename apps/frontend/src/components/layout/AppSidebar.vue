@@ -60,11 +60,11 @@ const shell = useShellStore();
     </div>
     <button
       type="button"
-      class="flex h-11 shrink-0 items-center gap-2 border-t border-navy-line text-[14px] text-parchment/75 hover:bg-navy-800 hover:text-parchment"
+      class="flex h-11 shrink-0 items-center gap-2 border-t border-navy-line text-[0.875rem] text-parchment/75 hover:bg-navy-800 hover:text-parchment"
       :class="shell.navCollapsed ? 'justify-center' : 'px-5'"
       :aria-expanded="!shell.navCollapsed"
       :title="shell.navCollapsed ? t('common.shell.expandNav') : t('common.shell.collapseNav')"
-      @click="shell.setNavCollapsed(!shell.navCollapsed)"
+      @click="shell.toggleNavCollapsed()"
     >
       <Icon
         :name="shell.navCollapsed ? 'ui-chevron-right' : 'ui-chevron-left'"

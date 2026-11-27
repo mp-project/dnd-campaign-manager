@@ -82,7 +82,7 @@ const groups = computed(() =>
             :name="name"
             :size="28"
           />
-          <code class="text-[11.5px] break-all text-ink-2">{{ name }}</code>
+          <code class="text-[0.71875rem] break-all text-ink-2">{{ name }}</code>
         </div>
       </div>
     </ShowcaseVariant>

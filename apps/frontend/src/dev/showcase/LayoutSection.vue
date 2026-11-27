@@ -117,7 +117,7 @@ const playerBottom: BottomNavTarget[] = [
             active-id="dashboard"
           >
             <template #campaign-empty>
-              <p class="px-6 py-2 text-[13.5px] text-parchment/70">
+              <p class="px-6 py-2 text-[0.84375rem] text-parchment/70">
                 Wähle eine Kampagne. Danach findest du hier ihre Inhalte.
               </p>
             </template>
@@ -254,7 +254,7 @@ const playerBottom: BottomNavTarget[] = [
           :condensed="false"
           class="w-full"
         >
-          <span class="text-[15px]">Anmelden</span>
+          <span class="text-[0.9375rem]">Anmelden</span>
         </SiteHeader>
       </ShowcaseVariant>
       <ShowcaseVariant
@@ -265,7 +265,7 @@ const playerBottom: BottomNavTarget[] = [
           condensed
           class="w-full"
         >
-          <span class="text-[15px]">Anmelden</span>
+          <span class="text-[0.9375rem]">Anmelden</span>
         </SiteHeader>
       </ShowcaseVariant>
     </ShowcaseComponent>
@@ -397,7 +397,7 @@ const playerBottom: BottomNavTarget[] = [
       >
         <div class="w-full pt-24">
           <SiteFooter>
-            <h2 class="mt-4 font-heading text-[28px] font-bold text-parchment">
+            <h2 class="mt-4 font-heading text-[1.75rem] font-bold text-parchment">
               Noch Fragen?
             </h2>
             <p class="mt-3 text-parchment/85">

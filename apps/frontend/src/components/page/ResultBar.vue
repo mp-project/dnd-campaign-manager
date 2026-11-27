@@ -22,7 +22,7 @@ const { t } = useAppI18n();
 <template>
   <div class="mb-3 flex items-center gap-3">
     <p
-      class="text-[16px] text-ink-2"
+      class="text-[1rem] text-ink-2"
       aria-live="polite"
     >
       <span :class="mobileText && 'hidden md:inline'">{{ text }}</span>

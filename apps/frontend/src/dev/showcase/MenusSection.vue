@@ -176,14 +176,14 @@ function editConflict(anchor: HTMLElement): void {
           label="Stärke bearbeiten"
           @edit="editStrength"
         >
-          <b class="font-heading text-[22px] text-heading">{{ strength }}</b>
+          <b class="font-heading text-[1.375rem] text-heading">{{ strength }}</b>
         </EditableValue>
         <span class="meta">Spieler ohne Recht:</span>
         <EditableValue
           label="Stärke"
           :editable="false"
         >
-          <b class="font-heading text-[22px] text-heading">{{ strength }}</b>
+          <b class="font-heading text-[1.375rem] text-heading">{{ strength }}</b>
         </EditableValue>
       </ShowcaseVariant>
       <ShowcaseVariant label="block">

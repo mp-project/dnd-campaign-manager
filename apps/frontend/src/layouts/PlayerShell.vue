@@ -49,7 +49,7 @@ watch(
             @click="shell.openMobileNav()"
           />
           <template v-if="campaign">
-            <span class="flex min-w-0 items-center gap-2 text-[16px] md:text-[18px]">
+            <span class="flex min-w-0 items-center gap-2 text-[1rem] md:text-[1.125rem]">
               <Icon
                 name="nav-kampagne"
                 :size="20"
@@ -58,12 +58,12 @@ watch(
             </span>
             <span
               v-if="ruleset.data.value"
-              class="hidden rounded-full border border-gold-light/60 px-3 py-0.5 text-[13px] text-gold-light lg:inline"
+              class="hidden rounded-full border border-gold-light/60 px-3 py-0.5 text-[0.8125rem] text-gold-light lg:inline"
               :title="t('common.shell.ruleset')"
             >{{ ruleset.data.value.name }}</span>
             <span
               v-if="campaign.role"
-              class="hidden rounded-full border border-gold-light/60 px-3 py-0.5 text-[13px] text-gold-light sm:inline"
+              class="hidden rounded-full border border-gold-light/60 px-3 py-0.5 text-[0.8125rem] text-gold-light sm:inline"
               :title="t('common.shell.role')"
             >{{ t(roleMessageKey(campaign.role)) }}</span>
           </template>

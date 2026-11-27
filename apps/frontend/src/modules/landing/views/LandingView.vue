@@ -265,11 +265,11 @@ const reputationPoints: MessageKey[] = [
             </p>
             <h1
               id="landing-title"
-              class="mt-3 font-display text-[34px] leading-tight font-bold text-parchment md:text-[48px]"
+              class="mt-3 font-display text-[2.125rem] leading-tight font-bold text-parchment md:text-[3rem]"
             >
               {{ t("landing.hero.title") }}
             </h1>
-            <p class="mt-5 max-w-150 text-[18px] text-parchment/85">
+            <p class="mt-5 max-w-150 text-[1.125rem] text-parchment/85">
               {{ t("landing.hero.lead") }}
             </p>
             <div class="mt-8 flex flex-wrap gap-3">
@@ -305,7 +305,7 @@ const reputationPoints: MessageKey[] = [
             </div>
             <p
               v-if="demo"
-              class="mt-3 text-[14px] text-parchment/70"
+              class="mt-3 text-[0.875rem] text-parchment/70"
             >
               {{ t("landing.hero.demoHint") }}
             </p>
@@ -326,7 +326,7 @@ const reputationPoints: MessageKey[] = [
           >
             {{ t("landing.audience.title") }}
           </h2>
-          <p class="mx-auto mt-3 max-w-160 text-center text-[17px] text-ink-2">
+          <p class="mx-auto mt-3 max-w-160 text-center text-[1.0625rem] text-ink-2">
             {{ t("landing.audience.intro") }}
           </p>
           <ul class="mx-auto mt-32 grid max-w-md gap-y-36 px-6 md:mt-28 md:px-0 md:max-w-none md:grid-cols-3 md:gap-x-4 lg:mt-40 lg:gap-x-8 xl:gap-x-12">
@@ -389,7 +389,7 @@ const reputationPoints: MessageKey[] = [
           >
             {{ t("landing.features.title") }}
           </h2>
-          <p class="mx-auto mt-3 max-w-160 text-center text-[17px] text-ink-2">
+          <p class="mx-auto mt-3 max-w-160 text-center text-[1.0625rem] text-ink-2">
             {{ t("landing.features.intro") }}
           </p>
         </div>
@@ -454,11 +454,11 @@ const reputationPoints: MessageKey[] = [
           </p>
           <h2
             id="landing-more"
-            class="mt-2 text-center font-heading text-[28px] leading-tight font-bold text-parchment md:text-[36px]"
+            class="mt-2 text-center font-heading text-[1.75rem] leading-tight font-bold text-parchment md:text-[2.25rem]"
           >
             {{ t("landing.more.title") }}
           </h2>
-          <p class="mx-auto mt-3 max-w-160 text-center text-[17px] text-parchment/85">
+          <p class="mx-auto mt-3 max-w-160 text-center text-[1.0625rem] text-parchment/85">
             {{ t("landing.more.intro") }}
           </p>
           <MoreSlider
@@ -522,11 +522,11 @@ const reputationPoints: MessageKey[] = [
             </p>
             <h2
               id="landing-marketplace"
-              class="mt-2 font-heading text-[28px] leading-tight font-bold text-parchment md:text-[36px]"
+              class="mt-2 font-heading text-[1.75rem] leading-tight font-bold text-parchment md:text-[2.25rem]"
             >
               {{ t("landing.marketplace.title") }}
             </h2>
-            <p class="mt-4 text-[17px] text-parchment/85">
+            <p class="mt-4 text-[1.0625rem] text-parchment/85">
               {{ t("landing.marketplace.text") }}
             </p>
             <BaseButton
@@ -574,7 +574,7 @@ const reputationPoints: MessageKey[] = [
             >
               {{ t("landing.reputation.title") }}
             </h2>
-            <p class="mt-4 text-[17px] text-ink-2">
+            <p class="mt-4 text-[1.0625rem] text-ink-2">
               {{ t("landing.reputation.text") }}
             </p>
             <ul
@@ -584,7 +584,7 @@ const reputationPoints: MessageKey[] = [
               <li
                 v-for="source in reputationSources"
                 :key="source.id"
-                class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[14px]"
+                class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.875rem]"
                 :class="source.id === 'manual' ? 'border-brand bg-primary-soft text-brand' : 'border-gold bg-parchment-card text-ink'"
               >
                 <Icon

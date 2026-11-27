@@ -45,7 +45,7 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
         </h1>
         <p
           v-if="subtitle"
-          class="mt-2 text-center text-[17px] text-ink-2"
+          class="mt-2 text-center text-[1.0625rem] text-ink-2"
         >
           {{ subtitle }}
         </p>
@@ -68,7 +68,7 @@ const WIDTH = { narrow: "max-w-130", default: "max-w-140", wide: "max-w-200" } a
       </ParchmentFrame>
       <p
         v-if="$slots.switch"
-        class="mt-6 text-center text-[15px]"
+        class="mt-6 text-center text-[0.9375rem]"
       >
         <slot name="switch" />
       </p>

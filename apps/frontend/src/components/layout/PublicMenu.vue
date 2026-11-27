@@ -202,8 +202,8 @@ const after = computed(() => chapters.value.length);
                     </span>
                     <span class="min-w-0 flex-1">
                       <span class="chapter-number eyebrow">{{ t("common.publicNav.menu.chapter", { number: chapter.numeral }) }}</span>
-                      <span class="block font-heading text-[18px] leading-snug text-heading">{{ t(chapter.label) }}</span>
-                      <span class="block text-[14px] leading-snug text-ink-3">{{ t(chapter.hint) }}</span>
+                      <span class="block font-heading text-[1.125rem] leading-snug text-heading">{{ t(chapter.label) }}</span>
+                      <span class="block text-[0.875rem] leading-snug text-ink-3">{{ t(chapter.hint) }}</span>
                     </span>
                     <Icon
                       name="ui-chevron-right"
@@ -237,7 +237,7 @@ const after = computed(() => chapters.value.length);
                   :to="link.to"
                   :active="link.active"
                   tone="light"
-                  class="font-heading text-[19px] text-heading"
+                  class="font-heading text-[1.1875rem] text-heading"
                 >
                   {{ link.label }}
                 </PublicNavLink>
@@ -445,7 +445,7 @@ li + li .chapter-link::before {
 .chapter-number {
   display: block;
   color: var(--color-gold);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .chapter-arrow {
   flex-shrink: 0;

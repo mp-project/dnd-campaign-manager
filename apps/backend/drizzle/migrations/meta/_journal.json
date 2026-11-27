@@ -281,6 +281,13 @@
       "when": 1795277294027,
       "tag": "0039_auth_clerk",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795795058614,
+      "tag": "0040_user_settings_appearance",
+      "breakpoints": true
     }
   ]
 }

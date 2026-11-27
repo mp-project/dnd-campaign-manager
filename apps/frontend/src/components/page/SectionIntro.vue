@@ -18,7 +18,7 @@ defineProps<{ title: string; subtitle?: string; icon?: IconName }>();
     </h2>
     <p
       v-if="subtitle"
-      class="mt-1 text-[16px] text-ink-2"
+      class="mt-1 text-[1rem] text-ink-2"
     >
       {{ subtitle }}
     </p>

@@ -53,7 +53,7 @@ function go(target: number): void {
   >
     <span
       v-if="range"
-      class="num text-[15.5px] text-ink"
+      class="num text-[0.96875rem] text-ink"
     >{{ range }}</span>
     <label
       v-if="perPageOptions.length > 0"

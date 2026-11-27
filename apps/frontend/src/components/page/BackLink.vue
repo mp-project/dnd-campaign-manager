@@ -10,7 +10,7 @@ defineProps<{ to: RouteLocationRaw; label: string; boxed?: boolean }>();
 <template>
   <RouterLink
     :to="to"
-    class="inline-flex min-h-11 items-center gap-2 text-[16px] text-brand hover:underline"
+    class="inline-flex min-h-11 items-center gap-2 text-[1rem] text-brand hover:underline"
     :class="boxed && 'rounded-control border border-brand/40 bg-parchment-card px-4 hover:bg-parchment-sunk hover:no-underline'"
   >
     <Icon

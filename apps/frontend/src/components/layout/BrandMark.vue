@@ -31,7 +31,7 @@ const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
     >
     <span
       v-if="!compact"
-      class="-mt-1 text-[12.5px] whitespace-nowrap text-gold-bright"
+      class="-mt-1 text-[0.78125rem] whitespace-nowrap text-gold-bright"
     >{{ t("common.app.tagline") }}</span>
   </RouterLink>
 </template>

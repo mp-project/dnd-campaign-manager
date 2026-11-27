@@ -52,7 +52,7 @@ const shown = ref<Record<(typeof transitions)[number], boolean>>({
             :key="token.name"
             class="flex items-center gap-3"
           >
-            <code class="w-56 shrink-0 text-[13px]">{{ token.name }}</code>
+            <code class="w-56 shrink-0 text-[0.8125rem]">{{ token.name }}</code>
             <span class="meta w-14 shrink-0">{{ token.value }}</span>
             <span class="relative h-3 flex-1 overflow-hidden rounded-control bg-parchment-sunk [container-type:inline-size]">
               <span
@@ -76,7 +76,7 @@ const shown = ref<Record<(typeof transitions)[number], boolean>>({
             :key="token.name"
             class="flex items-center gap-3"
           >
-            <code class="w-56 shrink-0 text-[13px]">{{ token.name }}</code>
+            <code class="w-56 shrink-0 text-[0.8125rem]">{{ token.name }}</code>
             <span class="relative h-3 flex-1 overflow-hidden rounded-control bg-parchment-sunk [container-type:inline-size]">
               <span
                 class="absolute inset-y-0 left-0 w-6 rounded-control bg-gold"
@@ -121,7 +121,7 @@ const shown = ref<Record<(typeof transitions)[number], boolean>>({
                 v-if="shown[name]"
                 class="absolute inset-0 flex items-center justify-center bg-parchment-card"
               >
-                <code class="text-[13px]">.{{ name }}</code>
+                <code class="text-[0.8125rem]">.{{ name }}</code>
               </div>
             </Transition>
           </div>

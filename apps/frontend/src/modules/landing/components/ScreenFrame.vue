@@ -35,7 +35,7 @@ const href = demoScreenUrl(props.screen.demoPath);
     >
     <span
       v-if="href"
-      class="absolute right-3 bottom-3 inline-flex items-center gap-2 rounded-full border border-gold bg-navy-950 px-3 py-1.5 text-[14px] text-gold-light opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+      class="absolute right-3 bottom-3 inline-flex items-center gap-2 rounded-full border border-gold bg-navy-950 px-3 py-1.5 text-[0.875rem] text-gold-light opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
     >
       <Icon
         name="aktion-ansehen"

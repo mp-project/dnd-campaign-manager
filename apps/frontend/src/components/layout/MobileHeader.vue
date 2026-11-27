@@ -64,7 +64,7 @@ const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.s
     >
       <button
         type="button"
-        class="shell-chip col-span-2 text-[16px]"
+        class="shell-chip col-span-2 text-[1rem]"
         :aria-label="`${campaign.name} – ${t('common.shell.switchCampaign')}`"
         @click="shell.openMobileNav()"
       >
@@ -79,7 +79,7 @@ const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.s
         />
       </button>
       <span
-        class="shell-chip min-w-0 text-[16px]"
+        class="shell-chip min-w-0 text-[1rem]"
         :title="t('common.shell.ruleset')"
       ><Icon
         name="orig-wuerfel"
@@ -88,7 +88,7 @@ const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.s
       /><span class="truncate">{{ ruleset.data.value?.name }}</span></span>
       <span
         v-if="campaign.role"
-        class="shell-chip min-w-0 text-[16px]"
+        class="shell-chip min-w-0 text-[1rem]"
         :title="t('common.shell.role')"
       ><Icon
         name="orig-krone"
@@ -100,7 +100,7 @@ const brandLogo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.s
       v-else
       class="px-3 pb-3"
     >
-      <span class="shell-chip w-full text-[16px]"><Icon
+      <span class="shell-chip w-full text-[1rem]"><Icon
         name="nav-dashboard"
         :size="20"
         class="text-gold-light"

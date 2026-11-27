@@ -33,7 +33,7 @@ defineSlots<{ default(): unknown; "header-actions"?(): unknown }>();
         </h2>
         <p
           v-if="subtitle"
-          class="text-[15px] text-ink-2"
+          class="text-[0.9375rem] text-ink-2"
         >
           {{ subtitle }}
         </p>

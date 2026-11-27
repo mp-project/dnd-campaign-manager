@@ -74,7 +74,9 @@ describe("users HTTP routes", () => {
       settings: {
         locale: "de",
         timezone: "UTC",
-        theme: "SYSTEM",
+        reducedMotion: false,
+        fontScale: 100,
+        sidebarCollapsed: false,
       },
     });
 
@@ -84,6 +86,36 @@ describe("users HTTP routes", () => {
       .where(eq(userSettings.userId, userId));
 
     expect(settingsRows).toHaveLength(1);
+  });
+
+  it("changes the appearance settings and refuses a font scale outside its steps", async () => {
+    const userId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+    await seedUser({ id: userId, email: "settings@example.test", displayName: "Settings", systemRole: "USER" });
+
+    const changed = await injectAs(
+      { actorId: userId, systemRole: "USER" },
+      { method: "PATCH", url: "/api/v1/me/settings", payload: { fontScale: 115, sidebarCollapsed: true } },
+    );
+
+    expect(changed.statusCode).toBe(200);
+    expect(changed.json().settings).toMatchObject({ fontScale: 115, sidebarCollapsed: true, locale: "de" });
+
+    for (const fontScale of [85, 130, 112]) {
+      const refused = await injectAs(
+        { actorId: userId, systemRole: "USER" },
+        { method: "PATCH", url: "/api/v1/me/settings", payload: { fontScale } },
+      );
+
+      expect(refused.statusCode).toBe(400);
+    }
+
+    const removed = await injectAs(
+      { actorId: userId, systemRole: "USER" },
+      { method: "PATCH", url: "/api/v1/me/settings", payload: { theme: "DARK" } },
+    );
+
+    expect(removed.statusCode).toBe(400);
   });
 
   it("does not change the email through the profile patch", async () => {

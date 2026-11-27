@@ -4909,12 +4909,9 @@ export interface operations {
                         settings: {
                             locale: string;
                             timezone: string;
-                            /** @enum {string} */
-                            theme: "SYSTEM" | "LIGHT" | "DARK";
                             reducedMotion: boolean;
-                            uiPreferences: {
-                                [key: string]: unknown;
-                            };
+                            fontScale: number;
+                            sidebarCollapsed: boolean;
                         };
                         effectiveGlobalPermissions: string[];
                     };
@@ -4976,12 +4973,9 @@ export interface operations {
                         settings: {
                             locale: string;
                             timezone: string;
-                            /** @enum {string} */
-                            theme: "SYSTEM" | "LIGHT" | "DARK";
                             reducedMotion: boolean;
-                            uiPreferences: {
-                                [key: string]: unknown;
-                            };
+                            fontScale: number;
+                            sidebarCollapsed: boolean;
                         };
                         effectiveGlobalPermissions: string[];
                     };
@@ -5049,12 +5043,9 @@ export interface operations {
                 "application/json": {
                     locale?: string;
                     timezone?: string;
-                    /** @enum {string} */
-                    theme?: "SYSTEM" | "LIGHT" | "DARK";
                     reducedMotion?: boolean;
-                    uiPreferences?: {
-                        [key: string]: unknown;
-                    };
+                    fontScale?: number;
+                    sidebarCollapsed?: boolean;
                 };
             };
         };
@@ -5082,12 +5073,9 @@ export interface operations {
                         settings: {
                             locale: string;
                             timezone: string;
-                            /** @enum {string} */
-                            theme: "SYSTEM" | "LIGHT" | "DARK";
                             reducedMotion: boolean;
-                            uiPreferences: {
-                                [key: string]: unknown;
-                            };
+                            fontScale: number;
+                            sidebarCollapsed: boolean;
                         };
                         effectiveGlobalPermissions: string[];
                     };

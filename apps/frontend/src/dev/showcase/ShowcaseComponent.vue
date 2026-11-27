@@ -6,7 +6,7 @@ defineProps<{ name: string; description?: string }>();
 <template>
   <div class="flex flex-col gap-3">
     <div>
-      <h3 class="font-heading text-[19px] text-heading">
+      <h3 class="font-heading text-[1.1875rem] text-heading">
         <code>{{ name }}</code>
       </h3>
       <p

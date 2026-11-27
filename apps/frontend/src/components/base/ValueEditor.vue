@@ -182,10 +182,10 @@ onBeforeUnmount(() => {
             class="mt-0.5 shrink-0 text-gold"
           />
           <div class="min-w-0 flex-1">
-            <h2 class="font-heading text-[18px] leading-snug font-bold text-heading">{{ editor.title }}</h2>
+            <h2 class="font-heading text-[1.125rem] leading-snug font-bold text-heading">{{ editor.title }}</h2>
             <p
               v-if="editor.hint"
-              class="meta text-[13.5px]! text-ink-2!"
+              class="meta text-[0.84375rem]! text-ink-2!"
             >
               {{ editor.hint }}
             </p>
@@ -253,7 +253,7 @@ onBeforeUnmount(() => {
                   :max="field.max"
                   :step="field.step ?? 1"
                   :aria-invalid="!!errors[field.key] || undefined"
-                  class="input num min-w-0 [appearance:textfield] text-center font-heading text-[18px] font-bold [&::-webkit-inner-spin-button]:appearance-none"
+                  class="input num min-w-0 [appearance:textfield] text-center font-heading text-[1.125rem] font-bold [&::-webkit-inner-spin-button]:appearance-none"
                   :class="field.noStepper ? (field.unit ? 'rounded-r-none!' : '') : 'rounded-none!'"
                 >
                 <button
@@ -273,7 +273,7 @@ onBeforeUnmount(() => {
                 </button>
                 <span
                   v-if="field.unit"
-                  class="flex items-center rounded-r-control border border-l-0 border-line-strong bg-parchment-sunk px-2.5 text-[14px] text-ink-2"
+                  class="flex items-center rounded-r-control border border-l-0 border-line-strong bg-parchment-sunk px-2.5 text-[0.875rem] text-ink-2"
                 >{{ field.unit }}</span>
               </div>
               <select
@@ -309,7 +309,7 @@ onBeforeUnmount(() => {
               >
               <p
                 v-if="errors[field.key] && (tried || field.type === 'number')"
-                class="flex items-center gap-1 text-[13px] text-danger"
+                class="flex items-center gap-1 text-[0.8125rem] text-danger"
               >
                 <Icon
                   name="ui-alert"
@@ -328,7 +328,7 @@ onBeforeUnmount(() => {
 
         <p
           v-if="previewText"
-          class="num flex items-center gap-2 rounded-control bg-parchment-sunk px-3 py-2 text-[14.5px] text-info"
+          class="num flex items-center gap-2 rounded-control bg-parchment-sunk px-3 py-2 text-[0.90625rem] text-info"
           aria-live="polite"
         >
           <Icon
@@ -341,7 +341,7 @@ onBeforeUnmount(() => {
         <p
           v-if="saveError"
           role="alert"
-          class="flex items-center gap-2 rounded-control bg-danger-soft px-3 py-2 text-[14px] text-danger"
+          class="flex items-center gap-2 rounded-control bg-danger-soft px-3 py-2 text-[0.875rem] text-danger"
         >
           <Icon
             name="ui-alert"

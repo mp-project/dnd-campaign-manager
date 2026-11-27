@@ -34,7 +34,7 @@ const multilingual = computed(() => !!route.meta.localizedName);
   <SiteHeader :condensed="condensed">
     <nav
       v-if="links.length"
-      class="hidden items-center gap-4 text-[15px] lg:flex xl:gap-6"
+      class="hidden items-center gap-4 text-[0.9375rem] lg:flex xl:gap-6"
       :aria-label="t('common.publicNav.label')"
     >
       <PublicNavLink

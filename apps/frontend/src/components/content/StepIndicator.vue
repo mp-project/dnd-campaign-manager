@@ -33,7 +33,7 @@ const currentIndex = computed(() =>
         class="flex min-w-0 items-center gap-2"
       >
         <span
-          class="num flex size-9 shrink-0 items-center justify-center rounded-full border font-heading text-[15px]"
+          class="num flex size-9 shrink-0 items-center justify-center rounded-full border font-heading text-[0.9375rem]"
           :class="
             index < currentIndex
               ? 'border-ok bg-ok-soft text-ok'
@@ -49,7 +49,7 @@ const currentIndex = computed(() =>
           /><template v-else>{{ index + 1 }}</template>
         </span>
         <span
-          class="truncate text-[15px]"
+          class="truncate text-[0.9375rem]"
           :class="index === currentIndex ? 'font-semibold text-heading' : 'hidden text-ink-2 md:inline'"
         >{{ step.label }}</span>
       </component>

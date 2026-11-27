@@ -44,7 +44,7 @@ function toggle(value: string): void {
       {{ label }}
       <span
         v-if="model.length > 0"
-        class="badge badge-burgundy px-2! py-0! text-[12px]"
+        class="badge badge-burgundy px-2! py-0! text-[0.75rem]"
       >{{ model.length }}</span>
       <Icon
         name="ui-chevron-down"

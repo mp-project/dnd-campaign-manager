@@ -356,10 +356,10 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
                 :size="32"
                 class="text-gold-light"
               />
-              <p class="font-heading text-[22px] font-bold text-parchment md:text-[28px]">
+              <p class="font-heading text-[1.375rem] font-bold text-parchment md:text-[1.75rem]">
                 {{ t(restTitle) }}
               </p>
-              <p class="text-[14px] text-parchment/85 md:text-[16px]">
+              <p class="text-[0.875rem] text-parchment/85 md:text-[1rem]">
                 {{ t("landing.characterSheet.restText") }}
               </p>
             </div>
@@ -462,14 +462,14 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
               />
               {{ term("hitPoints") }}
             </p>
-            <p class="mt-1 font-heading text-[26px] leading-none text-heading">
+            <p class="mt-1 font-heading text-[1.625rem] leading-none text-heading">
               <span
                 ref="hpValue"
                 class="inline-block"
               >{{ sheet.hp }}</span>
               <span
                 v-if="sheet.temp"
-                class="ml-1 text-[15px] text-hp-temp"
+                class="ml-1 text-[0.9375rem] text-hp-temp"
               >+{{ sheet.temp }}</span>
               <span class="text-ink-3"> / {{ MAX_HP }}</span>
             </p>
@@ -521,7 +521,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
               <li
                 v-for="(max, level) in SLOT_MAX"
                 :key="level"
-                class="flex items-center gap-2 text-[14px] text-ink-2"
+                class="flex items-center gap-2 text-[0.875rem] text-ink-2"
               >
                 <span class="w-12 shrink-0 md:w-14">{{ t("landing.characterSheet.slotLevel", { n: level + 1 }) }}</span>
                 <span
@@ -591,7 +591,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
                 {{ t("landing.characterSheet.check") }}
               </span>
               <span
-                class="mt-0.5 text-[15px] text-ink"
+                class="mt-0.5 text-[0.9375rem] text-ink"
                 aria-live="polite"
               >{{ rolling ? t("landing.characterSheet.rolling") : rollText }}</span>
             </span>
@@ -644,7 +644,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   padding: 6px 14px;
   border: 1px solid;
   border-radius: 999px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 .event-hit {
@@ -843,7 +843,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   gap: 6px;
   color: var(--color-ink-2);
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -885,7 +885,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   top: 36px;
   right: 12px;
   font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
   pointer-events: none;
 }
@@ -894,7 +894,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   min-height: 22px;
   margin-top: 6px;
   font-family: var(--font-heading);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
 }
 
@@ -949,7 +949,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   text-align: center;
   color: var(--color-parchment-card);
   font-family: var(--font-heading);
-  font-size: 40px;
+  font-size: 2.5rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -958,7 +958,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
     width: 64px;
   }
   .shield-value {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
 }
 @media (min-width: 48rem) {
@@ -1027,7 +1027,7 @@ const restTitle: MessageKey = "landing.characterSheet.events.rest";
   margin-top: 8px;
   color: var(--color-gold-light);
   font-family: var(--font-heading);
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 700;
 }
 .die-critical .die-body {

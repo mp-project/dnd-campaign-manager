@@ -83,7 +83,7 @@ function initials(name: string): string {
             v-if="campaign.status !== 'ACTIVE'"
             :status="campaign.status"
           />
-          <span class="text-[15px] text-parchment/80">{{ t("campaigns.overview.createdAt", { date: date(campaign.createdAt) }) }}</span>
+          <span class="text-[0.9375rem] text-parchment/80">{{ t("campaigns.overview.createdAt", { date: date(campaign.createdAt) }) }}</span>
         </div>
       </div>
     </section>

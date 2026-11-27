@@ -36,7 +36,7 @@ defineSlots<{ actions?(): unknown; "mobile-actions"?(): unknown; icon?(): unknow
         </div>
         <p
           v-if="subtitle"
-          class="mt-1.5 text-[17px] text-ink-2 md:text-[18px]"
+          class="mt-1.5 text-[1.0625rem] text-ink-2 md:text-[1.125rem]"
         >
           <span :class="mobileSubtitle && 'hidden md:inline'">{{ subtitle }}</span>
           <span

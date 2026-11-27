@@ -32,7 +32,7 @@ onUnmounted(() => clearInterval(timer));
 
 <template>
   <p
-    class="-mt-3 mb-4 text-center text-[15px] text-ink-2 italic"
+    class="-mt-3 mb-4 text-center text-[0.9375rem] text-ink-2 italic"
   >
     <Transition
       mode="out-in"

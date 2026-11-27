@@ -99,14 +99,14 @@ const LAYOUT = {
             </span>
             <h3
               :id="`landing-feature-${feature.id}`"
-              class="section-title text-[24px]"
+              class="section-title text-[1.5rem]"
               :class="dark && 'text-parchment'"
             >
               {{ t(feature.title) }}
             </h3>
           </div>
           <p
-            class="mt-4 text-[17px]"
+            class="mt-4 text-[1.0625rem]"
             :class="dark ? 'text-parchment/85' : 'text-ink-2'"
           >
             {{ t(feature.text) }}

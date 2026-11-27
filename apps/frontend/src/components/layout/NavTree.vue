@@ -49,7 +49,7 @@ const current = (id: string) => (props.activeId === id ? "page" : undefined);
 <template>
   <nav
     :aria-label="t('common.shell.mainNavigation')"
-    class="text-[16.5px] text-parchment"
+    class="text-[1.03125rem] text-parchment"
     :class="compact && 'nav-compact'"
   >
     <template v-if="account.length > 0">

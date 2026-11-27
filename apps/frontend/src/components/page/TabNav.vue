@@ -82,7 +82,7 @@ const activeId = computed(() => {
   min-height: 46px;
   padding: 0 20px;
   white-space: nowrap;
-  font-size: 16.5px;
+  font-size: 1.03125rem;
   color: var(--color-ink);
   border-radius: var(--radius-control);
 }

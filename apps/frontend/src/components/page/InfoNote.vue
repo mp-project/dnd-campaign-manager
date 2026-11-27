@@ -30,7 +30,7 @@ const role = computed(() => (props.announce ? (props.tone === "danger" ? "alert"
 <template>
   <p
     :role="role"
-    class="flex items-start gap-3 rounded-control px-4 py-3 text-[15px]"
+    class="flex items-start gap-3 rounded-control px-4 py-3 text-[0.9375rem]"
     :class="TONE_CLASS[tone]"
   >
     <Icon

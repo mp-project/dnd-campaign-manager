@@ -142,7 +142,7 @@ async function submit(): Promise<void> {
         </div>
         <p
           v-if="errors.rulesetId"
-          class="mt-2 flex items-center gap-1.5 text-[14px] text-danger"
+          class="mt-2 flex items-center gap-1.5 text-[0.875rem] text-danger"
         >
           <Icon
             name="ui-alert"

@@ -19,8 +19,23 @@ const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
 const ARBITRARY_COLOR_CLASS =
   /\b(?:bg|text|border|from|via|to|ring|fill|stroke|outline|decoration|shadow|accent|caret)-\[[^\]]*(?:#|rgb|hsl|gradient)/;
 
+// Font sizes in rem follow the browser's text size and the account's font scale; px would not.
+const PX_FONT_SIZE = /\btext-\[[^\]]*\d(?:\.\d+)?px[^\]]*\]|font-?[sS]ize:[^;,}\n]*\d(?:\.\d+)?px/;
+
 describe("theme", () => {
   const files = sourceFiles(SRC).filter((path) => relative(SRC, path) !== THEME_FILE);
+
+  it("sizes text in rem everywhere, the theme included", () => {
+    const offenders = sourceFiles(SRC).flatMap((path) =>
+      readFileSync(path, "utf8")
+        .split("\n")
+        .map((line, index) => ({ line, index }))
+        .filter(({ line }) => PX_FONT_SIZE.test(line))
+        .map(({ index }) => `${relative(SRC, path)}:${index + 1}`),
+    );
+
+    expect(offenders).toEqual([]);
+  });
 
   it("keeps raw color values out of components, views and scripts", () => {
     const offenders = files.flatMap((path) =>

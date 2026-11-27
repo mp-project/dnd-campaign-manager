@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
                 :size="32"
               />
             </span>
-            <h3 class="mt-5 font-heading text-[19px] leading-snug font-bold text-parchment">
+            <h3 class="mt-5 font-heading text-[1.1875rem] leading-snug font-bold text-parchment">
               {{ t(item.title) }}
             </h3>
             <img
@@ -208,7 +208,7 @@ onBeforeUnmount(() => {
               aria-hidden="true"
               class="mt-3 h-4 w-40"
             >
-            <p class="mt-3 text-[16px] text-parchment/80">
+            <p class="mt-3 text-[1rem] text-parchment/80">
               {{ t(item.text) }}
             </p>
           </div>

@@ -13,6 +13,7 @@ import { handleSessionExpired, installGuards } from "./app/guards";
 import { frontendModules, navItemsOf, realtimeHandlersOf } from "./app/modules";
 import { installLocaleRoutes } from "./app/localeRoutes";
 import { applyProfileSettings } from "./app/profileSettings";
+import { saveSidebarPreference } from "./app/sidebarPreference";
 import { router } from "./app/router";
 import { onSessionExpired } from "./core/api/client";
 import { clearSessionCache } from "./core/api/queryClient";
@@ -24,6 +25,7 @@ import { installErrorHandlers } from "./core/log/errorHandlers";
 import { installReducedMotion } from "./core/motion/reducedMotion";
 import { startRealtime } from "./core/realtime/connection";
 import { installAppHead } from "./core/seo/appHead";
+import { useShellStore } from "./core/ui/shell";
 import { NAV_ITEMS } from "./core/navigation/navigation";
 import { installAnalytics } from "./core/telemetry/analytics";
 import { installFaro } from "./core/telemetry/faro";
@@ -50,7 +52,10 @@ startRealtime({ router, queryClient, handlers: realtimeHandlersOf(frontendModule
 installFaro(router, queryClient);
 installAnalytics(router);
 
-app.use(createPinia());
+const pinia = createPinia();
+app.use(pinia);
+const shell = useShellStore(pinia);
+saveSidebarPreference(shell, queryClient);
 app.use(router);
 app.provide(NAV_ITEMS, navItemsOf(frontendModules));
 app.use(VueQueryPlugin, { queryClient });
@@ -59,7 +64,11 @@ app.use(i18n);
 // Mount once the language is loaded, so the first paint is already translated.
 const override = devLocaleOverride();
 const startLocale = setLocale(i18n, override ?? initialLocale(), { remember: !override });
-applyProfileSettings(queryClient, i18n, { keepLocale: override !== null, after: startLocale });
+applyProfileSettings(queryClient, i18n, {
+  keepLocale: override !== null,
+  after: startLocale,
+  setNavCollapsed: (collapsed) => shell.setNavCollapsed(collapsed),
+});
 installLocaleRoutes(router, i18n, { keepLocale: override !== null, after: startLocale });
 void startLocale.finally(() => {
   app.mount("#app");

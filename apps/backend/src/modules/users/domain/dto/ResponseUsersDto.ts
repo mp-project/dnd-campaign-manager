@@ -78,9 +78,9 @@ function toUserSettingsResponse(settings: UserSettingsRow) {
   return {
     locale: settings.locale,
     timezone: settings.timezone,
-    theme: settings.theme,
     reducedMotion: settings.reducedMotion,
-    uiPreferences: settings.uiPreferences as Record<string, unknown>,
+    fontScale: settings.fontScale,
+    sidebarCollapsed: settings.sidebarCollapsed,
   };
 }
 

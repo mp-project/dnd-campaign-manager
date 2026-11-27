@@ -38,13 +38,13 @@ const logo = `${import.meta.env.BASE_URL}assets/brand/questaria-logo-hell.svg`;
       >
       <p
         class="eyebrow mt-6 text-gold-light"
-        :class="start ? 'text-[22px]!' : 'text-[28px]!'"
+        :class="start ? 'text-[1.375rem]!' : 'text-[1.75rem]!'"
       >
         {{ t("landing.hero.eyebrow") }}
       </p>
       <p
         v-if="start"
-        class="mt-4 max-w-[36rem] font-display text-[46px] leading-[1.15] font-bold text-balance text-parchment"
+        class="mt-4 max-w-[36rem] font-display text-[2.875rem] leading-[1.15] font-bold text-balance text-parchment"
       >
         {{ t("landing.hero.title") }}
       </p>

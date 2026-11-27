@@ -355,10 +355,10 @@ onBeforeUnmount(() => resize?.disconnect());
           <p class="eyebrow text-gold-light">
             {{ t("landing.storylineTour.position", { n: index + 1, total: route.stops.length }) }} · {{ t(route.label) }}
           </p>
-          <p class="mt-1 font-heading text-[17px] leading-snug font-bold text-parchment md:text-[19px]">
+          <p class="mt-1 font-heading text-[1.0625rem] leading-snug font-bold text-parchment md:text-[1.1875rem]">
             {{ t(stop.title) }}
           </p>
-          <p class="mt-1 text-[14px] text-parchment/85 md:text-[15px]">
+          <p class="mt-1 text-[0.875rem] text-parchment/85 md:text-[0.9375rem]">
             {{ t(stop.text) }}
           </p>
         </div>
@@ -371,7 +371,7 @@ onBeforeUnmount(() => resize?.disconnect());
             :size="20"
             class="shrink-0 text-gold-light"
           />
-          <p class="text-[14px] text-parchment/90 md:text-[15px]">
+          <p class="text-[0.875rem] text-parchment/90 md:text-[0.9375rem]">
             {{ t("landing.storylineTour.overviewHint") }}
           </p>
         </div>
@@ -560,13 +560,13 @@ onBeforeUnmount(() => resize?.disconnect());
   border-radius: 999px;
   background: var(--color-navy-900);
   font-family: var(--font-heading);
-  font-size: 13px;
+  font-size: 0.8125rem;
   transition:
     background-color 0.4s ease,
     color 0.4s ease;
 }
 .step-label {
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.2;
 }
 .step-done .step-number {

@@ -41,7 +41,7 @@ const { t } = useAppI18n();
       class="my-3 h-px w-12 bg-gold-light"
       aria-hidden="true"
     />
-    <p class="font-serif text-[15px] leading-snug whitespace-pre-line text-parchment/90 italic">
+    <p class="font-serif text-[0.9375rem] leading-snug whitespace-pre-line text-parchment/90 italic">
       {{ t("common.shell.motto") }}
     </p>
   </div>

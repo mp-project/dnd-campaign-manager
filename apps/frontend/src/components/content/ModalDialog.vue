@@ -53,7 +53,7 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
           :style="{ maxWidth: width }"
         >
           <div class="mb-4 flex items-start gap-3">
-            <h2 class="section-title flex-1 text-[24px]!">{{ title }}</h2>
+            <h2 class="section-title flex-1 text-[1.5rem]!">{{ title }}</h2>
             <CloseButton
               :label="closeLabel"
               @click="open = false"

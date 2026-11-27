@@ -26,7 +26,6 @@ export {
   users,
   userStatusEnum,
   userSystemRoleEnum,
-  userThemeEnum,
 } from "../../../modules/users/domain/entities/UsersTable.js";
 
 export {

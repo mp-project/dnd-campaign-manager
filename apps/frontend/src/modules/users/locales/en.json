@@ -6,7 +6,9 @@
     "profileTab": "Profile",
     "profileSubtitle": "Your personal details",
     "securityTab": "Sign-in & security",
-    "securitySubtitle": "Email, password, devices and sessions"
+    "securitySubtitle": "Email, password, devices and sessions",
+    "appearanceTab": "Appearance",
+    "appearanceSubtitle": "Text size and sidebar"
   },
   "profile": {
     "title": "Profile",
@@ -29,5 +31,17 @@
     "reducedMotionHint": "Animations are skipped and content appears at once. Applies on top of your device setting.",
     "save": "Save profile",
     "saved": "Your profile is saved."
+  },
+  "appearance": {
+    "title": "Appearance",
+    "intro": "Adjust how readable the app is. These settings apply on every device you are signed in on.",
+    "fontScale": "Text size",
+    "fontScaleHint": "Makes all text in the app larger or smaller; spacing and layout stay the same.",
+    "previewTitle": "Preview",
+    "previewText": "The mist over Grauhafen lifts as the party reaches the north gate.",
+    "sidebarCollapsed": "Collapsed sidebar",
+    "sidebarCollapsedHint": "Applies on larger screens. The button at the bottom of the sidebar changes it too.",
+    "save": "Save appearance",
+    "saved": "Your appearance is saved."
   }
 }

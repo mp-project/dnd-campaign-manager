@@ -60,7 +60,7 @@ defineExpose({ openGroups: (groups: NavGroupId[]) => tree.value?.openGroups(grou
     <template #campaign-empty>
       <p
         v-if="!compact && !nav.campaign.value"
-        class="px-6 py-2 text-[13.5px] leading-snug text-parchment/70"
+        class="px-6 py-2 text-[0.84375rem] leading-snug text-parchment/70"
       >
         {{ t("common.shell.noCampaign") }}
       </p>

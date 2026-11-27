@@ -4,7 +4,6 @@ import { baseEntityResponseDto, isoDateTimeDto } from "#core/http/dto";
 import { SYSTEM_ROLES } from "#core/permissions/roles";
 import {
   userStatusEnum,
-  userThemeEnum,
 } from "#src/modules/users/domain/entities/UsersTable";
 
 function isValidIanaTimeZone(value: string): boolean {
@@ -60,13 +59,14 @@ export const UserSettingsBaseSchema = z.strictObject({
     .refine((value) => isValidIanaTimeZone(value), {
       message: "Invalid IANA timezone",
     }),
-  theme: z.enum(userThemeEnum.enumValues),
   reducedMotion: z.boolean(),
-  uiPreferences: z.record(z.string(), z.unknown()),
+  /** Text size of the app in percent. */
+  fontScale: z.number().int().min(90).max(125).multipleOf(5),
+  /** Whether the sidebar starts collapsed. */
+  sidebarCollapsed: z.boolean(),
 });
 
 export type UserBaseDto = z.infer<typeof UserBaseSchema>;
 export type UserStatus = UserBaseDto["status"];
 export type UserSystemRole = UserBaseDto["systemRole"];
 export type UserSettingsBaseDto = z.infer<typeof UserSettingsBaseSchema>;
-export type UserTheme = UserSettingsBaseDto["theme"];

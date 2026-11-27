@@ -173,7 +173,7 @@ function toggle() {
   border-radius: 999px;
   background: var(--color-navy-950);
   color: var(--color-gold-light);
-  font-size: clamp(12px, 2.4cqw, 18px);
+  font-size: clamp(0.75rem, 2.4cqw, 1.125rem);
 }
 /*
  * In the fan the cards are scaled down, so the label is set larger to stay readable. Only the
@@ -182,7 +182,7 @@ function toggle() {
 .fan-stage:not(.spread) .label {
   bottom: 3.6cqw;
   left: 3.6cqw;
-  font-size: clamp(17px, 3cqw, 22px);
+  font-size: clamp(1.0625rem, 3cqw, 1.375rem);
 }
 .label {
   transition: opacity 0.3s ease;
@@ -205,7 +205,7 @@ function toggle() {
   border: 1px solid var(--color-gold);
   border-radius: 999px;
   color: var(--color-gold-light);
-  font-size: 15px;
+  font-size: 0.9375rem;
   transition: background-color 0.2s ease;
 }
 .hint:hover {

@@ -26,6 +26,16 @@ describe("API error messages", () => {
     expect(sent.filter((code) => !(API_ERROR_CODES as readonly string[]).includes(code))).toEqual([]);
   });
 
+  it("has a text for every code in every language", () => {
+    const LOCALES = join(import.meta.dirname, "../../../../src/locales");
+    const codes = [...API_ERROR_CODES, "NETWORK_ERROR", "UNKNOWN_ERROR"];
+
+    for (const language of ["de", "en"]) {
+      const messages = JSON.parse(readFileSync(join(LOCALES, language, "errors.json"), "utf8")) as Record<string, unknown>;
+      expect(codes.filter((code) => typeof messages[code] !== "string")).toEqual([]);
+    }
+  });
+
   it("names the domain reason: a file type that isn't allowed, a full campaign storage", () => {
     const error = toApiError(new Response(null, { status: 415 }), envelope("INVALID_MAGIC_BYTES"));
     expect(errorMessageKey(error)).toBe("errors.INVALID_MAGIC_BYTES");

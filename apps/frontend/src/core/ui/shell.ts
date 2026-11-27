@@ -11,7 +11,11 @@ function readCollapsed(): boolean {
   }
 }
 
-/** State of the app shell: collapsed sidebar (remembered per browser) and the mobile menu. */
+/**
+ * State of the app shell: collapsed sidebar and the mobile menu. The sidebar starts as this browser
+ * left it; once the profile is loaded, the account's setting applies, and the toggle button saves to
+ * it (`toggleNavCollapsed`, see `app/sidebarPreference`), so it follows the account to every device.
+ */
 export const useShellStore = defineStore("shell", () => {
   const navCollapsed = ref(readCollapsed());
   const mobileNavOpen = ref(false);
@@ -27,6 +31,11 @@ export const useShellStore = defineStore("shell", () => {
     }
   }
 
+  /** The sidebar's own toggle button; unlike `setNavCollapsed`, it is saved to the account. */
+  function toggleNavCollapsed(): void {
+    setNavCollapsed(!navCollapsed.value);
+  }
+
   function openMobileNav(focus: "content" | null = null): void {
     mobileNavFocus.value = focus;
     mobileNavOpen.value = true;
@@ -36,5 +45,13 @@ export const useShellStore = defineStore("shell", () => {
     mobileNavOpen.value = false;
   }
 
-  return { navCollapsed, mobileNavOpen, mobileNavFocus, setNavCollapsed, openMobileNav, closeMobileNav };
+  return {
+    navCollapsed,
+    mobileNavOpen,
+    mobileNavFocus,
+    setNavCollapsed,
+    toggleNavCollapsed,
+    openMobileNav,
+    closeMobileNav,
+  };
 });

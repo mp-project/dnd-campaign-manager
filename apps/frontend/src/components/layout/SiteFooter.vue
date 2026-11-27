@@ -58,11 +58,11 @@ const consentManager = hasConsentManager();
         <slot>
           <h2
             :id="headingId"
-            class="mt-4 font-heading text-[28px] leading-tight font-bold text-parchment md:text-[36px]"
+            class="mt-4 font-heading text-[1.75rem] leading-tight font-bold text-parchment md:text-[2.25rem]"
           >
             {{ t("common.siteFooter.title") }}
           </h2>
-          <p class="mt-3 max-w-150 text-[17px] text-parchment/85">
+          <p class="mt-3 max-w-150 text-[1.0625rem] text-parchment/85">
             {{ t("common.siteFooter.text") }}
           </p>
           <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -93,7 +93,7 @@ const consentManager = hasConsentManager();
     </div>
 
     <nav
-      class="relative flex flex-wrap items-center justify-center gap-x-4 border-t border-navy-line/60 py-3 text-[14px] text-parchment/80"
+      class="relative flex flex-wrap items-center justify-center gap-x-4 border-t border-navy-line/60 py-3 text-[0.875rem] text-parchment/80"
       :aria-label="t('common.siteFooter.navLabel')"
     >
       <template

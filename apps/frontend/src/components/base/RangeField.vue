@@ -18,7 +18,7 @@ const progress = computed(() => `${((model.value - props.min) / (props.max - pro
   >
     <label
       :for="id"
-      class="text-[16px] text-ink"
+      class="text-[1rem] text-ink"
       :class="hideLabel && 'sr-only'"
     >{{ label }}</label>
     <input
@@ -33,7 +33,7 @@ const progress = computed(() => `${((model.value - props.min) / (props.max - pro
     >
     <output
       :for="id"
-      class="num min-w-16 rounded-control border border-line bg-parchment-card px-2 py-1 text-center text-[16px]"
+      class="num min-w-16 rounded-control border border-line bg-parchment-card px-2 py-1 text-center text-[1rem]"
     >{{ model }} {{ unit }}</output>
   </div>
 </template>

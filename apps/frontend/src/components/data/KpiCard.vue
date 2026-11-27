@@ -18,15 +18,15 @@ defineProps<{ label: string; value: string | number; icon?: IconName; hint?: str
       class="shrink-0 text-gold"
     />
     <div class="min-w-0">
-      <p class="text-[15px] leading-tight font-semibold text-heading">
+      <p class="text-[0.9375rem] leading-tight font-semibold text-heading">
         {{ label }}
       </p>
-      <p class="num font-heading text-[28px] leading-tight font-bold text-brand md:text-heading">
+      <p class="num font-heading text-[1.75rem] leading-tight font-bold text-brand md:text-heading">
         {{ value }}
       </p>
       <p
         v-if="hint"
-        class="text-[13.5px] leading-snug text-ink-2 md:italic"
+        class="text-[0.84375rem] leading-snug text-ink-2 md:italic"
       >
         {{ hint }}
       </p>

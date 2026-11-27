@@ -6,7 +6,9 @@
     "profileTab": "Profil",
     "profileSubtitle": "Deine persönlichen Angaben",
     "securityTab": "Anmeldung & Sicherheit",
-    "securitySubtitle": "E-Mail, Passwort, Geräte und Sitzungen"
+    "securitySubtitle": "E-Mail, Passwort, Geräte und Sitzungen",
+    "appearanceTab": "Darstellung",
+    "appearanceSubtitle": "Textgröße und Seitenleiste"
   },
   "profile": {
     "title": "Profil",
@@ -29,5 +31,17 @@
     "reducedMotionHint": "Animationen entfallen, Inhalte erscheinen sofort. Gilt zusätzlich zur Einstellung deines Geräts.",
     "save": "Profil speichern",
     "saved": "Dein Profil ist gespeichert."
+  },
+  "appearance": {
+    "title": "Darstellung",
+    "intro": "Passe die Lesbarkeit an. Die Einstellungen gelten auf allen Geräten, auf denen du angemeldet bist.",
+    "fontScale": "Textgröße",
+    "fontScaleHint": "Vergrößert oder verkleinert alle Texte der App; Abstände und Aufbau bleiben gleich.",
+    "previewTitle": "Vorschau",
+    "previewText": "Der Nebel über Grauhafen lichtet sich, als die Gruppe das Nordtor erreicht.",
+    "sidebarCollapsed": "Seitenleiste eingeklappt",
+    "sidebarCollapsedHint": "Gilt auf größeren Bildschirmen. Der Knopf unten in der Seitenleiste ändert das ebenfalls.",
+    "save": "Darstellung speichern",
+    "saved": "Deine Darstellung ist gespeichert."
   }
 }

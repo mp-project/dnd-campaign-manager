@@ -43,6 +43,7 @@ import type { Me } from "@/core/auth/session";
 import { authModule } from "@/modules/auth";
 import { legalModule } from "@/modules/legal";
 import { usersModule } from "@/modules/users";
+import AppearanceTab from "@/modules/users/views/AppearanceTab.vue";
 import ProfileTab from "@/modules/users/views/ProfileTab.vue";
 import SecurityTab from "@/modules/users/views/SecurityTab.vue";
 
@@ -57,7 +58,7 @@ const ME: Me = {
   systemRole: "USER",
   status: "ACTIVE",
   emailVerificationRequiredCode: null,
-  settings: { locale: "de", timezone: "Europe/Berlin", theme: "SYSTEM", reducedMotion: false, uiPreferences: {} },
+  settings: { locale: "de", timezone: "Europe/Berlin", reducedMotion: false, fontScale: 100, sidebarCollapsed: false },
   effectiveGlobalPermissions: [],
 };
 
@@ -134,5 +135,39 @@ describe("sign-in and security", () => {
 
     expect(router.currentRoute.value.name).toBe("account-security");
     expect(wrapper.find("[data-clerk=UserProfile]").attributes("data-path")).toBe("/konto/anmeldung");
+  });
+});
+
+describe("appearance", () => {
+  it("saves text size and sidebar together and keeps the answer as the profile", async () => {
+    server.answers["PATCH /api/v1/me/settings"] = {
+      status: 200,
+      body: { ...ME, settings: { ...ME.settings, fontScale: 115, sidebarCollapsed: true } },
+    };
+    const { wrapper, queryClient } = await open(AppearanceTab, "/konto/darstellung");
+
+    await wrapper.find('input[type="range"]').setValue("115");
+    await wrapper.find('[role="switch"]').trigger("click");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(server.calls).toEqual([
+      { method: "PATCH", path: "/api/v1/me/settings", body: { fontScale: 115, sidebarCollapsed: true } },
+    ]);
+    expect((queryClient.getQueryData(["me", "profile"]) as Me).settings.fontScale).toBe(115);
+    expect(wrapper.find('[role="status"]').text()).toBe("Deine Darstellung ist gespeichert.");
+  });
+
+  it("previews the chosen size relative to the saved one", async () => {
+    const { wrapper } = await open(AppearanceTab, "/konto/darstellung", {
+      ...ME,
+      settings: { ...ME.settings, fontScale: 110 },
+    });
+
+    await wrapper.find('input[type="range"]').setValue("110");
+    expect(wrapper.find("figure p").attributes("style")).toContain("font-size: 1rem");
+
+    await wrapper.find('input[type="range"]').setValue("121");
+    expect(wrapper.find("figure p").attributes("style")).toContain("font-size: 1.1rem");
   });
 });

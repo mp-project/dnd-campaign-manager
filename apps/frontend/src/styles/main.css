@@ -131,12 +131,12 @@
   }
   body {
     @apply bg-navy-950 font-sans text-ink antialiased;
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.5;
   }
   @media (min-width: 768px) {
     body {
-      font-size: 15.5px;
+      font-size: 0.96875rem;
     }
   }
   h1,
@@ -201,7 +201,7 @@
     font-family: var(--font-heading);
     font-weight: 700;
     color: var(--color-heading);
-    font-size: 32px;
+    font-size: 2rem;
     line-height: 1.1;
     min-width: 0;
     overflow-wrap: break-word;
@@ -209,34 +209,34 @@
   }
   @media (max-width: 380px) {
     .page-title {
-      font-size: 28px;
+      font-size: 1.75rem;
     }
   }
   @media (min-width: 768px) {
     .page-title {
-      font-size: 42px;
+      font-size: 2.625rem;
     }
   }
   .section-title {
     font-family: var(--font-heading);
     font-weight: 700;
     color: var(--color-heading);
-    font-size: 20px;
+    font-size: 1.25rem;
     min-width: 0;
     overflow-wrap: break-word;
     hyphens: auto;
   }
   .label {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--color-ink);
     font-weight: 500;
   }
   .meta {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--color-ink-3);
   }
   .eyebrow {
-    font-size: 12px;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     font-weight: 700;
@@ -251,7 +251,7 @@
   .input {
     @apply w-full rounded-control border border-line-strong bg-parchment-card px-3 text-ink;
     min-height: 46px;
-    font-size: 16px;
+    font-size: 1rem;
   }
   .input::placeholder {
     color: var(--color-ink-3);
@@ -283,7 +283,7 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-control border px-4 font-medium whitespace-nowrap transition-colors select-none;
     min-height: 44px;
-    font-size: 15.5px;
+    font-size: 0.96875rem;
   }
   .btn-primary {
     @apply border-primary bg-primary text-parchment-card shadow-primary;
@@ -354,12 +354,12 @@
   .btn-sm {
     min-height: 36px;
     padding-inline: 12px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .btn-xs {
     min-height: 32px;
     padding-inline: 8px;
-    font-size: 12.5px;
+    font-size: 0.78125rem;
   }
   .btn-icon {
     min-width: 44px;
@@ -392,7 +392,7 @@
   /* Badges (pills) */
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 whitespace-nowrap;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     line-height: 1.6;
   }
 
@@ -424,7 +424,7 @@
   }
   .table thead th {
     @apply border-b border-line bg-parchment-sunk px-3 py-3 font-semibold whitespace-nowrap text-ink;
-    font-size: 14.5px;
+    font-size: 0.90625rem;
   }
   .table tbody td {
     @apply border-b border-line px-3 py-3 align-middle;
@@ -523,7 +523,7 @@
   .nav-sub {
     min-height: 38px;
     padding-left: 46px;
-    font-size: 16px;
+    font-size: 1rem;
   }
   .nav-item.is-active {
     background: linear-gradient(90deg, var(--color-primary) 60%, color-mix(in srgb, var(--color-primary) 55%, transparent));
@@ -571,7 +571,7 @@
     border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--color-navy-950) 50%, transparent);
     color: var(--color-parchment);
-    font-size: 16.5px;
+    font-size: 1.03125rem;
     white-space: nowrap;
   }
   button.shell-chip:hover,

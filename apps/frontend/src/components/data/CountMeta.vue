@@ -10,7 +10,7 @@ const { number } = useFormat();
 </script>
 
 <template>
-  <span class="num inline-flex items-center gap-4 text-[15px] text-ink">
+  <span class="num inline-flex items-center gap-4 text-[0.9375rem] text-ink">
     <span
       v-if="documents !== undefined"
       class="inline-flex items-center gap-1.5"

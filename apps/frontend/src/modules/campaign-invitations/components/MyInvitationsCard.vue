@@ -84,7 +84,7 @@ async function decline(invitation: MyInvitation): Promise<void> {
         class="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
       >
         <div class="min-w-0 flex-1">
-          <p class="truncate font-heading text-[17px] text-heading">
+          <p class="truncate font-heading text-[1.0625rem] text-heading">
             {{ invitation.campaignName }}
           </p>
           <p class="meta">

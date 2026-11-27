@@ -41,7 +41,7 @@ function set(value: number): void {
       class="num flex min-h-11 min-w-14 items-center justify-center gap-1 px-3 whitespace-nowrap"
       aria-live="polite"
     >
-      <b class="font-heading text-[17px] text-heading">{{ model }}</b>
+      <b class="font-heading text-[1.0625rem] text-heading">{{ model }}</b>
       <span
         v-if="max != null"
         class="text-ink-2"

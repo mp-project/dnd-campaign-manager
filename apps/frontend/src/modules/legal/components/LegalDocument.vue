@@ -110,7 +110,7 @@ function back(): void {
 
 <style scoped>
 .legal-chapter {
-  font-size: 24px;
+  font-size: 1.5rem;
   margin-top: 1rem;
 }
 
@@ -118,7 +118,7 @@ function back(): void {
   font-family: var(--font-heading);
   font-weight: 700;
   color: var(--color-heading);
-  font-size: 18px;
+  font-size: 1.125rem;
   overflow-wrap: break-word;
 }
 </style>

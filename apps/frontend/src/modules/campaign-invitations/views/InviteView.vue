@@ -185,7 +185,7 @@ async function save(): Promise<void> {
         </div>
         <p
           v-if="found"
-          class="flex items-center gap-1.5 text-[14px] text-ok"
+          class="flex items-center gap-1.5 text-[0.875rem] text-ok"
           role="status"
         >
           <Icon

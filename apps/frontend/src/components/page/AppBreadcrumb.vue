@@ -17,7 +17,7 @@ const { t } = useAppI18n();
 <template>
   <nav
     :aria-label="t('common.shell.breadcrumb')"
-    class="mb-2 text-[15px]"
+    class="mb-2 text-[0.9375rem]"
   >
     <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
       <li

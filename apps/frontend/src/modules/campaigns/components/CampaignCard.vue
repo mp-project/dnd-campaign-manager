@@ -29,7 +29,7 @@ const { t } = useAppI18n();
       />
     </div>
     <div class="flex min-w-0 flex-1 flex-col md:px-3 md:pt-2.5 md:pb-2">
-      <h3 class="name-link text-[18px] leading-tight break-words">
+      <h3 class="name-link text-[1.125rem] leading-tight break-words">
         {{ campaign.name }}
       </h3>
       <div class="mt-1.5 flex flex-wrap items-center gap-1.5 md:gap-2">
@@ -51,7 +51,7 @@ const { t } = useAppI18n();
       </div>
       <p
         v-if="campaign.description"
-        class="mt-2 hidden text-[15px] text-ink-2 md:line-clamp-2"
+        class="mt-2 hidden text-[0.9375rem] text-ink-2 md:line-clamp-2"
       >
         {{ campaign.description }}
       </p>

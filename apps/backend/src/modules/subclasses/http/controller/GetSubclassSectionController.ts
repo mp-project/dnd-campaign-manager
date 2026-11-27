@@ -10,9 +10,9 @@ export class GetSubclassSectionController extends AbstractController {
 
   handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () =>
-      this.useCase.execute(
+      this.ok(await this.useCase.execute(
         request.requestContext,
         RequestCampaignSubclassParamsSchema.parse(request.params),
-      ),
+      )),
     );
 }

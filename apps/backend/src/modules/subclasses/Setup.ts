@@ -34,11 +34,9 @@ import { DeleteSubclassController } from "#src/modules/subclasses/http/controlle
 import { GetSubclassController } from "#src/modules/subclasses/http/controller/GetSubclassController";
 import { GetSubclassSectionController } from "#src/modules/subclasses/http/controller/GetSubclassSectionController";
 import { GetSubclassUsagesController } from "#src/modules/subclasses/http/controller/GetSubclassUsagesController";
-import {
-  ListCampaignSubclassesController,
-  ListClassSubclassesController,
-  ListSystemSubclassesController,
-} from "#src/modules/subclasses/http/controller/ListSubclassesControllers";
+import { ListCampaignSubclassesController } from "#src/modules/subclasses/http/controller/ListCampaignSubclassesController";
+import { ListClassSubclassesController } from "#src/modules/subclasses/http/controller/ListClassSubclassesController";
+import { ListSystemSubclassesController } from "#src/modules/subclasses/http/controller/ListSystemSubclassesController";
 import { RestoreSubclassController } from "#src/modules/subclasses/http/controller/RestoreSubclassController";
 import { UpdateSubclassController } from "#src/modules/subclasses/http/controller/UpdateSubclassController";
 import { ValidateSubclassController } from "#src/modules/subclasses/http/controller/ValidateSubclassController";
@@ -51,12 +49,10 @@ import { DeleteSubclassUseCase } from "#src/modules/subclasses/useCase/DeleteSub
 import { GetSubclassSectionUseCase } from "#src/modules/subclasses/useCase/GetSubclassSectionUseCase";
 import { GetSubclassUsagesUseCase } from "#src/modules/subclasses/useCase/GetSubclassUsagesUseCase";
 import { GetSubclassUseCase } from "#src/modules/subclasses/useCase/GetSubclassUseCase";
-import {
-  ListCampaignSubclassesUseCase,
-  ListClassSubclassesUseCase,
-  ListSystemSubclassesUseCase,
-  SubclassListing,
-} from "#src/modules/subclasses/useCase/ListSubclassesUseCase";
+import { ListCampaignSubclassesUseCase } from "#src/modules/subclasses/useCase/ListCampaignSubclassesUseCase";
+import { ListClassSubclassesUseCase } from "#src/modules/subclasses/useCase/ListClassSubclassesUseCase";
+import { ListSystemSubclassesUseCase } from "#src/modules/subclasses/useCase/ListSystemSubclassesUseCase";
+import { SubclassListing } from "#src/modules/subclasses/useCase/SubclassListing";
 import { RestoreSubclassUseCase } from "#src/modules/subclasses/useCase/RestoreSubclassUseCase";
 import { SubclassReader } from "#src/modules/subclasses/useCase/SubclassReader";
 import { UpdateSubclassUseCase } from "#src/modules/subclasses/useCase/UpdateSubclassUseCase";

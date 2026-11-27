@@ -1,6 +1,6 @@
+import type { ContentReadPurpose } from "#core/content/access";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { ContentReadPurpose } from "#core/content/access";
 import type { AssetsService } from "#src/modules/assets/index";
 import type {
   RequestCampaignFeaturesQueryDto,
@@ -100,32 +100,5 @@ export class FeatureListing {
     const records = await this.featuresService.loadRecords(this.featuresService.db, page.items);
 
     return toFeatureListResponse({ page, data: records.map(toFeatureListItemFullResponse), limit });
-  }
-}
-
-/** Custom features of a campaign. */
-export class ListCampaignFeaturesUseCase {
-  constructor(private readonly listing: FeatureListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestCampaignFeaturesQueryDto }) {
-    return this.listing.listCampaign(context, input);
-  }
-}
-
-/** What a campaign may use: active global features for its ruleset and its own features. */
-export class ListFeatureCatalogUseCase {
-  constructor(private readonly listing: FeatureListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestFeatureCatalogQueryDto }) {
-    return this.listing.listCatalog(context, input);
-  }
-}
-
-/** Global features; drafts and archived ones for administrators only. */
-export class ListSystemFeaturesUseCase {
-  constructor(private readonly listing: FeatureListing) {}
-
-  execute(context: RequestContext, input: { query: RequestSystemFeaturesQueryDto }) {
-    return this.listing.listSystem(context, input.query);
   }
 }

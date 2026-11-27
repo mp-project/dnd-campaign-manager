@@ -14,10 +14,10 @@ export class DeleteSubclassController extends AbstractController {
       const { campaignId, subclassId } = RequestSubclassParamsSchema.parse(request.params);
       const command = SubclassLifecycleCommandSchema.parse(request.query);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.ok(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         subclassId,
         command,
-      });
+      }));
     });
 }

@@ -1,6 +1,6 @@
+import type { ContentReadPurpose } from "#core/content/access";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { ContentReadPurpose } from "#core/content/access";
 import type { AssetsService } from "#src/modules/assets/index";
 import type {
   RequestCampaignClassesQueryDto,
@@ -104,32 +104,5 @@ export class ClassListing {
     const records = await this.classesService.loadRecords(this.classesService.db, page.items);
 
     return toClassListResponse({ page, data: records.map(toClassListItemFullResponse), limit });
-  }
-}
-
-/** Custom classes of a campaign. */
-export class ListCampaignClassesUseCase {
-  constructor(private readonly listing: ClassListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestCampaignClassesQueryDto }) {
-    return this.listing.listCampaign(context, input);
-  }
-}
-
-/** What a campaign may use: active global classes for its ruleset and its own classes. */
-export class ListClassCatalogUseCase {
-  constructor(private readonly listing: ClassListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestClassCatalogQueryDto }) {
-    return this.listing.listCatalog(context, input);
-  }
-}
-
-/** Global classes; drafts and archived ones for administrators only. */
-export class ListSystemClassesUseCase {
-  constructor(private readonly listing: ClassListing) {}
-
-  execute(context: RequestContext, input: { query: RequestSystemClassesQueryDto }) {
-    return this.listing.listSystem(context, input.query);
   }
 }

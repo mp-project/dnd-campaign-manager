@@ -14,9 +14,9 @@ export class CreateClassController extends AbstractController {
       const { campaignId } = RequestClassScopeParamsSchema.parse(request.params ?? {});
       const command = CreateClassSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.created(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         command,
-      });
+      }));
     });
 }

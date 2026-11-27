@@ -1,6 +1,7 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { errorResponseDto } from "#core/http/dto";
+import { sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import { CreateFeatureSchema } from "#src/modules/features/domain/dto/CreateFeatureDto";
 import {
@@ -28,11 +29,9 @@ import type { CreateFeatureController } from "#src/modules/features/http/control
 import type { DeleteFeatureController } from "#src/modules/features/http/controller/DeleteFeatureController";
 import type { GetFeatureController } from "#src/modules/features/http/controller/GetFeatureController";
 import type { GetFeatureUsagesController } from "#src/modules/features/http/controller/GetFeatureUsagesController";
-import type {
-  ListCampaignFeaturesController,
-  ListFeatureCatalogController,
-  ListSystemFeaturesController,
-} from "#src/modules/features/http/controller/ListFeaturesControllers";
+import type { ListCampaignFeaturesController } from "#src/modules/features/http/controller/ListCampaignFeaturesController";
+import type { ListFeatureCatalogController } from "#src/modules/features/http/controller/ListFeatureCatalogController";
+import type { ListSystemFeaturesController } from "#src/modules/features/http/controller/ListSystemFeaturesController";
 import type { ResolveFeatureController } from "#src/modules/features/http/controller/ResolveFeatureController";
 import type { RestoreFeatureController } from "#src/modules/features/http/controller/RestoreFeatureController";
 import type { UpdateFeatureController } from "#src/modules/features/http/controller/UpdateFeatureController";
@@ -73,13 +72,6 @@ const writeErrorResponses = {
 
 const campaignRead = { key: FEATURES_PERMISSIONS.read, hideAsNotFoundForPlayers: true };
 
-type Handler = (request: never) => Promise<unknown>;
-
-const created =
-  (handle: Handler) =>
-  async (request: FastifyRequest, reply: FastifyReply): Promise<unknown> =>
-    reply.code(201).send(await handle(request as never));
-
 /**
  * Custom features under `/campaigns/:campaignId/features`, the catalog of everything a campaign may
  * use under `/campaigns/:campaignId/catalog/features`, global features under `/features`. Global
@@ -106,7 +98,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureListSchema, ...readErrorResponses },
       },
     },
-    controllers.listCampaignFeaturesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listCampaignFeaturesController.handle(request)),
   );
 
   app.post(
@@ -122,7 +114,7 @@ export function registerFeaturesRoutes(
         response: { 201: ResponseFeatureFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createFeatureController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createFeatureController.handle(request)),
   );
 
   app.get(
@@ -137,7 +129,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureSchema, ...readErrorResponses },
       },
     },
-    controllers.getCampaignFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCampaignFeatureController.handle(request)),
   );
 
   app.patch(
@@ -153,7 +145,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseUpdateFeatureSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateFeatureController.handle(request)),
   );
 
   app.delete(
@@ -169,7 +161,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteFeatureController.handle(request)),
   );
 
   app.post(
@@ -185,7 +177,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreFeatureController.handle(request)),
   );
 
   app.post(
@@ -200,7 +192,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateFeatureController.handle(request)),
   );
 
   app.get(
@@ -217,7 +209,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseAssetUsagesSchema, ...readErrorResponses },
       },
     },
-    controllers.getFeatureUsagesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getFeatureUsagesController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -237,7 +229,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureListSchema, ...readErrorResponses },
       },
     },
-    controllers.listFeatureCatalogController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listFeatureCatalogController.handle(request)),
   );
 
   app.get(
@@ -252,7 +244,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureSchema, ...readErrorResponses },
       },
     },
-    controllers.getCatalogFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getCatalogFeatureController.handle(request)),
   );
 
   app.post(
@@ -268,7 +260,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseResolvedFeatureSchema, ...readErrorResponses },
       },
     },
-    controllers.resolveFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.resolveFeatureController.handle(request)),
   );
 
   // ---------------------------------------------------------------------------
@@ -287,7 +279,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureListSchema, ...readErrorResponses },
       },
     },
-    controllers.listSystemFeaturesController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.listSystemFeaturesController.handle(request)),
   );
 
   app.post(
@@ -302,7 +294,7 @@ export function registerFeaturesRoutes(
         response: { 201: ResponseFeatureFullSchema, ...writeErrorResponses },
       },
     },
-    created(controllers.createFeatureController.handle),
+    async (request, reply) => sendHttpResponse(reply, await controllers.createFeatureController.handle(request)),
   );
 
   app.get(
@@ -317,7 +309,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureSchema, ...readErrorResponses },
       },
     },
-    controllers.getSystemFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.getSystemFeatureController.handle(request)),
   );
 
   app.patch(
@@ -333,7 +325,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseUpdateFeatureSchema, ...writeErrorResponses },
       },
     },
-    controllers.updateFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.updateFeatureController.handle(request)),
   );
 
   app.delete(
@@ -349,7 +341,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.deleteFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.deleteFeatureController.handle(request)),
   );
 
   app.post(
@@ -365,7 +357,7 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureFullSchema, ...writeErrorResponses },
       },
     },
-    controllers.restoreFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.restoreFeatureController.handle(request)),
   );
 
   app.post(
@@ -380,6 +372,6 @@ export function registerFeaturesRoutes(
         response: { 200: ResponseFeatureValidationSchema, ...readErrorResponses },
       },
     },
-    controllers.validateFeatureController.handle,
+    async (request, reply) => sendHttpResponse(reply, await controllers.validateFeatureController.handle(request)),
   );
 }

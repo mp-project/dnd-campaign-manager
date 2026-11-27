@@ -10,6 +10,6 @@ export class GetBackgroundController extends AbstractController {
 
   handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () =>
-      this.useCase.execute(request.requestContext, RequestBackgroundParamsSchema.parse(request.params)),
+      this.ok(await this.useCase.execute(request.requestContext, RequestBackgroundParamsSchema.parse(request.params))),
     );
 }

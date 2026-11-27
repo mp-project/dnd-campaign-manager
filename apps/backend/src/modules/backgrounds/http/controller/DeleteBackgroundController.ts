@@ -14,10 +14,10 @@ export class DeleteBackgroundController extends AbstractController {
       const { campaignId, backgroundId } = RequestBackgroundParamsSchema.parse(request.params);
       const command = BackgroundLifecycleCommandSchema.parse(request.query);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.ok(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         backgroundId,
         command,
-      });
+      }));
     });
 }

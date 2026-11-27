@@ -22,11 +22,9 @@ import { GetBackgroundController } from "#src/modules/backgrounds/http/controlle
 import { GetBackgroundFeatOptionsController } from "#src/modules/backgrounds/http/controller/GetBackgroundFeatOptionsController";
 import { GetBackgroundSectionController } from "#src/modules/backgrounds/http/controller/GetBackgroundSectionController";
 import { GetBackgroundUsagesController } from "#src/modules/backgrounds/http/controller/GetBackgroundUsagesController";
-import {
-  ListBackgroundCatalogController,
-  ListCampaignBackgroundsController,
-  ListSystemBackgroundsController,
-} from "#src/modules/backgrounds/http/controller/ListBackgroundsControllers";
+import { ListBackgroundCatalogController } from "#src/modules/backgrounds/http/controller/ListBackgroundCatalogController";
+import { ListCampaignBackgroundsController } from "#src/modules/backgrounds/http/controller/ListCampaignBackgroundsController";
+import { ListSystemBackgroundsController } from "#src/modules/backgrounds/http/controller/ListSystemBackgroundsController";
 import { ResolveBackgroundController } from "#src/modules/backgrounds/http/controller/ResolveBackgroundController";
 import { RestoreBackgroundController } from "#src/modules/backgrounds/http/controller/RestoreBackgroundController";
 import { UpdateBackgroundController } from "#src/modules/backgrounds/http/controller/UpdateBackgroundController";
@@ -42,12 +40,10 @@ import { GetBackgroundFeatOptionsUseCase } from "#src/modules/backgrounds/useCas
 import { GetBackgroundSectionUseCase } from "#src/modules/backgrounds/useCase/GetBackgroundSectionUseCase";
 import { GetBackgroundUsagesUseCase } from "#src/modules/backgrounds/useCase/GetBackgroundUsagesUseCase";
 import { GetBackgroundUseCase } from "#src/modules/backgrounds/useCase/GetBackgroundUseCase";
-import {
-  BackgroundListing,
-  ListBackgroundCatalogUseCase,
-  ListCampaignBackgroundsUseCase,
-  ListSystemBackgroundsUseCase,
-} from "#src/modules/backgrounds/useCase/ListBackgroundsUseCase";
+import { BackgroundListing } from "#src/modules/backgrounds/useCase/BackgroundListing";
+import { ListBackgroundCatalogUseCase } from "#src/modules/backgrounds/useCase/ListBackgroundCatalogUseCase";
+import { ListCampaignBackgroundsUseCase } from "#src/modules/backgrounds/useCase/ListCampaignBackgroundsUseCase";
+import { ListSystemBackgroundsUseCase } from "#src/modules/backgrounds/useCase/ListSystemBackgroundsUseCase";
 import { ResolveBackgroundUseCase } from "#src/modules/backgrounds/useCase/ResolveBackgroundUseCase";
 import { RestoreBackgroundUseCase } from "#src/modules/backgrounds/useCase/RestoreBackgroundUseCase";
 import { UpdateBackgroundUseCase } from "#src/modules/backgrounds/useCase/UpdateBackgroundUseCase";

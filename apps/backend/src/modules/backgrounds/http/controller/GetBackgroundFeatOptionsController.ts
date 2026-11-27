@@ -16,6 +16,6 @@ export class GetBackgroundFeatOptionsController extends AbstractController {
       const params = RequestCampaignBackgroundParamsSchema.parse(request.params);
       const command = BackgroundFeatOptionsSchema.parse(request.body ?? {});
 
-      return this.useCase.execute(request.requestContext, { ...params, command });
+      return this.ok(await this.useCase.execute(request.requestContext, { ...params, command }));
     });
 }

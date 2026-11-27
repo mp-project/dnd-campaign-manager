@@ -10,6 +10,6 @@ export class GetFeatureController extends AbstractController {
 
   handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () =>
-      this.useCase.execute(request.requestContext, RequestFeatureParamsSchema.parse(request.params)),
+      this.ok(await this.useCase.execute(request.requestContext, RequestFeatureParamsSchema.parse(request.params))),
     );
 }

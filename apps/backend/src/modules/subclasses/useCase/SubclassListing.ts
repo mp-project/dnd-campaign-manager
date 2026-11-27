@@ -115,33 +115,3 @@ export class SubclassListing {
     return records.map(toSubclassListItemFullResponse);
   }
 }
-
-/** Custom subclasses of a campaign. */
-export class ListCampaignSubclassesUseCase {
-  constructor(private readonly listing: SubclassListing) {}
-
-  execute(
-    context: RequestContext,
-    input: { campaignId: string; query: RequestCampaignSubclassesQueryDto },
-  ) {
-    return this.listing.listCampaign(context, input);
-  }
-}
-
-/** The subclasses of one class in the catalog of a campaign. */
-export class ListClassSubclassesUseCase {
-  constructor(private readonly listing: SubclassListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; classId: string }) {
-    return this.listing.listForClass(context, input);
-  }
-}
-
-/** Global subclasses; drafts and archived ones for administrators only. */
-export class ListSystemSubclassesUseCase {
-  constructor(private readonly listing: SubclassListing) {}
-
-  execute(context: RequestContext, input: { query: RequestSystemSubclassesQueryDto }) {
-    return this.listing.listSystem(context, input.query);
-  }
-}

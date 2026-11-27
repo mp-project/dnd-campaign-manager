@@ -16,6 +16,6 @@ export class ResolveFeatureController extends AbstractController {
       const params = RequestCampaignFeatureParamsSchema.parse(request.params);
       const command = ResolveFeatureSchema.parse(request.body ?? {});
 
-      return this.useCase.execute(request.requestContext, { ...params, command });
+      return this.ok(await this.useCase.execute(request.requestContext, { ...params, command }));
     });
 }

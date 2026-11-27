@@ -14,10 +14,10 @@ export class UpdateClassController extends AbstractController {
       const { campaignId, classId } = RequestClassParamsSchema.parse(request.params);
       const command = UpdateClassSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.ok(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         classId,
         command,
-      });
+      }));
     });
 }

@@ -21,6 +21,16 @@ export type ReadableFeat = {
   access: ContentAccess | null;
 };
 
+/** A feat in the catalog of a campaign; the input of the catalog sections. */
+export type FeatCatalogInput = { campaignId: string; featId: string };
+
+/** The ids and the view every catalog section of a feat starts with. */
+export const readableFeatHeader = (readable: ReadableFeat) => ({
+  featId: readable.found.feat.id,
+  assetId: readable.found.asset.id,
+  view: readable.view,
+});
+
 /**
  * Finds a feat for a read route and decides the view. Owners, editors and administrators get the
  * full view, players the player view of active feats they may see; archived feats stay in the

@@ -20,49 +20,41 @@ import {
 } from "#src/modules/features/index";
 import { FeatsRepository } from "#src/modules/feats/domain/repository/FeatsRepository";
 import { FEAT_ASSET_ACTIONS } from "#src/modules/feats/history/TrackedFeat";
-import {
-  CheckFeatEligibilityController,
-  CreateFeatController,
-  DeleteFeatController,
-  GetFeatCategoriesController,
-  GetFeatController,
-  GetFeatSectionController,
-  ListCampaignFeatsController,
-  ListFeatCatalogController,
-  ListSystemFeatsController,
-  ResolveFeatController,
-  RestoreFeatController,
-  UpdateFeatController,
-  ValidateFeatController,
-} from "#src/modules/feats/http/controller/FeatControllers";
+import { CheckFeatEligibilityController } from "#src/modules/feats/http/controller/CheckFeatEligibilityController";
+import { CreateFeatController } from "#src/modules/feats/http/controller/CreateFeatController";
+import { DeleteFeatController } from "#src/modules/feats/http/controller/DeleteFeatController";
+import { GetFeatCategoriesController } from "#src/modules/feats/http/controller/GetFeatCategoriesController";
+import { GetFeatController } from "#src/modules/feats/http/controller/GetFeatController";
+import { GetFeatSectionController } from "#src/modules/feats/http/controller/GetFeatSectionController";
+import { ListCampaignFeatsController } from "#src/modules/feats/http/controller/ListCampaignFeatsController";
+import { ListFeatCatalogController } from "#src/modules/feats/http/controller/ListFeatCatalogController";
+import { ListSystemFeatsController } from "#src/modules/feats/http/controller/ListSystemFeatsController";
+import { ResolveFeatController } from "#src/modules/feats/http/controller/ResolveFeatController";
+import { RestoreFeatController } from "#src/modules/feats/http/controller/RestoreFeatController";
+import { UpdateFeatController } from "#src/modules/feats/http/controller/UpdateFeatController";
+import { ValidateFeatController } from "#src/modules/feats/http/controller/ValidateFeatController";
 import { registerFeatsRoutes } from "#src/modules/feats/http/routes/v1/FeatsRoutes";
 import { featsPermissionDefinitions } from "#src/modules/feats/permissions/FeatsPermissions";
 import { FeatSelectionService } from "#src/modules/feats/service/FeatSelectionService";
 import { FeatsService } from "#src/modules/feats/service/FeatsService";
 import { FeatReader } from "#src/modules/feats/useCase/FeatReader";
-import {
-  CheckFeatEligibilityUseCase,
-  GetFeatCategoriesUseCase,
-  GetFeatChoicesUseCase,
-  GetFeatFeaturesUseCase,
-  GetFeatPrerequisitesUseCase,
-  GetFeatUsagesUseCase,
-  GetFeatUseCase,
-  ResolveFeatUseCase,
-} from "#src/modules/feats/useCase/FeatReadUseCases";
-import {
-  CreateFeatUseCase,
-  DeleteFeatUseCase,
-  RestoreFeatUseCase,
-  UpdateFeatUseCase,
-  ValidateFeatUseCase,
-} from "#src/modules/feats/useCase/FeatWriteUseCases";
-import {
-  FeatListing,
-  ListCampaignFeatsUseCase,
-  ListFeatCatalogUseCase,
-  ListSystemFeatsUseCase,
-} from "#src/modules/feats/useCase/ListFeatsUseCase";
+import { CheckFeatEligibilityUseCase } from "#src/modules/feats/useCase/CheckFeatEligibilityUseCase";
+import { CreateFeatUseCase } from "#src/modules/feats/useCase/CreateFeatUseCase";
+import { DeleteFeatUseCase } from "#src/modules/feats/useCase/DeleteFeatUseCase";
+import { FeatListing } from "#src/modules/feats/useCase/FeatListing";
+import { GetFeatCategoriesUseCase } from "#src/modules/feats/useCase/GetFeatCategoriesUseCase";
+import { GetFeatChoicesUseCase } from "#src/modules/feats/useCase/GetFeatChoicesUseCase";
+import { GetFeatFeaturesUseCase } from "#src/modules/feats/useCase/GetFeatFeaturesUseCase";
+import { GetFeatPrerequisitesUseCase } from "#src/modules/feats/useCase/GetFeatPrerequisitesUseCase";
+import { GetFeatUsagesUseCase } from "#src/modules/feats/useCase/GetFeatUsagesUseCase";
+import { GetFeatUseCase } from "#src/modules/feats/useCase/GetFeatUseCase";
+import { ListCampaignFeatsUseCase } from "#src/modules/feats/useCase/ListCampaignFeatsUseCase";
+import { ListFeatCatalogUseCase } from "#src/modules/feats/useCase/ListFeatCatalogUseCase";
+import { ListSystemFeatsUseCase } from "#src/modules/feats/useCase/ListSystemFeatsUseCase";
+import { ResolveFeatUseCase } from "#src/modules/feats/useCase/ResolveFeatUseCase";
+import { RestoreFeatUseCase } from "#src/modules/feats/useCase/RestoreFeatUseCase";
+import { UpdateFeatUseCase } from "#src/modules/feats/useCase/UpdateFeatUseCase";
+import { ValidateFeatUseCase } from "#src/modules/feats/useCase/ValidateFeatUseCase";
 import {
   RULESET_MODULE_DEPENDENCIES,
   type RulesetModuleDependencies,

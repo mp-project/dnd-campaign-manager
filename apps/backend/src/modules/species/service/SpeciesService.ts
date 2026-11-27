@@ -9,11 +9,13 @@ import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
+  assetContentWriter,
   type AssetReference,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -98,6 +100,15 @@ type VariantCheckRow = Pick<
   "assetId" | "campaignId" | "speciesId" | "variantGroupCode"
 > & { featureGrants: SpeciesFeatureGrant[] };
 
+/** The types of species for the shared write use cases (`CreateContentUseCase` …). */
+export type SpeciesContent = {
+  path: { campaignId: string | null; speciesId: string };
+  found: SpeciesWithAsset;
+  record: SpeciesRecord;
+  create: CreateSpeciesDto;
+  update: UpdateSpeciesDto;
+};
+
 /**
  * Species definitions: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each species is an asset of type
@@ -109,6 +120,8 @@ type VariantCheckRow = Pick<
 export class SpeciesService {
   public readonly trackedSpecies: TrackedSpecies;
   public readonly trackedVariant: TrackedSpeciesVariant;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<SpeciesContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -146,6 +159,12 @@ export class SpeciesService {
 
     this.trackedSpecies = createTrackedSpecies(deps);
     this.trackedVariant = createTrackedSpeciesVariant(deps);
+    this.writer = assetContentWriter<SpeciesContent>(assets, {
+      requireForWrite: (db, path) => this.requireForWrite(db, path),
+      create: (scope, owner, command) => this.createSpecies(scope, owner, command),
+      update: (scope, change) => this.updateSpecies(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireSpecies(db, found.species.id)),
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -467,31 +486,6 @@ export class SpeciesService {
     });
 
     return result.merged.map((field) => ASSET_FIELD_NAMES[field] ?? field);
-  }
-
-  /** Archives the asset; fails while variants or other definitions still refer to it. */
-  async archiveSpecies(
-    scope: ActionScope,
-    params: { found: SpeciesWithAsset; expectedAssetVersion: number },
-  ): Promise<SpeciesRecord> {
-    await this.assets.archiveBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, params.found.species.id));
-  }
-
-  async restoreSpecies(
-    scope: ActionScope,
-    params: { found: SpeciesWithAsset; expectedAssetVersion: number },
-  ): Promise<SpeciesRecord> {
-    await this.assets.restoreBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireSpecies(scope.tx, params.found.species.id));
   }
 
   /**

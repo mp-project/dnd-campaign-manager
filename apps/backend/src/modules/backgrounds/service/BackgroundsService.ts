@@ -9,11 +9,13 @@ import type { RequestContext } from "#core/http/requestContext";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
+  assetContentWriter,
   type AssetReference,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -76,6 +78,15 @@ const ASSET_FIELDS = [
 
 type BackgroundOwner = Pick<BackgroundRow, "assetId" | "campaignId">;
 
+/** The types of backgrounds for the shared write use cases (`CreateContentUseCase` …). */
+export type BackgroundContent = {
+  path: { campaignId: string | null; backgroundId: string };
+  found: BackgroundWithAsset;
+  record: BackgroundRecord;
+  create: CreateBackgroundDto;
+  update: UpdateBackgroundDto;
+};
+
 /**
  * Background definitions: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each background is an asset of type
@@ -85,6 +96,8 @@ type BackgroundOwner = Pick<BackgroundRow, "assetId" | "campaignId">;
  */
 export class BackgroundsService {
   public readonly trackedBackground: TrackedBackground;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<BackgroundContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -107,6 +120,12 @@ export class BackgroundsService {
           throw new ConflictError("Archived backgrounds cannot be modified", { assetId: asset.id });
         }
       },
+    });
+    this.writer = assetContentWriter<BackgroundContent>(assets, {
+      requireForWrite: (db, path) => this.requireForWrite(db, path),
+      create: (scope, owner, command) => this.createBackground(scope, owner, command),
+      update: (scope, change) => this.updateBackground(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireBackground(db, found.background.id)),
     });
   }
 
@@ -441,31 +460,6 @@ export class BackgroundsService {
     }
 
     return completed;
-  }
-
-  /** Archives the asset; fails while other content still refers to it. */
-  async archiveBackground(
-    scope: ActionScope,
-    params: { found: BackgroundWithAsset; expectedAssetVersion: number },
-  ): Promise<BackgroundRecord> {
-    await this.assets.archiveBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireBackground(scope.tx, params.found.background.id));
-  }
-
-  async restoreBackground(
-    scope: ActionScope,
-    params: { found: BackgroundWithAsset; expectedAssetVersion: number },
-  ): Promise<BackgroundRecord> {
-    await this.assets.restoreBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireBackground(scope.tx, params.found.background.id));
   }
 
   // ---------------------------------------------------------------------------

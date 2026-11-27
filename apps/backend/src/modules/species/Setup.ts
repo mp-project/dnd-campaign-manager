@@ -191,16 +191,16 @@ async function registerSpeciesModule(app: FastifyInstance, container: AppContain
           new GetSpeciesVariantController(new GetSpeciesVariantUseCase(reader, variants, mode)),
       ),
       createSpeciesController: new CreateSpeciesController(
-        new CreateSpeciesUseCase(history, service),
+        new CreateSpeciesUseCase(history, service.writer),
       ),
       updateSpeciesController: new UpdateSpeciesController(
-        new UpdateSpeciesUseCase(history, service),
+        new UpdateSpeciesUseCase(history, service.writer),
       ),
       deleteSpeciesController: new DeleteSpeciesController(
-        new DeleteSpeciesUseCase(history, service),
+        new DeleteSpeciesUseCase(history, service.writer),
       ),
       restoreSpeciesController: new RestoreSpeciesController(
-        new RestoreSpeciesUseCase(history, service),
+        new RestoreSpeciesUseCase(history, service.writer),
       ),
       validateSpeciesController: new ValidateSpeciesController(new ValidateSpeciesUseCase(service)),
       createVariantController: new CreateSpeciesVariantController(

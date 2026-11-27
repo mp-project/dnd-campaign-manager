@@ -175,10 +175,10 @@ async function registerBackgroundsModule(app: FastifyInstance, container: AppCon
       getBackgroundFeatOptionsController: new GetBackgroundFeatOptionsController(
         new GetBackgroundFeatOptionsUseCase(reader, selection),
       ),
-      createBackgroundController: new CreateBackgroundController(new CreateBackgroundUseCase(history, service)),
-      updateBackgroundController: new UpdateBackgroundController(new UpdateBackgroundUseCase(history, service)),
-      deleteBackgroundController: new DeleteBackgroundController(new DeleteBackgroundUseCase(history, service)),
-      restoreBackgroundController: new RestoreBackgroundController(new RestoreBackgroundUseCase(history, service)),
+      createBackgroundController: new CreateBackgroundController(new CreateBackgroundUseCase(history, service.writer)),
+      updateBackgroundController: new UpdateBackgroundController(new UpdateBackgroundUseCase(history, service.writer)),
+      deleteBackgroundController: new DeleteBackgroundController(new DeleteBackgroundUseCase(history, service.writer)),
+      restoreBackgroundController: new RestoreBackgroundController(new RestoreBackgroundUseCase(history, service.writer)),
       validateBackgroundController: new ValidateBackgroundController(new ValidateBackgroundUseCase(service)),
     });
   });

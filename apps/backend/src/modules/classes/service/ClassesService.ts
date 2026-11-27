@@ -9,11 +9,13 @@ import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
+  assetContentWriter,
   type AssetReference,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import type {
@@ -74,6 +76,15 @@ const TRACK_PARAMETER_TYPES: Record<string, readonly string[]> = {
   TEXT: ["TEXT"],
 };
 
+/** The types of classes for the shared write use cases (`CreateContentUseCase` …). */
+export type ClassContent = {
+  path: { campaignId: string | null; classId: string };
+  found: ClassWithAsset;
+  record: ClassRecord;
+  create: CreateClassDto;
+  update: UpdateClassDto;
+};
+
 /**
  * Class definitions: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each class is an asset of type
@@ -82,6 +93,8 @@ const TRACK_PARAMETER_TYPES: Record<string, readonly string[]> = {
  */
 export class ClassesService {
   public readonly trackedClass: TrackedClass;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<ClassContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -102,6 +115,12 @@ export class ClassesService {
           throw new ConflictError("Archived classes cannot be modified", { assetId: asset.id });
         }
       },
+    });
+    this.writer = assetContentWriter<ClassContent>(assets, {
+      requireForWrite: (db, path) => this.requireForWrite(db, path),
+      create: (scope, owner, command) => this.createClass(scope, owner, command),
+      update: (scope, change) => this.updateClass(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireClass(db, found.characterClass.id)),
     });
   }
 
@@ -457,34 +476,6 @@ export class ClassesService {
     }
 
     return completed;
-  }
-
-  /** Archives the asset; fails while other definitions still refer to it. */
-  async archiveClass(
-    scope: ActionScope,
-    params: { found: ClassWithAsset; expectedAssetVersion: number },
-  ): Promise<ClassRecord> {
-    await this.assets.archiveBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireClass(scope.tx, params.found.characterClass.id));
-  }
-
-  async restoreClass(
-    scope: ActionScope,
-    params: { found: ClassWithAsset; expectedAssetVersion: number },
-  ): Promise<ClassRecord> {
-    await this.assets.restoreBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(
-      scope.tx,
-      await this.requireClass(scope.tx, params.found.characterClass.id),
-    );
   }
 
   /**

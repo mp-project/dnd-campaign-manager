@@ -8,12 +8,14 @@ import type { RequestContext } from "#core/http/requestContext";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
+  assetContentWriter,
   type AssetReference,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentProperty,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import { checkTypedValue, type FeaturesService } from "#src/modules/features/index";
@@ -77,6 +79,15 @@ const PREREQUISITE_CHAIN_LIMIT = 500;
 
 type FeatOwner = Pick<FeatRow, "assetId" | "campaignId">;
 
+/** The types of feats for the shared write use cases (`CreateContentUseCase` …). */
+export type FeatContent = {
+  path: { campaignId: string | null; featId: string };
+  found: FeatWithAsset;
+  record: FeatRecord;
+  create: CreateFeatDto;
+  update: UpdateFeatDto;
+};
+
 /**
  * Feat definitions: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each feat is an asset of type
@@ -86,6 +97,8 @@ type FeatOwner = Pick<FeatRow, "assetId" | "campaignId">;
  */
 export class FeatsService {
   public readonly trackedFeat: TrackedFeat;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<FeatContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -106,6 +119,12 @@ export class FeatsService {
           throw new ConflictError("Archived feats cannot be modified", { assetId: asset.id });
         }
       },
+    });
+    this.writer = assetContentWriter<FeatContent>(assets, {
+      requireForWrite: (db, path) => this.requireForWrite(db, path),
+      create: (scope, owner, command) => this.createFeat(scope, owner, command),
+      update: (scope, change) => this.updateFeat(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireFeat(db, found.feat.id)),
     });
   }
 
@@ -481,31 +500,6 @@ export class FeatsService {
     }
 
     return completed;
-  }
-
-  /** Archives the asset; fails while other content still refers to it. */
-  async archiveFeat(
-    scope: ActionScope,
-    params: { found: FeatWithAsset; expectedAssetVersion: number },
-  ): Promise<FeatRecord> {
-    await this.assets.archiveBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireFeat(scope.tx, params.found.feat.id));
-  }
-
-  async restoreFeat(
-    scope: ActionScope,
-    params: { found: FeatWithAsset; expectedAssetVersion: number },
-  ): Promise<FeatRecord> {
-    await this.assets.restoreBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireFeat(scope.tx, params.found.feat.id));
   }
 
   // ---------------------------------------------------------------------------

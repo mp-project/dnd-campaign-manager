@@ -155,10 +155,10 @@ async function registerFeatsModule(app: FastifyInstance, container: AppContainer
         new CheckFeatEligibilityUseCase(reader, selection),
       ),
       resolveFeatController: new ResolveFeatController(new ResolveFeatUseCase(reader, selection)),
-      createFeatController: new CreateFeatController(new CreateFeatUseCase(history, service)),
-      updateFeatController: new UpdateFeatController(new UpdateFeatUseCase(history, service)),
-      deleteFeatController: new DeleteFeatController(new DeleteFeatUseCase(history, service)),
-      restoreFeatController: new RestoreFeatController(new RestoreFeatUseCase(history, service)),
+      createFeatController: new CreateFeatController(new CreateFeatUseCase(history, service.writer)),
+      updateFeatController: new UpdateFeatController(new UpdateFeatUseCase(history, service.writer)),
+      deleteFeatController: new DeleteFeatController(new DeleteFeatUseCase(history, service.writer)),
+      restoreFeatController: new RestoreFeatController(new RestoreFeatUseCase(history, service.writer)),
       validateFeatController: new ValidateFeatController(new ValidateFeatUseCase(service)),
     });
   });

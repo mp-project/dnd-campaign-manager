@@ -192,16 +192,16 @@ async function registerSubclassesModule(
         new CheckSubclassSelectionUseCase(service, assetsService),
       ),
       createSubclassController: new CreateSubclassController(
-        new CreateSubclassUseCase(history, service),
+        new CreateSubclassUseCase(history, service.writer),
       ),
       updateSubclassController: new UpdateSubclassController(
-        new UpdateSubclassUseCase(history, service),
+        new UpdateSubclassUseCase(history, service.writer),
       ),
       deleteSubclassController: new DeleteSubclassController(
-        new DeleteSubclassUseCase(history, service),
+        new DeleteSubclassUseCase(history, service.writer),
       ),
       restoreSubclassController: new RestoreSubclassController(
-        new RestoreSubclassUseCase(history, service),
+        new RestoreSubclassUseCase(history, service.writer),
       ),
       validateSubclassController: new ValidateSubclassController(
         new ValidateSubclassUseCase(service),

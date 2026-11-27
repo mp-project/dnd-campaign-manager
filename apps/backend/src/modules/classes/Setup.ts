@@ -169,11 +169,11 @@ async function registerClassesModule(
         new GetClassUseCase(service, reader, "system"),
       ),
       catalogSectionControllers,
-      createClassController: new CreateClassController(new CreateClassUseCase(history, service)),
-      updateClassController: new UpdateClassController(new UpdateClassUseCase(history, service)),
-      deleteClassController: new DeleteClassController(new DeleteClassUseCase(history, service)),
+      createClassController: new CreateClassController(new CreateClassUseCase(history, service.writer)),
+      updateClassController: new UpdateClassController(new UpdateClassUseCase(history, service.writer)),
+      deleteClassController: new DeleteClassController(new DeleteClassUseCase(history, service.writer)),
       restoreClassController: new RestoreClassController(
-        new RestoreClassUseCase(history, service),
+        new RestoreClassUseCase(history, service.writer),
       ),
       validateClassController: new ValidateClassController(new ValidateClassUseCase(service)),
       getCampaignClassUsagesController: new GetClassUsagesController(

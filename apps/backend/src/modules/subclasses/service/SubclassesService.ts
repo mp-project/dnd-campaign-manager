@@ -8,10 +8,12 @@ import type { RequestContext } from "#core/http/requestContext";
 import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
+  assetContentWriter,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -103,6 +105,15 @@ export type SubclassSelectionResult = {
   grantKeys: string[];
 };
 
+/** The types of subclasses for the shared write use cases (`CreateContentUseCase` …). */
+export type SubclassContent = {
+  path: { campaignId: string | null; subclassId: string };
+  found: SubclassWithAsset;
+  record: SubclassRecord;
+  create: CreateSubclassDto;
+  update: UpdateSubclassDto;
+};
+
 /**
  * Subclass definitions: global ones, maintained by administrators for global classes, and custom
  * ones of a campaign, for its own classes or for global ones. Each subclass is an asset of type
@@ -112,6 +123,8 @@ export type SubclassSelectionResult = {
  */
 export class SubclassesService {
   public readonly trackedSubclass: TrackedSubclass;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<SubclassContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -133,6 +146,12 @@ export class SubclassesService {
           throw new ConflictError("Archived subclasses cannot be modified", { assetId: asset.id });
         }
       },
+    });
+    this.writer = assetContentWriter<SubclassContent>(assets, {
+      requireForWrite: (db, path) => this.requireForWrite(db, path),
+      create: (scope, owner, command) => this.createSubclass(scope, owner, command),
+      update: (scope, change) => this.updateSubclass(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireSubclass(db, found.subclass.id)),
     });
   }
 
@@ -565,32 +584,6 @@ export class SubclassesService {
     }
 
     return completed;
-  }
-
-  /** Archives the asset; fails while other content still refers to it. */
-  async archiveSubclass(
-    scope: ActionScope,
-    params: { found: SubclassWithAsset; expectedAssetVersion: number },
-  ): Promise<SubclassRecord> {
-    await this.assets.archiveBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireSubclass(scope.tx, params.found.subclass.id));
-  }
-
-  /** The class must not be archived; checked by `verifyContent` at the end of the action. */
-  async restoreSubclass(
-    scope: ActionScope,
-    params: { found: SubclassWithAsset; expectedAssetVersion: number },
-  ): Promise<SubclassRecord> {
-    await this.assets.restoreBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireSubclass(scope.tx, params.found.subclass.id));
   }
 
   // ---------------------------------------------------------------------------

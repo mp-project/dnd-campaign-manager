@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
   pull_request:
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   # Decides which parts run. Pull requests run only the parts their changes touch;
-  # pushes to main and manual runs check everything.
+  # pushes to main and develop and manual runs check everything.
   changes:
     runs-on: ubuntu-latest
     permissions:

@@ -8,12 +8,14 @@ import type { RequestContext } from "#core/http/requestContext";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
   ASSET_TYPES,
+  assetContentWriter,
   type AssetReference,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentProperty,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import {
@@ -86,6 +88,15 @@ const NOT_COPIED = new Set([
 
 type KindedReference = AssetReference & { kind: "DEFINITION" | "SPELL" };
 
+/** The types of items for the shared write use cases (`CreateContentUseCase` …). */
+export type ItemContent = {
+  path: { campaignId: string | null; itemId: string };
+  found: ItemWithAsset;
+  record: ItemRecord;
+  create: CreateItemDto;
+  update: UpdateItemDto;
+};
+
 /**
  * Item definitions: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each is an asset of type `ITEM`;
@@ -94,6 +105,8 @@ type KindedReference = AssetReference & { kind: "DEFINITION" | "SPELL" };
  */
 export class ItemsService {
   public readonly trackedItem: TrackedItem;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<ItemContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -115,6 +128,12 @@ export class ItemsService {
           throw new ConflictError("Archived content cannot be modified", { assetId: asset.id });
         }
       },
+    });
+    this.writer = assetContentWriter<ItemContent>(assets, {
+      requireForWrite: (db, path) => this.requireScopedItem(db, path),
+      create: (scope, owner, command) => this.createItem(scope, owner, command),
+      update: (scope, change) => this.updateItem(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireItem(db, found.item.id)),
     });
   }
 
@@ -373,19 +392,6 @@ export class ItemsService {
     return { record: await this.loadRecord(scope.tx, await this.requireItem(scope.tx, params.found.item.id)), merged };
   }
 
-  /** Archives or restores the asset; archiving fails while content or instances still need it. */
-  async changeLifecycle(
-    scope: ActionScope,
-    params: { assetId: string; expectedAssetVersion: number; archive: boolean },
-  ): Promise<void> {
-    const command = { assetId: params.assetId, expectedVersion: params.expectedAssetVersion };
-
-    if (params.archive) {
-      await this.assets.archiveBase(scope, command);
-    } else {
-      await this.assets.restoreBase(scope, command);
-    }
-  }
 
   private async createAsset(
     scope: ActionScope,

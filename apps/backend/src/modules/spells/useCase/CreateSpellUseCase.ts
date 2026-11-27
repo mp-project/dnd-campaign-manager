@@ -1,23 +1,13 @@
-import type { ActionScope } from "#core/history/types";
-import type { RequestContext } from "#core/http/requestContext";
-import type { CreateSpellDto } from "#src/modules/spells/domain/dto/CreateSpellDto";
+import { CreateContentUseCase } from "#src/modules/assets/index";
 import {
   type ResponseSpellFullDto,
   toSpellFullResponse,
 } from "#src/modules/spells/domain/dto/ResponseSpellDto";
 import { SPELL_ACTIONS } from "#src/modules/spells/history/TrackedSpell";
-import { SpellMutation, type SpellScoped } from "#src/modules/spells/useCase/SpellMutation";
+import type { SpellContent } from "#src/modules/spells/service/SpellsService";
 
-export type CreateSpellInput = SpellScoped & { command: CreateSpellDto };
-
-export class CreateSpellUseCase extends SpellMutation<CreateSpellInput, ResponseSpellFullDto> {
+/** `campaignId` null creates a global spell, which only administrators may do. */
+export class CreateSpellUseCase extends CreateContentUseCase<SpellContent, ResponseSpellFullDto> {
   protected readonly action = SPELL_ACTIONS.create;
-
-  protected async perform(scope: ActionScope, context: RequestContext, input: CreateSpellInput) {
-    const actorId = this.spellsService.actorIdOf(context);
-
-    return toSpellFullResponse(
-      await this.spellsService.createSpell(scope, { actorId, campaignId: input.campaignId }, input.command),
-    );
-  }
+  protected readonly toResponse = toSpellFullResponse;
 }

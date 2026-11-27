@@ -1,23 +1,13 @@
-import type { ActionScope } from "#core/history/types";
-import type { RequestContext } from "#core/http/requestContext";
+import { UpdateContentUseCase } from "#src/modules/assets/index";
 import {
-  type ResponseUpdateItemDto,
+  type ResponseItemFullDto,
   toItemFullResponse,
 } from "#src/modules/items/domain/dto/ResponseItemDto";
-import type { UpdateItemDto } from "#src/modules/items/domain/dto/UpdateItemDto";
 import { ITEM_ACTIONS } from "#src/modules/items/history/TrackedItem";
-import { ItemMutation, type ItemScoped } from "#src/modules/items/useCase/ItemMutation";
+import type { ItemContent } from "#src/modules/items/service/ItemsService";
 
-export type UpdateItemInput = ItemScoped & { itemId: string; command: UpdateItemDto };
-
-export class UpdateItemUseCase extends ItemMutation<UpdateItemInput, ResponseUpdateItemDto> {
+/** Changes the item and its asset fields; `merged` names the fields that kept a newer value. */
+export class UpdateItemUseCase extends UpdateContentUseCase<ItemContent, ResponseItemFullDto> {
   protected readonly action = ITEM_ACTIONS.update;
-
-  protected async perform(scope: ActionScope, context: RequestContext, input: UpdateItemInput) {
-    const actorId = this.itemsService.actorIdOf(context);
-    const found = await this.itemsService.requireScopedItem(scope.tx, input);
-    const { record, merged } = await this.itemsService.updateItem(scope, { found, actorId, command: input.command });
-
-    return { ...toItemFullResponse(record), merged };
-  }
+  protected readonly toResponse = toItemFullResponse;
 }

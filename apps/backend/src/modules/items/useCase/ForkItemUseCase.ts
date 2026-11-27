@@ -1,12 +1,11 @@
 import type { ContentViewer } from "#core/content/viewer";
 import type { ActionScope, HistoryPort } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
-import type { AssetsService } from "#src/modules/assets/index";
+import { type AssetsService, ContentMutation, type ContentWriter } from "#src/modules/assets/index";
 import type { ForkItemDto } from "#src/modules/items/domain/dto/CreateItemDto";
 import { type ResponseItemFullDto, toItemFullResponse } from "#src/modules/items/domain/dto/ResponseItemDto";
 import { ITEM_ACTIONS } from "#src/modules/items/history/TrackedItem";
-import type { ItemsService } from "#src/modules/items/service/ItemsService";
-import { ItemMutation } from "#src/modules/items/useCase/ItemMutation";
+import type { ItemContent, ItemsService } from "#src/modules/items/service/ItemsService";
 
 type ForkInput = { campaignId: string; itemId: string; command: ForkItemDto };
 
@@ -14,17 +13,18 @@ type ForkInput = { campaignId: string; itemId: string; command: ForkItemDto };
  * Copies an item of the catalog (global or the campaign's own) into a new custom item of the
  * campaign. The source must be readable in the catalog; the copy is checked like a new item.
  */
-export class ForkItemUseCase extends ItemMutation<ForkInput, ResponseItemFullDto> {
+export class ForkItemUseCase extends ContentMutation<ItemContent, ForkInput, ResponseItemFullDto> {
   protected readonly action = ITEM_ACTIONS.fork;
   /** Viewers resolved before the transaction, so it needs no second connection. */
   private readonly viewers = new WeakMap<ForkInput, ContentViewer>();
 
   constructor(
     history: HistoryPort,
-    itemsService: ItemsService,
+    writer: ContentWriter<ItemContent>,
+    private readonly itemsService: ItemsService,
     private readonly assetsService: AssetsService,
   ) {
-    super(history, itemsService);
+    super(history, writer);
   }
 
   protected override async prepare(context: RequestContext, input: ForkInput): Promise<void> {
@@ -32,7 +32,7 @@ export class ForkItemUseCase extends ItemMutation<ForkInput, ResponseItemFullDto
   }
 
   protected async perform(scope: ActionScope, context: RequestContext, input: ForkInput) {
-    const actorId = this.itemsService.actorIdOf(context);
+    const actorId = this.writer.actorIdOf(context);
     const viewer = this.viewers.get(input) as ContentViewer;
     const source = await this.itemsService.requireReadableItem(
       await this.assetsService.accessFor(viewer, scope.tx),

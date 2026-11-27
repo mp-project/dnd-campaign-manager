@@ -1,6 +1,6 @@
+import type { ContentReadPurpose } from "#core/content/access";
 import type { RequestContext } from "#core/http/requestContext";
 import { isSysAdminRole } from "#core/permissions/roles";
-import type { ContentReadPurpose } from "#core/content/access";
 import type { AssetsService } from "#src/modules/assets/index";
 import type {
   RequestCampaignSpeciesQueryDto,
@@ -104,32 +104,5 @@ export class SpeciesListing {
     const records = await this.speciesService.loadRecords(this.speciesService.db, page.items);
 
     return toSpeciesListResponse({ page, data: records.map(toSpeciesListItemFullResponse), limit });
-  }
-}
-
-/** Custom species of a campaign. */
-export class ListCampaignSpeciesUseCase {
-  constructor(private readonly listing: SpeciesListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestCampaignSpeciesQueryDto }) {
-    return this.listing.listCampaign(context, input);
-  }
-}
-
-/** What a campaign may use: active global species for its ruleset and its own species. */
-export class ListSpeciesCatalogUseCase {
-  constructor(private readonly listing: SpeciesListing) {}
-
-  execute(context: RequestContext, input: { campaignId: string; query: RequestSpeciesCatalogQueryDto }) {
-    return this.listing.listCatalog(context, input);
-  }
-}
-
-/** Global species; drafts and archived ones for administrators only. */
-export class ListSystemSpeciesUseCase {
-  constructor(private readonly listing: SpeciesListing) {}
-
-  execute(context: RequestContext, input: { query: RequestSystemSpeciesQueryDto }) {
-    return this.listing.listSystem(context, input.query);
   }
 }

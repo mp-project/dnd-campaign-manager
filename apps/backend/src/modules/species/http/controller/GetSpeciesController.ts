@@ -10,6 +10,6 @@ export class GetSpeciesController extends AbstractController {
 
   handle = async (request: { params: unknown; requestContext: RequestContext }) =>
     this.execute(async () => {
-      return this.useCase.execute(request.requestContext, RequestSpeciesParamsSchema.parse(request.params));
+      return this.ok(await this.useCase.execute(request.requestContext, RequestSpeciesParamsSchema.parse(request.params)));
     });
 }

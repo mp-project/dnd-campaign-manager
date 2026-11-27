@@ -14,10 +14,10 @@ export class CreateSpeciesVariantController extends AbstractController {
       const { campaignId, speciesId } = RequestSpeciesParamsSchema.parse(request.params);
       const command = CreateSpeciesVariantSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.created(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         speciesId,
         command,
-      });
+      }));
     });
 }

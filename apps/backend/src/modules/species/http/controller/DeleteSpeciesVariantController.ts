@@ -14,10 +14,10 @@ export class DeleteSpeciesVariantController extends AbstractController {
       const { campaignId, ...path } = RequestSpeciesVariantParamsSchema.parse(request.params);
       const command = SpeciesLifecycleCommandSchema.parse(request.query);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.ok(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         ...path,
         command,
-      });
+      }));
     });
 }

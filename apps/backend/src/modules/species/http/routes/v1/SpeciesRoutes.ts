@@ -1,7 +1,8 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ZodType } from "zod";
 
 import { errorResponseDto } from "#core/http/dto";
+import { type IHttpResponse, sendHttpResponse } from "#core/http/httpResponse";
 import { ResponseAssetUsagesSchema } from "#src/modules/asset-links/index";
 import {
   CreateSpeciesSchema,
@@ -47,11 +48,9 @@ import type { GetSpeciesCreationOptionsController } from "#src/modules/species/h
 import type { GetSpeciesFeaturesController } from "#src/modules/species/http/controller/GetSpeciesFeaturesController";
 import type { GetSpeciesUsagesController } from "#src/modules/species/http/controller/GetSpeciesUsagesController";
 import type { GetSpeciesVariantController } from "#src/modules/species/http/controller/GetSpeciesVariantController";
-import type {
-  ListCampaignSpeciesController,
-  ListSpeciesCatalogController,
-  ListSystemSpeciesController,
-} from "#src/modules/species/http/controller/ListSpeciesControllers";
+import type { ListCampaignSpeciesController } from "#src/modules/species/http/controller/ListCampaignSpeciesController";
+import type { ListSpeciesCatalogController } from "#src/modules/species/http/controller/ListSpeciesCatalogController";
+import type { ListSystemSpeciesController } from "#src/modules/species/http/controller/ListSystemSpeciesController";
 import type { ListSpeciesVariantsController } from "#src/modules/species/http/controller/ListSpeciesVariantsController";
 import type { ResolveSpeciesSelectionController } from "#src/modules/species/http/controller/ResolveSpeciesSelectionController";
 import type { RestoreSpeciesController } from "#src/modules/species/http/controller/RestoreSpeciesController";
@@ -108,7 +107,7 @@ const writeErrorResponses = {
 const campaignRead = { key: SPECIES_PERMISSIONS.read, hideAsNotFoundForPlayers: true };
 const campaignUsages = { key: SPECIES_PERMISSIONS.readUsages, hideAsNotFoundForPlayers: true };
 
-type Handler = (request: never) => Promise<unknown>;
+type Handler = (request: FastifyRequest) => Promise<IHttpResponse<unknown>>;
 
 type RouteSpec = {
   method: "GET" | "POST" | "PATCH" | "DELETE";
@@ -126,11 +125,6 @@ type RouteSpec = {
 
 function route(app: FastifyInstance, spec: RouteSpec): void {
   const [status, response] = spec.success;
-  const handler =
-    status === 201
-      ? async (request: FastifyRequest, reply: FastifyReply): Promise<unknown> =>
-          reply.code(201).send(await spec.handler(request as never))
-      : spec.handler;
 
   app.route({
     method: spec.method,
@@ -148,7 +142,7 @@ function route(app: FastifyInstance, spec: RouteSpec): void {
         ...(spec.write ? writeErrorResponses : readErrorResponses),
       },
     },
-    handler: handler as never,
+    handler: async (request, reply) => sendHttpResponse(reply, await spec.handler(request)),
   });
 }
 

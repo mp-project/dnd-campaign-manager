@@ -14,9 +14,9 @@ export class CreateSpeciesController extends AbstractController {
       const { campaignId } = RequestCampaignSpeciesListParamsSchema.partial().parse(request.params ?? {});
       const command = CreateSpeciesSchema.parse(request.body);
 
-      return this.useCase.execute(request.requestContext, {
+      return this.created(await this.useCase.execute(request.requestContext, {
         campaignId: campaignId ?? null,
         command,
-      });
+      }));
     });
 }

@@ -39,6 +39,16 @@ export type ReadableSpecies = {
   access: ContentAccess | null;
 };
 
+/** A species in the catalog of a campaign; the input of the catalog sections. */
+export type SpeciesCatalogInput = { campaignId: string; speciesId: string };
+
+/** The ids and the view every catalog section of a species starts with. */
+export const readableSpeciesHeader = (readable: ReadableSpecies) => ({
+  speciesId: readable.found.species.id,
+  assetId: readable.found.asset.id,
+  view: readable.view,
+});
+
 /**
  * Finds a species for a read route and decides the view. GMs and editors get the full view of what
  * the campaign may use, players the player view of active species they may see. Archived species

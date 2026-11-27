@@ -43,3 +43,18 @@ export {
 export { ASSET_ENTITY_TYPE } from "#src/modules/assets/history/TrackedAsset";
 export { ContentAccess } from "#src/modules/assets/service/ContentAccess";
 export { slugify } from "#src/modules/assets/domain/slugify";
+export {
+  assetContentWriter,
+  type ContentLifecycleChange,
+  type ContentOwner,
+  type ContentTypes,
+  type ContentUpdate,
+  type ContentUpdateResult,
+  type ContentWriter,
+  type ContentWriterParts,
+} from "#src/modules/assets/kit/ContentWriter";
+export { ContentMutation } from "#src/modules/assets/kit/ContentMutation";
+export { CreateContentUseCase, type CreateContentInput } from "#src/modules/assets/kit/CreateContentUseCase";
+export { UpdateContentUseCase, type UpdateContentInput } from "#src/modules/assets/kit/UpdateContentUseCase";
+export { ArchiveContentUseCase, type ArchiveContentInput } from "#src/modules/assets/kit/ArchiveContentUseCase";
+export { RestoreContentUseCase, type RestoreContentInput } from "#src/modules/assets/kit/RestoreContentUseCase";

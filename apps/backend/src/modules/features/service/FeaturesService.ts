@@ -9,11 +9,13 @@ import { UUID_PATTERN } from "#core/uuid";
 import { warnFallback } from "#core/log/warnFallback";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
+  assetContentWriter,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentProperty,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import type { CreateFeatureDto } from "#src/modules/features/domain/dto/CreateFeatureDto";
@@ -89,6 +91,15 @@ export const FEATURE_PROPERTIES = {
   usesClassLevel: { code: "USES_CLASS_LEVEL", phrase: "depends on a class level" },
 } as const;
 
+/** The types of features for the shared write use cases (`CreateContentUseCase` …). */
+export type FeatureContent = {
+  path: { campaignId: string | null; featureId: string };
+  found: FeatureWithAsset;
+  record: FeatureRecord;
+  create: CreateFeatureDto;
+  update: UpdateFeatureDto;
+};
+
 /**
  * Feature definitions: global ones, maintained by administrators per ruleset, and custom ones of a
  * campaign. Each feature is an asset of type `FEATURE`; the asset holds name, summary, status and
@@ -97,6 +108,8 @@ export const FEATURE_PROPERTIES = {
  */
 export class FeaturesService {
   public readonly trackedFeature: TrackedFeature;
+  /** Loading and writing for the shared write use cases. */
+  public readonly writer: ContentWriter<FeatureContent>;
   public readonly cache = new FeatureResolutionCache();
 
   constructor(
@@ -117,6 +130,12 @@ export class FeaturesService {
           throw new ConflictError("Archived features cannot be modified", { assetId: asset.id });
         }
       },
+    });
+    this.writer = assetContentWriter<FeatureContent>(assets, {
+      requireForWrite: (db, path) => this.requireForWrite(db, path),
+      create: (scope, owner, command) => this.createFeature(scope, owner, command),
+      update: (scope, change) => this.updateFeature(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireFeature(db, found.feature.id)),
     });
   }
 
@@ -491,31 +510,6 @@ export class FeaturesService {
     }
 
     return completed;
-  }
-
-  /** Archives the asset; fails while other definitions still refer to it. */
-  async archiveFeature(
-    scope: ActionScope,
-    params: { found: FeatureWithAsset; expectedAssetVersion: number },
-  ): Promise<FeatureRecord> {
-    await this.assets.archiveBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireFeature(scope.tx, params.found.feature.id));
-  }
-
-  async restoreFeature(
-    scope: ActionScope,
-    params: { found: FeatureWithAsset; expectedAssetVersion: number },
-  ): Promise<FeatureRecord> {
-    await this.assets.restoreBase(scope, {
-      assetId: params.found.asset.id,
-      expectedVersion: params.expectedAssetVersion,
-    });
-
-    return this.loadRecord(scope.tx, await this.requireFeature(scope.tx, params.found.feature.id));
   }
 
   /** What the stored definition refers to, for the reference index; nothing if it no longer parses. */

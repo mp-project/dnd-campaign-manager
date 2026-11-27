@@ -144,16 +144,16 @@ async function registerFeaturesModule(
         new GetFeatureUseCase(service, assetsService, "system"),
       ),
       createFeatureController: new CreateFeatureController(
-        new CreateFeatureUseCase(history, service),
+        new CreateFeatureUseCase(history, service.writer),
       ),
       updateFeatureController: new UpdateFeatureController(
-        new UpdateFeatureUseCase(history, service),
+        new UpdateFeatureUseCase(history, service.writer),
       ),
       deleteFeatureController: new DeleteFeatureController(
-        new DeleteFeatureUseCase(history, service),
+        new DeleteFeatureUseCase(history, service.writer),
       ),
       restoreFeatureController: new RestoreFeatureController(
-        new RestoreFeatureUseCase(history, service),
+        new RestoreFeatureUseCase(history, service.writer),
       ),
       validateFeatureController: new ValidateFeatureController(
         new ValidateFeatureUseCase(service),

@@ -7,11 +7,13 @@ import type { ActionScope } from "#core/history/types";
 import type { RequestContext } from "#core/http/requestContext";
 import { type AssetLinksService, editRoutePrefix } from "#src/modules/asset-links/index";
 import {
+  assetContentWriter,
   type AssetReference,
   type AssetRow,
   type AssetsService,
   type ContentAccess,
   type ContentReference,
+  type ContentWriter,
   slugify,
 } from "#src/modules/assets/index";
 import type { CreateSpellDto, CreateSpellListDto } from "#src/modules/spells/domain/dto/CreateSpellDto";
@@ -75,6 +77,24 @@ type ContentKindName = "spell" | "spell list";
 
 type Owner = { id: string; assetId: string; campaignId: string | null; code: string };
 
+/** The types of spells for the shared write use cases (`CreateContentUseCase` …). */
+export type SpellContent = {
+  path: { campaignId: string | null; spellId: string };
+  found: SpellWithAsset;
+  record: SpellRecord;
+  create: CreateSpellDto;
+  update: UpdateSpellDto;
+};
+
+/** The types of spell lists for the shared write use cases (`CreateContentUseCase` …). */
+export type SpellListContent = {
+  path: { campaignId: string | null; spellListId: string };
+  found: SpellListWithAsset;
+  record: SpellListRecord;
+  create: CreateSpellListDto;
+  update: UpdateSpellListDto;
+};
+
 /**
  * Spells and spell lists: global ones, maintained by administrators per ruleset and usable by every
  * campaign of a fitting ruleset, and custom ones of a campaign. Each is an asset (`SPELL`,
@@ -85,6 +105,9 @@ type Owner = { id: string; assetId: string; campaignId: string | null; code: str
 export class SpellsService {
   public readonly trackedSpell: TrackedSpell;
   public readonly trackedSpellList: TrackedSpellList;
+  /** Loading and writing of spells and of spell lists for the shared write use cases. */
+  public readonly writer: ContentWriter<SpellContent>;
+  public readonly listWriter: ContentWriter<SpellListContent>;
 
   constructor(
     public readonly db: AppDatabase,
@@ -109,6 +132,18 @@ export class SpellsService {
 
     this.trackedSpell = createTrackedSpell(deps);
     this.trackedSpellList = createTrackedSpellList(deps);
+    this.writer = assetContentWriter<SpellContent>(assets, {
+      requireForWrite: (db, path) => this.requireScopedSpell(db, path),
+      create: (scope, owner, command) => this.createSpell(scope, owner, command),
+      update: (scope, change) => this.updateSpell(scope, change),
+      reload: async (db, found) => this.loadRecord(db, await this.requireSpell(db, found.spell.id)),
+    });
+    this.listWriter = assetContentWriter<SpellListContent>(assets, {
+      requireForWrite: (db, path) => this.requireScopedSpellList(db, path),
+      create: (scope, owner, command) => this.createSpellList(scope, owner, command),
+      update: (scope, change) => this.updateSpellList(scope, change),
+      reload: async (db, found) => this.loadListRecord(db, await this.requireSpellList(db, found.spellList.id)),
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -490,19 +525,6 @@ export class SpellsService {
     };
   }
 
-  /** Archives or restores the asset; archiving fails while other content still refers to it. */
-  async changeLifecycle(
-    scope: ActionScope,
-    params: { assetId: string; expectedAssetVersion: number; archive: boolean },
-  ): Promise<void> {
-    const command = { assetId: params.assetId, expectedVersion: params.expectedAssetVersion };
-
-    if (params.archive) {
-      await this.assets.archiveBase(scope, command);
-    } else {
-      await this.assets.restoreBase(scope, command);
-    }
-  }
 
   private async createAsset(
     scope: ActionScope,

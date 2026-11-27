@@ -1,20 +1,13 @@
-import type { ActionScope } from "#core/history/types";
-import type { RequestContext } from "#core/http/requestContext";
-import type { CreateItemDto } from "#src/modules/items/domain/dto/CreateItemDto";
-import { type ResponseItemFullDto, toItemFullResponse } from "#src/modules/items/domain/dto/ResponseItemDto";
+import { CreateContentUseCase } from "#src/modules/assets/index";
+import {
+  type ResponseItemFullDto,
+  toItemFullResponse,
+} from "#src/modules/items/domain/dto/ResponseItemDto";
 import { ITEM_ACTIONS } from "#src/modules/items/history/TrackedItem";
-import { ItemMutation, type ItemScoped } from "#src/modules/items/useCase/ItemMutation";
+import type { ItemContent } from "#src/modules/items/service/ItemsService";
 
-export type CreateItemInput = ItemScoped & { command: CreateItemDto };
-
-export class CreateItemUseCase extends ItemMutation<CreateItemInput, ResponseItemFullDto> {
+/** `campaignId` null creates a global item, which only administrators may do. */
+export class CreateItemUseCase extends CreateContentUseCase<ItemContent, ResponseItemFullDto> {
   protected readonly action = ITEM_ACTIONS.create;
-
-  protected async perform(scope: ActionScope, context: RequestContext, input: CreateItemInput) {
-    const actorId = this.itemsService.actorIdOf(context);
-
-    return toItemFullResponse(
-      await this.itemsService.createItem(scope, { actorId, campaignId: input.campaignId }, input.command),
-    );
-  }
+  protected readonly toResponse = toItemFullResponse;
 }
